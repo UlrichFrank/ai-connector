@@ -2,7 +2,8 @@
 
 # The server (cmd/ai-connector-server, see docs/architecture.md): a pure-Go binary with the React web app embedded,
 # for the Raspberry Pi k0s cluster (image pharndt/ai-connector-server). It also carries the worker program
-# (cmd/ai-connector for darwin/arm64) of the same build, served at /tools/mlxlab/Darwin-arm64 for "Connect a Mac".
+# (cmd/ai-connector for macOS, Linux and Windows) of the same build, served at /tools/mlxlab/<platform> for
+# "Connect a worker".
 #
 #   docker buildx build --platform linux/arm64 -t pharndt/ai-connector-server:dev -f Dockerfile --load .   (make image)
 #
@@ -43,23 +44,26 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/ai-connector-server ./cmd/ai-connector-server \
     && mkdir -p /out/data
 
-# ---- the worker program for Apple silicon (cmd/ai-connector) ----
-# Without cgo: MLX is reached through purego and the embedded mlx-c dylib; the Go linker signs it ad hoc.
-FROM src AS mac
+# ---- the worker program for every platform (cmd/ai-connector), see internal/hub/tools.go ----
+# Without cgo: on a Mac MLX is reached through purego and the embedded mlx-c dylib (the Go linker signs it ad hoc);
+# on Linux and Windows the worker runs the embedder, the classifier and local OpenAI-compatible runtimes.
+FROM src AS workers
 ARG VERSION=dev
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
-    go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/tools/mlxlab/Darwin-arm64 ./cmd/ai-connector \
-    && chmod 0755 /out/tools/mlxlab/Darwin-arm64
+    for p in darwin-arm64 linux-amd64 linux-arm64 windows-amd64; do \
+      CGO_ENABLED=0 GOOS=${p%-*} GOARCH=${p#*-} \
+      go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/tools/mlxlab/$p ./cmd/ai-connector \
+      && chmod 0755 /out/tools/mlxlab/$p || exit 1; \
+    done
 
 # ---- runtime ----
 # distroless static: CA certificates, tzdata, /etc/passwd with nonroot (65532), no shell.
 # There is no curl/wget for a Docker HEALTHCHECK; Kubernetes probes GET /api/info (no auth) instead.
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=hub /out/ai-connector-server /usr/local/bin/ai-connector-server
-# the worker program, readable by anyone (root-owned, 0755), served by the server at /tools/mlxlab/Darwin-arm64
-COPY --from=mac /out/tools/ /tools/
+# the worker programs, readable by anyone (root-owned, 0755), served by the server at /tools/mlxlab/<platform>
+COPY --from=workers /out/tools/ /tools/
 # empty, nonroot-owned data dir (devices.json, workers.json) so fresh volumes are writable
 COPY --from=hub --chown=65532:65532 /out/data /data
 ENV MLXLAB_DATA=/data MLXLAB_ADDR=:8080 MLXLAB_TOOLS=/tools

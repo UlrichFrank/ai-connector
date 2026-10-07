@@ -37,11 +37,16 @@ var refreshEvery = 30 * time.Second
 
 // Specs is what a Mac is (its /api/info).
 type Specs struct {
-	Chip     string `json:"chip"`
-	RAMGB    int    `json:"ramGB"`
-	GPUCores int    `json:"gpuCores,omitempty"`
-	MacOS    string `json:"macOS"`
-	Version  string `json:"version"`
+	Chip      string `json:"chip"`
+	RAMGB     int    `json:"ramGB"`
+	GPUCores  int    `json:"gpuCores,omitempty"`
+	MacOS     string `json:"macOS"`
+	OS        string `json:"os,omitempty"`
+	OSVersion string `json:"osVersion,omitempty"`
+	Arch      string `json:"arch,omitempty"`
+	GPU       string `json:"gpu,omitempty"`
+	VRAMGB    int    `json:"vramGB,omitempty"`
+	Version   string `json:"version"`
 }
 
 // WorkerState is what a Mac is doing (its /api/info).

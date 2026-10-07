@@ -8,3 +8,5 @@ __pycache__/
 
 # the files sandbox demo (make sandbox-files-try)
 /sandbox-files-out/
+/ai-connector
+/ai-connector-server

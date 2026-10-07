@@ -11,6 +11,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -137,7 +139,7 @@ func run() error {
 		cat, _ := setup(root)
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tKIND\tBACKEND\tSIZE\tWHERE")
-		for _, m := range cat.Models {
+		for _, m := range cat.List() {
 			where := "↓ on first use"
 			if m.Here {
 				where = m.Where
@@ -145,7 +147,11 @@ func run() error {
 			if m.Gated && !m.Here {
 				where += " (gated: HF_TOKEN)"
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", m.ID, m.Kind, m.Backend, models.Human(m.Size), where)
+			size := "–"
+			if m.Size > 0 {
+				size = models.Human(m.Size)
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", m.ID, m.Kind, m.Backend, size, where)
 		}
 		return w.Flush()
 	case "run":
@@ -169,6 +175,9 @@ func helpFlag(args []string) bool {
 	return false
 }
 
+// appleSilicon: the MLX chat models and the Python runtimes (mflux, ltx-2-mlx, mlx-audio, …) run here.
+const appleSilicon = runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
+
 // setup builds the catalogue, the backends and the job manager.
 func setup(root string) (*engine.Catalog, *jobs.Manager) {
 	srcs, _ := models.Sources(os.Getenv("MLXLAB_MODELS_FROM"), nil)
@@ -182,16 +191,35 @@ func setup(root string) (*engine.Catalog, *jobs.Manager) {
 	always := approvals.Open(root)
 	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
 	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
-	backends := []engine.Backend{
-		&engine.ChatBackend{Finder: finder, Agent: agentConfig(root, text, always)},
-		text,
-		&engine.FluxBackend{Root: root, Store: store},
-		&engine.LTXBackend{Root: root, Store: store},
-		&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
-		speech,
-		&engine.SoundBackend{Root: root, Store: store},
-		// the avatar says its text with the speech backend
-		&engine.AvatarBackend{Root: root, Store: store, Speaker: speech},
+	// the embedder and the classifier run everywhere (pure Go); MLX and the Python runtimes need Apple silicon
+	backends := []engine.Backend{text}
+	if appleSilicon {
+		backends = append(backends,
+			&engine.ChatBackend{Finder: finder, Agent: agentConfig(root, text, always)},
+			&engine.FluxBackend{Root: root, Store: store},
+			&engine.LTXBackend{Root: root, Store: store},
+			&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
+			speech,
+			&engine.SoundBackend{Root: root, Store: store},
+			// the avatar says its text with the speech backend
+			&engine.AvatarBackend{Root: root, Store: store, Speaker: speech},
+		)
+	}
+	runs := map[string]bool{}
+	for _, b := range backends {
+		runs[b.Name()] = true
+	}
+	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] })
+	// local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp, vLLM): their models, found now and every 30 s
+	rts, err := engine.ParseRuntimes(os.Getenv("MLXLAB_RUNTIMES"))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "mlxlab:", err)
+	}
+	if len(rts) > 0 {
+		oa := &engine.OpenAIBackend{Catalog: cat, Runtimes: rts}
+		oa.Discover(context.Background())
+		go oa.Watch(context.Background(), 30*time.Second)
+		backends = append(backends, oa)
 	}
 	mgr := jobs.New(cat, backends, root)
 	mgr.Approvals = always

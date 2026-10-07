@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -403,7 +402,7 @@ func (mo *model) key(k tea.KeyMsg) (tea.Cmd, bool) {
 			tea.Tick(2*time.Second, func(time.Time) tea.Msg { return mo.fetchModels()() })), true
 	case "w":
 		if mo.c != nil {
-			_ = exec.Command("open", mo.c.Server).Start()
+			openURL(mo.c.Server)
 		}
 	case "o":
 		mo.openLast()
@@ -525,7 +524,7 @@ func (mo *model) openLast() {
 	if f == "" {
 		return
 	}
-	_ = exec.Command("open", mo.c.FileURL(f)).Start()
+	openURL(mo.c.FileURL(f))
 }
 
 func (mo *model) lastJob() *jobs.Job {

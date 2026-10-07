@@ -31,7 +31,7 @@ type Config struct {
 	WorkerToken string // the legacy shared worker token (optional: each Mac gets its own token in the web UI)
 	Data        string // directory for devices.json and workers.json
 	Addr        string // listen address
-	Tools       string // directory with mlxlab/<platform>, the Mac program served at /tools/mlxlab/
+	Tools       string // directory with mlxlab/<GOOS-GOARCH>, the worker programs served at /tools/mlxlab/
 }
 
 // FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR and MLXLAB_TOOLS.

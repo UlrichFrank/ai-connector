@@ -332,7 +332,7 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 func (s *Server) models(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]any{"models": s.Jobs.Catalog.Models, "loaded": s.Jobs.Loaded(), "kinds": engine.Kinds,
+	writeJSON(w, map[string]any{"models": s.Jobs.Catalog.List(), "loaded": s.Jobs.Loaded(), "kinds": engine.Kinds,
 		"examples": engine.Examples})
 }
 

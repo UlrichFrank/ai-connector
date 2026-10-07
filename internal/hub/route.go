@@ -427,10 +427,14 @@ func (s *Server) mergedModels(w http.ResponseWriter, r *http.Request, nodes []*n
 				continue
 			}
 			mw := modelWorker{ID: order[i].id, Name: order[i].name, Fits: fits(order[i], cat[id])}
+			lists := false
 			for _, c := range a.cat {
 				if c.ID == id {
-					mw.Here = c.Here
+					mw.Here, lists = c.Here, true
 				}
+			}
+			if !lists { // this worker cannot run it (another platform, another runtime)
+				continue
 			}
 			for _, l := range a.loaded {
 				mw.Loaded = mw.Loaded || l == id
@@ -710,8 +714,9 @@ func resolve(nodes []*node, id string) (catalogModel, bool) {
 	return catalogModel{}, false
 }
 
-// choose picks the Mac for a model among those it fits: the model loaded > on disk > to download; then one that
-// holds the request's files; then idle > fewer jobs waiting; then more memory; then the primary.
+// choose picks the worker for a model among those that list it and it fits: the model loaded > on disk > to
+// download; then one that holds the request's files; then idle > fewer jobs waiting; then more memory; then the
+// primary.
 // ok=false: it fits none.
 func choose(nodes []*node, prim *node, m catalogModel, known bool, holds map[*node]bool) (*node, bool) {
 	type cand struct {
@@ -725,10 +730,19 @@ func choose(nodes []*node, prim *node, m catalogModel, known bool, holds map[*no
 		}
 		_, sp, st, models := n.snapshot()
 		c := cand{n: n, tier: 2, busy: 1, load: st.load(), ram: sp.RAMGB}
+		lists := false
 		for _, x := range models {
-			if x.ID == m.ID && x.Here {
-				c.tier = 1
+			if x.ID == m.ID {
+				lists = true
+				if x.Here {
+					c.tier = 1
+				}
 			}
+		}
+		// workers differ in what they can run (a Linux PC has no MLX, a runtime's models are its own): a known
+		// model goes only to a worker that lists it
+		if known && !lists {
+			continue
 		}
 		for _, l := range st.Loaded {
 			if known && l == m.ID {

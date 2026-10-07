@@ -10,24 +10,46 @@ import (
 	"strings"
 )
 
-// macPlatform is the one platform the worker runs on (`uname -s`-`uname -m` of an Apple silicon Mac).
-const macPlatform = "Darwin-arm64"
+// Platforms the worker program is built for (Dockerfile), as GOOS-GOARCH: its file under <Tools>/mlxlab/.
+var Platforms = []string{"darwin-arm64", "linux-amd64", "linux-arm64", "windows-amd64"}
 
-// tool serves GET /tools/mlxlab/{platform}: the Mac program of the same build as the hub, from
-// <Tools>/mlxlab/<platform>. It needs a worker token (enrolled or the legacy shared one) as a bearer, or a
-// signed-in device.
+// platform maps what a machine calls itself — `uname -s`-`uname -m` ("Darwin-arm64", "Linux-x86_64",
+// "Linux-aarch64") or Windows' names ("Windows-AMD64", "windows-amd64") — to a GOOS-GOARCH ("" when unknown).
+func platform(p string) string {
+	osName, arch, ok := strings.Cut(strings.ToLower(p), "-")
+	if !ok {
+		return ""
+	}
+	switch arch {
+	case "x86_64", "x64", "amd64":
+		arch = "amd64"
+	case "aarch64", "arm64":
+		arch = "arm64"
+	}
+	for _, q := range Platforms {
+		if q == osName+"-"+arch {
+			return q
+		}
+	}
+	return ""
+}
+
+// tool serves GET /tools/mlxlab/{platform}: the worker program of the same build as the server, for the asking
+// machine's platform, from <Tools>/mlxlab/<GOOS-GOARCH>. It needs a worker token (enrolled or the legacy shared one)
+// as a bearer, or a signed-in device.
 func (s *Server) tool(w http.ResponseWriter, r *http.Request) {
-	if r.PathValue("platform") != macPlatform {
-		http.Error(w, "mlxlab workers run on Apple Silicon Macs (Darwin-arm64)", http.StatusNotFound)
+	p := platform(r.PathValue("platform"))
+	if p == "" {
+		http.Error(w, "workers run on "+strings.Join(Platforms, ", ")+" (an Apple silicon Mac, Linux or Windows on x86-64 or arm64)", http.StatusNotFound)
 		return
 	}
 	if !s.mayDownload(r) {
-		http.Error(w, "unknown token: use the token from Connect a Mac (or sign in)", http.StatusUnauthorized)
+		http.Error(w, "unknown token: use the token from Connect a worker (or sign in)", http.StatusUnauthorized)
 		return
 	}
-	f, err := os.Open(filepath.Join(s.cfg.Tools, "mlxlab", macPlatform))
+	f, err := os.Open(filepath.Join(s.cfg.Tools, "mlxlab", p))
 	if errors.Is(err, fs.ErrNotExist) {
-		http.Error(w, "this hub has no Mac program (it is built into the hub image)", http.StatusNotFound)
+		http.Error(w, "this server has no worker program for "+p+" (it is built into the server image)", http.StatusNotFound)
 		return
 	}
 	if err != nil {
@@ -37,13 +59,17 @@ func (s *Server) tool(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	fi, err := f.Stat()
 	if err != nil || fi.IsDir() {
-		http.Error(w, "this hub has no Mac program", http.StatusNotFound)
+		http.Error(w, "this server has no worker program for "+p, http.StatusNotFound)
 		return
 	}
+	name := "ai-connector"
+	if strings.HasPrefix(p, "windows-") {
+		name += ".exe"
+	}
 	w.Header().Set("Content-Type", "application/octet-stream") // set, so ServeContent does not sniff
-	w.Header().Set("Content-Disposition", `attachment; filename="mlxlab"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
 	w.Header().Set("Cache-Control", "no-store")
-	http.ServeContent(w, r, "mlxlab", fi.ModTime(), f) // Content-Length (and ranges) from the file
+	http.ServeContent(w, r, name, fi.ModTime(), f) // Content-Length (and ranges) from the file
 }
 
 // mayDownload: a worker token as the bearer, or a device token (bearer, cookie or ?token=).

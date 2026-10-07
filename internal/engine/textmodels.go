@@ -90,14 +90,7 @@ func (b *TextBackend) embed(ctx context.Context, m *Model, r Request, emit Emit)
 	start := time.Now()
 	vecs := b.emb.Embed(r.Texts, 32)
 	took := time.Since(start)
-	sim := make([][]float64, len(vecs))
-	for i := range vecs {
-		sim[i] = make([]float64, len(vecs))
-		for j := range vecs {
-			sim[i][j] = math.Round(cosine(vecs[i], vecs[j])*1e4) / 1e4
-		}
-	}
-	emit(Event{Type: "result", Data: map[string]any{"similarity": sim, "dim": b.emb.Dim(), "texts": r.Texts}})
+	emit(embedResult(vecs, r.Texts))
 	emit(Event{Type: "stats", Data: map[string]any{"seconds": took.Seconds(), "textsPerSecond": float64(len(r.Texts)) / took.Seconds()}})
 	emit.Log(fmt.Sprintf("embedded %d texts in %d ms", len(r.Texts), took.Milliseconds()))
 	return nil

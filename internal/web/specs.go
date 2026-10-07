@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,13 +12,20 @@ import (
 	"github.com/philipparndt/ai-connector/internal/jobs"
 )
 
-// Specs is what this Mac is (GET /api/info), for the hub to pick a Mac for a job.
+// Specs is what this machine is (GET /api/info), for the server to pick a worker for a job.
 type Specs struct {
 	Chip     string `json:"chip"`
 	RAMGB    int    `json:"ramGB"`
-	GPUCores int    `json:"gpuCores,omitempty"`
-	MacOS    string `json:"macOS"`
-	Version  string `json:"version"` // mlxlab's
+	GPUCores int    `json:"gpuCores,omitempty"` // Apple silicon
+	MacOS    string `json:"macOS"`              // macOS only (older UIs read it)
+	// OS is "macOS", "Linux" or "Windows", OSVersion its version or distribution, Arch the Go architecture.
+	OS        string `json:"os"`
+	OSVersion string `json:"osVersion,omitempty"`
+	Arch      string `json:"arch"`
+	// GPU is a discrete GPU (NVIDIA, through nvidia-smi) and its memory; "" on a Mac (unified memory: RAMGB).
+	GPU     string `json:"gpu,omitempty"`
+	VRAMGB  int    `json:"vramGB,omitempty"`
+	Version string `json:"version"` // the worker's build
 }
 
 // WorkerState is what this Mac is doing (GET /api/info).
@@ -28,28 +35,40 @@ type WorkerState struct {
 	Loaded  map[string]string `json:"loaded"` // backend → model in memory
 }
 
-// machine asks the system once (sysctl, ioreg, sw_vers: a few ms, but not on every request).
+// machine asks the system once (a few ms, but not on every request).
 var machine = sync.OnceValue(func() Specs {
-	run := func(name string, args ...string) string {
-		out, err := exec.Command(name, args...).Output()
-		if err != nil {
-			return ""
-		}
-		return strings.TrimSpace(string(out))
-	}
-	sp := Specs{Chip: run("sysctl", "-n", "machdep.cpu.brand_string"), MacOS: run("sw_vers", "-productVersion")}
-	if b, err := strconv.ParseInt(run("sysctl", "-n", "hw.memsize"), 10, 64); err == nil {
-		sp.RAMGB = int((b + 1<<29) >> 30)
-	}
-	if m := gpuCores.FindStringSubmatch(run("ioreg", "-rc", "AGXAccelerator", "-d1")); m != nil {
-		sp.GPUCores, _ = strconv.Atoi(m[1])
+	sp := probe()
+	sp.Arch = runtime.GOARCH
+	if sp.GPU == "" {
+		sp.GPU, sp.VRAMGB = nvidia()
 	}
 	return sp
 })
 
-var gpuCores = regexp.MustCompile(`"gpu-core-count"\s*=\s*(\d+)`)
+// run is a command's trimmed output ("" when it fails).
+func run(name string, args ...string) string {
+	out, err := exec.Command(name, args...).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
 
-// specs is this Mac's; MLXLAB_FAKE_RAM_GB and MLXLAB_FAKE_CHIP pretend another one (for trying the hub's
+// nvidia is the first NVIDIA GPU and its memory in GB (nvidia-smi comes with the driver, on Linux and Windows).
+func nvidia() (string, int) {
+	line, _, _ := strings.Cut(run("nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"), "\n")
+	name, mib, ok := strings.Cut(line, ",")
+	if !ok {
+		return "", 0
+	}
+	m, _ := strconv.Atoi(strings.TrimSpace(mib))
+	return strings.TrimSpace(name), (m + 512) / 1024
+}
+
+// gb rounds bytes to whole GB.
+func gb(b int64) int { return int((b + 1<<29) >> 30) }
+
+// specs is this machine's; MLXLAB_FAKE_RAM_GB and MLXLAB_FAKE_CHIP pretend another one (for trying the hub's
 // routing with several workers on one Mac).
 func (s *Server) specs() Specs {
 	sp := machine()

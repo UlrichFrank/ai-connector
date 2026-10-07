@@ -81,7 +81,7 @@ func putTool(t *testing.T, dir string) []byte {
 	if err := os.MkdirAll(filepath.Join(dir, "mlxlab"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "mlxlab", "Darwin-arm64"), bin, 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "mlxlab", "darwin-arm64"), bin, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return bin
@@ -233,13 +233,21 @@ func TestDownload(t *testing.T) {
 			t.Fatalf("download with %q: %d", tok, r.StatusCode)
 		}
 	}
-	// another platform: 404 with a message, signed in or not
+	// a platform no worker is built for: 404 with a message, signed in or not
 	device := signIn(t, srv.URL, "laptop")
-	for _, p := range []string{"Linux-x86_64", "Darwin-x86_64", "Linux-aarch64"} {
+	for _, p := range []string{"Darwin-x86_64", "Plan9-mips", "nonsense"} {
 		r, b := download(t, srv.URL, p, device)
-		if r.StatusCode != 404 || !strings.Contains(string(b), "Apple Silicon Macs (Darwin-arm64)") {
+		if r.StatusCode != 404 || !strings.Contains(string(b), "workers run on darwin-arm64, linux-amd64") {
 			t.Fatalf("%s: %d %q", p, r.StatusCode, b)
 		}
+	}
+	// a platform it is built for whose program this server lacks: 404 naming it
+	if r, b := download(t, srv.URL, "Linux-x86_64", device); r.StatusCode != 404 || !strings.Contains(string(b), "linux-amd64") {
+		t.Fatalf("linux without a program: %d %q", r.StatusCode, b)
+	}
+	// the uname spelling and Go's are the same file
+	if r, b := download(t, srv.URL, "darwin-arm64", device); r.StatusCode != 200 || !bytes.Equal(b, bin) {
+		t.Fatalf("darwin-arm64: %d", r.StatusCode)
 	}
 	// a signed-in device: bearer, cookie, ?token=
 	if r, b := download(t, srv.URL, "Darwin-arm64", device); r.StatusCode != 200 || !bytes.Equal(b, bin) {

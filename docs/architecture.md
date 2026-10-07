@@ -76,8 +76,10 @@ name, the Mac's host name for the legacy token, whose id is `"legacy"`). Connect
 Every worker stays connected at once (see "Several Macs"); a newer connection of the *same* worker replaces its
 older one.
 
-The program: `GET /tools/mlxlab/Darwin-arm64` serves the Mac binary of the same build as the hub (cross-compiled
-without cgo in `Dockerfile.hub`, kept at `/tools/mlxlab/Darwin-arm64` in the image, `MLXLAB_TOOLS` = the folder).
+The program: `GET /tools/mlxlab/{platform}` serves the worker binary of the same build as the server for
+darwin-arm64, linux-amd64, linux-arm64 and windows-amd64 (cross-compiled without cgo in the `Dockerfile`, kept at
+`/tools/mlxlab/<GOOS-GOARCH>` in the image, `MLXLAB_TOOLS` = the folder). `{platform}` may be Go's name or what
+`uname -s`-`uname -m` prints (`Darwin-arm64`, `Linux-x86_64`, `Linux-aarch64`; Windows `Windows-AMD64`).
 It needs `Authorization: Bearer <worker token>` (enrolled or legacy) or a device token (bearer, cookie, `?token=`);
 without: 401. Other platforms → 404 with a message (whatever the token).
 
@@ -146,9 +148,17 @@ The hub keeps **every** enrolled worker connected (no more "a newer one replaces
 do, and sends each job to the best one. Each Mac keeps its own jobs, files, history — the hub merges them.
 
 **Specs** — the worker's `GET /api/info` (through the tunnel) adds
-`{"specs":{"chip":"Apple M2 Ultra","ramGB":64,"gpuCores":60,"macOS":"27.0.1","version":"…"},
+`{"specs":{"chip":"Apple M2 Ultra","ramGB":64,"gpuCores":60,"macOS":"27.0.1","os":"macOS","osVersion":"27.0.1",
+"arch":"arm64","gpu":"","vramGB":0,"version":"…"},
 "state":{"running":"<job id>"|null,"queued":3,"loaded":{"<backend>":"<model id>"}}}`; the hub reads it on connect
 and keeps the state current from the worker's own event stream (job state changes) plus a refresh every 30 s.
+
+(`os` is macOS, Linux or Windows; `gpu`/`vramGB` a discrete NVIDIA GPU through `nvidia-smi`; `macOS` stays for
+older UIs. Linux reads `/proc` and `/etc/os-release`, Windows the registry and `GlobalMemoryStatusEx`.)
+
+**Workers differ in what they run** (Linux and Windows have no MLX; a local runtime's models are its own machine's):
+a model whose id some worker lists goes only to the workers that list it, and `GET /api/models` names only those
+under `workers`.
 
 **Job ids and files are unique across Macs**: on connect the hub tells the worker its short route id (header
 `X-Mlxlab-Route: <rid>` on every proxied request, e.g. `m1`); the worker then answers with job ids `<rid>.<id>` and

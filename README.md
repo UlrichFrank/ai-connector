@@ -1,7 +1,7 @@
 # ai-connector — one server for local AI on your own machines
 
 ai-connector generalises mlxlab, vboard-ai and docscan-ai into one application: a **server** (web UI, sign-in, queue,
-APIs for other apps) and **workers** (Macs and, later, Linux and Windows PCs) that dial out to it and run the models.
+APIs for other apps) and **workers** (Macs, Linux and Windows PCs) that dial out to it and run the models.
 It starts as mlxlab (copied from `local-ai-tests` at e4606bf, module `github.com/philipparndt/ai-connector`); the
 plan and its phases are on the vboard board "AI Connector — Architecture".
 
@@ -12,6 +12,25 @@ plan and its phases are on the vboard board "AI Connector — Architecture".
 
 The wire names stay mlxlab's for now (`/api/*`, the `mlxlab_session` cookie, `X-Mlxlab-*` headers, `MLXLAB_*`
 environment, `~/.config/mlxlab`), so mlxlab's web UI, TUI and iOS app keep working against the new server.
+
+### What a worker runs, by platform
+
+| | Apple silicon Mac | Linux (x86-64, arm64) | Windows (x86-64) |
+|---|---|---|---|
+| embedder (Qwen3-Embedding-0.6B), classifier (Laya) — pure Go | ✓ Accelerate / Metal | ✓ OpenBLAS if installed, else Go | ✓ Go |
+| chat on MLX, with tools (home / web / files zones) | ✓ | – | – |
+| image, video, music, speech, sound, avatar (Python on MLX) | ✓ | – | – |
+| chat and embedding models of local runtimes (below) | ✓ | ✓ | ✓ |
+
+**Local runtimes**: the worker finds the models of OpenAI-compatible servers on its machine — Ollama (:11434),
+LM Studio (:1234), llama.cpp (:8080), vLLM (:8000) — at start and every 30 s, and offers them as `<runtime>/<model>`
+(e.g. `ollama/qwen3:8b`): chat (streamed, thinking as `<think>`; no tool zones) and embeddings. `MLXLAB_RUNTIMES`
+picks them: unset = those four on 127.0.0.1, `none` = off, or a list like `ollama,gpu=http://10.0.0.5:8000#key`
+(name=URL, a key after `#`).
+
+A worker offers only what it can run, and the server routes a job only to a worker that lists its model. The
+Linux worker needs glibc (it loads OpenBLAS at run time; Ubuntu, Debian, Fedora — not Alpine/musl). Windows workers
+build and pass vet but have not run on Windows yet.
 
 ---
 

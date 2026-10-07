@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/philipparndt/ai-connector/internal/llm"
 	"github.com/philipparndt/ai-connector/internal/models"
@@ -50,24 +51,69 @@ type Model struct {
 	mflux  string        // mflux's model name
 	hq     bool          // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
 
-	runtime     string    // music: the runtime (MusicBackend.Runtimes)
-	workerModel string    // music: the model id the worker knows
-	repos       []hubRepo // music: the repositories it needs
-	maxSeconds  float64   // music: the longest song it makes (0: no limit of its own)
+	served      *servedModel // a model of a local OpenAI-compatible server (OpenAIBackend)
+	runtime     string       // music: the runtime (MusicBackend.Runtimes)
+	workerModel string       // music: the model id the worker knows
+	repos       []hubRepo    // music: the repositories it needs
+	maxSeconds  float64      // music: the longest song it makes (0: no limit of its own)
 	lora        *musicLoRA
 }
 
-// Catalog is the list of models.
+// Catalog is the list of models: Models, built when the worker starts, and the models of local runtimes (Ollama,
+// LM Studio, …), which come and go while it runs (SetRuntime).
 type Catalog struct {
 	Models []*Model
 	HFHub  string
+
+	mu      sync.RWMutex
+	runtime map[string][]*Model // backend → its models now
+}
+
+// List is every model: the built-in ones, then those of the local runtimes.
+func (c *Catalog) List() []*Model {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	out := append([]*Model(nil), c.Models...)
+	names := make([]string, 0, len(c.runtime))
+	for b := range c.runtime {
+		names = append(names, b)
+	}
+	sort.Strings(names)
+	for _, b := range names {
+		out = append(out, c.runtime[b]...)
+	}
+	return out
+}
+
+// SetRuntime replaces the models a runtime backend offers now.
+func (c *Catalog) SetRuntime(backend string, ms []*Model) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.runtime == nil {
+		c.runtime = map[string][]*Model{}
+	}
+	c.runtime[backend] = ms
+}
+
+// Keep drops the built-in models keep says no to (those of backends this machine cannot run). Call it before the
+// catalogue is used.
+func (c *Catalog) Keep(keep func(*Model) bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	ms := c.Models[:0]
+	for _, m := range c.Models {
+		if keep(m) {
+			ms = append(ms, m)
+		}
+	}
+	c.Models = ms
 }
 
 // Find looks a model up by its id (or a unique prefix of it).
 func (c *Catalog) Find(id string) *Model {
 	id = strings.ToLower(strings.TrimSpace(id))
 	var hit *Model
-	for _, m := range c.Models {
+	for _, m := range c.List() {
 		if m.ID == id {
 			return m
 		}
@@ -84,7 +130,7 @@ func (c *Catalog) Find(id string) *Model {
 // OfKind lists the models of one kind.
 func (c *Catalog) OfKind(k Kind) []*Model {
 	var out []*Model
-	for _, m := range c.Models {
+	for _, m := range c.List() {
 		if m.Kind == k {
 			out = append(out, m)
 		}

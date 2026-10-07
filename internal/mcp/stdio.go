@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -42,7 +41,7 @@ func startStdio(s *Server, stderr io.Writer) (*stdioTransport, error) {
 	}
 	cmd.Stderr = stderr
 	// its own process group, so that closing also ends what it started (npx → node)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	ownGroup(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -114,15 +113,16 @@ func (t *stdioTransport) request(ctx context.Context, m *message) (*message, err
 func (t *stdioTransport) notify(_ context.Context, m *message) error { return t.write(m) }
 func (t *stdioTransport) negotiated(string)                          {}
 
-// close closes stdin and waits for the server to exit; after 2 s it gets SIGTERM, after 2 more SIGKILL.
+// close closes stdin and waits for the server to exit; after 2 s it is asked to stop (SIGTERM), after 2 more it is
+// killed (SIGKILL; Windows: both kill the process).
 func (t *stdioTransport) close() error {
 	t.once.Do(func() {
 		t.wmu.Lock()
 		_ = t.stdin.Close()
 		t.wmu.Unlock()
-		for _, sig := range []syscall.Signal{0, syscall.SIGTERM, syscall.SIGKILL} {
-			if sig != 0 {
-				_ = syscall.Kill(-t.cmd.Process.Pid, sig)
+		for i, stop := range []func(*exec.Cmd){nil, terminateGroup, killGroup} {
+			if i > 0 {
+				stop(t.cmd)
 			}
 			select {
 			case <-t.done:

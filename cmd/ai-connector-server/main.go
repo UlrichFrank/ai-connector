@@ -32,8 +32,10 @@ func main() {
 	if cfg.WorkerToken == "" {
 		log.Printf("no MLXLAB_WORKER_TOKEN: only Macs connected in the web UI (Devices → Connect a Mac) get in")
 	}
-	if _, err := os.Stat(filepath.Join(cfg.Tools, "mlxlab", "Darwin-arm64")); err != nil {
-		log.Printf("no Mac program in %s (MLXLAB_TOOLS): /tools/mlxlab/Darwin-arm64 answers 404", cfg.Tools)
+	for _, p := range hub.Platforms {
+		if _, err := os.Stat(filepath.Join(cfg.Tools, "mlxlab", p)); err != nil {
+			log.Printf("no worker program for %s in %s (MLXLAB_TOOLS): /tools/mlxlab/%s answers 404", p, cfg.Tools, p)
+		}
 	}
 	if !webui.Built() {
 		log.Printf("the web app is not built into this binary (make web); only the API is served")
