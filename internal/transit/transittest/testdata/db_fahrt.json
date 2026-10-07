@@ -1,0 +1,282 @@
+{
+ "reisetag": "2026-10-04",
+ "regulaereVerkehrstage": "täglich",
+ "zugName": "19306",
+ "halte": [
+  {
+   "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T06:33:00",
+    "echtzeit": "2026-10-04T07:43:00"
+   },
+   "gleis": "3",
+   "haltTyp": "PL",
+   "name": "Tübingen Hbf",
+   "risNotizen": [],
+   "bahnhofsInfoId": "6279",
+   "extId": "8000141",
+   "routeIdx": 0,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Reutlingen Hbf@X=9209116@Y=48496076@U=80@L=8000314@i=U×008029309@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T06:43:00",
+    "echtzeit": "2026-10-04T07:53:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T06:42:00",
+    "echtzeit": "2026-10-04T07:52:00"
+   },
+   "gleis": "1",
+   "haltTyp": "PL",
+   "name": "Reutlingen Hbf",
+   "risNotizen": [],
+   "bahnhofsInfoId": "5242",
+   "extId": "8000314",
+   "routeIdx": 1,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Metzingen(Württ)@X=9290154@Y=48539727@U=80@L=8004009@i=U×008029303@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T06:49:00",
+    "echtzeit": "2026-10-04T07:59:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T06:49:00",
+    "echtzeit": "2026-10-04T07:58:00"
+   },
+   "gleis": "2",
+   "haltTyp": "PL",
+   "name": "Metzingen(Württ)",
+   "risNotizen": [],
+   "bahnhofsInfoId": "4087",
+   "extId": "8004009",
+   "routeIdx": 2,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Bempflingen@X=9273425@Y=48572367@U=80@L=8000865@i=U×008029302@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T06:53:00",
+    "echtzeit": "2026-10-04T08:03:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T06:52:00",
+    "echtzeit": "2026-10-04T08:02:00"
+   },
+   "gleis": "2",
+   "haltTyp": "PL",
+   "name": "Bempflingen",
+   "risNotizen": [],
+   "bahnhofsInfoId": "0479",
+   "extId": "8000865",
+   "routeIdx": 3,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Nürtingen@X=9342804@Y=48628064@U=80@L=8004488@i=U×008029299@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:00:00",
+    "echtzeit": "2026-10-04T08:10:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T06:59:00",
+    "echtzeit": "2026-10-04T08:09:00"
+   },
+   "gleis": "2",
+   "haltTyp": "PL",
+   "name": "Nürtingen",
+   "risNotizen": [],
+   "bahnhofsInfoId": "4612",
+   "extId": "8004488",
+   "routeIdx": 4,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Oberboihingen@X=9364342@Y=48648155@U=80@L=8004517@i=U×008029298@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:03:00",
+    "echtzeit": "2026-10-04T08:14:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:02:00",
+    "echtzeit": "2026-10-04T08:13:00"
+   },
+   "gleis": "1",
+   "haltTyp": "PL",
+   "name": "Oberboihingen",
+   "risNotizen": [],
+   "bahnhofsInfoId": "4626",
+   "extId": "8004517",
+   "routeIdx": 5,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Wendlingen(Neckar)@X=9373007@Y=48672965@U=80@L=8006331@i=U×008019638@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:07:00",
+    "echtzeit": "2026-10-04T08:18:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:06:00",
+    "echtzeit": "2026-10-04T08:17:00"
+   },
+   "gleis": "1",
+   "haltTyp": "PL",
+   "name": "Wendlingen(Neckar)",
+   "risNotizen": [],
+   "bahnhofsInfoId": "6671",
+   "extId": "8006331",
+   "routeIdx": 6,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Plochingen@X=9410807@Y=48713084@U=80@L=8000302@i=U×008029060@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:17:00",
+    "echtzeit": "2026-10-04T08:25:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:14:00",
+    "echtzeit": "2026-10-04T08:24:00"
+   },
+   "gleis": "6",
+   "haltTyp": "PL",
+   "name": "Plochingen",
+   "risNotizen": [],
+   "bahnhofsInfoId": "4967",
+   "extId": "8000302",
+   "routeIdx": 7,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Esslingen(Neckar)@X=9300518@Y=48738542@U=80@L=8001920@i=U×008029055@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:24:00",
+    "echtzeit": "2026-10-04T08:32:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:23:00",
+    "echtzeit": "2026-10-04T08:31:00"
+   },
+   "gleis": "3",
+   "haltTyp": "PL",
+   "name": "Esslingen(Neckar)",
+   "risNotizen": [],
+   "bahnhofsInfoId": "1716",
+   "extId": "8001920",
+   "routeIdx": 8,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Stuttgart-Bad Cannstatt@X=9217530@Y=48801376@U=80@L=8005769@i=U×008029041@",
+   "abfahrt": {
+    "sollzeit": "2026-10-04T07:32:00",
+    "echtzeit": "2026-10-04T08:40:00"
+   },
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:31:00",
+    "echtzeit": "2026-10-04T08:38:00"
+   },
+   "gleis": "5",
+   "haltTyp": "PL",
+   "name": "Stuttgart-Bad Cannstatt",
+   "risNotizen": [],
+   "bahnhofsInfoId": "6077",
+   "extId": "8005769",
+   "routeIdx": 9,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  },
+  {
+   "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+   "ankunft": {
+    "sollzeit": "2026-10-04T07:36:00",
+    "echtzeit": "2026-10-04T08:43:00"
+   },
+   "gleis": "8",
+   "haltTyp": "PL",
+   "name": "Stuttgart Hbf",
+   "risNotizen": [],
+   "bahnhofsInfoId": "6071",
+   "extId": "8000096",
+   "routeIdx": 10,
+   "priorisierteMeldungen": [],
+   "adminID": "SBSMEX",
+   "kategorie": "RE",
+   "nummer": "19306"
+  }
+ ],
+ "risNotizen": [
+  {
+   "key": "FT",
+   "value": "Verspätete Bereitstellung des Zuges",
+   "routeIdxFrom": 0,
+   "routeIdxTo": 10
+  }
+ ],
+ "zugattribute": [
+  {
+   "kategorie": "FAHRRADMITNAHME",
+   "key": "FB",
+   "value": "Fahrradmitnahme begrenzt möglich"
+  },
+  {
+   "kategorie": "INFORMATION",
+   "key": "ZM",
+   "value": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte"
+  },
+  {
+   "kategorie": "INFORMATION",
+   "key": "WV",
+   "value": "WLAN verfügbar"
+  }
+ ],
+ "priorisierteMeldungen": [
+  {
+   "prioritaet": "HOCH",
+   "text": "Verspätete Bereitstellung des Zuges",
+   "type": "RIS_NOTE"
+  }
+ ],
+ "abfahrt": {
+  "sollzeit": "2026-10-04T06:33:00",
+  "echtzeit": "2026-10-04T07:43:00"
+ },
+ "ankunft": {
+  "sollzeit": "2026-10-04T07:36:00",
+  "echtzeit": "2026-10-04T08:43:00"
+ },
+ "cancelled": false
+}

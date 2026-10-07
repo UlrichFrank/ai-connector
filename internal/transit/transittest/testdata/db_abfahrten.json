@@ -1,0 +1,1149 @@
+{
+ "entries": [
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T06:33:00",
+   "ezZeit": "2026-10-04T07:43:00",
+   "gleis": "3",
+   "ueber": [
+    "Tübingen Hbf",
+    "Reutlingen Hbf",
+    "Metzingen(Württ)",
+    "Bempflingen",
+    "Stuttgart Hbf"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266875#TA#0#DA#41026#1S#8000141#1T#633#LS#8000096#LT#736#PU#80#RT#1#CA#NRE#ZE#19306#ZB#            19306#PC#3#FR#8000141#FT#633#TO#8000096#TT#736#",
+   "meldungen": [
+    {
+     "prioritaet": "HOCH",
+     "text": "Verspätete Bereitstellung des Zuges",
+     "type": "RIS_NOTE"
+    }
+   ],
+   "verkehrmittel": {
+    "name": "19306",
+    "linienNummer": "MEX18",
+    "kurzText": "RE",
+    "mittelText": "MEX18",
+    "langText": "MEX18 (19306)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Stuttgart Hbf"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:00:00",
+   "ezZeit": "2026-10-04T07:10:00",
+   "gleis": "3",
+   "ueber": [
+    "Tübingen Hbf",
+    "Reutlingen Hbf",
+    "Stuttgart Hbf"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#268439#TA#0#DA#41026#1S#8000141#1T#700#LS#8000096#LT#753#PU#80#RT#1#CA#NRE#ZE#3268#ZB#             3268#PC#3#FR#8000141#FT#700#TO#8000096#TT#753#",
+   "meldungen": [
+    {
+     "prioritaet": "HOCH",
+     "text": "Verspätete Bereitstellung des Zuges",
+     "type": "RIS_NOTE"
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "3268",
+    "linienNummer": "RE6a",
+    "kurzText": "RE",
+    "mittelText": "RE6a",
+    "langText": "RE6a (3268)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Stuttgart Hbf"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:11:00",
+   "ezZeit": "2026-10-04T07:11:00",
+   "gleis": "13",
+   "ueber": [
+    "Tübingen Hbf",
+    "Tübingen West",
+    "Unterjesingen Sandäcker",
+    "Unterjesingen Mitte",
+    "Herrenberg"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267547#TA#0#DA#41026#1S#8000141#1T#711#LS#8002785#LT#741#PU#80#RT#1#CA#NRB#ZE#22731#ZB#            22731#PC#3#FR#8000141#FT#711#TO#8002785#TT#741#",
+   "meldungen": [
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "22731",
+    "linienNummer": "RB63",
+    "kurzText": "RB",
+    "mittelText": "RB63",
+    "langText": "RB63 (22731)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Herrenberg"
+  },
+  {
+   "bahnhofsId": "752100",
+   "zeit": "2026-10-04T07:12:00",
+   "ezZeit": "2026-10-04T07:12:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Pauline-Krone-Heim, Tübingen",
+    "Stuttgart Flughafen/Messe (SAB), Leinfelden-Echter"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#885411#TA#0#DA#41026#1S#752100#1T#712#LS#422028#LT#811#PU#80#RT#1#CA#Bus#ZE#X82#ZB#Bus           X82#PC#5#FR#752100#FT#712#TO#422028#TT#811#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus X82",
+    "linienNummer": "X82",
+    "kurzText": "Bus",
+    "mittelText": "Bus X82",
+    "langText": "Bus X82",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Stuttgart Flughafen/Messe (SAB), Leinfelden-Echter"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:13:00",
+   "ezZeit": "2026-10-04T07:13:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380869#TA#2#DA#41026#1S#750703#1T#659#LS#752176#LT#733#PU#80#RT#1#CA#Bus#ZE#3#ZB#Bus             3#PC#5#FR#750703#FT#659#TO#752176#TT#733#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 3",
+    "linienNummer": "3",
+    "kurzText": "Bus",
+    "mittelText": "Bus 3",
+    "langText": "Bus 3",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:14:00",
+   "ezZeit": "2026-10-04T07:14:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Hechinger Straße, Tübingen",
+    "Loretto, Tübingen",
+    "Nelkenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380851#TA#2#DA#41026#1S#752176#1T#653#LS#750703#LT#725#PU#80#RT#1#CA#Bus#ZE#3#ZB#Bus             3#PC#5#FR#752176#FT#653#TO#750703#TT#725#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 3",
+    "linienNummer": "3",
+    "kurzText": "Bus",
+    "mittelText": "Bus 3",
+    "langText": "Bus 3",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Nelkenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "490723",
+   "zeit": "2026-10-04T07:19:00",
+   "ueber": [
+    "Hügelschule, Tübingen",
+    "Landestheater, Tübingen",
+    "Poststraße, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381452#TA#2#DA#41026#1S#751006#1T#700#LS#121000#LT#724#PU#80#RT#1#CA#ast#ZE#7611#ZB#AST          7611#PC#9#FR#751006#FT#700#TO#121000#TT#724#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7611",
+    "linienNummer": "7611",
+    "kurzText": "AST",
+    "mittelText": "AST 7611",
+    "langText": "AST 7611",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "Hauptbahnhof, Tübingen"
+  },
+  {
+   "bahnhofsId": "490723",
+   "zeit": "2026-10-04T07:22:00",
+   "ueber": [
+    "Hügelschule, Tübingen",
+    "Landestheater, Tübingen",
+    "Poststraße, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384467#TA#2#DA#41026#1S#752770#1T#701#LS#811000#LT#730#PU#80#RT#1#CA#ast#ZE#7625#ZB#AST          7625#PC#9#FR#752770#FT#701#TO#811000#TT#730#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7625",
+    "linienNummer": "7625",
+    "kurzText": "AST",
+    "mittelText": "AST 7625",
+    "langText": "AST 7625",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "Hauptbahnhof, Tübingen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:23:00",
+   "ezZeit": "2026-10-04T07:23:00",
+   "gleis": "3",
+   "ueber": [
+    "Tübingen Hbf",
+    "Kiebingen",
+    "Rottenburg(Neckar)",
+    "Bad Niedernau",
+    "Pforzheim Hbf"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1866588#TA#0#DA#41026#1S#8000141#1T#723#LS#8000299#LT#923#PU#80#RT#1#CA#NRB#ZE#32527#ZB#            32527#PC#3#FR#8000141#FT#723#TO#8000299#TT#923#",
+   "meldungen": [
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "32527",
+    "linienNummer": "RB74",
+    "kurzText": "RB",
+    "mittelText": "RB74",
+    "langText": "RB74 (32527)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Pforzheim Hbf"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:26:00",
+   "ezZeit": "2026-10-04T07:26:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380905#TA#3#DA#41026#1S#752235#1T#714#LS#752176#LT#743#PU#80#RT#1#CA#Bus#ZE#4#ZB#Bus             4#PC#5#FR#752235#FT#714#TO#752176#TT#743#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 4",
+    "linienNummer": "4",
+    "kurzText": "Bus",
+    "mittelText": "Bus 4",
+    "langText": "Bus 4",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:26:00",
+   "ezZeit": "2026-10-04T07:26:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Hegelstraße, Tübingen",
+    "Albrechtstraße, Tübingen",
+    "Derendingen Käppele, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380933#TA#3#DA#41026#1S#752175#1T#700#LS#750411#LT#740#PU#80#RT#1#CA#Bus#ZE#5#ZB#Bus             5#PC#5#FR#752175#FT#700#TO#750411#TT#740#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 5",
+    "linienNummer": "5",
+    "kurzText": "Bus",
+    "mittelText": "Bus 5",
+    "langText": "Bus 5",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Derendingen Käppele, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:27:00",
+   "ezZeit": "2026-10-04T07:27:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Jugendherberge, Tübingen",
+    "Kielmeyerstraße, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1844971#TA#1#DA#41026#1S#131000#1T#727#LS#211000#LT#758#PU#80#RT#1#CA#Bus#ZE#22#ZB#Bus            22#PC#5#FR#131000#FT#727#TO#211000#TT#758#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 22",
+    "linienNummer": "22",
+    "kurzText": "Bus",
+    "mittelText": "Bus 22",
+    "langText": "Bus 22",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Carlo-Steeb-Str., Tübingen"
+  },
+  {
+   "bahnhofsId": "752100",
+   "zeit": "2026-10-04T07:29:00",
+   "ezZeit": "2026-10-04T07:29:00",
+   "gleis": "H",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Freibad, Tübingen",
+    "Weilheim Kneiple, Tübingen",
+    "Weilheim Alte Landstraße, Tübingen",
+    "Bühl Römerstraße, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#870343#TA#0#DA#41026#1S#752100#1T#729#LS#491756#LT#744#PU#80#RT#1#CA#Bus#ZE#19#ZB#Bus            19#PC#5#FR#752100#FT#729#TO#491756#TT#744#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 19",
+    "linienNummer": "19",
+    "kurzText": "Bus",
+    "mittelText": "Bus 19",
+    "langText": "Bus 19",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Bühl Römerstraße, Tübingen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:29:00",
+   "ezZeit": "2026-10-04T07:29:00",
+   "gleis": "12",
+   "ueber": [
+    "Tübingen Hbf",
+    "Tübingen-Derendingen",
+    "Dußlingen",
+    "Nehren",
+    "Sigmaringen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1335188#TA#0#DA#41026#1S#8000141#1T#729#LS#8000069#LT#914#PU#80#RT#1#CA#DRB#ZE#86229#ZB#            86229#PC#3#FR#8000141#FT#729#TO#8000069#TT#914#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "86229",
+    "linienNummer": "RB66",
+    "kurzText": "SWE",
+    "mittelText": "RB66",
+    "langText": "RB66 (86229)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Sigmaringen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:32:00",
+   "ezZeit": "2026-10-04T07:32:00",
+   "gleis": "5",
+   "ueber": [
+    "Tübingen Hbf",
+    "Reutlingen Hbf",
+    "Metzingen(Württ)",
+    "Bempflingen",
+    "Stuttgart Hbf"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266890#TA#0#DA#41026#1S#8000141#1T#732#LS#8000096#LT#831#PU#80#RT#1#CA#NRE#ZE#19308#ZB#            19308#PC#3#FR#8000141#FT#732#TO#8000096#TT#831#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "19308",
+    "linienNummer": "MEX18",
+    "kurzText": "RE",
+    "mittelText": "MEX18",
+    "langText": "MEX18 (19308)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Stuttgart Hbf"
+  },
+  {
+   "bahnhofsId": "752100",
+   "zeit": "2026-10-04T07:32:00",
+   "ezZeit": "2026-10-04T07:32:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Pauline-Krone-Heim, Tübingen",
+    "Stuttgart Flughafen/Messe (SAB), Leinfelden-Echter"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#885099#TA#1#DA#41026#1S#752100#1T#732#LS#422028#LT#841#PU#80#RT#1#CA#Bus#ZE#828#ZB#Bus           828#PC#5#FR#752100#FT#732#TO#422028#TT#841#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 828",
+    "linienNummer": "828",
+    "kurzText": "Bus",
+    "mittelText": "Bus 828",
+    "langText": "Bus 828",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Echterdingen Flughafen/Messe"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:32:00",
+   "ezZeit": "2026-10-04T07:32:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Landestheater, Tübingen",
+    "Sternplatz, Tübingen",
+    "Wennfelder Garten, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380883#TA#3#DA#41026#1S#752176#1T#714#LS#752235#LT#742#PU#80#RT#1#CA#Bus#ZE#4#ZB#Bus             4#PC#5#FR#752176#FT#714#TO#752235#TT#742#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 4",
+    "linienNummer": "4",
+    "kurzText": "Bus",
+    "mittelText": "Bus 4",
+    "langText": "Bus 4",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Wennfelder Garten, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:32:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Gmelinstraße, Tübingen",
+    "Ahornweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380956#TA#2#DA#41026#1S#752107#1T#708#LS#752175#LT#756#PU#80#RT#1#CA#Bus#ZE#5#ZB#Bus             5#PC#5#FR#752107#FT#708#TO#752175#TT#756#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 5",
+    "linienNummer": "5",
+    "kurzText": "Bus",
+    "mittelText": "Bus 5",
+    "langText": "Bus 5",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ahornweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:32:00",
+   "ezZeit": "2026-10-04T07:32:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Hölderlinstraße, Tübingen",
+    "Hagelloch Dornäckerweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381035#TA#3#DA#41026#1S#131000#1T#732#LS#750806#LT#749#PU#80#RT#1#CA#Bus#ZE#8#ZB#Bus             8#PC#5#FR#131000#FT#732#TO#750806#TT#749#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 8",
+    "linienNummer": "8",
+    "kurzText": "Bus",
+    "mittelText": "Bus 8",
+    "langText": "Bus 8",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Hagelloch Dornäckerweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:32:00",
+   "ezZeit": "2026-10-04T07:32:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Hölderlinstraße, Tübingen",
+    "Bismarckturm, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381069#TA#1#DA#41026#1S#131000#1T#732#LS#752110#LT#745#PU#80#RT#1#CA#Bus#ZE#9#ZB#Bus             9#PC#5#FR#131000#FT#732#TO#752110#TT#745#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 9",
+    "linienNummer": "9",
+    "kurzText": "Bus",
+    "mittelText": "Bus 9",
+    "langText": "Bus 9",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Bismarckturm, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:33:00",
+   "ezZeit": "2026-10-04T07:33:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380830#TA#2#DA#41026#1S#711000#1T#733#LS#752176#LT#748#PU#80#RT#1#CA#Bus#ZE#2#ZB#Bus             2#PC#5#FR#711000#FT#733#TO#752176#TT#748#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 2",
+    "linienNummer": "2",
+    "kurzText": "Bus",
+    "mittelText": "Bus 2",
+    "langText": "Bus 2",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:33:00",
+   "ezZeit": "2026-10-04T07:33:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1839215#TA#2#DA#41026#1S#711000#1T#733#LS#211000#LT#823#PU#80#RT#1#CA#Bus#ZE#1#ZB#Bus             1#PC#5#FR#711000#FT#733#TO#211000#TT#823#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 1",
+    "linienNummer": "1",
+    "kurzText": "Bus",
+    "mittelText": "Bus 1",
+    "langText": "Bus 1",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Pfrondorf Lindenstraße, Tübingen"
+  },
+  {
+   "bahnhofsId": "211000",
+   "zeit": "2026-10-04T07:34:00",
+   "ezZeit": "2026-10-04T07:34:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarhalde, Tübingen",
+    "Biesingerstraße, Tübingen",
+    "Ernst-Bloch-Straße, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1842240#TA#1#DA#41026#1S#211000#1T#734#LS#711000#LT#746#PU#80#RT#1#CA#Bus#ZE#33#ZB#Bus            33#PC#5#FR#211000#FT#734#TO#711000#TT#746#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 33",
+    "linienNummer": "33",
+    "kurzText": "Bus",
+    "mittelText": "Bus 33",
+    "langText": "Bus 33",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Hennentalweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "811000",
+   "zeit": "2026-10-04T07:35:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Landestheater, Tübingen",
+    "Hügelschule, Tübingen",
+    "Reutlinger Straße, Tübingen",
+    "ZOB, Gomaringen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384440#TA#2#DA#41026#1S#811000#1T#735#LS#750750#LT#800#PU#80#RT#1#CA#ast#ZE#7625#ZB#AST          7625#PC#9#FR#811000#FT#735#TO#750750#TT#800#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7625",
+    "linienNummer": "7625",
+    "kurzText": "AST",
+    "mittelText": "AST 7625",
+    "langText": "AST 7625",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "ZOB, Gomaringen"
+  },
+  {
+   "bahnhofsId": "211000",
+   "zeit": "2026-10-04T07:36:00",
+   "ezZeit": "2026-10-04T07:36:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Freibad, Tübingen",
+    "Hirschau Volksbank, Tübingen",
+    "Hirschau Kirchplatz, Tübingen",
+    "Oberndorf Feuersee, Rottenburg am Neckar"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1902029#TA#0#DA#41026#1S#211000#1T#736#LS#751415#LT#803#PU#80#RT#3#CA#Bus#ZE#18#ZB#Bus            18#PC#5#FR#211000#FT#736#TO#751415#TT#803#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 18",
+    "linienNummer": "18",
+    "kurzText": "Bus",
+    "mittelText": "Bus 18",
+    "langText": "Bus 18",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Oberndorf Feuersee, Rottenburg am Neckar"
+  },
+  {
+   "bahnhofsId": "121000",
+   "zeit": "2026-10-04T07:37:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Landestheater, Tübingen",
+    "Hügelschule, Tübingen",
+    "Jettenburg Brunnenplatz, Kusterdingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381450#TA#2#DA#41026#1S#121000#1T#737#LS#751006#LT#800#PU#80#RT#1#CA#ast#ZE#7611#ZB#AST          7611#PC#9#FR#121000#FT#737#TO#751006#TT#800#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7611",
+    "linienNummer": "7611",
+    "kurzText": "AST",
+    "mittelText": "AST 7611",
+    "langText": "AST 7611",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "Jettenburg Brunnenplatz, Kusterdingen"
+  },
+  {
+   "bahnhofsId": "490723",
+   "zeit": "2026-10-04T07:37:00",
+   "ueber": [
+    "Hügelschule, Tübingen",
+    "Reutlinger Straße, Tübingen",
+    "Wankheim Helleräcker, Kusterdingen",
+    "Wankheim Siedlung, Kusterdingen",
+    "ZOB, Gomaringen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384440#TA#2#DA#41026#1S#811000#1T#735#LS#750750#LT#800#PU#80#RT#1#CA#ast#ZE#7625#ZB#AST          7625#PC#9#FR#811000#FT#735#TO#750750#TT#800#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7625",
+    "linienNummer": "7625",
+    "kurzText": "AST",
+    "mittelText": "AST 7625",
+    "langText": "AST 7625",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "ZOB, Gomaringen"
+  },
+  {
+   "bahnhofsId": "490723",
+   "zeit": "2026-10-04T07:40:00",
+   "ueber": [
+    "Hügelschule, Tübingen",
+    "Reutlinger Straße, Tübingen",
+    "Abzw. B28, Kusterdingen",
+    "Altes Rathaus, Kusterdingen",
+    "Jettenburg Brunnenplatz, Kusterdingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381450#TA#2#DA#41026#1S#121000#1T#737#LS#751006#LT#800#PU#80#RT#1#CA#ast#ZE#7611#ZB#AST          7611#PC#9#FR#121000#FT#737#TO#751006#TT#800#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "AST 7611",
+    "linienNummer": "7611",
+    "kurzText": "AST",
+    "mittelText": "AST 7611",
+    "langText": "AST 7611",
+    "produktGattung": "ANRUFPFLICHTIG"
+   },
+   "terminus": "Jettenburg Brunnenplatz, Kusterdingen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:41:00",
+   "gleis": "1",
+   "ueber": [
+    "Tübingen Hbf",
+    "Tübingen-Lustnau",
+    "Kirchentellinsfurt",
+    "Wannweil",
+    "Bad Urach"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267532#TA#0#DA#41026#1S#8000141#1T#741#LS#8006029#LT#836#PU#80#RT#1#CA#NRB#ZE#22724#ZB#            22724#PC#3#FR#8000141#FT#741#TO#8006029#TT#836#",
+   "meldungen": [
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "22724",
+    "linienNummer": "RB63",
+    "kurzText": "RB",
+    "mittelText": "RB63",
+    "langText": "RB63 (22724)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Bad Urach"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:43:00",
+   "ezZeit": "2026-10-04T07:43:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380869#TA#3#DA#41026#1S#750703#1T#729#LS#752176#LT#803#PU#80#RT#1#CA#Bus#ZE#3#ZB#Bus             3#PC#5#FR#750703#FT#729#TO#752176#TT#803#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 3",
+    "linienNummer": "3",
+    "kurzText": "Bus",
+    "mittelText": "Bus 3",
+    "langText": "Bus 3",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:44:00",
+   "ezZeit": "2026-10-04T07:44:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Hechinger Straße, Tübingen",
+    "Loretto, Tübingen",
+    "Nelkenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380851#TA#3#DA#41026#1S#752176#1T#723#LS#750703#LT#755#PU#80#RT#1#CA#Bus#ZE#3#ZB#Bus             3#PC#5#FR#752176#FT#723#TO#750703#TT#755#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 3",
+    "linienNummer": "3",
+    "kurzText": "Bus",
+    "mittelText": "Bus 3",
+    "langText": "Bus 3",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Nelkenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "211000",
+   "zeit": "2026-10-04T07:45:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Hegelstraße, Tübingen",
+    "Albrechtstraße, Tübingen",
+    "Brühlstraße, Tübingen",
+    "Kreßbach Schloss, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1382537#TA#0#DA#41026#1S#211000#1T#745#LS#750289#LT#759#PU#80#RT#1#CA#Bus#ZE#31#ZB#Bus            31#PC#5#FR#211000#FT#745#TO#750289#TT#759#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 31",
+    "linienNummer": "31",
+    "kurzText": "Bus",
+    "mittelText": "Bus 31",
+    "langText": "Bus 31",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Kreßbach Schloss, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:48:00",
+   "ezZeit": "2026-10-04T07:48:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381003#TA#1#DA#41026#1S#711000#1T#748#LS#752176#LT#805#PU#80#RT#1#CA#Bus#ZE#6#ZB#Bus             6#PC#5#FR#711000#FT#748#TO#752176#TT#805#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 6",
+    "linienNummer": "6",
+    "kurzText": "Bus",
+    "mittelText": "Bus 6",
+    "langText": "Bus 6",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T07:56:00",
+   "ezZeit": "2026-10-04T07:56:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380905#TA#4#DA#41026#1S#752235#1T#744#LS#752176#LT#813#PU#80#RT#1#CA#Bus#ZE#4#ZB#Bus             4#PC#5#FR#752235#FT#744#TO#752176#TT#813#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 4",
+    "linienNummer": "4",
+    "kurzText": "Bus",
+    "mittelText": "Bus 4",
+    "langText": "Bus 4",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T07:56:00",
+   "ezZeit": "2026-10-04T07:56:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Hegelstraße, Tübingen",
+    "Albrechtstraße, Tübingen",
+    "Derendingen Käppele, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380933#TA#4#DA#41026#1S#752175#1T#730#LS#750411#LT#810#PU#80#RT#1#CA#Bus#ZE#5#ZB#Bus             5#PC#5#FR#752175#FT#730#TO#750411#TT#810#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 5",
+    "linienNummer": "5",
+    "kurzText": "Bus",
+    "mittelText": "Bus 5",
+    "langText": "Bus 5",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Derendingen Käppele, Tübingen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T07:58:00",
+   "gleis": "6",
+   "ueber": [
+    "Tübingen Hbf",
+    "Reutlingen Hbf",
+    "Metzingen(Württ)",
+    "Nürtingen",
+    "Stuttgart Hbf"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267174#TA#0#DA#41026#1S#8000141#1T#758#LS#8000096#LT#856#PU#80#RT#1#CA#NRE#ZE#19380#ZB#            19380#PC#3#FR#8000141#FT#758#TO#8000096#TT#856#",
+   "meldungen": [
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "19380",
+    "linienNummer": "RE6",
+    "kurzText": "RE",
+    "mittelText": "RE6",
+    "langText": "RE6 (19380)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Stuttgart Hbf"
+  },
+  {
+   "bahnhofsId": "752100",
+   "zeit": "2026-10-04T07:59:00",
+   "gleis": "H",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Freibad, Tübingen",
+    "Weilheim Kneiple, Tübingen",
+    "Weilheim Alte Landstraße, Tübingen",
+    "Bühl Römerstraße, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#870341#TA#1#DA#41026#1S#752100#1T#759#LS#491756#LT#814#PU#80#RT#1#CA#Bus#ZE#19#ZB#Bus            19#PC#5#FR#752100#FT#759#TO#491756#TT#814#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 19",
+    "linienNummer": "19",
+    "kurzText": "Bus",
+    "mittelText": "Bus 19",
+    "langText": "Bus 19",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Bühl Römerstraße, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T08:02:00",
+   "ezZeit": "2026-10-04T08:02:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Blaue Brücke, Tübingen",
+    "Landestheater, Tübingen",
+    "Sternplatz, Tübingen",
+    "Wennfelder Garten, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380883#TA#4#DA#41026#1S#752176#1T#744#LS#752235#LT#812#PU#80#RT#1#CA#Bus#ZE#4#ZB#Bus             4#PC#5#FR#752176#FT#744#TO#752235#TT#812#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 4",
+    "linienNummer": "4",
+    "kurzText": "Bus",
+    "mittelText": "Bus 4",
+    "langText": "Bus 4",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Wennfelder Garten, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T08:02:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Gmelinstraße, Tübingen",
+    "Ahornweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380956#TA#3#DA#41026#1S#752107#1T#738#LS#752175#LT#826#PU#80#RT#1#CA#Bus#ZE#5#ZB#Bus             5#PC#5#FR#752107#FT#738#TO#752175#TT#826#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 5",
+    "linienNummer": "5",
+    "kurzText": "Bus",
+    "mittelText": "Bus 5",
+    "langText": "Bus 5",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ahornweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T08:02:00",
+   "ezZeit": "2026-10-04T08:02:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Hölderlinstraße, Tübingen",
+    "Hagelloch Dornäckerweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381035#TA#4#DA#41026#1S#131000#1T#802#LS#750806#LT#819#PU#80#RT#1#CA#Bus#ZE#8#ZB#Bus             8#PC#5#FR#131000#FT#802#TO#750806#TT#819#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 8",
+    "linienNummer": "8",
+    "kurzText": "Bus",
+    "mittelText": "Bus 8",
+    "langText": "Bus 8",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Hagelloch Dornäckerweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T08:02:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Hölderlinstraße, Tübingen",
+    "Schwärzlocher Str. 45, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1381105#TA#2#DA#41026#1S#131000#1T#802#LS#751833#LT#822#PU#80#RT#1#CA#Bus#ZE#11#ZB#Bus            11#PC#5#FR#131000#FT#802#TO#751833#TT#822#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 11",
+    "linienNummer": "11",
+    "kurzText": "Bus",
+    "mittelText": "Bus 11",
+    "langText": "Bus 11",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Schwärzlocher Str. 45, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T08:03:00",
+   "ezZeit": "2026-10-04T08:03:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Ulmenweg, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380830#TA#3#DA#41026#1S#711000#1T#803#LS#752176#LT#818#PU#80#RT#1#CA#Bus#ZE#2#ZB#Bus             2#PC#5#FR#711000#FT#803#TO#752176#TT#818#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 2",
+    "linienNummer": "2",
+    "kurzText": "Bus",
+    "mittelText": "Bus 2",
+    "langText": "Bus 2",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Ulmenweg, Tübingen"
+  },
+  {
+   "bahnhofsId": "711000",
+   "zeit": "2026-10-04T08:03:00",
+   "ezZeit": "2026-10-04T08:03:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Wilhelmstraße, Tübingen",
+    "Uni/Neue Aula, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1839215#TA#3#DA#41026#1S#711000#1T#803#LS#211000#LT#853#PU#80#RT#1#CA#Bus#ZE#1#ZB#Bus             1#PC#5#FR#711000#FT#803#TO#211000#TT#853#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 1",
+    "linienNummer": "1",
+    "kurzText": "Bus",
+    "mittelText": "Bus 1",
+    "langText": "Bus 1",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Pfrondorf Lindenstraße, Tübingen"
+  },
+  {
+   "bahnhofsId": "131000",
+   "zeit": "2026-10-04T08:04:00",
+   "ezZeit": "2026-10-04T08:04:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Neckarbrücke, Tübingen",
+    "Österbergstraße, Tübingen",
+    "Doblerstraße, Tübingen",
+    "Hauptbahnhof, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1843889#TA#2#DA#41026#1S#131000#1T#804#LS#211000#LT#823#PU#80#RT#1#CA#Bus#ZE#10#ZB#Bus            10#PC#5#FR#131000#FT#804#TO#211000#TT#823#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 10",
+    "linienNummer": "10",
+    "kurzText": "Bus",
+    "mittelText": "Bus 10",
+    "langText": "Bus 10",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Kleiststraße, Tübingen"
+  },
+  {
+   "bahnhofsId": "8000141",
+   "zeit": "2026-10-04T08:06:00",
+   "gleis": "12",
+   "ueber": [
+    "Tübingen Hbf",
+    "Kiebingen",
+    "Rottenburg(Neckar)",
+    "Mühlen(b Horb)",
+    "Maulbronn Stadt/Kloster"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1848602#TA#0#DA#41026#1S#8000141#1T#806#LS#8003918#LT#1052#PU#80#RT#1#CA#NRB#ZE#17920#ZB#            17920#PC#3#FR#8000141#FT#806#TO#8003918#TT#1052#",
+   "meldungen": [
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+     "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    },
+    {
+     "prioritaet": "NIEDRIG",
+     "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+     "routeIdxFrom": 0,
+     "routeIdxTo": 0
+    }
+   ],
+   "verkehrmittel": {
+    "name": "17920",
+    "linienNummer": "RB74",
+    "kurzText": "RB",
+    "mittelText": "RB74",
+    "langText": "RB74 (17920)",
+    "produktGattung": "REGIONAL"
+   },
+   "terminus": "Maulbronn Stadt/Kloster"
+  },
+  {
+   "bahnhofsId": "211000",
+   "zeit": "2026-10-04T08:06:00",
+   "ueber": [
+    "Hauptbahnhof, Tübingen",
+    "Freibad, Tübingen",
+    "Hirschau Dischingerweg, Tübingen",
+    "Hirschau Rittweg Ost, Tübingen",
+    "Hirschau Volksbank, Tübingen"
+   ],
+   "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1382302#TA#2#DA#41026#1S#211000#1T#806#LS#750947#LT#815#PU#80#RT#1#CA#Bus#ZE#18#ZB#Bus            18#PC#5#FR#211000#FT#806#TO#750947#TT#815#",
+   "meldungen": [],
+   "verkehrmittel": {
+    "name": "Bus 18",
+    "linienNummer": "18",
+    "kurzText": "Bus",
+    "mittelText": "Bus 18",
+    "langText": "Bus 18",
+    "produktGattung": "BUS"
+   },
+   "terminus": "Hirschau Volksbank, Tübingen"
+  }
+ ]
+}

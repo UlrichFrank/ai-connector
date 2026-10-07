@@ -1,0 +1,19 @@
+# Dockerfile needs only go.mod/go.sum, cmd/, internal/ and web/ (sources)
+.git
+.github
+.claude
+.abydos
+.idea
+.vscode
+**/.DS_Store
+**/__pycache__
+bin/
+ios/
+models/
+docs/
+*.safetensors
+*.gguf
+web/node_modules
+web/dist
+# built in the image from web/; a host build here would mix stale hashed assets into the embed
+internal/webui/dist

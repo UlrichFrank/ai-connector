@@ -1,0 +1,3 @@
+# built by scripts/build-mlx.sh: mlx v0.31.1 (ce45c52505c8158ea48d2a54e8caae05efd86bfe), mlx-c v0.6.0 (0726ca922fc902c4c61ef9c27d94132be418e945), macOS 14.0+
+3b50fd86506d5ab1ef6f58d7305d6b659495e331735cb26b21ada7bc43cb549d  libmlxc.dylib
+5c6d8942add46311b5501d87bd8019aed7dfc414d06720e1ed3309f3a8dd008f  mlx.metallib

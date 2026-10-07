@@ -1,0 +1,124 @@
+# ai-connector — one server for local AI on your own machines
+
+ai-connector generalises mlxlab, vboard-ai and docscan-ai into one application: a **server** (web UI, sign-in, queue,
+APIs for other apps) and **workers** (Macs and, later, Linux and Windows PCs) that dial out to it and run the models.
+It starts as mlxlab (copied from `local-ai-tests` at e4606bf, module `github.com/philipparndt/ai-connector`); the
+plan and its phases are on the vboard board "AI Connector — Architecture".
+
+| Binary | Was | Runs on |
+|---|---|---|
+| `ai-connector-server` (`cmd/ai-connector-server`) | `mlxlab-hub` | the server (Raspberry Pi, linux/arm64 image `pharndt/ai-connector-server`) |
+| `ai-connector` (`cmd/ai-connector`) | `mlxlab` | each worker; also `serve`, the TUI and `run` |
+
+The wire names stay mlxlab's for now (`/api/*`, the `mlxlab_session` cookie, `X-Mlxlab-*` headers, `MLXLAB_*`
+environment, `~/.config/mlxlab`), so mlxlab's web UI, TUI and iOS app keep working against the new server.
+
+---
+
+# mlxlab — local AI models on a Mac
+
+`mlxlab` tries local models on Apple silicon: chat models, an embedder and a classifier (taken over from vboard-ai,
+run in Go), **FLUX.2 [klein]** and **Qwen-Image** for images and **LTX-2.5** for video with sound. The Mac is the **worker**: it runs
+the models and the job queue and dials the **hub** on the Raspberry Pi, which signs people in and serves the web app.
+The web app, the terminal UI and the iOS app all talk to the hub, so a job started in one shows up in the others
+(see [docs/architecture.md](docs/architecture.md)).
+
+```bash
+make                    # → bin/ai-connector
+bin/ai-connector worker --hub https://mlxlab.example.org --token …   # serve this Mac to the hub (remembered; make worker)
+bin/ai-connector serve        # standalone on http://127.0.0.1:8484, no hub (development)
+bin/ai-connector              # the TUI, a client of the hub (mlxlab tui --server URL)
+bin/ai-connector list         # the models, and which are already on this Mac
+bin/ai-connector run qwen3.6-35b "Explain MoE in two sentences."
+bin/ai-connector run --size 768x768 --seed 7 flux2-klein-4b "a red fox in fresh snow, golden hour"
+bin/ai-connector run --frames 49 ltx-2.5-q4 "a heavy wooden door creaks open onto a sunlit garden"
+bin/ai-connector run --frames 49 --size 512x320 ltx-2.5-hq-q8 "a red fox trots through fresh snow"   # dev model + CFG
+```
+
+## Models
+
+| kind | model | runs on | size |
+|---|---|---|---|
+| chat | Qwen3.5 4B / 9B, Qwen3.6 35B-A3B / 27B (vboard's catalogue), plus any Qwen3.x MLX model in LM Studio or the HF cache | MLX from Go (vboard-ai's engine, no Python) | 3–19 GB |
+| embed | Qwen3-Embedding-0.6B: cosine similarities between texts | Go (Accelerate / Metal) | 1.1 GB |
+| classify | Laya typed-decisions: a choice question about every text | Go (Accelerate / Metal) | 0.8 GB |
+| image | FLUX.2 [klein] 4B (Apache 2.0), 9B (non-commercial, gated), 4B base; Qwen-Image 2512 (text to image) and Qwen-Image-Edit 2511 (edits reference images only; both Apache 2.0, 20B), Qwen-Image 2.1 (Qwen Research License, non-commercial) | [mflux](https://github.com/filipstrand/mflux) 0.20.0 | FLUX 16 / 35 GB, Qwen-Image 54 GB (2.1: 31 GB) download; transformer quantised to 8-bit when loaded (Qwen's text encoder stays bf16) |
+| video | LTX-2.5 22B audio+video, int4 / int8: distilled two-stage pipeline (fast), and **LTX-2.5 HQ** (the open dev model with CFG, two-stage HQ pipeline; see below) | [ltx-2-mlx](https://github.com/dgrauet/ltx-2-mlx) @ `e421363` | about 30 / 45 GB; HQ 47 / 65 GB (the same folder plus the dev transformer and the distilled LoRA) |
+| music | ACE-Step 1.5 (turbo, XL turbo, base, XL base; MIT), Stable Audio 3 Small / Medium (instrumental only, Stability AI Community License), LeVo 2, HeartMuLa, YuE2 — BPM, tempo lock, best of N: [docs/music.md](docs/music.md) | Python workers (MLX, ggml, PyTorch/MPS) in pinned uv environments | 2–30 GB |
+
+Chat models already on the Mac (LM Studio's folders and the Hugging Face cache) are used where they are. A catalogue
+model is checked once against its pinned SHA-256 sums. Everything else downloads on first use.
+
+**LTX-2.5 HQ** (`ltx-2.5-hq-q4` / `ltx-2.5-hq-q8`) is the closest local thing to Lightricks' *LTX-2.5 Pro*, which
+is their hosted API tier with no weights. It runs the open dev (non-distilled) transformer through ltx-2-mlx's
+`--two-stages-hq` pipeline. Stage 1 works at half size with the res_2s sampler and real CFG: 15 steps by default
+(`--steps`), CFG 3 and ltx-2-mlx's negative prompt. Stage 2 fuses the distilled LoRA in and refines at full size in
+3 steps. A first frame (image to video) works as with the distilled models. On a 64 GB M-series Mac, the q8 model made a 512×320, 49-frame clip in
+341 s at a ~30 GB peak. The distilled q8 took 60 s for the same clip and seed, so HQ is about 6× slower. In return
+it gives a cleaner subject and follows the prompt more closely. Both models of a quantisation share one folder, so
+HQ downloads only `transformer-dev.safetensors` and the distilled LoRA (q8: 19 + 8 GB). The default size is
+640×384.
+
+**FLUX.2 [klein] 9B** and the **LTX-2.5** packs (`dgrauet/ltx-2.5-mlx-q4` / `-q8`) are gated on Hugging Face. Accept
+the licence on their model page, then log in with `uvx hf auth login` or `export HF_TOKEN=…`.
+
+## How it runs
+
+- **In Go:** the chat models run on MLX through the mlx-c dylib, embedded in the binary and loaded with purego (no
+  cgo). The embedder and the classifier run in Go too. All of this comes from vboard-ai (`internal/mlx`, `llm`,
+  `qwen3`, `laya`, `tensor`, `tokenizer`, `models`).
+- **In Python, managed by mlxlab:** FLUX.2, Qwen-Image and LTX-2.5 run in Python MLX ports. On first use mlxlab creates their
+  environments with `uv` (`~/.config/mlxlab/envs/`, pinned versions; needs `brew install uv`).
+  - mflux runs as a worker that stays alive, so the model stays loaded between images.
+  - ltx-2-mlx runs as one process per video, since it loads its stages one after another anyway. It needs `ffmpeg`.
+- **Memory:** jobs run one at a time, and only one large model (chat, image or video) stays loaded. Starting a job of
+  another kind unloads the previous one. `u` in the TUI (or *Unload* in the web app) frees everything.
+
+Files live in `~/.config/mlxlab` (`$MLXLAB_HOME`): `outputs/` (images, videos, uploads), `history.json`, `models/`
+(the pinned Go models), `envs/`, and `lib/` (the unpacked MLX runtime). Hugging Face downloads go to the usual HF
+cache.
+
+## TUI
+
+`mlxlab` (or `mlxlab tui --server URL`) is a client of the hub: it asks for the password the first time and keeps
+the device token in `~/.config/mlxlab/client.json`. `--server http://127.0.0.1:8484` uses `mlxlab serve` instead.
+
+`↑↓` choose a model · `enter`/`tab` type · `e` (or `ctrl+e` while typing) next example prompt · `esc` back · `o` open
+the newest file · `L` logs · `c` clear the chat · `x` cancel · `u` unload · `w` open the web app · `q` quit.
+
+Image and video prompts take options at the end: `a fox in snow --size 768x768 --steps 4 --seed 7 --q 4 --image ref.png`
+(video: `--frames 97 --fps 24 --lowram --noaudio`). The embedder takes one text per line (`alt+enter`). The classifier
+takes a question, then `- label: description` options, then one text per line.
+
+## Web app
+
+The web app has a tab for each kind, each with an *Examples…* menu of ready-made prompts (they live in
+`internal/engine/examples.go` and are shared with the TUI).
+
+- **Chat:** pick several models and each gets its own column. A message goes to all of them, which makes it easy to
+  compare answers and tokens/s.
+- **Image:** reference images for editing, and *Edit* / *Animate* on a result to send it to the image or video tab.
+- **Video, Embed (similarity heatmap), Classify,** and a **Jobs** list with logs.
+
+The hub serves it (after sign-in). `mlxlab serve` serves it on this Mac alone, for development: no hub, no sign-in,
+and so only on a loopback address (`--addr`, default `127.0.0.1:8484`).
+
+## Worker and hub
+
+`mlxlab worker` dials the hub (WebSocket + yamux, `internal/tunnel`) and serves the API through that connection, so
+no port opens on the Mac and the files stay on it. The hub URL and the worker token come from `--hub`/`--token`,
+`$MLXLAB_HUB`/`$MLXLAB_WORKER_TOKEN`, or `~/.config/mlxlab/worker.json` (written when both flags are given). The
+token is the hub's `MLXLAB_WORKER_TOKEN`. The worker prints its state, reconnects with backoff when the connection
+drops, and stops on a token the hub refuses. While it is offline the hub answers "The Mac is offline".
+
+## iOS app
+
+`ios/` holds the iPhone/iPad app (SwiftUI, generated with XcodeGen like yacal; see `ios/README.md`). It talks to
+the hub and signs in there with the password once; the hub keeps one token per device.
+
+## Licences
+
+MLX and mlx-c are MIT (`internal/mlx/darwin_arm64/LICENSE-MLX.txt`). The models keep their own licences:
+FLUX.2 [klein] 4B is Apache 2.0, 9B is FLUX non-commercial, Qwen-Image 2512 and Edit 2511 are Apache 2.0, Qwen-Image
+2.1 is the Qwen Research License (non-commercial), LTX-2.x is the LTX-2 Community License, and Qwen is
+Apache 2.0.

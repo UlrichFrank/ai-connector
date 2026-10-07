@@ -1,0 +1,238 @@
+// mlxlab tries local AI models on a Mac with Apple silicon: the chat models, the embedder and the classifier of
+// vboard (run in Go, on MLX and Accelerate/Metal), FLUX.2 klein (images, through mflux) and LTX-2.5 (video with
+// audio, through ltx-2-mlx). The Mac is the worker: it dials the hub (on the Raspberry Pi), which signs people in
+// and serves the web UI; the TUI and the iOS app talk to the hub (docs/architecture.md).
+//
+//	mlxlab worker [--hub URL]   serve this Mac's models to the hub
+//	mlxlab serve                standalone on http://127.0.0.1:8484 (development, no hub)
+//	mlxlab [tui]                the terminal UI, a client of the hub
+//	mlxlab list                 the models
+//	mlxlab run <model> <prompt> one job, output on the terminal
+package main
+
+import (
+	"errors"
+	"flag"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"text/tabwriter"
+	"time"
+
+	"github.com/philipparndt/ai-connector/internal/approvals"
+	"github.com/philipparndt/ai-connector/internal/engine"
+	"github.com/philipparndt/ai-connector/internal/jobs"
+	"github.com/philipparndt/ai-connector/internal/llm"
+	"github.com/philipparndt/ai-connector/internal/models"
+	"github.com/philipparndt/ai-connector/internal/prompts"
+	"github.com/philipparndt/ai-connector/internal/tui"
+	"github.com/philipparndt/ai-connector/internal/voices"
+	"github.com/philipparndt/ai-connector/internal/web"
+)
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "mlxlab:", err)
+		os.Exit(1)
+	}
+}
+
+func usage() {
+	fmt.Fprint(os.Stderr, `mlxlab — local AI models on MLX
+
+usage:
+  mlxlab worker [--hub URL] [--token T]       serve this Mac's models to the hub (see docs/architecture.md)
+  mlxlab serve [--addr 127.0.0.1:8484]        standalone on this Mac only: the web app and the API, no hub
+  mlxlab [tui] [--server URL]                 the terminal UI, a client of the hub (or of mlxlab serve)
+  mlxlab list                                 the models and where they are
+  mlxlab run [options] <model> <prompt…>      one job; text goes to stdout, files are listed
+  mlxlab mcp list | call <server__tool> [json] | serve transit the MCP servers of mcp.json and their tools (docs/chat-tools.md)
+
+worker: the hub URL and the token come from the flags, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or worker.json
+        (written when --hub and a token (flag or MLXLAB_WORKER_TOKEN) are given). The token is the hub's MLXLAB_WORKER_TOKEN.
+
+run options: --size WxH --steps N --seed N --frames N --fps N --q 4|8|-1 --image FILE --temp T --think
+             music: <model> "<style>" --lyrics FILE --duration SECONDS --instrumental --bpm N --planner 4b|off
+
+files: ~/.config/mlxlab (models/, envs/, outputs/, history.json, worker.json; $MLXLAB_HOME)
+`)
+}
+
+func run() error {
+	args := os.Args[1:]
+	cmd := ""
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		cmd, args = args[0], args[1:]
+	}
+	switch {
+	case cmd == "tui":
+		return tui.Main(args)
+	case cmd == "mcp":
+		return mcpCommand(args)
+	case cmd == "guard":
+		return guardMain(args)
+	case cmd == "" && !helpFlag(args):
+		// plain mlxlab (and its flags, like --server) is the TUI
+		return tui.Main(args)
+	}
+	fs := flag.NewFlagSet("mlxlab "+cmd, flag.ContinueOnError)
+	fs.Usage = usage
+	var addr, hub, token *string
+	switch cmd {
+	case "serve":
+		addr = fs.String("addr", "127.0.0.1:8484", "where the app listens (this Mac only)")
+	case "worker":
+		hub = fs.String("hub", "", "the hub, e.g. https://mlxlab.example.org")
+		token = fs.String("token", "", "the worker token (the hub's MLXLAB_WORKER_TOKEN)")
+	}
+	ro := runOptions{}
+	if cmd == "run" {
+		ro.flags(fs)
+	}
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+
+	root := engine.ConfigDir()
+	switch cmd {
+	case "worker":
+		file := filepath.Join(root, "worker.json")
+		cfg, save, err := resolveWorker(*hub, *token, os.Getenv, file)
+		if err != nil {
+			return err
+		}
+		if save {
+			if err := saveWorker(file, cfg); err != nil {
+				return err
+			}
+			fmt.Println("mlxlab worker: hub and token kept in", file)
+		}
+		_, mgr := setup(root)
+		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version}).Handler())
+	case "serve":
+		_, mgr := setup(root)
+		url, err := serve(mgr, *addr)
+		if err != nil {
+			return err
+		}
+		fmt.Println("mlxlab:", url)
+		ch, stop := mgr.Subscribe()
+		defer stop()
+		go logUpdates(ch)
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		<-sig
+		mgr.Unload()
+		closeSandboxes()
+		return nil
+	case "list":
+		cat, _ := setup(root)
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "ID\tKIND\tBACKEND\tSIZE\tWHERE")
+		for _, m := range cat.Models {
+			where := "↓ on first use"
+			if m.Here {
+				where = m.Where
+			}
+			if m.Gated && !m.Here {
+				where += " (gated: HF_TOKEN)"
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", m.ID, m.Kind, m.Backend, models.Human(m.Size), where)
+		}
+		return w.Flush()
+	case "run":
+		_, mgr := setup(root)
+		return ro.run(mgr, fs.Args())
+	case "", "help":
+		usage()
+		return nil
+	}
+	usage()
+	return fmt.Errorf("unknown command %q", cmd)
+}
+
+func helpFlag(args []string) bool {
+	for _, a := range args {
+		switch a {
+		case "-h", "-help", "--help":
+			return true
+		}
+	}
+	return false
+}
+
+// setup builds the catalogue, the backends and the job manager.
+func setup(root string) (*engine.Catalog, *jobs.Manager) {
+	srcs, _ := models.Sources(os.Getenv("MLXLAB_MODELS_FROM"), nil)
+	store := &models.Store{Dir: filepath.Join(root, "models"), Sources: srcs}
+	lms, hf := llm.LocalRoots()
+	finder := &llm.Finder{Store: store, LMStudio: lms, HFCache: hf, Mem: llm.MemBytes(),
+		Verifier: &llm.Verifier{Path: filepath.Join(store.Dir, "verified.json")}}
+	cat := engine.NewCatalog(store, finder)
+	text := &engine.TextBackend{Store: store}
+	// the tools allowed always (approvals.json): the chats ask it, the web API changes it
+	always := approvals.Open(root)
+	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
+	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
+	backends := []engine.Backend{
+		&engine.ChatBackend{Finder: finder, Agent: agentConfig(root, text, always)},
+		text,
+		&engine.FluxBackend{Root: root, Store: store},
+		&engine.LTXBackend{Root: root, Store: store},
+		&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
+		speech,
+		&engine.SoundBackend{Root: root, Store: store},
+		// the avatar says its text with the speech backend
+		&engine.AvatarBackend{Root: root, Store: store, Speaker: speech},
+	}
+	mgr := jobs.New(cat, backends, root)
+	mgr.Approvals = always
+	return cat, mgr
+}
+
+// serve runs the app standalone on this Mac. It has no sign-in, so it never listens beyond localhost: other devices
+// go through the hub.
+func serve(mgr *jobs.Manager, addr string) (string, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return "", fmt.Errorf("cannot listen on %s: %w (--addr)", addr, err)
+	}
+	if !loopback(ln.Addr()) {
+		ln.Close()
+		return "", fmt.Errorf("%s is reachable from other devices, and mlxlab serve has no sign-in: use 127.0.0.1, "+
+			"and mlxlab worker with the hub for other devices (docs/architecture.md)", addr)
+	}
+	h := web.SameOrigin((&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version}).Handler())
+	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second}
+	go func() { _ = srv.Serve(ln) }()
+	return "http://" + ln.Addr().String(), nil
+}
+
+func loopback(a net.Addr) bool {
+	t, ok := a.(*net.TCPAddr)
+	return ok && t.IP.IsLoopback()
+}
+
+func logUpdates(ch <-chan jobs.Update) {
+	for u := range ch {
+		switch {
+		case u.Job != nil:
+			j := u.Job
+			line := fmt.Sprintf("%s %s %s: %s", time.Now().Format("15:04:05"), j.ID, j.Model, j.Status)
+			if j.Error != "" {
+				line += " — " + j.Error
+			}
+			fmt.Println(line)
+		case u.Event != nil && (u.Event.Type == "log" || u.Event.Type == "status"):
+			fmt.Printf("%s %s   %s\n", time.Now().Format("15:04:05"), u.JobID, u.Event.Text)
+		}
+	}
+}

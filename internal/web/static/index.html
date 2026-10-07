@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mlxlab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%237c5cff'/><path d='M8 22V10l8 7 8-7v12' stroke='white' stroke-width='3' fill='none' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">m</span>mlxlab <small>local models on MLX</small></div>
+  <div class="status">
+    <span id="queue" class="chip muted"></span>
+    <span id="loaded" class="chip muted"></span>
+    <button id="unload" class="ghost" title="Free the memory of every loaded model">Unload</button>
+  </div>
+</header>
+<nav id="tabs">
+  <button data-tab="chat" class="active">Chat</button>
+  <button data-tab="image">Image</button>
+  <button data-tab="video">Video</button>
+  <button data-tab="music">Music</button>
+  <button data-tab="embed">Embed</button>
+  <button data-tab="classify">Classify</button>
+  <button data-tab="prompts">Prompts</button>
+  <button data-tab="jobs">Jobs <span id="jobcount"></span></button>
+</nav>
+<main>
+  <!-- chat -->
+  <section id="tab-chat" class="tab active">
+    <div class="toolbar">
+      <div class="models" data-kind="chat"></div>
+      <div class="opts">
+        <label>Temp <input id="chat-temp" type="number" min="0" max="2" step="0.1" value="0.3"></label>
+        <label>Max tokens <input id="chat-max" type="number" min="16" step="64" value="2048"></label>
+        <label class="check"><input id="chat-think" type="checkbox"> Think</label>
+        <button id="chat-clear" class="ghost">Clear</button>
+      </div>
+    </div>
+    <div class="sysrow">
+      <label class="inline">System prompt <select id="chat-sysprompt"></select></label>
+      <button type="button" class="small" id="chat-sysedit">Edit in Prompts</button>
+    </div>
+    <textarea id="chat-system" rows="3" placeholder="Your own system prompt for this chat" hidden></textarea>
+    <div id="chat-cols" class="cols"></div>
+    <div class="examples-row"><select class="examples" data-kind="chat"><option value="">Examples…</option></select></div>
+    <form id="chat-form" class="composer">
+      <textarea id="chat-input" rows="2" placeholder="Message the selected models… (Enter sends, Shift+Enter for a new line)"></textarea>
+      <button type="submit" class="primary">Send</button>
+    </form>
+  </section>
+
+  <!-- image -->
+  <section id="tab-image" class="tab">
+    <form id="image-form" class="panel">
+      <div class="models" data-kind="image"></div>
+      <select class="examples" data-kind="image"><option value="">Examples…</option></select>
+      <textarea id="image-prompt" rows="3" placeholder="A cozy reading nook in a treehouse, warm evening light, film photo" required></textarea>
+      <div class="enhance" data-use="enhance-image" data-target="image-prompt"></div>
+      <div class="row">
+        <label>Size <select id="image-size">
+          <option value="1024x1024">1024 × 1024</option><option value="768x768">768 × 768</option><option value="512x512">512 × 512</option>
+          <option value="1344x768">1344 × 768 (16:9)</option><option value="768x1344">768 × 1344 (9:16)</option><option value="1152x896">1152 × 896 (4:3)</option><option value="896x1152">896 × 1152 (3:4)</option>
+        </select></label>
+        <label>Steps <input id="image-steps" type="number" min="1" max="100" placeholder="auto"></label>
+        <label>Seed <input id="image-seed" type="number" placeholder="random"></label>
+        <label>Precision <select id="image-q"><option value="8">8-bit</option><option value="4">4-bit</option><option value="-1">bf16</option></select></label>
+        <label>Guidance <input id="image-guidance" type="number" min="0" step="0.5" placeholder="auto"></label>
+      </div>
+      <div class="refs" id="image-refs" data-max="4"><label class="drop">+ reference image (edit)<input type="file" accept="image/*" multiple hidden></label></div>
+      <button type="submit" class="primary">Generate</button>
+    </form>
+    <div id="image-gallery" class="gallery"></div>
+  </section>
+
+  <!-- video -->
+  <section id="tab-video" class="tab">
+    <form id="video-form" class="panel">
+      <div class="models" data-kind="video"></div>
+      <div class="seg" id="video-mode">
+        <button type="button" data-mode="clip" class="on">Single clip</button>
+        <button type="button" data-mode="movie">Movie (script)</button>
+      </div>
+      <select class="examples" data-kind="video"><option value="">Examples…</option></select>
+      <textarea id="video-prompt" rows="3" placeholder="A heavy wooden door creaks slowly open onto a sunlit garden"></textarea>
+      <div class="enhance" data-use="enhance-video" data-target="video-prompt"></div>
+      <div id="movie-editor" hidden>
+        <label>Shared description: characters, look, sound — goes into every clip
+          <textarea id="movie-shared" rows="3" placeholder="Funny 2D cartoon, bold outlines. Characters: an orange fox with a green scarf, a tiny grey squirrel …"></textarea></label>
+        <div id="movie-clips"></div>
+        <button type="button" class="ghost" id="movie-add">+ Add clip</button>
+        <div class="stats" id="movie-length"></div>
+      </div>
+      <div class="row">
+        <label>Size <select id="video-size">
+          <option value="704x448">704 × 448</option><option value="448x704">448 × 704</option><option value="512x320">512 × 320 (fast)</option>
+          <option value="960x512">960 × 512</option><option value="1280x704">1280 × 704</option>
+        </select></label>
+        <label><span id="video-frames-label">Frames</span> <input id="video-frames" type="number" min="9" step="8" value="97" title="8k+1; empty: LTX-2.5 predicts the length"></label>
+        <label>FPS <input id="video-fps" type="number" min="8" max="50" value="24"></label>
+        <label>Seed <input id="video-seed" type="number" placeholder="random"></label>
+        <label class="check"><input id="video-lowram" type="checkbox"> Low RAM</label>
+        <label class="check"><input id="video-noaudio" type="checkbox"> No audio</label>
+      </div>
+      <div class="refs" id="video-refs" data-max="1"><label class="drop">+ first frame (image to video)<input type="file" accept="image/*" hidden></label></div>
+      <button type="submit" class="primary" id="video-go">Generate</button>
+    </form>
+    <div id="video-gallery" class="gallery wide"></div>
+  </section>
+
+  <!-- music: a small studio -->
+  <section id="tab-music" class="tab">
+    <div class="studio">
+      <div class="panel create">
+        <div class="seg" id="song-mode">
+          <button type="button" data-mode="simple" class="on">Simple</button>
+          <button type="button" data-mode="custom">Custom</button>
+        </div>
+        <div id="song-simple">
+          <textarea id="song-idea" rows="4" placeholder="A summer trance anthem about driving to the sea at sunrise"></textarea>
+          <label class="check"><input id="song-idea-inst" type="checkbox"> Instrumental</label>
+          <div class="row">
+            <button type="button" class="primary" id="song-create-simple">Create</button>
+            <button type="button" class="ghost" id="song-write">✍️ Write only</button>
+          </div>
+          <div class="hint">A chat model writes title, style and lyrics (Prompts → “Song from an idea”), then the song model sings it.</div>
+        </div>
+        <form id="music-form" class="songform" hidden>
+          <div class="formtop">
+            <div class="models" data-kind="music"></div>
+            <select class="examples compact" data-kind="music"><option value="">Examples…</option></select>
+          </div>
+          <input id="music-title" placeholder="Title (optional)">
+          <div class="field">
+            <div class="fieldhead"><span>Style</span><div class="enhance" data-use="enhance-music" data-target="music-style"></div></div>
+            <textarea id="music-style" rows="2" placeholder="indie pop, bright acoustic guitar, warm female vocal, 110 bpm"></textarea>
+          </div>
+          <div class="field">
+            <div class="fieldhead"><span>Lyrics</span><label class="switch"><input id="music-instrumental" type="checkbox"><i></i> Instrumental</label></div>
+            <textarea id="music-lyrics" rows="9" placeholder="[verse]&#10;…&#10;[chorus]&#10;…"></textarea>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <div class="fieldhead"><span>Length</span><button type="button" class="linkbtn" id="fit-length" title="Estimate the length from the lyrics and the tempo in the style">Fit to lyrics</button></div>
+              <div class="unit"><input id="music-duration" type="number" min="10" max="600" step="5" value="210"><span>s</span></div>
+            </div>
+            <div class="field">
+              <div class="fieldhead"><span>Seed</span><button type="button" class="linkbtn" id="seed-random" title="A new random seed each time">🎲 random</button></div>
+              <input id="music-seed" type="number" placeholder="random">
+            </div>
+          </div>
+          <button type="submit" class="primary wide">Create</button>
+        </form>
+        <label class="importlink" id="song-import">⤒ Import a song to remix<input type="file" accept="audio/*" hidden></label>
+      </div>
+
+      <div class="library">
+        <div class="folders" id="song-folders"></div>
+        <input id="song-search" type="search" placeholder="Search songs">
+        <div id="song-list"></div>
+      </div>
+
+      <div class="panel desk" id="song-desk">
+        <div class="empty">Pick a song to open it in the studio.</div>
+      </div>
+    </div>
+    <div class="playerbar" id="playerbar" hidden>
+      <button type="button" id="pb-play" class="round">▶</button>
+      <div class="pb-info"><div id="pb-title"></div><div id="pb-sub" class="meta"></div></div>
+      <span id="pb-time" class="meta">0:00</span>
+      <input type="range" id="pb-seek" min="0" max="1000" value="0">
+      <span id="pb-dur" class="meta">0:00</span>
+    </div>
+    <audio id="pb-audio" preload="metadata"></audio>
+  </section>
+
+  <!-- embed -->
+  <section id="tab-embed" class="tab">
+    <form id="embed-form" class="panel">
+      <div class="models" data-kind="embed"></div>
+      <select class="examples" data-kind="embed"><option value="">Examples…</option></select>
+      <textarea id="embed-texts" rows="7" placeholder="One text per line">Fix the login bug on Safari
+Safari users cannot sign in
+Plan the team offsite in May
+Book a venue for the offsite
+Write release notes for 2.4</textarea>
+      <button type="submit" class="primary">Compare</button>
+    </form>
+    <div id="embed-out"></div>
+  </section>
+
+  <!-- classify -->
+  <section id="tab-classify" class="tab">
+    <form id="classify-form" class="panel">
+      <div class="models" data-kind="classify"></div>
+      <select class="examples" data-kind="classify"><option value="">Examples…</option></select>
+      <input id="classify-q" placeholder="Question" value="Which part of the Eisenhower matrix does this belong to?">
+      <div class="row2">
+        <textarea id="classify-opts" rows="5" placeholder="One option per line (label: description)">Do: urgent and important
+Schedule: important, not urgent
+Delegate: urgent, not important
+Drop: neither urgent nor important</textarea>
+        <textarea id="classify-texts" rows="5" placeholder="One text per line">Production is down for all customers
+Refactor the billing module next quarter
+Answer the vendor's survey by Friday
+Reorganise the emoji in Slack</textarea>
+      </div>
+      <button type="submit" class="primary">Ask</button>
+    </form>
+    <div id="classify-out"></div>
+  </section>
+
+  <!-- prompts -->
+  <section id="tab-prompts" class="tab">
+    <div class="prompts">
+      <aside>
+        <button type="button" class="primary" id="prompt-new">+ New prompt</button>
+        <div id="prompt-list"></div>
+      </aside>
+      <div class="panel" id="prompt-edit"></div>
+    </div>
+  </section>
+
+  <!-- jobs -->
+  <section id="tab-jobs" class="tab">
+    <div id="jobs-list"></div>
+  </section>
+</main>
+<div id="lightbox" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

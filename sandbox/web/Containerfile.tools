@@ -1,0 +1,17 @@
+# The tools service of the web sandbox (see tools/main.go). Built by internal/sandbox/web with `container build`.
+# No package installs: the build needs no network (only the base images).
+ARG GO_IMAGE=docker.io/library/golang:1.24-alpine
+FROM ${GO_IMAGE} AS build
+WORKDIR /src
+COPY go.mod ./
+# (globs: with a directory as the COPY source, the container builder 0.13 copies nothing)
+COPY tools/*.go ./tools/
+COPY lockdown/*.go ./lockdown/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/webtools ./tools && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/lockdown ./lockdown
+
+FROM docker.io/library/alpine:3
+COPY --from=build /out/webtools /out/lockdown /usr/local/bin/
+# the service listens on a unix socket, published to the Mac with --publish-socket (vsock, not the network)
+ENV LISTEN=unix:/run/webtools/tools.sock
+ENTRYPOINT ["/usr/local/bin/lockdown", "tools", "--", "/usr/local/bin/webtools"]

@@ -1,0 +1,2538 @@
+{
+ "verbindungen": [
+  {
+   "tripId": "8614248b_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "4189",
+     "externeBahnhofsinfoIdDestination": "6279",
+     "abfahrtsOrt": "Bahnhof, Mössingen",
+     "startHalt": {
+      "extId": "751294",
+      "name": "Bahnhof, Mössingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:00:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "811000",
+      "name": "Hauptbahnhof, Tübingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:43:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "751294",
+     "abschnittsDauer": 2580,
+     "abschnittsAnteil": 100,
+     "ankunftsOrt": "Hauptbahnhof, Tübingen",
+     "ankunftsOrtExtId": "811000",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:00:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:43:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Bahnhof, Mössingen@X=9046573@Y=48403739@U=80@L=751294@i=U×008098745@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:00:00"
+       },
+       "name": "Bahnhof, Mössingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4189",
+       "extId": "751294",
+       "adminID": "tub080",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Siemensstraße, Mössingen@X=9038384@Y=48406687@U=80@L=751681@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:02:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:02:00"
+       },
+       "name": "Siemensstraße, Mössingen",
+       "risNotizen": [],
+       "extId": "751681",
+       "adminID": "tub080",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Daimlerstraße, Mössingen@X=9039705@Y=48408467@U=80@L=752772@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:03:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:03:00"
+       },
+       "name": "Daimlerstraße, Mössingen",
+       "risNotizen": [],
+       "extId": "752772",
+       "adminID": "tub080",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Mössinger Straße, Ofterdingen@X=9034006@Y=48413015@U=80@L=492083@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:05:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:05:00"
+       },
+       "name": "Mössinger Straße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "492083",
+       "adminID": "tub080",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kriegsstraße, Ofterdingen@X=9029916@Y=48416980@U=80@L=751431@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:06:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:06:00"
+       },
+       "name": "Kriegsstraße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "751431",
+       "adminID": "tub080",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Schillerstr., Ofterdingen@X=9030635@Y=48420917@U=80@L=750308@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:08:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:08:00"
+       },
+       "name": "Schillerstr., Ofterdingen",
+       "risNotizen": [],
+       "extId": "750308",
+       "adminID": "tub080",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Birkenstraße, Ofterdingen@X=9019767@Y=48419910@U=80@L=490671@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:10:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:10:00"
+       },
+       "name": "Birkenstraße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "490671",
+       "adminID": "tub080",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Alte Rottenburger Str., Ofterdingen@X=9025421@Y=48421672@U=80@L=491561@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:11:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:11:00"
+       },
+       "name": "Alte Rottenburger Str., Ofterdingen",
+       "risNotizen": [],
+       "extId": "491561",
+       "adminID": "tub080",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Heubergstraße, Ofterdingen@X=9029377@Y=48422706@U=80@L=492079@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:12:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:12:00"
+       },
+       "name": "Heubergstraße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "492079",
+       "adminID": "tub080",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Steinlachstraße, Ofterdingen@X=9034905@Y=48422265@U=80@L=492078@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:14:00"
+       },
+       "name": "Steinlachstraße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "492078",
+       "adminID": "tub080",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hafnerstraße, Ofterdingen@X=9037098@Y=48423910@U=80@L=492110@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:16:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:16:00"
+       },
+       "name": "Hafnerstraße, Ofterdingen",
+       "risNotizen": [],
+       "extId": "492110",
+       "adminID": "tub080",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Weiherrain, Ofterdingen@X=9040928@Y=48423335@U=80@L=491560@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:17:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:17:00"
+       },
+       "name": "Weiherrain, Ofterdingen",
+       "risNotizen": [],
+       "extId": "491560",
+       "adminID": "tub080",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nehren (Württ) Abzw.@X=9056201@Y=48440379@U=80@L=492072@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:20:00"
+       },
+       "name": "Nehren (Württ) Abzw.",
+       "risNotizen": [],
+       "extId": "492072",
+       "adminID": "tub080",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bürgerpark, Dußlingen@X=9059266@Y=48449709@U=80@L=492119@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:22:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:22:00"
+       },
+       "name": "Bürgerpark, Dußlingen",
+       "risNotizen": [],
+       "extId": "492119",
+       "adminID": "tub080",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bläsibad, Tübingen@X=9067743@Y=48487797@U=80@L=492061@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:27:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:27:00"
+       },
+       "name": "Bläsibad, Tübingen",
+       "risNotizen": [],
+       "extId": "492061",
+       "adminID": "tub080",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Horn-Straße, Tübingen@X=9060974@Y=48493586@U=80@L=752136@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:28:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:28:00"
+       },
+       "name": "Horn-Straße, Tübingen",
+       "risNotizen": [],
+       "extId": "752136",
+       "adminID": "tub080",
+       "routeIdx": 15,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Paul-Dietz-Straße, Tübingen@X=9056012@Y=48501307@U=80@L=751478@i=U×008097294@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:32:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:32:00"
+       },
+       "name": "Paul-Dietz-Straße, Tübingen",
+       "risNotizen": [],
+       "extId": "751478",
+       "adminID": "tub080",
+       "routeIdx": 16,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Brühlstraße, Tübingen@X=9051571@Y=48509613@U=80@L=752079@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:35:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:35:00"
+       },
+       "name": "Brühlstraße, Tübingen",
+       "risNotizen": [],
+       "extId": "752079",
+       "adminID": "tub080",
+       "routeIdx": 17,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hegelstraße, Tübingen@X=9051391@Y=48513380@U=80@L=750900@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:37:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:37:00"
+       },
+       "name": "Hegelstraße, Tübingen",
+       "risNotizen": [],
+       "extId": "750900",
+       "adminID": "tub080",
+       "routeIdx": 18,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hauptbahnhof, Tübingen@X=9053675@Y=48515906@U=80@L=811000@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:43:00"
+       },
+       "name": "Hauptbahnhof, Tübingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "811000",
+       "adminID": "tub080",
+       "routeIdx": 19,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384592#TA#1#DA#51026#1S#751294#1T#700#LS#811000#LT#743#PU#80#RT#1#CA#Bus#ZE#7613#ZB#Bus          7613#PC#5#FR#751294#FT#700#TO#811000#TT#743#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "BUS",
+      "kategorie": "Bus",
+      "linienNummer": "7613",
+      "name": "Bus 7613",
+      "nummer": "7613",
+      "richtung": "Hauptbahnhof, Tübingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [],
+      "kurzText": "Bus",
+      "mittelText": "Bus 7613",
+      "langText": "Bus 7613"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 0,
+   "verbindungsDauerInSeconds": 2580,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-11",
+     "regular": "Mo - Fr",
+     "irregular": "nicht 26. bis 30. Okt 2026",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR"
+     ]
+    }
+   ],
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "1bee4e0e_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Vorübergehend verminderte Geschwindigkeit auf der Strecke Bitte rechnen Sie mit Verspätungen. Bitte prüfen Sie Ihre Reiseverbindung kurz vor der Abfahrt des Zuges.",
+       "disruptionCommunicationId": "257567fd-2d01-441f-879c-a664dcc477b2",
+       "parameterizedTextShort": "Verspätungen durch Vorübergehend verminderte Geschwindigkeit auf der Strecke",
+       "routeIdxFrom": 12,
+       "routeIdxTo": 12
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "4189",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Mössingen",
+     "startHalt": {
+      "extId": "8004070",
+      "name": "Mössingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:11:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:18:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8004070",
+     "abschnittsDauer": 420,
+     "abschnittsAnteil": 23.33,
+     "ankunftsOrt": "Dußlingen",
+     "ankunftsOrtExtId": "8001617",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:11:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:18:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Mössingen@X=9046393@Y=48404035@U=80@L=8004070@i=U×008029338@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:11:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Mössingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4189",
+       "extId": "8004070",
+       "adminID": "S6",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nehren@X=9066880@Y=48423955@U=80@L=8004229@i=U×008029337@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:13:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Nehren",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4330",
+       "extId": "8004229",
+       "adminID": "S6",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Dußlingen@X=9058448@Y=48452406@U=80@L=8001617@i=U×008029335@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:18:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "8001617",
+       "adminID": "S6",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1335198#TA#0#DA#51026#1S#8002673#1T#659#LS#8001617#LT#718#PU#80#RT#1#CA#DRB#ZE#86232#ZB#            86232#PC#3#FR#8002673#FT#659#TO#8001617#TT#718#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "DRB",
+      "name": "86232",
+      "nummer": "86232",
+      "richtung": "Dußlingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "SWEG Südwestdeutsche Landesverkehrs-GmbH"
+       },
+       {
+        "kategorie": "BARRIEREFREI",
+        "key": "RG",
+        "value": "Barrierefreies Fahrzeug",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EI",
+        "value": "Einstiegshilfe - Bitte im ersten Fahrzeug einsteigen",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       }
+      ],
+      "kurzText": "SWE",
+      "mittelText": "RB66",
+      "langText": "RB66 (86232)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Dußlingen",
+     "startHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:18:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:21:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8001617",
+     "abschnittsDauer": 180,
+     "abschnittsAnteil": 10,
+     "ankunftsOrt": "Bahnhof, Dußlingen",
+     "ankunftsOrtExtId": "491706",
+     "distanz": 56,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:18:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:21:00"
+     },
+     "halte": [],
+     "idx": 1,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "abfahrtsOrt": "Bahnhof, Dußlingen",
+     "startHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:24:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "110714",
+      "name": "Finanzamt, Tübingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:40:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "491706",
+     "abschnittsDauer": 960,
+     "abschnittsAnteil": 53.33,
+     "ankunftsOrt": "Finanzamt, Tübingen",
+     "ankunftsOrtExtId": "110714",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:24:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:40:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Bahnhof, Dußlingen@X=9057747@Y=48452604@U=80@L=491706@i=U×008098403@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:24:00"
+       },
+       "name": "Bahnhof, Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "491706",
+       "adminID": "S6",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Feuerhägle, Tübingen@X=9055688@Y=48503977@U=80@L=750665@i=U×008098405@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:34:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:34:00"
+       },
+       "name": "Feuerhägle, Tübingen",
+       "risNotizen": [],
+       "extId": "750665",
+       "adminID": "S6",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Finanzamt, Tübingen@X=9056048@Y=48514791@U=80@L=110714@i=U×008099714@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:40:00"
+       },
+       "name": "Finanzamt, Tübingen",
+       "risNotizen": [],
+       "extId": "110714",
+       "adminID": "S6",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 2,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1334249#TA#0#DA#51026#1S#491706#1T#724#LS#110714#LT#740#PU#80#RT#1#CA#Bsv#ZE#RB66#ZB#Bus          RB66#PC#3#FR#491706#FT#724#TO#110714#TT#740#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "ERSATZVERKEHR",
+      "kategorie": "Bsv",
+      "linienNummer": "RB66",
+      "name": "Bus RB66",
+      "nummer": "RB66",
+      "richtung": "Finanzamt, Tübingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "SWEG Südwestdeutsche Landesverkehrs-GmbH"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "SV",
+        "value": "Ersatzverkehr"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "NF",
+        "value": "keine Fahrradbeförderung möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "VB",
+        "value": "Kein Fahrkartenverkauf im Fahrzeug"
+       }
+      ],
+      "kurzText": "Bus",
+      "mittelText": "Bus RB66",
+      "langText": "Bus RB66"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdDestination": "6279",
+     "abfahrtsOrt": "Finanzamt, Tübingen",
+     "startHalt": {
+      "extId": "110714",
+      "name": "Finanzamt, Tübingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:40:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:44:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "110714",
+     "abschnittsDauer": 240,
+     "abschnittsAnteil": 13.33,
+     "ankunftsOrt": "Tübingen Hbf",
+     "ankunftsOrtExtId": "8000141",
+     "distanz": 107,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:40:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:44:00"
+     },
+     "halte": [],
+     "idx": 3,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 1980,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-10-09",
+     "regular": "nicht täglich",
+     "irregular": "5. bis 9. Okt 2026",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "0849b679_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "4189",
+     "externeBahnhofsinfoIdDestination": "5242",
+     "abfahrtsOrt": "Bahnhof, Mössingen",
+     "startHalt": {
+      "extId": "751294",
+      "name": "Bahnhof, Mössingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:12:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "222006",
+      "name": "Hauptbahnhof, Reutlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:55:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "751294",
+     "abschnittsDauer": 2580,
+     "abschnittsAnteil": 66.15,
+     "ankunftsOrt": "Hauptbahnhof, Reutlingen",
+     "ankunftsOrtExtId": "222006",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:12:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:55:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Bahnhof, Mössingen@X=9046573@Y=48403739@U=80@L=751294@i=U×008098745@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:12:00"
+       },
+       "name": "Bahnhof, Mössingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4189",
+       "extId": "751294",
+       "adminID": "tub007",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Jakob-Stotz-Platz, Mössingen@X=9053117@Y=48404799@U=80@L=750048@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:14:00"
+       },
+       "name": "Jakob-Stotz-Platz, Mössingen",
+       "risNotizen": [],
+       "extId": "750048",
+       "adminID": "tub007",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stadtmitte, Mössingen@X=9056326@Y=48405977@U=80@L=751216@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:15:00"
+       },
+       "name": "Stadtmitte, Mössingen",
+       "risNotizen": [],
+       "extId": "751216",
+       "adminID": "tub007",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kugelbeer, Mössingen@X=9060533@Y=48406966@U=80@L=750047@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:16:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:16:00"
+       },
+       "name": "Kugelbeer, Mössingen",
+       "risNotizen": [],
+       "extId": "750047",
+       "adminID": "tub007",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Altes Rathaus, Mössingen@X=9062529@Y=48408026@U=80@L=750045@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:17:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:17:00"
+       },
+       "name": "Altes Rathaus, Mössingen",
+       "risNotizen": [],
+       "extId": "750045",
+       "adminID": "tub007",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Firstwaldstr., Mössingen@X=9069711@Y=48409357@U=80@L=750041@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:18:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:18:00"
+       },
+       "name": "Firstwaldstr., Mössingen",
+       "risNotizen": [],
+       "extId": "750041",
+       "adminID": "tub007",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Öschingen Mühlberg, Mössingen@X=9104661@Y=48414445@U=80@L=750061@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:22:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:22:00"
+       },
+       "name": "Öschingen Mühlberg, Mössingen",
+       "risNotizen": [],
+       "extId": "750061",
+       "adminID": "tub007",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Öschingen Lamm, Mössingen@X=9108347@Y=48415775@U=80@L=750025@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:23:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:23:00"
+       },
+       "name": "Öschingen Lamm, Mössingen",
+       "risNotizen": [],
+       "extId": "750025",
+       "adminID": "tub007",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Öschingen Reutlinger Straße, Mössingen@X=9110621@Y=48417932@U=80@L=750018@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:25:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:25:00"
+       },
+       "name": "Öschingen Reutlinger Straße, Mössingen",
+       "risNotizen": [],
+       "extId": "750018",
+       "adminID": "tub007",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gönningen Seidelbaststraße, Reutlingen@X=9145203@Y=48435228@U=80@L=490303@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:29:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:29:00"
+       },
+       "name": "Gönningen Seidelbaststraße, Reutlingen",
+       "risNotizen": [],
+       "extId": "490303",
+       "adminID": "tub007",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gönningen Roßbergschule, Reutlingen@X=9148888@Y=48431335@U=80@L=750794@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:31:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:31:00"
+       },
+       "name": "Gönningen Roßbergschule, Reutlingen",
+       "risNotizen": [],
+       "extId": "750794",
+       "adminID": "tub007",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gönningen Tulpenplatz, Reutlingen@X=9151792@Y=48431578@U=80@L=750793@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:33:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:33:00"
+       },
+       "name": "Gönningen Tulpenplatz, Reutlingen",
+       "risNotizen": [],
+       "extId": "750793",
+       "adminID": "tub007",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gönningen Post, Reutlingen@X=9148915@Y=48433780@U=80@L=750792@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:34:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:34:00"
+       },
+       "name": "Gönningen Post, Reutlingen",
+       "risNotizen": [],
+       "extId": "750792",
+       "adminID": "tub007",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gönningen Lindenwiesen, Reutlingen@X=9146731@Y=48437331@U=80@L=750791@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:35:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:35:00"
+       },
+       "name": "Gönningen Lindenwiesen, Reutlingen",
+       "risNotizen": [],
+       "extId": "750791",
+       "adminID": "tub007",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bronnweiler Raitweg, Reutlingen@X=9140582@Y=48446302@U=80@L=750342@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:36:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:36:00"
+       },
+       "name": "Bronnweiler Raitweg, Reutlingen",
+       "risNotizen": [],
+       "extId": "750342",
+       "adminID": "tub007",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bronnweiler Mitte, Reutlingen@X=9139387@Y=48449485@U=80@L=750341@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:37:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:37:00"
+       },
+       "name": "Bronnweiler Mitte, Reutlingen",
+       "risNotizen": [],
+       "extId": "750341",
+       "adminID": "tub007",
+       "routeIdx": 15,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Käpfle, Reutlingen@X=9149652@Y=48455903@U=80@L=751633@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:40:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:40:00"
+       },
+       "name": "Käpfle, Reutlingen",
+       "risNotizen": [],
+       "extId": "751633",
+       "adminID": "tub007",
+       "routeIdx": 16,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hofgut Alteburg, Reutlingen@X=9153734@Y=48462294@U=80@L=751624@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:41:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:41:00"
+       },
+       "name": "Hofgut Alteburg, Reutlingen",
+       "risNotizen": [],
+       "extId": "751624",
+       "adminID": "tub007",
+       "routeIdx": 17,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Roßwasen, Reutlingen@X=9181933@Y=48476272@U=80@L=751657@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:44:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:44:00"
+       },
+       "name": "Roßwasen, Reutlingen",
+       "risNotizen": [],
+       "extId": "751657",
+       "adminID": "tub007",
+       "routeIdx": 18,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kreuzeiche, Reutlingen@X=9195515@Y=48480237@U=80@L=751583@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:46:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:46:00"
+       },
+       "name": "Kreuzeiche, Reutlingen",
+       "risNotizen": [],
+       "extId": "751583",
+       "adminID": "tub007",
+       "routeIdx": 19,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Peter-Rosegger-Str., Reutlingen@X=9199695@Y=48482547@U=80@L=751651@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:47:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:47:00"
+       },
+       "name": "Peter-Rosegger-Str., Reutlingen",
+       "risNotizen": [],
+       "extId": "751651",
+       "adminID": "tub007",
+       "routeIdx": 20,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Alteburgstr., Reutlingen@X=9203192@Y=48484300@U=80@L=751587@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:48:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:48:00"
+       },
+       "name": "Alteburgstr., Reutlingen",
+       "risNotizen": [],
+       "extId": "751587",
+       "adminID": "tub007",
+       "routeIdx": 21,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Volkspark/Pomologie, Reutlingen@X=9206572@Y=48487707@U=80@L=751669@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:49:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:49:00"
+       },
+       "name": "Volkspark/Pomologie, Reutlingen",
+       "risNotizen": [],
+       "extId": "751669",
+       "adminID": "tub007",
+       "routeIdx": 22,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stadthalle, Reutlingen@X=9208172@Y=48491536@U=80@L=362787@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:51:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:51:00"
+       },
+       "name": "Stadthalle, Reutlingen",
+       "risNotizen": [],
+       "extId": "362787",
+       "adminID": "tub007",
+       "routeIdx": 23,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stadtmitte, Reutlingen@X=9208109@Y=48492219@U=80@L=751663@i=U×008099962@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:52:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:52:00"
+       },
+       "name": "Stadtmitte, Reutlingen",
+       "risNotizen": [],
+       "extId": "751663",
+       "adminID": "tub007",
+       "routeIdx": 24,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hauptbahnhof, Reutlingen@X=9210105@Y=48496336@U=80@L=222006@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:55:00"
+       },
+       "name": "Hauptbahnhof, Reutlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5242",
+       "extId": "222006",
+       "adminID": "tub007",
+       "routeIdx": 25,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1380589#TA#1#DA#51026#1S#751294#1T#712#LS#222006#LT#755#PU#80#RT#1#CA#Bus#ZE#5#ZB#Bus             5#PC#5#FR#751294#FT#712#TO#222006#TT#755#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "BUS",
+      "kategorie": "Bus",
+      "linienNummer": "5",
+      "name": "Bus 5",
+      "nummer": "5",
+      "richtung": "Hauptbahnhof, Reutlingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [],
+      "kurzText": "Bus",
+      "mittelText": "Bus 5",
+      "langText": "Bus 5"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "5242",
+     "externeBahnhofsinfoIdDestination": "5242",
+     "abfahrtsOrt": "Hauptbahnhof, Reutlingen",
+     "startHalt": {
+      "extId": "222006",
+      "name": "Hauptbahnhof, Reutlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:55:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000314",
+      "name": "Reutlingen Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:58:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "222006",
+     "abschnittsDauer": 180,
+     "abschnittsAnteil": 4.62,
+     "ankunftsOrt": "Reutlingen Hbf",
+     "ankunftsOrtExtId": "8000314",
+     "distanz": 78,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:55:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:58:00"
+     },
+     "halte": [],
+     "idx": 1,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 16,
+       "routeIdxTo": 16
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+       "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+       "routeIdxFrom": 16,
+       "routeIdxTo": 16
+      },
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "routeIdxFrom": 16,
+       "routeIdxTo": 16
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "5242",
+     "externeBahnhofsinfoIdDestination": "6279",
+     "abfahrtsOrt": "Reutlingen Hbf",
+     "startHalt": {
+      "extId": "8000314",
+      "name": "Reutlingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:59:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:18:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000314",
+     "abschnittsDauer": 1140,
+     "abschnittsAnteil": 29.23,
+     "ankunftsOrt": "Tübingen Hbf",
+     "ankunftsOrtExtId": "8000141",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:59:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:18:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Reutlingen Hbf@X=9209116@Y=48496076@U=80@L=8000314@i=U×008029309@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:59:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Reutlingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5242",
+       "extId": "8000314",
+       "adminID": "8006D2",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Reutlingen West@X=9201853@Y=48492615@U=80@L=8005052@i=U×008029311@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:01:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:00:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Reutlingen West",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5243",
+       "extId": "8005052",
+       "adminID": "8006D2",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Reutlingen-Betzingen@X=9175442@Y=48496211@U=80@L=8005053@i=U×008029313@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:05:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:05:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Reutlingen-Betzingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5244",
+       "extId": "8005053",
+       "adminID": "8006D2",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Wannweil@X=9150452@Y=48512319@U=80@L=8006203@i=U×008029314@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:08:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:07:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Wannweil",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6534",
+       "extId": "8006203",
+       "adminID": "8006D2",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kirchentellinsfurt@X=9139477@Y=48528751@U=80@L=8003272@i=U×008029315@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:11:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:11:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Kirchentellinsfurt",
+       "risNotizen": [],
+       "bahnhofsInfoId": "3190",
+       "extId": "8003272",
+       "adminID": "8006D2",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Tübingen-Lustnau@X=9094872@Y=48524050@U=80@L=8005918@i=U×008029316@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:14:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Tübingen-Lustnau",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6282",
+       "extId": "8005918",
+       "adminID": "8006D2",
+       "routeIdx": 15,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:18:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "8006D2",
+       "routeIdx": 16,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 2,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267570#TA#0#DA#51026#1S#8006029#1T#721#LS#8000141#LT#818#PU#80#RT#1#CA#NRB#ZE#22745#ZB#            22745#PC#3#FR#8006029#FT#721#TO#8000141#TT#818#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRB",
+      "name": "22745",
+      "nummer": "22745",
+      "richtung": "Tübingen Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Reutlingen Hbf - Tübingen Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse",
+        "teilstreckenHinweis": "(Reutlingen Hbf - Tübingen Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EH",
+        "value": "Fahrzeuggebundene Einstiegshilfe vorhanden",
+        "teilstreckenHinweis": "(Reutlingen Hbf - Tübingen Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar",
+        "teilstreckenHinweis": "(Reutlingen Hbf - Tübingen Hbf)"
+       }
+      ],
+      "kurzText": "RB",
+      "mittelText": "RB63",
+      "langText": "RB63 (22745)"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 3960,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-11",
+     "regular": "Mo - Fr",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "7f4f4162_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Vorübergehend verminderte Geschwindigkeit auf der Strecke Bitte rechnen Sie mit Verspätungen. Bitte prüfen Sie Ihre Reiseverbindung kurz vor der Abfahrt des Zuges.",
+       "disruptionCommunicationId": "257567fd-2d01-441f-879c-a664dcc477b2",
+       "parameterizedTextShort": "Verspätungen durch Vorübergehend verminderte Geschwindigkeit auf der Strecke",
+       "routeIdxFrom": 11,
+       "routeIdxTo": 11
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "4189",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Mössingen",
+     "startHalt": {
+      "extId": "8004070",
+      "name": "Mössingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:29:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:36:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8004070",
+     "abschnittsDauer": 420,
+     "abschnittsAnteil": 13.21,
+     "ankunftsOrt": "Dußlingen",
+     "ankunftsOrtExtId": "8001617",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:29:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:36:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Mössingen@X=9046393@Y=48404035@U=80@L=8004070@i=U×008029338@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:29:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Mössingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4189",
+       "extId": "8004070",
+       "adminID": "S6",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nehren@X=9066880@Y=48423955@U=80@L=8004229@i=U×008029337@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:32:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:31:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Nehren",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4330",
+       "extId": "8004229",
+       "adminID": "S6",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Dußlingen@X=9058448@Y=48452406@U=80@L=8001617@i=U×008029335@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:36:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "8001617",
+       "adminID": "S6",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1335206#TA#0#DA#51026#1S#8000473#1T#629#LS#8001617#LT#736#PU#80#RT#1#CA#DRB#ZE#86234#ZB#            86234#PC#3#FR#8000473#FT#629#TO#8001617#TT#736#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "DRB",
+      "name": "86234",
+      "nummer": "86234",
+      "richtung": "Dußlingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "SWEG Südwestdeutsche Landesverkehrs-GmbH"
+       },
+       {
+        "kategorie": "BARRIEREFREI",
+        "key": "RG",
+        "value": "Barrierefreies Fahrzeug",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EI",
+        "value": "Einstiegshilfe - Bitte im ersten Fahrzeug einsteigen",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       }
+      ],
+      "kurzText": "SWE",
+      "mittelText": "RB66",
+      "langText": "RB66 (86234)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Dußlingen",
+     "startHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:36:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:39:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8001617",
+     "abschnittsDauer": 180,
+     "abschnittsAnteil": 5.66,
+     "ankunftsOrt": "Bahnhof, Dußlingen",
+     "ankunftsOrtExtId": "491706",
+     "distanz": 56,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:36:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:39:00"
+     },
+     "halte": [],
+     "idx": 1,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "abfahrtsOrt": "Bahnhof, Dußlingen",
+     "startHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T07:42:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "750750",
+      "name": "ZOB, Gomaringen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T07:56:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "491706",
+     "abschnittsDauer": 840,
+     "abschnittsAnteil": 26.42,
+     "ankunftsOrt": "ZOB, Gomaringen",
+     "ankunftsOrtExtId": "750750",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T07:42:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T07:56:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Bahnhof, Dußlingen@X=9057747@Y=48452604@U=80@L=491706@i=U×008098403@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:42:00"
+       },
+       "name": "Bahnhof, Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "491706",
+       "adminID": "tub080",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bürgerpark, Dußlingen@X=9059266@Y=48449709@U=80@L=492119@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:43:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:43:00"
+       },
+       "name": "Bürgerpark, Dußlingen",
+       "risNotizen": [],
+       "extId": "492119",
+       "adminID": "tub080",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Steinlachburg, Dußlingen@X=9063868@Y=48449961@U=80@L=490030@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:44:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:44:00"
+       },
+       "name": "Steinlachburg, Dußlingen",
+       "risNotizen": [],
+       "extId": "490030",
+       "adminID": "tub080",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Brücke Eichachstraße, Dußlingen@X=9069145@Y=48450258@U=80@L=490304@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:45:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:45:00"
+       },
+       "name": "Brücke Eichachstraße, Dußlingen",
+       "risNotizen": [],
+       "extId": "490304",
+       "adminID": "tub080",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Geigesried, Dußlingen@X=9070457@Y=48447956@U=80@L=490029@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:46:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:46:00"
+       },
+       "name": "Geigesried, Dußlingen",
+       "risNotizen": [],
+       "extId": "490029",
+       "adminID": "tub080",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Schulzentrum Höhnisch, Nehren (Württ)@X=9075671@Y=48445511@U=80@L=492067@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:47:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:47:00"
+       },
+       "name": "Schulzentrum Höhnisch, Nehren (Württ)",
+       "risNotizen": [],
+       "extId": "492067",
+       "adminID": "tub080",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=UNIPRO, Nehren (Württ)@X=9078611@Y=48444693@U=80@L=491217@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:48:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:48:00"
+       },
+       "name": "UNIPRO, Nehren (Württ)",
+       "risNotizen": [],
+       "extId": "491217",
+       "adminID": "tub080",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hammerhof, Gomaringen@X=9080849@Y=48454564@U=80@L=750744@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:50:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:50:00"
+       },
+       "name": "Hammerhof, Gomaringen",
+       "risNotizen": [],
+       "extId": "750744",
+       "adminID": "tub080",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Robert-Bosch-Str., Gomaringen@X=9081451@Y=48455597@U=80@L=491573@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:51:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:51:00"
+       },
+       "name": "Robert-Bosch-Str., Gomaringen",
+       "risNotizen": [],
+       "extId": "491573",
+       "adminID": "tub080",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gustav-Schwab-Stift, Gomaringen@X=9091519@Y=48460272@U=80@L=752771@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T07:53:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:53:00"
+       },
+       "name": "Gustav-Schwab-Stift, Gomaringen",
+       "risNotizen": [],
+       "extId": "752771",
+       "adminID": "tub080",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=ZOB, Gomaringen@X=9096256@Y=48455876@U=80@L=750750@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T07:56:00"
+       },
+       "name": "ZOB, Gomaringen",
+       "risNotizen": [],
+       "extId": "750750",
+       "adminID": "tub080",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 2,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384633#TA#0#DA#51026#1S#491706#1T#742#LS#750750#LT#756#PU#80#RT#1#CA#Bus#ZE#7616#ZB#Bus          7616#PC#5#FR#491706#FT#742#TO#750750#TT#756#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "BUS",
+      "kategorie": "Bus",
+      "linienNummer": "7616",
+      "name": "Bus 7616",
+      "nummer": "7616",
+      "richtung": "ZOB, Gomaringen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [],
+      "kurzText": "Bus",
+      "mittelText": "Bus 7616",
+      "langText": "Bus 7616"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdDestination": "6279",
+     "abfahrtsOrt": "ZOB, Gomaringen",
+     "startHalt": {
+      "extId": "750750",
+      "name": "ZOB, Gomaringen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T08:00:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "811000",
+      "name": "Hauptbahnhof, Tübingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:29:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "750750",
+     "abschnittsDauer": 1740,
+     "abschnittsAnteil": 54.72,
+     "ankunftsOrt": "Hauptbahnhof, Tübingen",
+     "ankunftsOrtExtId": "811000",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T08:00:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:29:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=ZOB, Gomaringen@X=9096256@Y=48455876@U=80@L=750750@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:00:00"
+       },
+       "name": "ZOB, Gomaringen",
+       "risNotizen": [],
+       "extId": "750750",
+       "adminID": "tub080",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Ziegelgrubenstraße, Gomaringen@X=9094755@Y=48459283@U=80@L=750747@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:02:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:02:00"
+       },
+       "name": "Ziegelgrubenstraße, Gomaringen",
+       "risNotizen": [],
+       "extId": "750747",
+       "adminID": "tub080",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hinterweiler Str., Gomaringen@X=9091699@Y=48462357@U=80@L=490522@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:03:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:03:00"
+       },
+       "name": "Hinterweiler Str., Gomaringen",
+       "risNotizen": [],
+       "extId": "490522",
+       "adminID": "tub080",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stockach, Gomaringen@X=9086809@Y=48472659@U=80@L=750080@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:05:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:05:00"
+       },
+       "name": "Stockach, Gomaringen",
+       "risNotizen": [],
+       "extId": "750080",
+       "adminID": "tub080",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stockach Altes Feuerwehrhaus, Gomaringen@X=9086009@Y=48472937@U=80@L=750416@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:06:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:06:00"
+       },
+       "name": "Stockach Altes Feuerwehrhaus, Gomaringen",
+       "risNotizen": [],
+       "extId": "750416",
+       "adminID": "tub080",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Pulvermühle Abzw., Dußlingen@X=9070134@Y=48469540@U=80@L=363434@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:08:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:08:00"
+       },
+       "name": "Pulvermühle Abzw., Dußlingen",
+       "risNotizen": [],
+       "extId": "363434",
+       "adminID": "tub080",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bläsibad, Tübingen@X=9067743@Y=48487797@U=80@L=492061@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:12:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:12:00"
+       },
+       "name": "Bläsibad, Tübingen",
+       "risNotizen": [],
+       "extId": "492061",
+       "adminID": "tub080",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Horn-Straße, Tübingen@X=9060974@Y=48493586@U=80@L=752136@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:15:00"
+       },
+       "name": "Horn-Straße, Tübingen",
+       "risNotizen": [],
+       "extId": "752136",
+       "adminID": "tub080",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Paul-Dietz-Straße, Tübingen@X=9056012@Y=48501307@U=80@L=751478@i=U×008097294@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:19:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:19:00"
+       },
+       "name": "Paul-Dietz-Straße, Tübingen",
+       "risNotizen": [],
+       "extId": "751478",
+       "adminID": "tub080",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Brühlstraße, Tübingen@X=9051571@Y=48509613@U=80@L=752079@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:22:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:22:00"
+       },
+       "name": "Brühlstraße, Tübingen",
+       "risNotizen": [],
+       "extId": "752079",
+       "adminID": "tub080",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hegelstraße, Tübingen@X=9051391@Y=48513380@U=80@L=750900@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:24:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:24:00"
+       },
+       "name": "Hegelstraße, Tübingen",
+       "risNotizen": [],
+       "extId": "750900",
+       "adminID": "tub080",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hauptbahnhof, Tübingen@X=9053675@Y=48515906@U=80@L=811000@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:29:00"
+       },
+       "name": "Hauptbahnhof, Tübingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "811000",
+       "adminID": "tub080",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 3,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1384578#TA#0#DA#51026#1S#750750#1T#800#LS#811000#LT#829#PU#80#RT#1#CA#Bus#ZE#7612#ZB#Bus          7612#PC#5#FR#750750#FT#800#TO#811000#TT#829#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "BUS",
+      "kategorie": "Bus",
+      "linienNummer": "7612",
+      "name": "Bus 7612",
+      "nummer": "7612",
+      "richtung": "Hauptbahnhof, Tübingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [],
+      "kurzText": "Bus",
+      "mittelText": "Bus 7612",
+      "langText": "Bus 7612"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 2,
+   "verbindungsDauerInSeconds": 3600,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-11",
+     "regular": "Mo - Fr",
+     "irregular": "nicht 26. bis 30. Okt 2026",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "962d3190_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Vorübergehend verminderte Geschwindigkeit auf der Strecke Bitte rechnen Sie mit Verspätungen. Bitte prüfen Sie Ihre Reiseverbindung kurz vor der Abfahrt des Zuges.",
+       "disruptionCommunicationId": "257567fd-2d01-441f-879c-a664dcc477b2",
+       "parameterizedTextShort": "Verspätungen durch Vorübergehend verminderte Geschwindigkeit auf der Strecke",
+       "routeIdxFrom": 12,
+       "routeIdxTo": 12
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "4189",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Mössingen",
+     "startHalt": {
+      "extId": "8004070",
+      "name": "Mössingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T08:12:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:19:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8004070",
+     "abschnittsDauer": 420,
+     "abschnittsAnteil": 23.33,
+     "ankunftsOrt": "Dußlingen",
+     "ankunftsOrtExtId": "8001617",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T08:12:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:19:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Mössingen@X=9046393@Y=48404035@U=80@L=8004070@i=U×008029338@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:12:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Mössingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4189",
+       "extId": "8004070",
+       "adminID": "S6",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nehren@X=9066880@Y=48423955@U=80@L=8004229@i=U×008029337@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:14:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Nehren",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4330",
+       "extId": "8004229",
+       "adminID": "S6",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Dußlingen@X=9058448@Y=48452406@U=80@L=8001617@i=U×008029335@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:19:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "8001617",
+       "adminID": "S6",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1335218#TA#0#DA#51026#1S#8000473#1T#709#LS#8001617#LT#819#PU#80#RT#1#CA#DRB#ZE#86240#ZB#            86240#PC#3#FR#8000473#FT#709#TO#8001617#TT#819#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "DRB",
+      "name": "86240",
+      "nummer": "86240",
+      "richtung": "Dußlingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "SWEG Südwestdeutsche Landesverkehrs-GmbH"
+       },
+       {
+        "kategorie": "BARRIEREFREI",
+        "key": "RG",
+        "value": "Barrierefreies Fahrzeug",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EI",
+        "value": "Einstiegshilfe - Bitte im ersten Fahrzeug einsteigen",
+        "teilstreckenHinweis": "(Mössingen - Dußlingen)"
+       }
+      ],
+      "kurzText": "SWE",
+      "mittelText": "RB66",
+      "langText": "RB66 (86240)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "externeBahnhofsinfoIdDestination": "1422",
+     "abfahrtsOrt": "Dußlingen",
+     "startHalt": {
+      "extId": "8001617",
+      "name": "Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T08:19:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:22:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8001617",
+     "abschnittsDauer": 180,
+     "abschnittsAnteil": 10,
+     "ankunftsOrt": "Bahnhof, Dußlingen",
+     "ankunftsOrtExtId": "491706",
+     "distanz": 56,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T08:19:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:22:00"
+     },
+     "halte": [],
+     "idx": 1,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1422",
+     "abfahrtsOrt": "Bahnhof, Dußlingen",
+     "startHalt": {
+      "extId": "491706",
+      "name": "Bahnhof, Dußlingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T08:25:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "110714",
+      "name": "Finanzamt, Tübingen",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:41:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "491706",
+     "abschnittsDauer": 960,
+     "abschnittsAnteil": 53.33,
+     "ankunftsOrt": "Finanzamt, Tübingen",
+     "ankunftsOrtExtId": "110714",
+     "abfahrt": {
+      "sollzeit": "2026-10-05T08:25:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:41:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Bahnhof, Dußlingen@X=9057747@Y=48452604@U=80@L=491706@i=U×008098403@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:25:00"
+       },
+       "name": "Bahnhof, Dußlingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1422",
+       "extId": "491706",
+       "adminID": "S6",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Feuerhägle, Tübingen@X=9055688@Y=48503977@U=80@L=750665@i=U×008098405@",
+       "abfahrt": {
+        "sollzeit": "2026-10-05T08:35:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:35:00"
+       },
+       "name": "Feuerhägle, Tübingen",
+       "risNotizen": [],
+       "extId": "750665",
+       "adminID": "S6",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Finanzamt, Tübingen@X=9056048@Y=48514791@U=80@L=110714@i=U×008099714@",
+       "ankunft": {
+        "sollzeit": "2026-10-05T08:41:00"
+       },
+       "name": "Finanzamt, Tübingen",
+       "risNotizen": [],
+       "extId": "110714",
+       "adminID": "S6",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 2,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#1334256#TA#0#DA#51026#1S#491706#1T#825#LS#110714#LT#841#PU#80#RT#1#CA#Bsv#ZE#RB66#ZB#Bus          RB66#PC#3#FR#491706#FT#825#TO#110714#TT#841#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "ERSATZVERKEHR",
+      "kategorie": "Bsv",
+      "linienNummer": "RB66",
+      "name": "Bus RB66",
+      "nummer": "RB66",
+      "richtung": "Finanzamt, Tübingen",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "SWEG Südwestdeutsche Landesverkehrs-GmbH"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "SV",
+        "value": "Ersatzverkehr"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "NF",
+        "value": "keine Fahrradbeförderung möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "VB",
+        "value": "Kein Fahrkartenverkauf im Fahrzeug"
+       }
+      ],
+      "kurzText": "Bus",
+      "mittelText": "Bus RB66",
+      "langText": "Bus RB66"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdDestination": "6279",
+     "abfahrtsOrt": "Finanzamt, Tübingen",
+     "startHalt": {
+      "extId": "110714",
+      "name": "Finanzamt, Tübingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-05T08:41:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-05T08:45:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "110714",
+     "abschnittsDauer": 240,
+     "abschnittsAnteil": 13.33,
+     "ankunftsOrt": "Tübingen Hbf",
+     "ankunftsOrtExtId": "8000141",
+     "distanz": 107,
+     "abfahrt": {
+      "sollzeit": "2026-10-05T08:41:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-05T08:45:00"
+     },
+     "halte": [],
+     "idx": 3,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 1980,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-10-10",
+     "regular": "nicht täglich",
+     "irregular": "5. bis 10. Okt 2026",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  }
+ ]
+}

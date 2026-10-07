@@ -1,0 +1,2052 @@
+{
+ "serverInfo": {
+  "controllerVersion": "10.6.33.33",
+  "serverID": "bw-ww33",
+  "virtDir": "naldo",
+  "serverTime": "2026-10-04T07:07:00",
+  "calcTime": 47.232
+ },
+ "version": "11.0.6.72",
+ "systemMessages": [
+  {
+   "type": "error",
+   "module": "BROKER",
+   "code": -8011,
+   "text": ""
+  }
+ ],
+ "locations": [
+  {
+   "id": "de:08416:1006",
+   "isGlobalId": true,
+   "name": "Mössingen, Bahnhof",
+   "disassembledName": "Bahnhof",
+   "coord": [
+    48.40413,
+    9.046394
+   ],
+   "type": "stop",
+   "matchQuality": 957,
+   "isBest": true,
+   "productClasses": [
+    0,
+    5,
+    6,
+    10,
+    13
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8001006",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4456",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Bahnhof",
+   "disassembledName": "Bahnhof",
+   "coord": [
+    48.395405,
+    9.029704
+   ],
+   "type": "stop",
+   "matchQuality": 932,
+   "isBest": false,
+   "productClasses": [
+    0,
+    5,
+    10,
+    13
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004456",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4488",
+   "isGlobalId": true,
+   "name": "Mössingen, Freibad",
+   "disassembledName": "Freibad",
+   "coord": [
+    48.413272,
+    9.06834
+   ],
+   "type": "stop",
+   "matchQuality": 957,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004488",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4504",
+   "isGlobalId": true,
+   "name": "Mössingen, Höfgasse",
+   "disassembledName": "Höfgasse",
+   "coord": [
+    48.411656,
+    9.064414
+   ],
+   "type": "stop",
+   "matchQuality": 952,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004504",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4517",
+   "isGlobalId": true,
+   "name": "Mössingen, Olgahöhe",
+   "disassembledName": "Olgahöhe",
+   "coord": [
+    48.39136,
+    9.059806
+   ],
+   "type": "stop",
+   "matchQuality": 952,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004517",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4491",
+   "isGlobalId": true,
+   "name": "Mössingen, Kugelbeer",
+   "disassembledName": "Kugelbeer",
+   "coord": [
+    48.406969,
+    9.060534
+   ],
+   "type": "stop",
+   "matchQuality": 952,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004491",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4503",
+   "isGlobalId": true,
+   "name": "Mössingen, Stadtmitte",
+   "disassembledName": "Stadtmitte",
+   "coord": [
+    48.405973,
+    9.05633
+   ],
+   "type": "stop",
+   "matchQuality": 950,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004503",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4516",
+   "isGlobalId": true,
+   "name": "Mössingen, Bergrutsch",
+   "disassembledName": "Bergrutsch",
+   "coord": [
+    48.380741,
+    9.074008
+   ],
+   "type": "stop",
+   "matchQuality": 950,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004516",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4502",
+   "isGlobalId": true,
+   "name": "Mössingen, Hafnergasse",
+   "disassembledName": "Hafnergasse",
+   "coord": [
+    48.405442,
+    9.058584
+   ],
+   "type": "stop",
+   "matchQuality": 949,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004502",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4480",
+   "isGlobalId": true,
+   "name": "Mössingen, Schulzentrum",
+   "disassembledName": "Schulzentrum",
+   "coord": [
+    48.403081,
+    9.052664
+   ],
+   "type": "stop",
+   "matchQuality": 947,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004480",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4473",
+   "isGlobalId": true,
+   "name": "Mössingen, Ziegelhütte",
+   "disassembledName": "Ziegelhütte",
+   "coord": [
+    48.399389,
+    9.089855
+   ],
+   "type": "stop",
+   "matchQuality": 947,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004473",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4500",
+   "isGlobalId": true,
+   "name": "Mössingen, Aiblestr.",
+   "disassembledName": "Aiblestr.",
+   "coord": [
+    48.407339,
+    9.066849
+   ],
+   "type": "stop",
+   "matchQuality": 947,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004500",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4512",
+   "isGlobalId": true,
+   "name": "Mössingen, Lange Straße",
+   "disassembledName": "Lange Straße",
+   "coord": [
+    48.40933,
+    9.060902
+   ],
+   "type": "stop",
+   "matchQuality": 947,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004512",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4511",
+   "isGlobalId": true,
+   "name": "Mössingen, Ulrichstraße",
+   "disassembledName": "Ulrichstraße",
+   "coord": [
+    48.416831,
+    9.05482
+   ],
+   "type": "stop",
+   "matchQuality": 945,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004511",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:5",
+   "isGlobalId": true,
+   "name": "Mössingen, Höckle Nord",
+   "disassembledName": "Höckle Nord",
+   "coord": [
+    48.411847,
+    9.057866
+   ],
+   "type": "stop",
+   "matchQuality": 944,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8000005",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4449",
+   "isGlobalId": true,
+   "name": "Mössingen, Daimlerstraße",
+   "disassembledName": "Daimlerstraße",
+   "coord": [
+    48.408466,
+    9.039702
+   ],
+   "type": "stop",
+   "matchQuality": 944,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004449",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4518",
+   "isGlobalId": true,
+   "name": "Mössingen, Siemensstraße",
+   "disassembledName": "Siemensstraße",
+   "coord": [
+    48.406683,
+    9.038381
+   ],
+   "type": "stop",
+   "matchQuality": 944,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004518",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4479",
+   "isGlobalId": true,
+   "name": "Mössingen, Altes Rathaus",
+   "disassembledName": "Altes Rathaus",
+   "coord": [
+    48.408024,
+    9.062528
+   ],
+   "type": "stop",
+   "matchQuality": 942,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004479",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4478",
+   "isGlobalId": true,
+   "name": "Mössingen, Firstwaldstraße",
+   "disassembledName": "Firstwaldstraße",
+   "coord": [
+    48.409289,
+    9.069391
+   ],
+   "type": "stop",
+   "matchQuality": 941,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004478",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4515",
+   "isGlobalId": true,
+   "name": "Mössingen, Christophstraße",
+   "disassembledName": "Christophstraße",
+   "coord": [
+    48.413182,
+    9.054569
+   ],
+   "type": "stop",
+   "matchQuality": 941,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004515",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4505",
+   "isGlobalId": true,
+   "name": "Mössingen, Steinbeisstr.",
+   "disassembledName": "Steinbeisstr.",
+   "coord": [
+    48.410225,
+    9.068439
+   ],
+   "type": "stop",
+   "matchQuality": 941,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004505",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4475",
+   "isGlobalId": true,
+   "name": "Öschingen, Lamm",
+   "disassembledName": "Lamm",
+   "coord": [
+    48.415698,
+    9.108252
+   ],
+   "type": "stop",
+   "matchQuality": 940,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004475",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4485",
+   "isGlobalId": true,
+   "name": "Mössingen, Abzweig. Talheim",
+   "disassembledName": "Abzweig. Talheim",
+   "coord": [
+    48.408281,
+    9.081006
+   ],
+   "type": "stop",
+   "matchQuality": 940,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004485",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4507",
+   "isGlobalId": true,
+   "name": "Mössingen, Öschlesgärtenweg",
+   "disassembledName": "Öschlesgärtenweg",
+   "coord": [
+    48.402085,
+    9.062771
+   ],
+   "type": "stop",
+   "matchQuality": 939,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004507",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4501",
+   "isGlobalId": true,
+   "name": "Mössingen, Melanchthonstr.",
+   "disassembledName": "Melanchthonstr.",
+   "coord": [
+    48.40484,
+    9.064486
+   ],
+   "type": "stop",
+   "matchQuality": 939,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004501",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4476",
+   "isGlobalId": true,
+   "name": "Öschingen, Adler",
+   "disassembledName": "Adler",
+   "coord": [
+    48.414852,
+    9.105845
+   ],
+   "type": "stop",
+   "matchQuality": 939,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004476",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4489",
+   "isGlobalId": true,
+   "name": "Mössingen, Otto-Merz-Straße",
+   "disassembledName": "Otto-Merz-Straße",
+   "coord": [
+    48.402103,
+    9.056204
+   ],
+   "type": "stop",
+   "matchQuality": 939,
+   "isBest": false,
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004489",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4454",
+   "isGlobalId": true,
+   "name": "Mössingen, Karl-Jaggy-Straße",
+   "disassembledName": "Karl-Jaggy-Straße",
+   "coord": [
+    48.409098,
+    9.056294
+   ],
+   "type": "stop",
+   "matchQuality": 938,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004454",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4506",
+   "isGlobalId": true,
+   "name": "Mössingen, Lise-Meitner-Str.",
+   "disassembledName": "Lise-Meitner-Str.",
+   "coord": [
+    48.403164,
+    9.067073
+   ],
+   "type": "stop",
+   "matchQuality": 936,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004506",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4455",
+   "isGlobalId": true,
+   "name": "Mössingen, Jakob-Stotz-Platz",
+   "disassembledName": "Jakob-Stotz-Platz",
+   "coord": [
+    48.404798,
+    9.053114
+   ],
+   "type": "stop",
+   "matchQuality": 936,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004455",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4490",
+   "isGlobalId": true,
+   "name": "Öschingen, Mühlberg",
+   "disassembledName": "Mühlberg",
+   "coord": [
+    48.414446,
+    9.104659
+   ],
+   "type": "stop",
+   "matchQuality": 935,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004490",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4509",
+   "isGlobalId": true,
+   "name": "Mössingen, Dreifürstensteinstr.",
+   "disassembledName": "Dreifürstensteinstr.",
+   "coord": [
+    48.400504,
+    9.048838
+   ],
+   "type": "stop",
+   "matchQuality": 933,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004509",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4474",
+   "isGlobalId": true,
+   "name": "Öschingen, Wendeplatte",
+   "disassembledName": "Wendeplatte",
+   "coord": [
+    48.4132,
+    9.124215
+   ],
+   "type": "stop",
+   "matchQuality": 933,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004474",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4457",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Molkerei",
+   "disassembledName": "Molkerei",
+   "coord": [
+    48.396299,
+    9.036576
+   ],
+   "type": "stop",
+   "matchQuality": 931,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004457",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:2",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Erlenstraße",
+   "disassembledName": "Erlenstraße",
+   "coord": [
+    48.398989,
+    9.030764
+   ],
+   "type": "stop",
+   "matchQuality": 931,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8000002",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4508",
+   "isGlobalId": true,
+   "name": "Mössingen, Johannes-Gutenberg-Str.",
+   "disassembledName": "Johannes-Gutenberg-Str.",
+   "coord": [
+    48.401858,
+    9.058836
+   ],
+   "type": "stop",
+   "matchQuality": 931,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004508",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4462",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Eschenstraße",
+   "disassembledName": "Eschenstraße",
+   "coord": [
+    48.397969,
+    9.027853
+   ],
+   "type": "stop",
+   "matchQuality": 930,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004462",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4482",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Buchenstraße",
+   "disassembledName": "Buchenstraße",
+   "coord": [
+    48.401113,
+    9.03265
+   ],
+   "type": "stop",
+   "matchQuality": 930,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004482",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4493",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Tannenstraße",
+   "disassembledName": "Tannenstraße",
+   "coord": [
+    48.40159,
+    9.032713
+   ],
+   "type": "stop",
+   "matchQuality": 930,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004493",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4458",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Birkenstraße",
+   "disassembledName": "Birkenstraße",
+   "coord": [
+    48.397629,
+    9.027395
+   ],
+   "type": "stop",
+   "matchQuality": 930,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004458",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4494",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Danziger Straße",
+   "disassembledName": "Danziger Straße",
+   "coord": [
+    48.403343,
+    9.031087
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004494",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4540",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Albblickstr.",
+   "disassembledName": "Albblickstr.",
+   "coord": [
+    48.401685,
+    9.035093
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004540",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4497",
+   "isGlobalId": true,
+   "name": "Öschingen, Reutlinger Str.",
+   "disassembledName": "Reutlinger Str.",
+   "coord": [
+    48.417672,
+    9.110759
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004497",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4471",
+   "isGlobalId": true,
+   "name": "Talheim (Kr Tüb.), Schwanen",
+   "disassembledName": "Schwanen",
+   "coord": [
+    48.383009,
+    9.104866
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:6",
+    "name": "Talheim (Kr Tüb.)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004471",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4477",
+   "isGlobalId": true,
+   "name": "Öschingen, Schöllerstraße",
+   "disassembledName": "Schöllerstraße",
+   "coord": [
+    48.414995,
+    9.114262
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:7",
+    "name": "Öschingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004477",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4528",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Pfingstwasen",
+   "disassembledName": "Pfingstwasen",
+   "coord": [
+    48.39114,
+    9.027979
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004528",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4526",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Rosenstr.",
+   "disassembledName": "Rosenstr.",
+   "coord": [
+    48.394367,
+    9.029254
+   ],
+   "type": "stop",
+   "matchQuality": 929,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004526",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4459",
+   "isGlobalId": true,
+   "name": "Bad Sebastiansweiler, Abzw.",
+   "disassembledName": "Abzw.",
+   "coord": [
+    48.400278,
+    9.015699
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:1",
+    "name": "Bad Sebastiansweiler",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004459",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:3",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Stettiner Straße",
+   "disassembledName": "Stettiner Straße",
+   "coord": [
+    48.40246,
+    9.027422
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8000003",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4483",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Butzenbadstraße",
+   "disassembledName": "Butzenbadstraße",
+   "coord": [
+    48.404017,
+    9.035174
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004483",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4495",
+   "isGlobalId": true,
+   "name": "Bästenhardt, Rostocker Straße",
+   "disassembledName": "Rostocker Straße",
+   "coord": [
+    48.401107,
+    9.024978
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:4",
+    "name": "Bästenhardt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004495",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4487",
+   "isGlobalId": true,
+   "name": "Talheim (Kr Tüb.), Albstraße",
+   "disassembledName": "Albstraße",
+   "coord": [
+    48.379661,
+    9.109582
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:6",
+    "name": "Talheim (Kr Tüb.)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004487",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4",
+   "isGlobalId": true,
+   "name": "Mössingen, Allee Kanton Saint-Julien",
+   "disassembledName": "Allee Kanton Saint-Julien",
+   "coord": [
+    48.400892,
+    9.054632
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:5",
+    "name": "Mössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8000004",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4401",
+   "isGlobalId": true,
+   "name": "Bad Sebastiansweiler, B 27",
+   "disassembledName": "B 27",
+   "coord": [
+    48.400946,
+    9.014306
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:1",
+    "name": "Bad Sebastiansweiler",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004401",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4527",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Nelkenstr.",
+   "disassembledName": "Nelkenstr.",
+   "coord": [
+    48.392685,
+    9.026461
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004527",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4525",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Öschlestraße",
+   "disassembledName": "Öschlestraße",
+   "coord": [
+    48.397707,
+    9.040654
+   ],
+   "type": "stop",
+   "matchQuality": 928,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004525",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4470",
+   "isGlobalId": true,
+   "name": "Talheim (Kr Tüb.), Alte Post",
+   "disassembledName": "Alte Post",
+   "coord": [
+    48.380813,
+    9.108342
+   ],
+   "type": "stop",
+   "matchQuality": 927,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:6",
+    "name": "Talheim (Kr Tüb.)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004470",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4472",
+   "isGlobalId": true,
+   "name": "Talheim (Kr Tüb.), Forellenweg",
+   "disassembledName": "Forellenweg",
+   "coord": [
+    48.386224,
+    9.102467
+   ],
+   "type": "stop",
+   "matchQuality": 927,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:6",
+    "name": "Talheim (Kr Tüb.)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004472",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4481",
+   "isGlobalId": true,
+   "name": "Bad Sebastiansweiler, Kurklinik",
+   "disassembledName": "Kurklinik",
+   "coord": [
+    48.402598,
+    9.013444
+   ],
+   "type": "stop",
+   "matchQuality": 926,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:1",
+    "name": "Bad Sebastiansweiler",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004481",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4523",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Im Pfarrgarten",
+   "disassembledName": "Im Pfarrgarten",
+   "coord": [
+    48.396908,
+    9.044409
+   ],
+   "type": "stop",
+   "matchQuality": 926,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004523",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4524",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), Barbelsenstr.",
+   "disassembledName": "Barbelsenstr.",
+   "coord": [
+    48.394981,
+    9.042316
+   ],
+   "type": "stop",
+   "matchQuality": 926,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004524",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4529",
+   "isGlobalId": true,
+   "name": "Belsen (Württ), In Weiherwiesen",
+   "disassembledName": "In Weiherwiesen",
+   "coord": [
+    48.395178,
+    9.032282
+   ],
+   "type": "stop",
+   "matchQuality": 926,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8416025:2",
+    "name": "Belsen (Württ)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004529",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08416:4486",
+   "isGlobalId": true,
+   "name": "Talheim (Kr Tüb.), Farrenbergstraße",
+   "disassembledName": "Farrenbergstraße",
+   "coord": [
+    48.382836,
+    9.105171
+   ],
+   "type": "stop",
+   "matchQuality": 924,
+   "isBest": false,
+   "productClasses": [
+    5,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416025:6",
+    "name": "Talheim (Kr Tüb.)",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004486",
+    "mainLocality": "Mössingen"
+   }
+  },
+  {
+   "id": "de:08415:29206",
+   "isGlobalId": true,
+   "name": "Betzingen, Mössingerstr.",
+   "disassembledName": "Mössingerstr.",
+   "coord": [
+    48.503971,
+    9.184438
+   ],
+   "type": "stop",
+   "matchQuality": 906,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:8415061:4",
+    "name": "Betzingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8029206",
+    "mainLocality": "Reutlingen"
+   }
+  },
+  {
+   "id": "de:08416:4426",
+   "isGlobalId": true,
+   "name": "Ofterdingen, Mössinger Straße",
+   "disassembledName": "Mössinger Straße",
+   "coord": [
+    48.413015,
+    9.034006
+   ],
+   "type": "stop",
+   "matchQuality": 904,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8416031:1",
+    "name": "Ofterdingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8004426",
+    "mainLocality": "Ofterdingen"
+   }
+  },
+  {
+   "id": "de:08325:1383",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Hasen",
+   "disassembledName": "Hasen",
+   "coord": [
+    48.264975,
+    8.485639
+   ],
+   "type": "stop",
+   "matchQuality": 844,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801383",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:27048",
+   "isGlobalId": true,
+   "name": "Hochmössingen, Schule",
+   "disassembledName": "Schule",
+   "coord": [
+    48.3125,
+    8.532181
+   ],
+   "type": "stop",
+   "matchQuality": 843,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325045:6",
+    "name": "Hochmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8827048",
+    "mainLocality": "Oberndorf (Neckar)"
+   }
+  },
+  {
+   "id": "de:08325:27034",
+   "isGlobalId": true,
+   "name": "Hochmössingen, Hölld",
+   "disassembledName": "Hölld",
+   "coord": [
+    48.311215,
+    8.540661
+   ],
+   "type": "stop",
+   "matchQuality": 843,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325045:6",
+    "name": "Hochmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8827034",
+    "mainLocality": "Oberndorf (Neckar)"
+   }
+  },
+  {
+   "id": "de:08325:1382",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Webertal",
+   "disassembledName": "Webertal",
+   "coord": [
+    48.260604,
+    8.487058
+   ],
+   "type": "stop",
+   "matchQuality": 839,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801382",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:1868",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Ortsverwaltung",
+   "disassembledName": "Ortsverwaltung",
+   "coord": [
+    48.268736,
+    8.485998
+   ],
+   "type": "stop",
+   "matchQuality": 832,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801868",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:1870",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Heimbachstraße",
+   "disassembledName": "Heimbachstraße",
+   "coord": [
+    48.267971,
+    8.483905
+   ],
+   "type": "stop",
+   "matchQuality": 831,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801870",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:1385",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Winzelner Str.",
+   "disassembledName": "Winzelner Str.",
+   "coord": [
+    48.271911,
+    8.482279
+   ],
+   "type": "stop",
+   "matchQuality": 830,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801385",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:1384",
+   "isGlobalId": true,
+   "name": "Waldmössingen, Seedorfer Straße",
+   "disassembledName": "Seedorfer Straße",
+   "coord": [
+    48.268736,
+    8.485828
+   ],
+   "type": "stop",
+   "matchQuality": 830,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325053:8",
+    "name": "Waldmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8801384",
+    "mainLocality": "Schramberg"
+   }
+  },
+  {
+   "id": "de:08325:27045",
+   "isGlobalId": true,
+   "name": "Hochmössingen, Auf der Reute",
+   "disassembledName": "Auf der Reute",
+   "coord": [
+    48.311544,
+    8.535172
+   ],
+   "type": "stop",
+   "matchQuality": 829,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325045:6",
+    "name": "Hochmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8827045",
+    "mainLocality": "Oberndorf (Neckar)"
+   }
+  },
+  {
+   "id": "de:08325:27047",
+   "isGlobalId": true,
+   "name": "Hochmössingen, Ignatz-Rohr-Straße",
+   "disassembledName": "Ignatz-Rohr-Straße",
+   "coord": [
+    48.310486,
+    8.534112
+   ],
+   "type": "stop",
+   "matchQuality": 826,
+   "isBest": false,
+   "productClasses": [
+    6,
+    10
+   ],
+   "parent": {
+    "id": "placeID:8325045:6",
+    "name": "Hochmössingen",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "8827047",
+    "mainLocality": "Oberndorf (Neckar)"
+   }
+  },
+  {
+   "id": "de:08436:48507",
+   "isGlobalId": true,
+   "name": "Isny, Neumössingen Abzw. Jägerhof",
+   "disassembledName": "Neumössingen Abzw. Jägerhof",
+   "coord": [
+    47.710755,
+    9.995114
+   ],
+   "type": "stop",
+   "matchQuality": 823,
+   "isBest": false,
+   "productClasses": [
+    6
+   ],
+   "parent": {
+    "id": "placeID:8436049:7",
+    "name": "Isny",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "7748507",
+    "mainLocality": "Isny"
+   }
+  },
+  {
+   "id": "at:42:6506",
+   "isGlobalId": true,
+   "name": "Klagenfurt, Mössingerstraße",
+   "disassembledName": "Mössingerstraße",
+   "coord": [
+    46.610859,
+    14.309659
+   ],
+   "type": "stop",
+   "matchQuality": 761,
+   "isBest": false,
+   "productClasses": [
+    5
+   ],
+   "parent": {
+    "id": "placeID:42001001:9",
+    "name": "Klagenfurt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "60906506",
+    "mainLocality": "Klagenfurt"
+   }
+  },
+  {
+   "id": "at:42:6507",
+   "isGlobalId": true,
+   "name": "Klagenfurt, Schulzentrum Mössingerstraße",
+   "disassembledName": "Schulzentrum Mössingerstraße",
+   "coord": [
+    46.610248,
+    14.305213
+   ],
+   "type": "stop",
+   "matchQuality": 750,
+   "isBest": false,
+   "productClasses": [
+    5,
+    6
+   ],
+   "parent": {
+    "id": "placeID:42001001:9",
+    "name": "Klagenfurt",
+    "type": "locality"
+   },
+   "properties": {
+    "stopId": "60906507",
+    "mainLocality": "Klagenfurt"
+   }
+  }
+ ]
+}

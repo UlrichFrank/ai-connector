@@ -1,0 +1,16 @@
+# The egress proxy of the web sandbox (see proxy/main.go). Built by internal/sandbox/web with `container build`.
+# No package installs: the build needs no network (only the base images).
+ARG GO_IMAGE=docker.io/library/golang:1.24-alpine
+FROM ${GO_IMAGE} AS build
+WORKDIR /src
+COPY go.mod ./
+# (globs: with a directory as the COPY source, the container builder 0.13 copies nothing)
+COPY proxy/*.go ./proxy/
+COPY lockdown/*.go ./lockdown/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/egress-proxy ./proxy && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/lockdown ./lockdown
+
+FROM docker.io/library/alpine:3
+COPY --from=build /out/egress-proxy /out/lockdown /usr/local/bin/
+EXPOSE 3128
+ENTRYPOINT ["/usr/local/bin/lockdown", "proxy", "--", "/usr/local/bin/egress-proxy"]

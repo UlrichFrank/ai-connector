@@ -1,0 +1,77 @@
+[
+ {
+  "extId": "8004070",
+  "id": "A=1@O=Mössingen@X=9046393@Y=48404035@U=80@L=8004070@p=1790795983@i=U×008029338@",
+  "lat": 48.404457,
+  "lon": 9.046573,
+  "name": "Mössingen",
+  "products": [
+   "REGIONAL",
+   "BUS",
+   "ANRUFPFLICHTIG"
+  ],
+  "type": "ST"
+ },
+ {
+  "extId": "8000750",
+  "id": "A=1@O=Mössingen-B.Sebasti@X=9030024@Y=48395567@U=80@L=8000750@p=1790795983@i=U×008029339@",
+  "lat": 48.395622,
+  "lon": 9.030222,
+  "name": "Mössingen-B.Sebasti",
+  "products": [
+   "REGIONAL",
+   "BUS",
+   "ANRUFPFLICHTIG"
+  ],
+  "type": "ST"
+ },
+ {
+  "extId": "130003",
+  "id": "A=1@O=Mössingen Stettiner Straße@X=9027426@Y=48402462@U=80@L=130003@p=1790795983@",
+  "lat": 48.402462,
+  "lon": 9.027426,
+  "name": "Mössingen Stettiner Straße",
+  "products": [
+   "BUS",
+   "ANRUFPFLICHTIG"
+  ],
+  "type": "ST"
+ },
+ {
+  "extId": "160002",
+  "id": "A=1@O=Mössingen Erlenstraße@X=9030761@Y=48398992@U=80@L=160002@p=1790795983@",
+  "lat": 48.39899,
+  "lon": 9.030761,
+  "name": "Mössingen Erlenstraße",
+  "products": [
+   "BUS"
+  ],
+  "type": "ST"
+ },
+ {
+  "extId": "751294",
+  "id": "A=1@O=Bahnhof, Mössingen@X=9046573@Y=48403739@U=80@L=751294@p=1790795983@i=U×008098745@",
+  "lat": 48.40374,
+  "lon": 9.046573,
+  "name": "Bahnhof, Mössingen",
+  "products": [
+   "REGIONAL",
+   "BUS",
+   "ANRUFPFLICHTIG"
+  ],
+  "type": "ST"
+ },
+ {
+  "extId": "492187",
+  "id": "A=1@O=Belsen Bahnhof, Mössingen@X=9030887@Y=48395450@U=80@L=492187@p=1790795983@i=U×008099549@",
+  "lat": 48.39545,
+  "lon": 9.030887,
+  "name": "Belsen Bahnhof, Mössingen",
+  "products": [
+   "REGIONAL",
+   "BUS",
+   "ANRUFPFLICHTIG"
+  ],
+  "type": "ST"
+ }
+]

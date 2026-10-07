@@ -1,0 +1,143 @@
+/* Answers: markdown typography and code highlighting (light and dark). */
+
+.md {
+  --code-bg: oklch(0.975 0.003 285);
+  --code-bar: oklch(0.945 0.004 285);
+  --hl-keyword: oklch(0.5 0.2 300);
+  --hl-string: oklch(0.5 0.13 150);
+  --hl-number: oklch(0.55 0.15 50);
+  --hl-comment: oklch(0.6 0.01 285);
+  --hl-title: oklch(0.5 0.15 255);
+  --hl-type: oklch(0.55 0.13 200);
+  --hl-attr: oklch(0.55 0.14 30);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.dark .md {
+  --code-bg: oklch(0.18 0.004 285);
+  --code-bar: oklch(0.225 0.005 285);
+  --hl-keyword: oklch(0.76 0.14 300);
+  --hl-string: oklch(0.8 0.13 150);
+  --hl-number: oklch(0.8 0.12 60);
+  --hl-comment: oklch(0.6 0.01 285);
+  --hl-title: oklch(0.78 0.12 250);
+  --hl-type: oklch(0.8 0.1 200);
+  --hl-attr: oklch(0.78 0.12 40);
+}
+
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p, .md ul, .md ol, .md blockquote, .md table, .md .md-code { margin: 0.75em 0; }
+.md h1, .md h2, .md h3, .md h4 { font-weight: 600; line-height: 1.35; margin: 1.3em 0 0.5em; }
+.md h1 { font-size: 1.35em; }
+.md h2 { font-size: 1.2em; }
+.md h3 { font-size: 1.05em; }
+.md h4 { font-size: 1em; }
+.md ul { list-style: disc; padding-left: 1.4em; }
+.md ol { list-style: decimal; padding-left: 1.5em; }
+.md li { margin: 0.25em 0; }
+.md li > ul, .md li > ol { margin: 0.25em 0; }
+.md li::marker { color: var(--muted-foreground); }
+.md strong { font-weight: 600; }
+.md a { color: var(--foreground); text-decoration: underline; text-decoration-color: var(--muted-foreground); text-underline-offset: 2px; }
+.md a:hover { text-decoration-color: var(--foreground); }
+.md hr { border: 0; border-top: 1px solid var(--border); margin: 1.5em 0; }
+.md blockquote { border-left: 3px solid var(--border); padding-left: 0.9em; color: var(--muted-foreground); }
+.md table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.9em; max-width: 100%; }
+.md th, .md td { border: 1px solid var(--border); padding: 0.35em 0.7em; text-align: left; vertical-align: top; }
+.md th { background: var(--muted); font-weight: 600; }
+.md :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--muted);
+  border-radius: 0.3em;
+  padding: 0.12em 0.35em;
+}
+.md input[type="checkbox"] { margin-right: 0.4em; vertical-align: middle; }
+
+.md-code { border: 1px solid var(--border); border-radius: 0.6rem; overflow: hidden; background: var(--code-bg); }
+.md-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--code-bar);
+  padding: 0.2rem 0.35rem 0.2rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.md-code-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  font-family: var(--font-sans);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.md-code-bar button:hover { background: var(--accent); color: var(--foreground); }
+.md-code pre { margin: 0; padding: 0.8rem 0.9rem; overflow-x: auto; }
+.md-code code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-selector-tag, .hljs-meta .hljs-keyword { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-template-string { color: var(--hl-string); }
+.hljs-number, .hljs-symbol, .hljs-bullet { color: var(--hl-number); }
+.hljs-comment, .hljs-quote, .hljs-meta { color: var(--hl-comment); font-style: italic; }
+.hljs-title, .hljs-title.function_, .hljs-section { color: var(--hl-title); }
+.hljs-type, .hljs-title.class_, .hljs-class .hljs-title { color: var(--hl-type); }
+.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-property, .hljs-name, .hljs-tag { color: var(--hl-attr); }
+.hljs-deletion { color: var(--destructive); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+
+/* the caret while an answer streams */
+.md-streaming > :last-child::after,
+.md-streaming:empty::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.15em;
+  vertical-align: -0.12em;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.55;
+  animation: md-blink 1s steps(2, start) infinite;
+}
+.md-streaming > .md-code:last-child::after,
+.md-streaming > ul:last-child::after,
+.md-streaming > ol:last-child::after,
+.md-streaming > table:last-child::after { display: none; }
+@keyframes md-blink { to { visibility: hidden; } }
+
+/* the model's thinking: the same markdown, quieter and smaller */
+.md-thought { font-size: 0.8125rem; line-height: 1.6; color: var(--muted-foreground); }
+.md-thought p, .md-thought ul, .md-thought ol, .md-thought blockquote, .md-thought table, .md-thought .md-code { margin: 0.5em 0; }
+.md-thought h1, .md-thought h2, .md-thought h3, .md-thought h4 { font-size: 1em; margin: 0.9em 0 0.3em; }
+.md-thought strong { color: color-mix(in oklab, var(--foreground) 70%, var(--muted-foreground)); }
+.md-thought.md-streaming > :last-child::after { opacity: 0.35; }
+
+/* "Thinking": a light sweeping over the words while the model thinks */
+.think-live {
+  background: linear-gradient(90deg, var(--muted-foreground) 0%, var(--muted-foreground) 40%, var(--foreground) 50%, var(--muted-foreground) 60%, var(--muted-foreground) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: think-sweep 2.2s linear infinite;
+}
+@keyframes think-sweep { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@media (prefers-reduced-motion: reduce) { .think-live { animation: none; color: var(--muted-foreground); background: none; } }
+
+/* the newest lines of a thought, under its header while it streams (folded) */
+.think-tail {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 1.2em);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 1.2em);
+}

@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "vboard": {
+      "url": "https://vboard.192.168.65.4.nip.io/mcp",
+      "headers": { "Authorization": "Bearer ${VBOARD_TOKEN}" },
+      "readOnly": ["search_*", "get_*", "list_*"]
+    },
+    "smarthome": {
+      "command": "smarthome-mcp",
+      "args": [],
+      "env": { "SMARTHOME_TOKEN": "${SMARTHOME_TOKEN}" },
+      "readOnly": ["get_*", "list_*"],
+      "timeout": 30,
+      "disabled": true
+    }
+  }
+}

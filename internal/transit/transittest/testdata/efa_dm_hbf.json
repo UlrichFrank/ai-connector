@@ -1,0 +1,2405 @@
+{
+ "serverInfo": {
+  "controllerVersion": "10.6.33.33",
+  "serverID": "bw-ww33",
+  "virtDir": "naldo",
+  "serverTime": "2026-10-04T07:07:00",
+  "calcTime": 166.631
+ },
+ "version": "11.0.6.72",
+ "systemMessages": [],
+ "locations": [
+  {
+   "id": "de:08416:11000",
+   "isGlobalId": true,
+   "name": "Tübingen, Hauptbahnhof",
+   "disassembledName": "Hauptbahnhof",
+   "coord": [
+    48.516147,
+    9.055575
+   ],
+   "type": "stop",
+   "matchQuality": 100000,
+   "isBest": true,
+   "parent": {
+    "id": "placeID:8416041:13",
+    "name": "Tübingen",
+    "type": "locality"
+   },
+   "assignedStops": [
+    {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "coord": [
+      48.516147,
+      9.055575
+     ],
+     "parent": {
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "productClasses": [
+      0,
+      5,
+      6,
+      7,
+      10,
+      13
+     ],
+     "connectingMode": 100,
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   ],
+   "properties": {
+    "stopId": "8011000"
+   }
+  }
+ ],
+ "stopEvents": [
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:3:3",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "3",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.515594,
+     9.055036
+    ],
+    "properties": {
+     "occupancy": "MANY_SEATS",
+     "stopId": "8011000",
+     "area": "3",
+     "platform": "3",
+     "platformName": "3",
+     "plannedPlatformName": "3"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T04:33:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T04:33:00Z",
+   "departureTimeEstimated": "2026-10-04T05:43:00Z",
+   "transportation": {
+    "id": "ddb:90T18:S:R:j26",
+    "name": "Metropolexpress MEX18",
+    "disassembledName": "MEX18",
+    "number": "MEX18",
+    "product": {
+     "id": 12,
+     "class": 13,
+     "name": "Metropolexpress",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "SBS",
+     "id": "SBS",
+     "name": "DB Regio AG Baden-Württemberg"
+    },
+    "destination": {
+     "id": "5006115",
+     "name": "Stuttgart Hauptbahnhof (oben)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "19306",
+     "tripCode": 422,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T18_:",
+     "OperatorURL": "https://regional.bahn.de/regionen/baden-wuerttemberg/ueb/partner/db-regio-stuttgart"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:52:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27975",
+     "version": 37,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:49:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27974",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-11T07:49:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-27757",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Heilbronn - Stuttgart: ganztägige Zugausfälle mit Ersatzbussen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Vom 25. September ca. 20:30 Uhr bis 5. Oktober 2026 ca. 02:00 Uhr werden zwischen Heilbronn und Bietigheim Bauarbeiten durchgeführt. Es kommt zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE8</div>\n<div>Ausfall Stuttgart Hbf - Bad Friedrichshall. Es fahren zwischen Ludwigsburg Bahnhof (Arena) und Heilbronn halbstündlich, bis Bad Friedrichshall stündlich Ersatzbusse ohne Halt zwischen Ludwigsburg und Heilbronn.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Ausfall Stuttgart Hbf - Heilbronn (und weiter bis Neckarelz bzw. Osterburken). Es fahren dreimal stündlich Ersatzbusse zwischen Bietigheim und Heilbronn.In den Hauptverkehrszeiten morgens und nachmittags fahren von Montag bis Freitag zusätzliche Busse Bietigheim - Walheim.</div>\n<div> </div>\n<div>Haltestellen des Ersatzverkehrs: Bietigheim Bahnhof (Stuttgarter Straße), Besigheim Bahnhof und Auf dem Kies, Walheim Bahnhof, Kirchheim (N) Bahnhof und Schillerplatz, Lauffen Bahnhof, Nordheim Gasthaus Siegeshalle sowie Heilbronn Hbf/Busbahnhof. </div>",
+       "subtitle": "Heilbronn - Stuttgart: ganztägige Zugausfälle mit Ersatzbussen wegen Bauarbeiten",
+       "htmlText": "<div>Vom 25. September ca. 20:30 Uhr bis 5. Oktober 2026 ca. 02:00 Uhr werden zwischen Heilbronn und Bietigheim Bauarbeiten durchgeführt. Es kommt zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE8</div>\n<div>Ausfall Stuttgart Hbf - Bad Friedrichshall. Es fahren zwischen Ludwigsburg Bahnhof (Arena) und Heilbronn halbstündlich, bis Bad Friedrichshall stündlich Ersatzbusse ohne Halt zwischen Ludwigsburg und Heilbronn.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Ausfall Stuttgart Hbf - Heilbronn (und weiter bis Neckarelz bzw. Osterburken). Es fahren dreimal stündlich Ersatzbusse zwischen Bietigheim und Heilbronn.In den Hauptverkehrszeiten morgens und nachmittags fahren von Montag bis Freitag zusätzliche Busse Bietigheim - Walheim.</div>\n<div> </div>\n<div>Haltestellen des Ersatzverkehrs: Bietigheim Bahnhof (Stuttgarter Straße), Besigheim Bahnhof und Auf dem Kies, Walheim Bahnhof, Kirchheim (N) Bahnhof und Schillerplatz, Lauffen Bahnhof, Nordheim Gasthaus Siegeshalle sowie Heilbronn Hbf/Busbahnhof. </div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-08-19T07:11:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27382",
+     "version": 18,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-23T08:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27442",
+     "version": 5590215,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Bietigheim - Ludwigsburg: Streckensperrung mit Ersatzverkehr wegen Brückenarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Brückenarbeiten kommt es vom 24. Oktober ca. 01:30 Uhr bis 30. Oktober 2026 21:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>S5</div>\n<div>Ausfall zwischen Bietigheim und Ludwigsburg. Es fahren Ersatzbusse Ludwigsburg Bahnhof (Arena) und Bietigheim ZOB.</div>\n<div> </div>\n<div>RE8, MEX12(18</div>\n<div>Ausfall zwischen Stuttgart Hbf und Bietigheim. Es fahren Direktbusse Stuttgart Hbf (Pariser Platz) und Bietigheim Bahnhof (Stuttgarter Straße).</div>",
+       "subtitle": "Bietigheim - Ludwigsburg: Streckensperrung mit Ersatzverkehr wegen Brückenarbeiten",
+       "htmlText": "<div>Wegen Brückenarbeiten kommt es vom 24. Oktober ca. 01:30 Uhr bis 30. Oktober 2026 21:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>S5</div>\n<div>Ausfall zwischen Bietigheim und Ludwigsburg. Es fahren Ersatzbusse Ludwigsburg Bahnhof (Arena) und Bietigheim ZOB.</div>\n<div> </div>\n<div>RE8, MEX12(18</div>\n<div>Ausfall zwischen Stuttgart Hbf und Bietigheim. Es fahren Direktbusse Stuttgart Hbf (Pariser Platz) und Bietigheim Bahnhof (Stuttgarter Straße).</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-07T10:51:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27381",
+     "version": 1654840,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T09:27:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-27703",
+     "version": 3327247,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Plochingen - Stuttgart: Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Vom 4. bis 8. November 2026 werden zwischen Esslingen und Plochingen Schienen ausgewechselt. Es kommt zu folgenden Fahrplanänderungen:<br /> <br />S1<br />Die Züge fahren im Abschnitt Plochingen - Vaihingen nur alle 30 Minuten. Wegen weiterer Bauarbeiten in Vaihingen entfallen am 4. und 5. November zusätzlich die Züge Vaihingen ab 20:05 und 20:35 Uhr bis Herrenberg sowie Herrenberg ab 19:31 und 20:01 Uhr bis Plochingen.<br /> <br />S2<br />Am 4. und 5. November entfallen die Züge Schorndorf ab 19:28 und 20:03 Uhr bis Filderstadt sowie Filderstadt ab 20:18 Uhr bis Bad Cannstatt.<br /> <br />S3<br />Die Züge Backnang ab 19:26 und 19:56 Uhr entfallen bis Vaihingen.<br /> <br />RE5<br />Zusatzhalte in Bad Cannstatt.<br /> <br />RE6<br />Ausfall Tübingen - Stuttgart.</div>\n<div> </div>\n<div>RB11</div>\n<div>4.-6. November 2026 Ausfall.<br /> <br />MEX12/18<br />Im Abschnitt Plochingen - Stuttgart Hbf weitgehend nur einmal stündlich.</div>\n<div> </div>\n<div>MEX16</div>\n<div>Im Abschnitt Plochingen - Stuttgart Hbf nur einmal stündlich.<br /> <br />Ersatzverkehre<br />Direktbusse Tübingen bzw. Reutlingen (nur ca. 06:00-10:00 und 16:00 - 18:00 Uhr)  - Stuttgart Hbf (Pariser Platz).</div>",
+       "subtitle": "Plochingen - Stuttgart: Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Vom 4. bis 8. November 2026 werden zwischen Esslingen und Plochingen Schienen ausgewechselt. Es kommt zu folgenden Fahrplanänderungen:<br /> <br />S1<br />Die Züge fahren im Abschnitt Plochingen - Vaihingen nur alle 30 Minuten. Wegen weiterer Bauarbeiten in Vaihingen entfallen am 4. und 5. November zusätzlich die Züge Vaihingen ab 20:05 und 20:35 Uhr bis Herrenberg sowie Herrenberg ab 19:31 und 20:01 Uhr bis Plochingen.<br /> <br />S2<br />Am 4. und 5. November entfallen die Züge Schorndorf ab 19:28 und 20:03 Uhr bis Filderstadt sowie Filderstadt ab 20:18 Uhr bis Bad Cannstatt.<br /> <br />S3<br />Die Züge Backnang ab 19:26 und 19:56 Uhr entfallen bis Vaihingen.<br /> <br />RE5<br />Zusatzhalte in Bad Cannstatt.<br /> <br />RE6<br />Ausfall Tübingen - Stuttgart.</div>\n<div> </div>\n<div>RB11</div>\n<div>4.-6. November 2026 Ausfall.<br /> <br />MEX12/18<br />Im Abschnitt Plochingen - Stuttgart Hbf weitgehend nur einmal stündlich.</div>\n<div> </div>\n<div>MEX16</div>\n<div>Im Abschnitt Plochingen - Stuttgart Hbf nur einmal stündlich.<br /> <br />Ersatzverkehre<br />Direktbusse Tübingen bzw. Reutlingen (nur ca. 06:00-10:00 und 16:00 - 18:00 Uhr)  - Stuttgart Hbf (Pariser Platz).</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-10-01T12:05:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-28176",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Heilbronn: Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bahnsteigarbeiten in Walheim steht nur ein Gleis zur Verfügung. Daher können vom 10. Oktober 04:00 Uhr bis 30. November 2026 ca. 08:00 Uhr die Züge der Linien MEX12 und MEX18 nur einmal stündlich zwischen Heilbronn und Bietigheim fahren. In der Regel entallen die MEX12-Züge. In den Abendstunden kommt es wegen weiterer Bauarbeiten zudem zu Ausfällen des MEX18 im Abschnitt Heilbronn - Osterburken. Es fahren zwischen Heilbronn und Bietigheim einzelne Ersatzbusse.</div>\n<div> </div>\n<div>Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Heilbronn: Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bahnsteigarbeiten in Walheim steht nur ein Gleis zur Verfügung. Daher können vom 10. Oktober 04:00 Uhr bis 30. November 2026 ca. 08:00 Uhr die Züge der Linien MEX12 und MEX18 nur einmal stündlich zwischen Heilbronn und Bietigheim fahren. In der Regel entallen die MEX12-Züge. In den Abendstunden kommt es wegen weiterer Bauarbeiten zudem zu Ausfällen des MEX18 im Abschnitt Heilbronn - Osterburken. Es fahren zwischen Heilbronn und Bietigheim einzelne Ersatzbusse.</div>\n<div> </div>\n<div>Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FK",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte",
+     "providerCode": "ZM",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "WLAN verfügbar",
+     "providerCode": "WV",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Verspätete Bereitstellung des Zuges",
+     "providerCode": "ddb90T18SR_IncidentCall422_8011000_1",
+     "type": "RTIncidentCall",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {}
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:3:3",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "3",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.515594,
+     9.055036
+    ],
+    "properties": {
+     "occupancy": "FEW_SEATS",
+     "stopId": "8011000",
+     "area": "3",
+     "platform": "3",
+     "platformName": "3",
+     "plannedPlatformName": "3"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:00:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:00:00Z",
+   "departureTimeEstimated": "2026-10-04T05:10:00Z",
+   "transportation": {
+    "id": "ddb:90T06:B:H:j26",
+    "name": "R-Bahn RE 6",
+    "disassembledName": "RE6",
+    "number": "RE 6",
+    "product": {
+     "id": 8,
+     "class": 13,
+     "name": "R-Bahn",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "DB",
+     "id": "00",
+     "name": "DB AG"
+    },
+    "destination": {
+     "id": "5006115",
+     "name": "Stuttgart Hauptbahnhof (oben)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "3268",
+     "tripCode": 3,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T06B:",
+     "OperatorURL": "https://www.bahn.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FK",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte",
+     "providerCode": "ZM",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "WLAN verfügbar",
+     "providerCode": "WV",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Verspätete Bereitstellung des Zuges",
+     "providerCode": "ddb90T06BH_IncidentCall3_8011000_1",
+     "type": "RTIncidentCall",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {}
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:2:13",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "13",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.515713,
+     9.053787
+    ],
+    "properties": {
+     "occupancy": "MANY_SEATS",
+     "stopId": "8011000",
+     "area": "5",
+     "platform": "13",
+     "platformName": "13",
+     "plannedPlatformName": "13"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:11:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:11:00Z",
+   "departureTimeEstimated": "2026-10-04T05:11:00Z",
+   "transportation": {
+    "id": "ddb:90T63: :R:j26",
+    "name": "R-Bahn RB 63",
+    "disassembledName": "RB63",
+    "number": "RB 63",
+    "product": {
+     "id": 8,
+     "class": 13,
+     "name": "R-Bahn",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "DB",
+     "id": "00",
+     "name": "DB AG"
+    },
+    "destination": {
+     "id": "5004512",
+     "name": "Herrenberg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainName": "Regionalbahn",
+     "trainType": "NRB",
+     "trainNumber": "22731",
+     "tripCode": 401,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T63_:",
+     "OperatorURL": "https://www.bahn.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:52:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27975",
+     "version": 37,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:49:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27974",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-08-19T07:11:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27382",
+     "version": 18,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-09T12:12:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-27734",
+     "version": 14,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Herrenberg: Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten im Bahnhof Tübingen Hbf entfällt die Ammertalbahn RB63 vom 9. November ca. 05:30 Uhr bis 15. November 2026 Betriebsschluss zwischen Tübingen Hbf und Tübingen West. Außerdem verkehrt die Ammertalbahn im Abschnitt Tübingen West - Entringen nur alle 30 Minuten. Es fahren Ersatzbusse Tübingen Hbf - Tübingen West/Entringen. Bitte beachten Sie die geänderten Fahrzeiten zwischen Tübingen West und Herrenberg.</div>",
+       "subtitle": "Tübingen - Herrenberg: Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten im Bahnhof Tübingen Hbf entfällt die Ammertalbahn RB63 vom 9. November ca. 05:30 Uhr bis 15. November 2026 Betriebsschluss zwischen Tübingen Hbf und Tübingen West. Außerdem verkehrt die Ammertalbahn im Abschnitt Tübingen West - Entringen nur alle 30 Minuten. Es fahren Ersatzbusse Tübingen Hbf - Tübingen West/Entringen. Bitte beachten Sie die geänderten Fahrzeiten zwischen Tübingen West und Herrenberg.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-07T10:51:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27381",
+     "version": 1654840,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-08-20T05:56:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27406",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen West - Metzingen: in der Nacht Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es in der Nacht 13./14. Oktober 2026 von ca. 21:30 bis 05:00 Uhr zu folgenden Fahrplanabweichungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Der Zug Stuttgart Hbf ab 22:07 Uhr fährt 8 Minuten früher.</div>\n<div> </div>\n<div>RB63</div>\n<div>Die Züge der Ammertalbahn entfallen zwischen Tübingen West und Tübingen Hbf. Es fahren Ersatzbusse. Zwischen Tübingen West und Herrenberg fahren die Züge nach geändertem Fahrplan. Die Züge Metzingen ab 21:48 und 22:28 Uhr entfallen bis Tübingen Hbf, die Züge Tübingen Hbf ab 22:41 und 23:41 Uhr entfallen bis Metzingen. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen West - Metzingen: in der Nacht Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es in der Nacht 13./14. Oktober 2026 von ca. 21:30 bis 05:00 Uhr zu folgenden Fahrplanabweichungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Der Zug Stuttgart Hbf ab 22:07 Uhr fährt 8 Minuten früher.</div>\n<div> </div>\n<div>RB63</div>\n<div>Die Züge der Ammertalbahn entfallen zwischen Tübingen West und Tübingen Hbf. Es fahren Ersatzbusse. Zwischen Tübingen West und Herrenberg fahren die Züge nach geändertem Fahrplan. Die Züge Metzingen ab 21:48 und 22:28 Uhr entfallen bis Tübingen Hbf, die Züge Tübingen Hbf ab 22:41 und 23:41 Uhr entfallen bis Metzingen. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FB",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrzeuggebundene Einstiegshilfe vorhanden",
+     "providerCode": "EH",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "nur 2. Kl.",
+     "providerCode": "Y2",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "WLAN verfügbar",
+     "providerCode": "WV",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {}
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:13:M",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. M",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.51654,
+     9.056725
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "13",
+     "platform": "M",
+     "platformName": "Bstg. M",
+     "plannedPlatformName": "Bstg. M"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:12:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:12:00Z",
+   "departureTimeEstimated": "2026-10-04T05:12:00Z",
+   "transportation": {
+    "id": "vvs:31X82: :R:j26",
+    "name": "Bus X82",
+    "disassembledName": "X82",
+    "number": "X82",
+    "description": "Tübingen - Waldenbuch - Echterdingen - Flughafen",
+    "product": {
+     "id": 5,
+     "class": 5,
+     "name": "Bus",
+     "iconId": 3
+    },
+    "operator": {
+     "id": "26",
+     "name": "Friedrich Müller Omnibusunternehmen (FMO)"
+    },
+    "destination": {
+     "id": "5002103",
+     "name": "Echterdingen Flughafen/Messe (SAB)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "5641602",
+     "tripCode": 191,
+     "lineDisplay": "LINE",
+     "globalId": "de:vvs:31X82_:",
+     "OperatorURL": "www.fmobus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:11:A",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. A",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516255,
+     9.05482
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "11",
+     "platform": "A",
+     "platformName": "Bstg. A",
+     "plannedPlatformName": "Bstg. A"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:13:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:13:00Z",
+   "departureTimeEstimated": "2026-10-04T05:13:00Z",
+   "transportation": {
+    "id": "tub:09003: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 3",
+    "disassembledName": "3",
+    "number": "3",
+    "description": "Gartenstadt - Feuerhägle - Loretto - Hauptbahnhof - Sternwarte - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "3804",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 269,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:20803d2ac58e4aa5a6a51a2007a1526c:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010723",
+     "name": "Tübingen Nelkenweg",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:12:F",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. F",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516439,
+     9.056851
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "12",
+     "platform": "F",
+     "platformName": "Bstg. F",
+     "plannedPlatformName": "Bstg. F"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:14:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:14:00Z",
+   "departureTimeEstimated": "2026-10-04T05:14:00Z",
+   "transportation": {
+    "id": "tub:09003: :H:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 3",
+    "disassembledName": "3",
+    "number": "3",
+    "description": "Waldhäuser Ost - Sternwarte - Hauptbahnhof - Loretto - Feuerhägle - Gartenstadt",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010723",
+     "name": "Tübingen Nelkenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "3304",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 701,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:20803d2ac58e4aa5a6a51a2007a1526c:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "location": {
+    "id": "de:08416:11000",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "type": "platform",
+    "coord": [
+     48.516147,
+     9.055575
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "0"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:20:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:20:00Z",
+   "transportation": {
+    "id": "bus:02101: :H:f6a",
+    "name": "Flixbus (Sondertarif) 101",
+    "disassembledName": "101",
+    "number": "101",
+    "product": {
+     "id": 6,
+     "class": 7,
+     "name": "Flixbus (Sondertarif)",
+     "iconId": 3
+    },
+    "operator": {
+     "id": "8533",
+     "name": "FlixBus-de"
+    },
+    "destination": {
+     "id": "91000145",
+     "name": "ZOB",
+     "type": "stop"
+    },
+    "properties": {
+     "tripCode": 1,
+     "specialFares": "ROUTE_OUTSIDE_OF_TRANSPORT_AUTHORITY_AREA",
+     "mtSubcode": "304",
+     "lineDisplay": "LINE",
+     "OperatorURL": "https://global.flixbus.com",
+     "attributes": [
+      "LONG_DISTANCE_TRAINS",
+      "SUPPLEMENT",
+      "DIFFERENT_FARES"
+     ]
+    },
+    "origin": {
+     "id": "8022006",
+     "name": "Reutlingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "DIFFERENT_FARES": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:3:3",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "3",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.515594,
+     9.055036
+    ],
+    "properties": {
+     "occupancy": "STANDING_ONLY",
+     "stopId": "8011000",
+     "area": "3",
+     "platform": "3",
+     "platformName": "3",
+     "plannedPlatformName": "3"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:23:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:23:00Z",
+   "departureTimeEstimated": "2026-10-04T05:23:00Z",
+   "transportation": {
+    "id": "ddb:90T74: :R:j26",
+    "name": "R-Bahn RB 74",
+    "disassembledName": "RB74",
+    "number": "RB 74",
+    "product": {
+     "id": 8,
+     "class": 13,
+     "name": "R-Bahn",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "DB",
+     "id": "00",
+     "name": "DB AG"
+    },
+    "destination": {
+     "id": "7305001",
+     "name": "Horb Bahnhof/ZOB",
+     "type": "stop"
+    },
+    "properties": {
+     "trainName": "Regionalbahn",
+     "trainType": "NRB",
+     "trainNumber": "32527",
+     "tripCode": 340,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T74_:",
+     "OperatorURL": "https://www.bahn.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FK",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrzeuggebundene Einstiegshilfe vorhanden",
+     "providerCode": "EH",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "nur 2. Kl.",
+     "providerCode": "Y2",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "WLAN verfügbar",
+     "providerCode": "WV",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {}
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:12:F",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. F",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516439,
+     9.056851
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "12",
+     "platform": "F",
+     "platformName": "Bstg. F",
+     "plannedPlatformName": "Bstg. F"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:26:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:26:00Z",
+   "departureTimeEstimated": "2026-10-04T05:26:00Z",
+   "transportation": {
+    "id": "tub:09005: :H:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 5",
+    "disassembledName": "5",
+    "number": "5",
+    "description": "Waldhäuser Ost - Wanne - Kliniken - Hauptbahnhof - Feuerhägle - Derendingen Käppele",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010708",
+     "name": "Tübingen Derend. Käppele",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "5304",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 1015,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:103e881703924c84923496df91c3ceb2:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010213",
+     "name": "Tübingen WHO Ahornweg",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:11:A",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. A",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516255,
+     9.05482
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "11",
+     "platform": "A",
+     "platformName": "Bstg. A",
+     "plannedPlatformName": "Bstg. A"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:26:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:26:00Z",
+   "departureTimeEstimated": "2026-10-04T05:26:00Z",
+   "transportation": {
+    "id": "tub:09004: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 4",
+    "disassembledName": "4",
+    "number": "4",
+    "description": "Wennfelder Garten - Sternplatz - Hauptbahnhof - Schönblick - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "4805",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 357,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:6cf1a8bd26eb49ff858c22006ee24402:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010815",
+     "name": "Tübingen Wennf. Garten",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:12:D",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. D",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.51635,
+     9.056024
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "12",
+     "platform": "D",
+     "platformName": "Bstg. D",
+     "plannedPlatformName": "Bstg. D"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:27:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:27:00Z",
+   "departureTimeEstimated": "2026-10-04T05:27:00Z",
+   "transportation": {
+    "id": "tub:09022: :H:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 22",
+    "disassembledName": "22",
+    "number": "22",
+    "description": "Hauptbahnhof - Gartenstraße - Lustnau",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010304",
+     "name": "Tübingen Carlo-Steeb-Str.",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "22302",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 65,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:b4a854b8ed8a4d37b36bbea557503b64:",
+     "OperatorURL": "www.tuebus.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {}
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:14:H",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. H",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516391,
+     9.054838
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "14",
+     "platform": "H",
+     "platformName": "Bstg. H",
+     "plannedPlatformName": "Bstg. H"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:29:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:29:00Z",
+   "departureTimeEstimated": "2026-10-04T05:29:00Z",
+   "transportation": {
+    "id": "rab:24019: :H:26a",
+    "name": "Stadtbus 19",
+    "disassembledName": "19",
+    "number": "19",
+    "product": {
+     "id": 1,
+     "class": 5,
+     "name": "Stadtbus",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "RAB",
+     "id": "RAB",
+     "name": "rab"
+    },
+    "destination": {
+     "id": "8013035",
+     "name": "Bühl Römerstraße",
+     "type": "stop"
+    },
+    "properties": {
+     "isSTT": true,
+     "tripCode": 114,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:1e234b3f8a0f4e7996d190602a77143b:",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Niederflurbus, für Rollstuhlfahrer geeignet",
+     "providerCode": "05",
+     "type": "VehicleType",
+     "properties": {
+      "subnet": "rab"
+     }
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:3:12",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "3",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.51535,
+     9.052745
+    ],
+    "properties": {
+     "occupancy": "MANY_SEATS",
+     "stopId": "8011000",
+     "area": "10",
+     "platform": "12",
+     "platformName": "3",
+     "plannedPlatformName": "12"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:29:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:29:00Z",
+   "departureTimeEstimated": "2026-10-04T05:29:00Z",
+   "transportation": {
+    "id": "ddb:90T66: :H:j26",
+    "name": "R-Bahn RB 66",
+    "disassembledName": "RB66",
+    "number": "RB 66",
+    "product": {
+     "id": 8,
+     "class": 13,
+     "name": "R-Bahn",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "SWE",
+     "id": "S6",
+     "name": "Südwestdeutsche Verkehrs-GmbH"
+    },
+    "destination": {
+     "id": "8042111",
+     "name": "Sigmaringen Bahnhof",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "86229",
+     "tripCode": 14,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T66_:",
+     "OperatorURL": "https://www.sweg.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-10-01T08:05:00Z"
+     },
+     "priority": "high",
+     "id": "ems-1014590",
+     "version": 82983,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Mössingen: Zugausfälle und Schienenersatzverkehr",
+       "url": "http://nohost",
+       "content": "<span style=\"color:#808080; font-size: 0.7em; display: block; align-items: flex-start;  height: 15px;\">\n[ Ereignis Tübingen, Hauptbahnhof ] </span>\n<div>Zwischen T&uuml;bingen und M&ouml;ssingen, sowie Du&szlig;lingen, kommt es von Montag, 05. Oktober 2026 bis Samstag, 10. Oktober 2026 zu Zugausf&auml;llen wegen einer Baustelle. Es wird ein Schienenersatzverkehr (SEV) eingerichtet. Betroffen sind die Linien RB66 und RE6a.</div>\n<div>&nbsp;</div>\n<div>&gt;&gt;&gt;<strong>Die Ersatzhaltestelle in T&uuml;bingen befindet sich in der Hegelstra&szlig;e zwischen B28 und Finanzamt.</strong>&lt;&lt;&lt;</div>\n<div>&nbsp;</div>\n<div><strong>HINWEIS</strong>: In der elektronischen Beauskunftung wird \"T&uuml;bingen, Steinlachallee/Hbf S&uuml;d\" als Ersatzhaltestelle angegeben. Dies ist <strong>falsch</strong>. Die Ersatzhaltestelle befindet sich zwischen B28 und Finanzamt. Die Angabe in der elektronischen Auskunft wird schnellstm&ouml;glich korrigiert.<br />&nbsp;<br />SEV:<br />_______________________________________________________________________<br />&nbsp;<br />RE6a -&nbsp;T&uuml;bingen Hbf ⇄ M&ouml;ssingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), M&ouml;ssingen Busbahnhof<br />________________________________________________________________________<br />&nbsp;<br />RB66 -&nbsp;T&uuml;bingen Hbf ⇄ Du&szlig;lingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), T&uuml;bingen-Derendingen Feuerh&auml;gle, Du&szlig;lingen Bahnhof<br />&nbsp;<br />Zwischen Du&szlig;lingen und M&ouml;ssingen verkehren die Z&uuml;ge der Linie RB66.<br />&nbsp;<br />&nbsp;<br />Die Mitnahme von Fahrr&auml;dern ist in den Bussen nicht gestattet.<br />&nbsp;<br />Die beschriebenen Fahrplan&auml;nderungen sind in der EFA/naldo-App erfasst.</div>",
+       "subtitle": "Tübingen - Mössingen: Zugausfälle und Schienenersatzverkehr",
+       "htmlText": "<span style=\"color:#808080; font-size: 0.7em; display: block; align-items: flex-start;  height: 15px;\">\n[ Ereignis Tübingen, Hauptbahnhof ] </span>\n<div>Zwischen T&uuml;bingen und M&ouml;ssingen, sowie Du&szlig;lingen, kommt es von Montag, 05. Oktober 2026 bis Samstag, 10. Oktober 2026 zu Zugausf&auml;llen wegen einer Baustelle. Es wird ein Schienenersatzverkehr (SEV) eingerichtet. Betroffen sind die Linien RB66 und RE6a.</div>\n<div>&nbsp;</div>\n<div>&gt;&gt;&gt;<strong>Die Ersatzhaltestelle in T&uuml;bingen befindet sich in der Hegelstra&szlig;e zwischen B28 und Finanzamt.</strong>&lt;&lt;&lt;</div>\n<div>&nbsp;</div>\n<div><strong>HINWEIS</strong>: In der elektronischen Beauskunftung wird \"T&uuml;bingen, Steinlachallee/Hbf S&uuml;d\" als Ersatzhaltestelle angegeben. Dies ist <strong>falsch</strong>. Die Ersatzhaltestelle befindet sich zwischen B28 und Finanzamt. Die Angabe in der elektronischen Auskunft wird schnellstm&ouml;glich korrigiert.<br />&nbsp;<br />SEV:<br />_______________________________________________________________________<br />&nbsp;<br />RE6a -&nbsp;T&uuml;bingen Hbf ⇄ M&ouml;ssingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), M&ouml;ssingen Busbahnhof<br />________________________________________________________________________<br />&nbsp;<br />RB66 -&nbsp;T&uuml;bingen Hbf ⇄ Du&szlig;lingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), T&uuml;bingen-Derendingen Feuerh&auml;gle, Du&szlig;lingen Bahnhof<br />&nbsp;<br />Zwischen Du&szlig;lingen und M&ouml;ssingen verkehren die Z&uuml;ge der Linie RB66.<br />&nbsp;<br />&nbsp;<br />Die Mitnahme von Fahrr&auml;dern ist in den Bussen nicht gestattet.<br />&nbsp;<br />Die beschriebenen Fahrplan&auml;nderungen sind in der EFA/naldo-App erfasst.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Barrierefreies Fahrzeug",
+     "providerCode": "RG",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Einstiegshilfe - Bitte im ersten Fahrzeug einsteigen",
+     "providerCode": "EI",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "nur 2. Kl.",
+     "providerCode": "Y2",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FK",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {
+    "platformChange": "changed"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:11:B",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "Bstg. B",
+    "type": "platform",
+    "pointType": "PLATFORM",
+    "coord": [
+     48.516308,
+     9.055207
+    ],
+    "properties": {
+     "stopId": "8011000",
+     "area": "11",
+     "platform": "B",
+     "platformName": "Bstg. B",
+     "plannedPlatformName": "Bstg. B"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:32:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:32:00Z",
+   "departureTimeEstimated": "2026-10-04T05:32:00Z",
+   "transportation": {
+    "id": "tub:09005: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 5",
+    "disassembledName": "5",
+    "number": "5",
+    "description": "Derendingen Käppele - Feuerhägle - Hauptbahnhof - Kliniken - Wanne - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010213",
+     "name": "Tübingen WHO Ahornweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "5805",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 357,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:103e881703924c84923496df91c3ceb2:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010709",
+     "name": "Tübingen Marienstraße",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    }
+   ],
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:11000:4:5",
+    "isGlobalId": true,
+    "name": "Tübingen Hauptbahnhof",
+    "disassembledName": "5",
+    "type": "platform",
+    "pointType": "TRACK",
+    "coord": [
+     48.515511,
+     9.055045
+    ],
+    "properties": {
+     "occupancy": "FEW_SEATS",
+     "stopId": "8011000",
+     "area": "4",
+     "platform": "5",
+     "platformName": "5",
+     "plannedPlatformName": "5"
+    },
+    "parent": {
+     "id": "de:08416:11000",
+     "isGlobalId": true,
+     "name": "Tübingen Hauptbahnhof",
+     "disassembledName": "Hauptbahnhof",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8011000"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:32:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:32:00Z",
+   "departureTimeEstimated": "2026-10-04T05:32:00Z",
+   "transportation": {
+    "id": "ddb:90T18:S:R:j26",
+    "name": "Metropolexpress MEX18",
+    "disassembledName": "MEX18",
+    "number": "MEX18",
+    "product": {
+     "id": 12,
+     "class": 13,
+     "name": "Metropolexpress",
+     "iconId": 6
+    },
+    "operator": {
+     "code": "SBS",
+     "id": "SBS",
+     "name": "DB Regio AG Baden-Württemberg"
+    },
+    "destination": {
+     "id": "5006115",
+     "name": "Stuttgart Hauptbahnhof (oben)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "19308",
+     "tripCode": 430,
+     "lineDisplay": "LINE",
+     "globalId": "de:nvbw:90T18_:",
+     "OperatorURL": "https://regional.bahn.de/regionen/baden-wuerttemberg/ueb/partner/db-regio-stuttgart"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "infos": [
+    {
+     "timestamps": {
+      "creation": "2026-07-29T06:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27077",
+     "version": 96,
+     "type": "stopInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "stopInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Aufzug außer Betrieb",
+       "url": "http://nohost",
+       "content": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>",
+       "subtitle": "Aufzug außer Betrieb",
+       "htmlText": "<div>Am Bahnhof Tübingen sind die Aufzüge an Gleis 1/13 und Gleis 2/3/12 bis voraussichtlich Ende 2026 außer Betrieb.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:52:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27975",
+     "version": 37,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 8. Dezember 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T11:49:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27974",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Tübingen - Stuttgart: am Abend Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bauarbeiten kommt es bei den Linien RE6, MEX12/18 und RB63 am Abend des 10. November 2026 von ca. 21:00 bis Mitternacht zu Fahrplanänderungen. Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-11T07:49:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-27757",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Heilbronn - Stuttgart: ganztägige Zugausfälle mit Ersatzbussen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Vom 25. September ca. 20:30 Uhr bis 5. Oktober 2026 ca. 02:00 Uhr werden zwischen Heilbronn und Bietigheim Bauarbeiten durchgeführt. Es kommt zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE8</div>\n<div>Ausfall Stuttgart Hbf - Bad Friedrichshall. Es fahren zwischen Ludwigsburg Bahnhof (Arena) und Heilbronn halbstündlich, bis Bad Friedrichshall stündlich Ersatzbusse ohne Halt zwischen Ludwigsburg und Heilbronn.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Ausfall Stuttgart Hbf - Heilbronn (und weiter bis Neckarelz bzw. Osterburken). Es fahren dreimal stündlich Ersatzbusse zwischen Bietigheim und Heilbronn.In den Hauptverkehrszeiten morgens und nachmittags fahren von Montag bis Freitag zusätzliche Busse Bietigheim - Walheim.</div>\n<div> </div>\n<div>Haltestellen des Ersatzverkehrs: Bietigheim Bahnhof (Stuttgarter Straße), Besigheim Bahnhof und Auf dem Kies, Walheim Bahnhof, Kirchheim (N) Bahnhof und Schillerplatz, Lauffen Bahnhof, Nordheim Gasthaus Siegeshalle sowie Heilbronn Hbf/Busbahnhof. </div>",
+       "subtitle": "Heilbronn - Stuttgart: ganztägige Zugausfälle mit Ersatzbussen wegen Bauarbeiten",
+       "htmlText": "<div>Vom 25. September ca. 20:30 Uhr bis 5. Oktober 2026 ca. 02:00 Uhr werden zwischen Heilbronn und Bietigheim Bauarbeiten durchgeführt. Es kommt zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE8</div>\n<div>Ausfall Stuttgart Hbf - Bad Friedrichshall. Es fahren zwischen Ludwigsburg Bahnhof (Arena) und Heilbronn halbstündlich, bis Bad Friedrichshall stündlich Ersatzbusse ohne Halt zwischen Ludwigsburg und Heilbronn.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Ausfall Stuttgart Hbf - Heilbronn (und weiter bis Neckarelz bzw. Osterburken). Es fahren dreimal stündlich Ersatzbusse zwischen Bietigheim und Heilbronn.In den Hauptverkehrszeiten morgens und nachmittags fahren von Montag bis Freitag zusätzliche Busse Bietigheim - Walheim.</div>\n<div> </div>\n<div>Haltestellen des Ersatzverkehrs: Bietigheim Bahnhof (Stuttgarter Straße), Besigheim Bahnhof und Auf dem Kies, Walheim Bahnhof, Kirchheim (N) Bahnhof und Schillerplatz, Lauffen Bahnhof, Nordheim Gasthaus Siegeshalle sowie Heilbronn Hbf/Busbahnhof. </div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-08-19T07:11:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27382",
+     "version": 18,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 2. Oktober ca. 22:00 bis 3. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-23T08:19:00Z"
+     },
+     "priority": "normal",
+     "id": "VVS-ems-27442",
+     "version": 5590215,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Bietigheim - Ludwigsburg: Streckensperrung mit Ersatzverkehr wegen Brückenarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Brückenarbeiten kommt es vom 24. Oktober ca. 01:30 Uhr bis 30. Oktober 2026 21:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>S5</div>\n<div>Ausfall zwischen Bietigheim und Ludwigsburg. Es fahren Ersatzbusse Ludwigsburg Bahnhof (Arena) und Bietigheim ZOB.</div>\n<div> </div>\n<div>RE8, MEX12(18</div>\n<div>Ausfall zwischen Stuttgart Hbf und Bietigheim. Es fahren Direktbusse Stuttgart Hbf (Pariser Platz) und Bietigheim Bahnhof (Stuttgarter Straße).</div>",
+       "subtitle": "Bietigheim - Ludwigsburg: Streckensperrung mit Ersatzverkehr wegen Brückenarbeiten",
+       "htmlText": "<div>Wegen Brückenarbeiten kommt es vom 24. Oktober ca. 01:30 Uhr bis 30. Oktober 2026 21:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>S5</div>\n<div>Ausfall zwischen Bietigheim und Ludwigsburg. Es fahren Ersatzbusse Ludwigsburg Bahnhof (Arena) und Bietigheim ZOB.</div>\n<div> </div>\n<div>RE8, MEX12(18</div>\n<div>Ausfall zwischen Stuttgart Hbf und Bietigheim. Es fahren Direktbusse Stuttgart Hbf (Pariser Platz) und Bietigheim Bahnhof (Stuttgarter Straße).</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-07T10:51:00Z"
+     },
+     "priority": "high",
+     "id": "VVS-ems-27381",
+     "version": 1654840,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "url": "http://nohost",
+       "content": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>",
+       "subtitle": "Tübingen - Plochingen/Bad Urach: nächtliche Zugausfälle mit Ersatzbussen wegen Instandhaltungsmaßnahmen",
+       "htmlText": "<div>Wegen Instandhaltungsmaßnahmen kommt es vom 30. Oktober ca. 22:00 bis 31. Oktober 2026 ca. 05:00 Uhr zu folgenden Fahrplanänderungen:</div>\n<div> </div>\n<div>RE6</div>\n<div>Die Züge entfallen zwischen Tübingen und Stuttgart Hbf.</div>\n<div> </div>\n<div>MEX12/18</div>\n<div>Die Züge entfallen zwischen Tübingen und Plochingen. Es fahren Ersatzbusse Tübingen - Wendlingen mit Anschluss an die S1.</div>\n<div> </div>\n<div>RB63</div>\n<div>Ausfall zwischen Tübingen und Metzingen bzw. Bad Urach. Es fahren Ersatzbusse.</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-09-22T09:27:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-27703",
+     "version": 3327247,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Plochingen - Stuttgart: Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Vom 4. bis 8. November 2026 werden zwischen Esslingen und Plochingen Schienen ausgewechselt. Es kommt zu folgenden Fahrplanänderungen:<br /> <br />S1<br />Die Züge fahren im Abschnitt Plochingen - Vaihingen nur alle 30 Minuten. Wegen weiterer Bauarbeiten in Vaihingen entfallen am 4. und 5. November zusätzlich die Züge Vaihingen ab 20:05 und 20:35 Uhr bis Herrenberg sowie Herrenberg ab 19:31 und 20:01 Uhr bis Plochingen.<br /> <br />S2<br />Am 4. und 5. November entfallen die Züge Schorndorf ab 19:28 und 20:03 Uhr bis Filderstadt sowie Filderstadt ab 20:18 Uhr bis Bad Cannstatt.<br /> <br />S3<br />Die Züge Backnang ab 19:26 und 19:56 Uhr entfallen bis Vaihingen.<br /> <br />RE5<br />Zusatzhalte in Bad Cannstatt.<br /> <br />RE6<br />Ausfall Tübingen - Stuttgart.</div>\n<div> </div>\n<div>RB11</div>\n<div>4.-6. November 2026 Ausfall.<br /> <br />MEX12/18<br />Im Abschnitt Plochingen - Stuttgart Hbf weitgehend nur einmal stündlich.</div>\n<div> </div>\n<div>MEX16</div>\n<div>Im Abschnitt Plochingen - Stuttgart Hbf nur einmal stündlich.<br /> <br />Ersatzverkehre<br />Direktbusse Tübingen bzw. Reutlingen (nur ca. 06:00-10:00 und 16:00 - 18:00 Uhr)  - Stuttgart Hbf (Pariser Platz).</div>",
+       "subtitle": "Plochingen - Stuttgart: Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Vom 4. bis 8. November 2026 werden zwischen Esslingen und Plochingen Schienen ausgewechselt. Es kommt zu folgenden Fahrplanänderungen:<br /> <br />S1<br />Die Züge fahren im Abschnitt Plochingen - Vaihingen nur alle 30 Minuten. Wegen weiterer Bauarbeiten in Vaihingen entfallen am 4. und 5. November zusätzlich die Züge Vaihingen ab 20:05 und 20:35 Uhr bis Herrenberg sowie Herrenberg ab 19:31 und 20:01 Uhr bis Plochingen.<br /> <br />S2<br />Am 4. und 5. November entfallen die Züge Schorndorf ab 19:28 und 20:03 Uhr bis Filderstadt sowie Filderstadt ab 20:18 Uhr bis Bad Cannstatt.<br /> <br />S3<br />Die Züge Backnang ab 19:26 und 19:56 Uhr entfallen bis Vaihingen.<br /> <br />RE5<br />Zusatzhalte in Bad Cannstatt.<br /> <br />RE6<br />Ausfall Tübingen - Stuttgart.</div>\n<div> </div>\n<div>RB11</div>\n<div>4.-6. November 2026 Ausfall.<br /> <br />MEX12/18<br />Im Abschnitt Plochingen - Stuttgart Hbf weitgehend nur einmal stündlich.</div>\n<div> </div>\n<div>MEX16</div>\n<div>Im Abschnitt Plochingen - Stuttgart Hbf nur einmal stündlich.<br /> <br />Ersatzverkehre<br />Direktbusse Tübingen bzw. Reutlingen (nur ca. 06:00-10:00 und 16:00 - 18:00 Uhr)  - Stuttgart Hbf (Pariser Platz).</div>"
+      }
+     ]
+    },
+    {
+     "timestamps": {
+      "creation": "2026-10-01T12:05:00Z"
+     },
+     "priority": "veryHigh",
+     "id": "VVS-ems-28176",
+     "version": 1,
+     "type": "lineInfo",
+     "properties": {
+      "publisher": "ems.comm.addinfo",
+      "infoType": "lineInfo",
+      "sourceSystemID": "live_efa_config"
+     },
+     "infoLinks": [
+      {
+       "urlText": "Heilbronn: Fahrplanänderungen wegen Bauarbeiten",
+       "url": "http://nohost",
+       "content": "<div>Wegen Bahnsteigarbeiten in Walheim steht nur ein Gleis zur Verfügung. Daher können vom 10. Oktober 04:00 Uhr bis 30. November 2026 ca. 08:00 Uhr die Züge der Linien MEX12 und MEX18 nur einmal stündlich zwischen Heilbronn und Bietigheim fahren. In der Regel entallen die MEX12-Züge. In den Abendstunden kommt es wegen weiterer Bauarbeiten zudem zu Ausfällen des MEX18 im Abschnitt Heilbronn - Osterburken. Es fahren zwischen Heilbronn und Bietigheim einzelne Ersatzbusse.</div>\n<div> </div>\n<div>Bitte prüfen Sie vorab Ihre Verbindungen.</div>",
+       "subtitle": "Heilbronn: Fahrplanänderungen wegen Bauarbeiten",
+       "htmlText": "<div>Wegen Bahnsteigarbeiten in Walheim steht nur ein Gleis zur Verfügung. Daher können vom 10. Oktober 04:00 Uhr bis 30. November 2026 ca. 08:00 Uhr die Züge der Linien MEX12 und MEX18 nur einmal stündlich zwischen Heilbronn und Bietigheim fahren. In der Regel entallen die MEX12-Züge. In den Abendstunden kommt es wegen weiterer Bauarbeiten zudem zu Ausfällen des MEX18 im Abschnitt Heilbronn - Osterburken. Es fahren zwischen Heilbronn und Bietigheim einzelne Ersatzbusse.</div>\n<div> </div>\n<div>Bitte prüfen Sie vorab Ihre Verbindungen.</div>"
+      }
+     ]
+    }
+   ],
+   "hints": [
+    {
+     "content": "Fahrradmitnahme begrenzt möglich",
+     "providerCode": "FK",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte",
+     "providerCode": "ZM",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    },
+    {
+     "content": "WLAN verfügbar",
+     "providerCode": "WV",
+     "type": "Timetable",
+     "properties": {
+      "subnet": "ddb"
+     }
+    }
+   ],
+   "properties": {}
+  }
+ ]
+}

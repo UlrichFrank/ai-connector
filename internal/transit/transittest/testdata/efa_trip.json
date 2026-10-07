@@ -1,0 +1,4900 @@
+{
+ "serverInfo": {
+  "controllerVersion": "10.6.33.33",
+  "serverID": "bw-ww33",
+  "virtDir": "naldo",
+  "serverTime": "2026-10-04T07:07:01",
+  "calcTime": 661.251
+ },
+ "version": "11.0.6.72",
+ "systemMessages": [
+  {
+   "type": "warning",
+   "module": "BROKER",
+   "code": -10015,
+   "text": "itp",
+   "subType": "itp-monomodal"
+  }
+ ],
+ "journeys": [
+  {
+   "rating": 0,
+   "isAdditional": false,
+   "interchanges": 1,
+   "legs": [
+    {
+     "duration": 1560,
+     "distance": 10816,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:1006:1:4",
+      "name": "Mössingen Bahnhof",
+      "disassembledName": "Bstg. 4",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.403665,
+       9.046412
+      ],
+      "niveau": 1,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:1006",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416025:5",
+        "name": "Mössingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8001006"
+       },
+       "coord": [
+        48.40413,
+        9.046394
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       0,
+       5,
+       6,
+       10,
+       13
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T04:44:00Z",
+      "departureTimePlanned": "2026-10-05T04:44:00Z",
+      "departureTimeEstimated": "2026-10-05T04:44:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "1",
+       "stoppingPointPlanned": "Bstg. 4",
+       "areaGid": "de:08416:1006:1",
+       "area": "1",
+       "platform": "4",
+       "platformName": "Bstg. 4",
+       "plannedPlatformName": "Bstg. 4"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08416:4410:0:2",
+      "name": "Gomaringen ZOB",
+      "disassembledName": "Bstg. 2",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.455583,
+       9.09608
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:4410",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "ZOB",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416015:1",
+        "name": "Gomaringen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8004410"
+       },
+       "coord": [
+        48.455529,
+        9.096107
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       6,
+       10
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T05:10:00Z",
+      "arrivalTimePlanned": "2026-10-05T05:10:00Z",
+      "arrivalTimeEstimated": "2026-10-05T05:10:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. 2",
+       "areaGid": "de:08416:4410",
+       "area": "0",
+       "platform": "2",
+       "platformName": "Bstg. 2",
+       "plannedPlatformName": "Bstg. 2"
+      }
+     },
+     "transportation": {
+      "id": "tub:80615: :R:j26",
+      "name": "Buslinie 7615",
+      "disassembledName": "7615",
+      "number": "7615",
+      "description": "Mössingen - Nehren - Gomaringen",
+      "product": {
+       "id": 1,
+       "class": 6,
+       "name": "Buslinie",
+       "iconId": 3
+      },
+      "operator": {
+       "code": "SWEGTÜ",
+       "id": "80",
+       "name": "SWEG Bus Tübingen GmbH"
+      },
+      "destination": {
+       "id": "8004410",
+       "name": "Gomaringen ZOB",
+       "type": "stop"
+      },
+      "properties": {
+       "tripCode": 3,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:naldo:4dd2eeee4cc14ef1970d05aadbff8a50:",
+       "OperatorURL": "www.sweg.de"
+      }
+     },
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:1006:1:4",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "Bstg. 4",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.403665,
+        9.046412
+       ],
+       "niveau": 1,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:1006",
+        "name": "Mössingen Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8001006"
+        },
+        "coord": [
+         48.40413,
+         9.046394
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        5,
+        6,
+        10,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "1",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 4",
+        "areaGid": "de:08416:1006:1",
+        "area": "1",
+        "platform": "4",
+        "platformName": "Bstg. 4",
+        "plannedPlatformName": "Bstg. 4",
+        "zone": "bod:;tub:13"
+       },
+       "departureTimePlanned": "2026-10-05T04:44:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4455:0:2",
+       "name": "Mössingen Jakob-Stotz-Platz",
+       "disassembledName": "Jakob-Stotz-Platz",
+       "type": "platform",
+       "coord": [
+        48.404762,
+        9.052817
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4455",
+        "name": "Mössingen Jakob-Stotz-Platz",
+        "disassembledName": "Jakob-Stotz-Platz",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004455"
+        },
+        "coord": [
+         48.404798,
+         9.053114
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4455",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:46:00Z",
+       "departureTimePlanned": "2026-10-05T04:46:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4503:0:2",
+       "name": "Mössingen Stadtmitte",
+       "disassembledName": "Stadtmitte",
+       "type": "platform",
+       "coord": [
+        48.405919,
+        9.056285
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4503",
+        "name": "Mössingen Stadtmitte",
+        "disassembledName": "Stadtmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004503"
+        },
+        "coord": [
+         48.405973,
+         9.05633
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4503",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:47:00Z",
+       "departureTimePlanned": "2026-10-05T04:47:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4502:0:2",
+       "name": "Mössingen Hafnergasse",
+       "disassembledName": "Hafnergasse",
+       "type": "platform",
+       "coord": [
+        48.405365,
+        9.058746
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4502",
+        "name": "Mössingen Hafnergasse",
+        "disassembledName": "Hafnergasse",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004502"
+        },
+        "coord": [
+         48.405442,
+         9.058584
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4502",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:48:00Z",
+       "departureTimePlanned": "2026-10-05T04:48:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4501:0:2",
+       "name": "Mössingen Melanchthonstr.",
+       "disassembledName": "Melanchthonstr.",
+       "type": "platform",
+       "coord": [
+        48.404804,
+        9.064621
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4501",
+        "name": "Mössingen Melanchthonstr.",
+        "disassembledName": "Melanchthonstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004501"
+        },
+        "coord": [
+         48.40484,
+         9.064486
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4501",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:49:00Z",
+       "departureTimePlanned": "2026-10-05T04:49:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4500:0:1",
+       "name": "Mössingen Aiblestr.",
+       "disassembledName": "Aiblestr.",
+       "type": "platform",
+       "coord": [
+        48.407285,
+        9.06684
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4500",
+        "name": "Mössingen Aiblestr.",
+        "disassembledName": "Aiblestr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004500"
+        },
+        "coord": [
+         48.407339,
+         9.066849
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4500",
+        "area": "0",
+        "platform": "1",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:50:00Z",
+       "departureTimePlanned": "2026-10-05T04:50:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4505:0:2",
+       "name": "Mössingen Steinbeisstr.",
+       "disassembledName": "Steinbeisstr.",
+       "type": "platform",
+       "coord": [
+        48.410088,
+        9.068475
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4505",
+        "name": "Mössingen Steinbeisstr.",
+        "disassembledName": "Steinbeisstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004505"
+        },
+        "coord": [
+         48.410225,
+         9.068439
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4505",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:51:00Z",
+       "departureTimePlanned": "2026-10-05T04:51:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4488:0:F",
+       "name": "Mössingen Freibad",
+       "disassembledName": "Freibad",
+       "type": "platform",
+       "coord": [
+        48.413296,
+        9.068403
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4488",
+        "name": "Mössingen Freibad",
+        "disassembledName": "Freibad",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004488"
+        },
+        "coord": [
+         48.413272,
+         9.06834
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Freibad",
+        "areaGid": "de:08416:4488",
+        "area": "0",
+        "platform": "F",
+        "platformName": "Freibad",
+        "plannedPlatformName": "Freibad",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:53:00Z",
+       "departureTimePlanned": "2026-10-05T04:53:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2103:1:2",
+       "name": "Nehren Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "platform",
+       "coord": [
+        48.424051,
+        9.066202
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2103",
+        "name": "Nehren Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002103"
+        },
+        "coord": [
+         48.423991,
+         9.06693
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        6,
+        10,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2103:1",
+        "area": "1",
+        "platform": "2",
+        "zone": "bod:;tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:55:00Z",
+       "departureTimePlanned": "2026-10-05T04:56:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2133:0:2",
+       "name": "Nehren F.A.-Köhler-Straße",
+       "disassembledName": "F.A.-Köhler-Straße",
+       "type": "platform",
+       "coord": [
+        48.42507,
+        9.063148
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2133",
+        "name": "Nehren F.A.-Köhler-Straße",
+        "disassembledName": "F.A.-Köhler-Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002133"
+        },
+        "coord": [
+         48.42544,
+         9.062636
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2133",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:58:00Z",
+       "departureTimePlanned": "2026-10-05T04:58:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2132:0:2",
+       "name": "Nehren Schillerstraße",
+       "disassembledName": "Schillerstraße",
+       "type": "platform",
+       "coord": [
+        48.428337,
+        9.060435
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2132",
+        "name": "Nehren Schillerstraße",
+        "disassembledName": "Schillerstraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002132"
+        },
+        "coord": [
+         48.427944,
+         9.060812
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2132",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T04:59:00Z",
+       "departureTimePlanned": "2026-10-05T04:59:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2131:0:2",
+       "name": "Nehren Pflegewohnhaus",
+       "disassembledName": "Pflegewohnhaus",
+       "type": "platform",
+       "coord": [
+        48.431037,
+        9.063893
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2131",
+        "name": "Nehren Pflegewohnhaus",
+        "disassembledName": "Pflegewohnhaus",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002131"
+        },
+        "coord": [
+         48.430948,
+         9.06357
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2131",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:00:00Z",
+       "departureTimePlanned": "2026-10-05T05:00:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4452:0:2",
+       "name": "Nehren Ortsmitte",
+       "disassembledName": "Ortsmitte",
+       "type": "platform",
+       "coord": [
+        48.431758,
+        9.069167
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4452",
+        "name": "Nehren Ortsmitte",
+        "disassembledName": "Ortsmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004452"
+        },
+        "coord": [
+         48.431735,
+         9.06922
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4452",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:01:00Z",
+       "departureTimePlanned": "2026-10-05T05:01:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2130:0:2",
+       "name": "Nehren Tübinger Straße",
+       "disassembledName": "Tübinger Straße",
+       "type": "platform",
+       "coord": [
+        48.433368,
+        9.072427
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2130",
+        "name": "Nehren Tübinger Straße",
+        "disassembledName": "Tübinger Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002130"
+        },
+        "coord": [
+         48.433243,
+         9.072427
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2130",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:02:00Z",
+       "departureTimePlanned": "2026-10-05T05:02:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4432:0:2",
+       "name": "Nehren Dußlinger Str.",
+       "disassembledName": "Dußlinger Straße",
+       "type": "platform",
+       "coord": [
+        48.434882,
+        9.070649
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4432",
+        "name": "Nehren Dußlinger Str.",
+        "disassembledName": "Dußlinger Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004432"
+        },
+        "coord": [
+         48.434798,
+         9.070388
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4432",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:03:00Z",
+       "departureTimePlanned": "2026-10-05T05:03:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4410:0:2",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "Bstg. 2",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.455583,
+        9.09608
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4410",
+        "name": "Gomaringen ZOB",
+        "disassembledName": "ZOB",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004410"
+        },
+        "coord": [
+         48.455529,
+         9.096107
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 2",
+        "areaGid": "de:08416:4410",
+        "area": "0",
+        "platform": "2",
+        "platformName": "Bstg. 2",
+        "plannedPlatformName": "Bstg. 2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:10:00Z"
+      }
+     ],
+     "footPathInfo": [
+      {
+       "position": "AFTER",
+       "duration": 120
+      }
+     ],
+     "infos": [],
+     "properties": {}
+    },
+    {
+     "duration": 1320,
+     "distance": 11972,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:4410:0:3",
+      "name": "Gomaringen ZOB",
+      "disassembledName": "Bstg. 3",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.455499,
+       9.096107
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:4410",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "ZOB",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416015:1",
+        "name": "Gomaringen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8004410"
+       },
+       "coord": [
+        48.455529,
+        9.096107
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       6,
+       10
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T05:14:00Z",
+      "departureTimePlanned": "2026-10-05T05:14:00Z",
+      "departureTimeEstimated": "2026-10-05T05:14:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. 3",
+       "areaGid": "de:08416:4410",
+       "area": "0",
+       "platform": "3",
+       "platformName": "Bstg. 3",
+       "plannedPlatformName": "Bstg. 3"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08415:29333:2:C",
+      "name": "Reutlingen Stadtmitte",
+      "disassembledName": "Bstg. C",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.492727,
+       9.207974
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08415:29333",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Stadtmitte",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8415061:19",
+        "name": "Reutlingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8029333"
+       },
+       "coord": [
+        48.492483,
+        9.207453
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       5,
+       6
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T05:36:00Z",
+      "arrivalTimePlanned": "2026-10-05T05:36:00Z",
+      "arrivalTimeEstimated": "2026-10-05T05:36:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. C",
+       "areaGid": "de:08415:29333:2",
+       "area": "2",
+       "platform": "C",
+       "platformName": "Bstg. C",
+       "plannedPlatformName": "Bstg. C"
+      }
+     },
+     "transportation": {
+      "id": "tub:80111: :R:j26",
+      "name": "Buslinie 111",
+      "disassembledName": "111",
+      "number": "111",
+      "description": "Reutlingen - Gomaringen",
+      "product": {
+       "id": 1,
+       "class": 6,
+       "name": "Buslinie",
+       "iconId": 3
+      },
+      "operator": {
+       "code": "SWEGTÜ",
+       "id": "80",
+       "name": "SWEG Bus Tübingen GmbH"
+      },
+      "destination": {
+       "id": "8022006",
+       "name": "Reutlingen Hauptbahnhof",
+       "type": "stop"
+      },
+      "properties": {
+       "tripCode": 3,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:naldo:67b2426df0554e45b6badfecc7187abf:",
+       "OperatorURL": "www.sweg.de"
+      }
+     },
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4410:0:3",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "Bstg. 3",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.455499,
+        9.096107
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4410",
+        "name": "Gomaringen ZOB",
+        "disassembledName": "ZOB",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004410"
+        },
+        "coord": [
+         48.455529,
+         9.096107
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 3",
+        "areaGid": "de:08416:4410",
+        "area": "0",
+        "platform": "3",
+        "platformName": "Bstg. 3",
+        "plannedPlatformName": "Bstg. 3",
+        "zone": "tub:14"
+       },
+       "departureTimePlanned": "2026-10-05T05:14:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4409:0:2",
+       "name": "Gomaringen Ziegelgrubenstr.",
+       "disassembledName": "Ziegelgrubenstraße",
+       "type": "platform",
+       "coord": [
+        48.459419,
+        9.094751
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4409",
+        "name": "Gomaringen Ziegelgrubenstr.",
+        "disassembledName": "Ziegelgrubenstraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004409"
+        },
+        "coord": [
+         48.459413,
+         9.094831
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4409",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:15:00Z",
+       "departureTimePlanned": "2026-10-05T05:15:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4416:0:0",
+       "name": "Gomaringen Engelhagstr.",
+       "disassembledName": "Engelhagstr.",
+       "type": "platform",
+       "coord": [
+        48.462308,
+        9.092972
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4416",
+        "name": "Gomaringen Engelhagstr.",
+        "disassembledName": "Engelhagstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004416"
+        },
+        "coord": [
+         48.462213,
+         9.093017
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4416",
+        "area": "0",
+        "platform": "0",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:16:00Z",
+       "departureTimePlanned": "2026-10-05T05:16:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4417:0:2",
+       "name": "Gomaringen Liststr.",
+       "disassembledName": "Liststr.",
+       "type": "platform",
+       "coord": [
+        48.463988,
+        9.10023
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4417",
+        "name": "Gomaringen Liststr.",
+        "disassembledName": "Liststr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004417"
+        },
+        "coord": [
+         48.464149,
+         9.100033
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4417",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:17:00Z",
+       "departureTimePlanned": "2026-10-05T05:17:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4418:0:1",
+       "name": "Gomaringen Raiffeisenstr.",
+       "disassembledName": "Raiffeisenstr.",
+       "type": "platform",
+       "coord": [
+        48.462255,
+        9.104713
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4418",
+        "name": "Gomaringen Raiffeisenstr.",
+        "disassembledName": "Raiffeisenstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004418"
+        },
+        "coord": [
+         48.462213,
+         9.104794
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4418",
+        "area": "0",
+        "platform": "1",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:18:00Z",
+       "departureTimePlanned": "2026-10-05T05:18:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24422:0:2",
+       "name": "Ohmenhausen Hohe Straße",
+       "disassembledName": "Hohe Straße",
+       "type": "platform",
+       "coord": [
+        48.475471,
+        9.132516
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24422",
+        "name": "Ohmenhausen Hohe Straße",
+        "disassembledName": "Hohe Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:16",
+         "name": "Ohmenhausen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024422"
+        },
+        "coord": [
+         48.475555,
+         9.132525
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24422",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:22:00Z",
+       "departureTimePlanned": "2026-10-05T05:22:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29220:0:2",
+       "name": "Ohmenhausen Neue Straße",
+       "disassembledName": "Neue Straße",
+       "type": "platform",
+       "coord": [
+        48.480277,
+        9.139532
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29220",
+        "name": "Ohmenhausen Neue Straße",
+        "disassembledName": "Neue Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:16",
+         "name": "Ohmenhausen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029220"
+        },
+        "coord": [
+         48.480223,
+         9.139478
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29220",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:23:00Z",
+       "departureTimePlanned": "2026-10-05T05:23:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29210:0:2",
+       "name": "Betzingen Adolf-Kolping-Str.",
+       "disassembledName": "Adolf-Kolping-Str.",
+       "type": "platform",
+       "coord": [
+        48.487464,
+        9.153231
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29210",
+        "name": "Betzingen Adolf-Kolping-Str.",
+        "disassembledName": "Adolf-Kolping-Str.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:4",
+         "name": "Betzingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029210"
+        },
+        "coord": [
+         48.487571,
+         9.153294
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29210",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:24:00Z",
+       "departureTimePlanned": "2026-10-05T05:24:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29205:0:2",
+       "name": "Betzingen Markwiesenstr.",
+       "disassembledName": "Markwiesenstr.",
+       "type": "platform",
+       "coord": [
+        48.491685,
+        9.160355
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29205",
+        "name": "Betzingen Markwiesenstr.",
+        "disassembledName": "Markwiesenstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:4",
+         "name": "Betzingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029205"
+        },
+        "coord": [
+         48.491792,
+         9.160453
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29205",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:25:00Z",
+       "departureTimePlanned": "2026-10-05T05:25:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29110:0:2",
+       "name": "Reutlingen Festplatz",
+       "disassembledName": "Festplatz",
+       "type": "platform",
+       "coord": [
+        48.494906,
+        9.194733
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29110",
+        "name": "Reutlingen Festplatz",
+        "disassembledName": "Festplatz",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029110"
+        },
+        "coord": [
+         48.494941,
+         9.194652
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29110",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:30:00Z",
+       "departureTimePlanned": "2026-10-05T05:30:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:22005:1:2",
+       "name": "Reutlingen Westbahnhof",
+       "disassembledName": "Westbahnhof",
+       "type": "platform",
+       "coord": [
+        48.492953,
+        9.201785
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:22005",
+        "name": "Reutlingen Westbahnhof",
+        "disassembledName": "Westbahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8022005"
+        },
+        "coord": [
+         48.492679,
+         9.201551
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:22005:1",
+        "area": "1",
+        "platform": "2",
+        "zone": "kvv:;tub:220;vvs:"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:31:00Z",
+       "departureTimePlanned": "2026-10-05T05:31:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29333:2:C",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Bstg. C",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.492727,
+        9.207974
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29333",
+        "name": "Reutlingen Stadtmitte",
+        "disassembledName": "Stadtmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029333"
+        },
+        "coord": [
+         48.492483,
+         9.207453
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. C",
+        "areaGid": "de:08415:29333:2",
+        "area": "2",
+        "platform": "C",
+        "platformName": "Bstg. C",
+        "plannedPlatformName": "Bstg. C",
+        "zone": "tub:220;vvs:"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:36:00Z"
+      }
+     ],
+     "infos": [],
+     "properties": {}
+    }
+   ],
+   "daysOfService": {
+    "rvb": "1CF9F0000000000039F3E000007CF9F327CF9F3E000007CF"
+   }
+  },
+  {
+   "rating": 0,
+   "isAdditional": false,
+   "interchanges": 0,
+   "legs": [
+    {
+     "duration": 2400,
+     "distance": 21512,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:1006:1:5",
+      "name": "Mössingen Bahnhof",
+      "disassembledName": "Bstg. 5",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.403534,
+       9.046331
+      ],
+      "niveau": 1,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:1006",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416025:5",
+        "name": "Mössingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8001006"
+       },
+       "coord": [
+        48.40413,
+        9.046394
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       0,
+       5,
+       6,
+       10,
+       13
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T05:12:00Z",
+      "departureTimePlanned": "2026-10-05T05:12:00Z",
+      "departureTimeEstimated": "2026-10-05T05:12:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "1",
+       "stoppingPointPlanned": "Bstg. 5",
+       "areaGid": "de:08416:1006:1",
+       "area": "1",
+       "platform": "5",
+       "platformName": "Bstg. 5",
+       "plannedPlatformName": "Bstg. 5"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08415:29333:1:A",
+      "name": "Reutlingen Stadtmitte",
+      "disassembledName": "Bstg. A",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.493185,
+       9.207687
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08415:29333",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Stadtmitte",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8415061:19",
+        "name": "Reutlingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8029333"
+       },
+       "coord": [
+        48.492483,
+        9.207453
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       5,
+       6
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T05:52:00Z",
+      "arrivalTimePlanned": "2026-10-05T05:52:00Z",
+      "arrivalTimeEstimated": "2026-10-05T05:52:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. A",
+       "areaGid": "de:08415:29333:1",
+       "area": "1",
+       "platform": "A",
+       "platformName": "Bstg. A",
+       "plannedPlatformName": "Bstg. A"
+      }
+     },
+     "transportation": {
+      "id": "tub:07005: :R:j26",
+      "name": "Stadtverkehr Reutlingen 5",
+      "disassembledName": "5",
+      "number": "5",
+      "description": "Mössingen - Gönningen - Reutlingen Hbf/U.d. Linden",
+      "product": {
+       "id": 11,
+       "class": 5,
+       "name": "Stadtverkehr Reutlingen",
+       "iconId": 3
+      },
+      "operator": {
+       "code": "RSV",
+       "id": "07",
+       "name": "RSV"
+      },
+      "destination": {
+       "id": "8022006",
+       "name": "Reutlingen Hauptbahnhof",
+       "type": "stop"
+      },
+      "properties": {
+       "tripCode": 226,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:naldo:2970f8c322934616a8576ec7a4b842ef:",
+       "OperatorURL": "www.reutlinger-stadtverkehr.de"
+      }
+     },
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:1006:1:5",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "Bstg. 5",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.403534,
+        9.046331
+       ],
+       "niveau": 1,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:1006",
+        "name": "Mössingen Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8001006"
+        },
+        "coord": [
+         48.40413,
+         9.046394
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        5,
+        6,
+        10,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "1",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 5",
+        "areaGid": "de:08416:1006:1",
+        "area": "1",
+        "platform": "5",
+        "platformName": "Bstg. 5",
+        "plannedPlatformName": "Bstg. 5",
+        "zone": "bod:;tub:13"
+       },
+       "departureTimePlanned": "2026-10-05T05:12:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4455:0:2",
+       "name": "Mössingen Jakob-Stotz-Platz",
+       "disassembledName": "Jakob-Stotz-Platz",
+       "type": "platform",
+       "coord": [
+        48.404762,
+        9.052817
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4455",
+        "name": "Mössingen Jakob-Stotz-Platz",
+        "disassembledName": "Jakob-Stotz-Platz",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004455"
+        },
+        "coord": [
+         48.404798,
+         9.053114
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4455",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:14:00Z",
+       "departureTimePlanned": "2026-10-05T05:14:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4503:0:2",
+       "name": "Mössingen Stadtmitte",
+       "disassembledName": "Stadtmitte",
+       "type": "platform",
+       "coord": [
+        48.405919,
+        9.056285
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4503",
+        "name": "Mössingen Stadtmitte",
+        "disassembledName": "Stadtmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004503"
+        },
+        "coord": [
+         48.405973,
+         9.05633
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4503",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:15:00Z",
+       "departureTimePlanned": "2026-10-05T05:15:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4491:0:2",
+       "name": "Mössingen Kugelbeer",
+       "disassembledName": "Kugelbeer",
+       "type": "platform",
+       "coord": [
+        48.406987,
+        9.060588
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4491",
+        "name": "Mössingen Kugelbeer",
+        "disassembledName": "Kugelbeer",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004491"
+        },
+        "coord": [
+         48.406969,
+         9.060534
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4491",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:16:00Z",
+       "departureTimePlanned": "2026-10-05T05:16:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4479:0:2",
+       "name": "Mössingen Altes Rathaus",
+       "disassembledName": "Altes Rathaus",
+       "type": "platform",
+       "coord": [
+        48.408209,
+        9.062654
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4479",
+        "name": "Mössingen Altes Rathaus",
+        "disassembledName": "Altes Rathaus",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004479"
+        },
+        "coord": [
+         48.408024,
+         9.062528
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4479",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:17:00Z",
+       "departureTimePlanned": "2026-10-05T05:17:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4478:0:2",
+       "name": "Mössingen Firstwaldstraße",
+       "disassembledName": "Firstwaldstraße",
+       "type": "platform",
+       "coord": [
+        48.409253,
+        9.06931
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4478",
+        "name": "Mössingen Firstwaldstraße",
+        "disassembledName": "Firstwaldstraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004478"
+        },
+        "coord": [
+         48.409289,
+         9.069391
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4478",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:18:00Z",
+       "departureTimePlanned": "2026-10-05T05:18:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4490:0:2",
+       "name": "Öschingen Mühlberg",
+       "disassembledName": "Mühlberg",
+       "type": "platform",
+       "coord": [
+        48.414512,
+        9.10447
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4490",
+        "name": "Öschingen Mühlberg",
+        "disassembledName": "Mühlberg",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:7",
+         "name": "Öschingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004490"
+        },
+        "coord": [
+         48.414446,
+         9.104659
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4490",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:22:00Z",
+       "departureTimePlanned": "2026-10-05T05:22:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4475:0:2",
+       "name": "Öschingen Lamm",
+       "disassembledName": "Lamm",
+       "type": "platform",
+       "coord": [
+        48.415567,
+        9.108091
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4475",
+        "name": "Öschingen Lamm",
+        "disassembledName": "Lamm",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:7",
+         "name": "Öschingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004475"
+        },
+        "coord": [
+         48.415698,
+         9.108252
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4475",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:23:00Z",
+       "departureTimePlanned": "2026-10-05T05:23:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4497:0:O",
+       "name": "Öschingen Reutlinger Str.",
+       "disassembledName": "Reutlinger Str.",
+       "type": "platform",
+       "coord": [
+        48.417779,
+        9.110714
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4497",
+        "name": "Öschingen Reutlinger Str.",
+        "disassembledName": "Reutlinger Str.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:7",
+         "name": "Öschingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004497"
+        },
+        "coord": [
+         48.417672,
+         9.110759
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4497",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:13"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:25:00Z",
+       "departureTimePlanned": "2026-10-05T05:25:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24419:0:2",
+       "name": "Gönningen Seidelbaststraße",
+       "disassembledName": "Seidelbaststraße",
+       "type": "platform",
+       "coord": [
+        48.435478,
+        9.14449
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24419",
+        "name": "Gönningen Seidelbaststraße",
+        "disassembledName": "Seidelbaststraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:11",
+         "name": "Gönningen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024419"
+        },
+        "coord": [
+         48.435448,
+         9.144652
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24419",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:29:00Z",
+       "departureTimePlanned": "2026-10-05T05:29:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29217:0:1",
+       "name": "Gönningen Roßbergschule",
+       "disassembledName": "Roßbergschule",
+       "type": "platform",
+       "coord": [
+        48.431001,
+        9.149341
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29217",
+        "name": "Gönningen Roßbergschule",
+        "disassembledName": "Roßbergschule",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:11",
+         "name": "Gönningen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029217"
+        },
+        "coord": [
+         48.431055,
+         9.149296
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29217",
+        "area": "0",
+        "platform": "1",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:31:00Z",
+       "departureTimePlanned": "2026-10-05T05:31:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24420:0:2",
+       "name": "Gönningen Tulpenplatz",
+       "disassembledName": "Tulpenplatz",
+       "type": "platform",
+       "coord": [
+        48.432331,
+        9.151506
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24420",
+        "name": "Gönningen Tulpenplatz",
+        "disassembledName": "Tulpenplatz",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:11",
+         "name": "Gönningen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024420"
+        },
+        "coord": [
+         48.432241,
+         9.15147
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24420",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:33:00Z",
+       "departureTimePlanned": "2026-10-05T05:33:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29216:0:2",
+       "name": "Gönningen Post",
+       "disassembledName": "Post",
+       "type": "platform",
+       "coord": [
+        48.433743,
+        9.148955
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29216",
+        "name": "Gönningen Post",
+        "disassembledName": "Post",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:11",
+         "name": "Gönningen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029216"
+        },
+        "coord": [
+         48.433779,
+         9.148919
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29216",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:34:00Z",
+       "departureTimePlanned": "2026-10-05T05:34:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29215:0:2",
+       "name": "Gönningen Lindenwiesen",
+       "disassembledName": "Lindenwiesen",
+       "type": "platform",
+       "coord": [
+        48.437516,
+        9.146538
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29215",
+        "name": "Gönningen Lindenwiesen",
+        "disassembledName": "Lindenwiesen",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:11",
+         "name": "Gönningen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029215"
+        },
+        "coord": [
+         48.437361,
+         9.146431
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29215",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:35:00Z",
+       "departureTimePlanned": "2026-10-05T05:35:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29211:0:2",
+       "name": "Bronnweiler Raitweg",
+       "disassembledName": "Raitweg",
+       "type": "platform",
+       "coord": [
+        48.446479,
+        9.140789
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29211",
+        "name": "Bronnweiler Raitweg",
+        "disassembledName": "Raitweg",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:5",
+         "name": "Bronnweiler",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029211"
+        },
+        "coord": [
+         48.446306,
+         9.140583
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29211",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:36:00Z",
+       "departureTimePlanned": "2026-10-05T05:36:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24421:0:2",
+       "name": "Bronnweiler Mitte",
+       "disassembledName": "Mitte",
+       "type": "platform",
+       "coord": [
+        48.449321,
+        9.139541
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24421",
+        "name": "Bronnweiler Mitte",
+        "disassembledName": "Mitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:5",
+         "name": "Bronnweiler",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024421"
+        },
+        "coord": [
+         48.449368,
+         9.13928
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24421",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:37:00Z",
+       "departureTimePlanned": "2026-10-05T05:37:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29135:0:2",
+       "name": "Reutlingen Käpfle",
+       "disassembledName": "Käpfle",
+       "type": "platform",
+       "coord": [
+        48.455892,
+        9.149817
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29135",
+        "name": "Reutlingen Käpfle",
+        "disassembledName": "Käpfle",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029135"
+        },
+        "coord": [
+         48.455982,
+         9.149862
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29135",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:40:00Z",
+       "departureTimePlanned": "2026-10-05T05:40:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29129:0:2",
+       "name": "Reutlingen Hofgut Alteburg",
+       "disassembledName": "Hofgut Alteburg",
+       "type": "platform",
+       "coord": [
+        48.462165,
+        9.153761
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29129",
+        "name": "Reutlingen Hofgut Alteburg",
+        "disassembledName": "Hofgut Alteburg",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029129"
+        },
+        "coord": [
+         48.46229,
+         9.153734
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29129",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:41:00Z",
+       "departureTimePlanned": "2026-10-05T05:41:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29161:0:2",
+       "name": "Reutlingen Roßwasen",
+       "disassembledName": "Roßwasen",
+       "type": "platform",
+       "coord": [
+        48.47618,
+        9.181851
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29161",
+        "name": "Reutlingen Roßwasen",
+        "disassembledName": "Roßwasen",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029161"
+        },
+        "coord": [
+         48.476269,
+         9.181932
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29161",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:44:00Z",
+       "departureTimePlanned": "2026-10-05T05:44:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24013:0:2",
+       "name": "Reutlingen Kreuzeiche",
+       "disassembledName": "Kreuzeiche",
+       "type": "platform",
+       "coord": [
+        48.480223,
+        9.195425
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24013",
+        "name": "Reutlingen Kreuzeiche",
+        "disassembledName": "Kreuzeiche",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024013"
+        },
+        "coord": [
+         48.480241,
+         9.195515
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24013",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:46:00Z",
+       "departureTimePlanned": "2026-10-05T05:46:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29155:0:2",
+       "name": "Reutlingen Peter-Rosegger-Str.",
+       "disassembledName": "Peter-Rosegger-Str.",
+       "type": "platform",
+       "coord": [
+        48.482409,
+        9.19953
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29155",
+        "name": "Reutlingen Peter-Rosegger-Str.",
+        "disassembledName": "Peter-Rosegger-Str.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029155"
+        },
+        "coord": [
+         48.482546,
+         9.199692
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29155",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:47:00Z",
+       "departureTimePlanned": "2026-10-05T05:47:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29102:0:2",
+       "name": "Reutlingen Alteburgstr.",
+       "disassembledName": "Alteburgstr.",
+       "type": "platform",
+       "coord": [
+        48.484046,
+        9.202701
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29102",
+        "name": "Reutlingen Alteburgstr.",
+        "disassembledName": "Alteburgstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029102"
+        },
+        "coord": [
+         48.4841,
+         9.202737
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29102",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:48:00Z",
+       "departureTimePlanned": "2026-10-05T05:48:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29172:0:2",
+       "name": "Reutlingen Volkspark/Pomologie",
+       "disassembledName": "Volkspark/Pomologie",
+       "type": "platform",
+       "coord": [
+        48.487619,
+        9.206555
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29172",
+        "name": "Reutlingen Volkspark/Pomologie",
+        "disassembledName": "Volkspark/Pomologie",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029172"
+        },
+        "coord": [
+         48.487708,
+         9.206573
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29172",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:49:00Z",
+       "departureTimePlanned": "2026-10-05T05:49:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24507:0:2",
+       "name": "Reutlingen Stadthalle",
+       "disassembledName": "Stadthalle",
+       "type": "platform",
+       "coord": [
+        48.491584,
+        9.208307
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24507",
+        "name": "Reutlingen Stadthalle",
+        "disassembledName": "Stadthalle",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024507"
+        },
+        "coord": [
+         48.491536,
+         9.208172
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24507",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:51:00Z",
+       "departureTimePlanned": "2026-10-05T05:51:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29333:1:A",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Bstg. A",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.493185,
+        9.207687
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29333",
+        "name": "Reutlingen Stadtmitte",
+        "disassembledName": "Stadtmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029333"
+        },
+        "coord": [
+         48.492483,
+         9.207453
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. A",
+        "areaGid": "de:08415:29333:1",
+        "area": "1",
+        "platform": "A",
+        "platformName": "Bstg. A",
+        "plannedPlatformName": "Bstg. A",
+        "zone": "tub:220;vvs:"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:52:00Z"
+      }
+     ],
+     "infos": [],
+     "properties": {}
+    }
+   ],
+   "daysOfService": {
+    "rvb": "7CF9F0004F9F3E7C39F3E7CF3E7CF9F327CF9F3E000007CF"
+   }
+  },
+  {
+   "rating": 0,
+   "isAdditional": false,
+   "interchanges": 2,
+   "legs": [
+    {
+     "duration": 420,
+     "distance": 7909,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:1006:2:1",
+      "name": "Mössingen Bahnhof",
+      "disassembledName": "1",
+      "type": "platform",
+      "pointType": "TRACK",
+      "coord": [
+       48.40425,
+       9.046493
+      ],
+      "niveau": 1,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:1006",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416025:5",
+        "name": "Mössingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8001006"
+       },
+       "coord": [
+        48.40413,
+        9.046394
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       0,
+       5,
+       6,
+       10,
+       13
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T05:29:00Z",
+      "departureTimePlanned": "2026-10-05T05:29:00Z",
+      "departureTimeEstimated": "2026-10-05T05:29:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "1",
+       "stoppingPointPlanned": "1",
+       "occupancy": "STANDING_ONLY",
+       "areaGid": "de:08416:1006:2",
+       "area": "2",
+       "platform": "1",
+       "platformName": "1",
+       "plannedPlatformName": "1"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08416:2102:2:2",
+      "name": "Dußlingen Bahnhof",
+      "disassembledName": "2",
+      "type": "platform",
+      "pointType": "TRACK",
+      "coord": [
+       48.45227,
+       9.058629
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:2102",
+       "name": "Dußlingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416011:1",
+        "name": "Dußlingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8002102"
+       },
+       "coord": [
+        48.452193,
+        9.058638
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       0,
+       6,
+       13
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T05:36:00Z",
+      "arrivalTimePlanned": "2026-10-05T05:36:00Z",
+      "arrivalTimeEstimated": "2026-10-05T05:36:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "2",
+       "areaGid": "de:08416:2102:2",
+       "area": "2",
+       "platform": "2",
+       "platformName": "2",
+       "plannedPlatformName": "2"
+      }
+     },
+     "transportation": {
+      "id": "ddb:90T66: :R:j26",
+      "name": "R-Bahn RB 66",
+      "disassembledName": "RB66",
+      "number": "RB 66",
+      "product": {
+       "id": 8,
+       "class": 13,
+       "name": "R-Bahn",
+       "iconId": 6
+      },
+      "operator": {
+       "code": "SWE",
+       "id": "S6",
+       "name": "Südwestdeutsche Verkehrs-GmbH"
+      },
+      "destination": {
+       "id": "8002102",
+       "name": "Dußlingen Bahnhof",
+       "type": "stop"
+      },
+      "properties": {
+       "trainNumber": "86234",
+       "tripCode": 128,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:nvbw:90T66_:",
+       "OperatorURL": "https://www.sweg.de"
+      }
+     },
+     "hints": [
+      {
+       "content": "Barrierefreies Fahrzeug",
+       "providerCode": "RG",
+       "type": "Timetable",
+       "properties": {
+        "subnet": "ddb"
+       }
+      },
+      {
+       "content": "Einstiegshilfe - Bitte im ersten Fahrzeug einsteigen",
+       "providerCode": "EI",
+       "type": "Timetable",
+       "properties": {
+        "subnet": "ddb"
+       }
+      },
+      {
+       "content": "nur 2. Kl.",
+       "providerCode": "Y2",
+       "type": "Timetable",
+       "properties": {
+        "subnet": "ddb"
+       }
+      },
+      {
+       "content": "Fahrradmitnahme begrenzt möglich",
+       "providerCode": "FK",
+       "type": "Timetable",
+       "properties": {
+        "subnet": "ddb"
+       }
+      }
+     ],
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:1006:2:1",
+       "name": "Mössingen Bahnhof",
+       "disassembledName": "1",
+       "type": "platform",
+       "pointType": "TRACK",
+       "coord": [
+        48.40425,
+        9.046493
+       ],
+       "niveau": 1,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:1006",
+        "name": "Mössingen Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416025:5",
+         "name": "Mössingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8001006"
+        },
+        "coord": [
+         48.40413,
+         9.046394
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        5,
+        6,
+        10,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "1",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "1",
+        "occupancy": "STANDING_ONLY",
+        "areaGid": "de:08416:1006:2",
+        "area": "2",
+        "platform": "1",
+        "platformName": "1",
+        "plannedPlatformName": "1",
+        "zone": "bod:;tub:13"
+       },
+       "departureTimePlanned": "2026-10-05T05:29:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2103:2:1",
+       "name": "Nehren Bahnhof",
+       "disassembledName": "1",
+       "type": "platform",
+       "pointType": "TRACK",
+       "coord": [
+        48.424039,
+        9.067091
+       ],
+       "niveau": 1,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2103",
+        "name": "Nehren Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002103"
+        },
+        "coord": [
+         48.423991,
+         9.06693
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        6,
+        10,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "1",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "1",
+        "occupancy": "STANDING_ONLY",
+        "areaGid": "de:08416:2103:2",
+        "area": "2",
+        "platform": "1",
+        "platformName": "1",
+        "plannedPlatformName": "1",
+        "zone": "bod:;tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:31:00Z",
+       "departureTimePlanned": "2026-10-05T05:32:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2102:2:2",
+       "name": "Dußlingen Bahnhof",
+       "disassembledName": "2",
+       "type": "platform",
+       "pointType": "TRACK",
+       "coord": [
+        48.45227,
+        9.058629
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2102",
+        "name": "Dußlingen Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002102"
+        },
+        "coord": [
+         48.452193,
+         9.058638
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        6,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "2",
+        "areaGid": "de:08416:2102:2",
+        "area": "2",
+        "platform": "2",
+        "platformName": "2",
+        "plannedPlatformName": "2",
+        "zone": "bod:;tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:36:00Z"
+      }
+     ],
+     "footPathInfo": [
+      {
+       "position": "AFTER",
+       "duration": 360,
+       "footPathElem": [
+        {
+         "description": "",
+         "type": "RAMP",
+         "levelFrom": 0,
+         "levelTo": -1,
+         "level": "DOWN",
+         "origin": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.45227,
+           9.058629
+          ],
+          "properties": {
+           "area": "2",
+           "georef": "1580770500:55:MRCV:100",
+           "areaGid": "de:08416:2102:2",
+           "areaType": 81
+          }
+         },
+         "destination": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.452079,
+           9.058962
+          ],
+          "properties": {
+           "area": "71",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:71",
+           "areaType": 32
+          }
+         },
+         "attributes": {
+          "duration": 10,
+          "distance": 45,
+          "narrowestWidth": -1,
+          "elevLength": 0,
+          "elevWidth": 0,
+          "elevDoorWidth": 0,
+          "rampLength": 0,
+          "rampWidth": 0,
+          "rampInclination": 0,
+          "numberSteps": 0,
+          "maxStepHeight": 0
+         },
+         "openingHours": []
+        },
+        {
+         "description": "",
+         "type": "RAMP",
+         "levelFrom": -1,
+         "levelTo": -2,
+         "level": "DOWN",
+         "origin": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.452079,
+           9.058962
+          ],
+          "properties": {
+           "area": "71",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:71",
+           "areaType": 32
+          }
+         },
+         "destination": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.45177,
+           9.059114
+          ],
+          "properties": {
+           "area": "70",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:70",
+           "areaType": 4096
+          }
+         },
+         "attributes": {
+          "duration": 10,
+          "distance": 50,
+          "narrowestWidth": -1,
+          "elevLength": 0,
+          "elevWidth": 0,
+          "elevDoorWidth": 0,
+          "rampLength": 0,
+          "rampWidth": 0,
+          "rampInclination": 0,
+          "numberSteps": 0,
+          "maxStepHeight": 0
+         },
+         "openingHours": []
+        },
+        {
+         "description": "",
+         "type": "RAMP",
+         "levelFrom": -2,
+         "levelTo": -1,
+         "level": "UP",
+         "origin": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.45177,
+           9.059114
+          ],
+          "properties": {
+           "area": "70",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:70",
+           "areaType": 4096
+          }
+         },
+         "destination": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.451859,
+           9.058764
+          ],
+          "properties": {
+           "area": "73",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:73",
+           "areaType": 4096
+          }
+         },
+         "attributes": {
+          "duration": 3,
+          "distance": 30,
+          "narrowestWidth": -1,
+          "elevLength": 0,
+          "elevWidth": 0,
+          "elevDoorWidth": 0,
+          "rampLength": 0,
+          "rampWidth": 0,
+          "rampInclination": 0,
+          "numberSteps": 0,
+          "maxStepHeight": 0
+         },
+         "openingHours": []
+        },
+        {
+         "description": "",
+         "type": "RAMP",
+         "levelFrom": -1,
+         "levelTo": 0,
+         "level": "UP",
+         "origin": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.451859,
+           9.058764
+          ],
+          "properties": {
+           "area": "73",
+           "georef": "0:0::100",
+           "areaGid": "de:08416:2102:73",
+           "areaType": 4096
+          }
+         },
+         "destination": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.45177,
+           9.058584
+          ],
+          "properties": {
+           "area": "91",
+           "georef": "1556496781:0:MRCV:100",
+           "areaGid": "de:08416:2102:91",
+           "areaType": 32
+          }
+         },
+         "attributes": {
+          "duration": 2,
+          "distance": 20,
+          "narrowestWidth": -1,
+          "elevLength": 0,
+          "elevWidth": 0,
+          "elevDoorWidth": 0,
+          "rampLength": 0,
+          "rampWidth": 0,
+          "rampInclination": 0,
+          "numberSteps": 0,
+          "maxStepHeight": 0
+         },
+         "openingHours": []
+        },
+        {
+         "description": "",
+         "type": "LEVEL",
+         "levelFrom": 0,
+         "levelTo": 0,
+         "level": "LEVEL",
+         "origin": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.45177,
+           9.058584
+          ],
+          "properties": {
+           "area": "91",
+           "georef": "1556496781:0:MRCV:100",
+           "areaGid": "de:08416:2102:91",
+           "areaType": 32
+          }
+         },
+         "destination": {
+          "id": "de:08416:2102",
+          "isGlobalId": true,
+          "type": "stop",
+          "name": "Bahnhof",
+          "coord": [
+           48.452562,
+           9.057731
+          ],
+          "properties": {
+           "area": "4",
+           "georef": "1594061148:6:MRCV:100",
+           "areaGid": "de:08416:2102:4",
+           "areaType": 97
+          }
+         },
+         "attributes": {
+          "duration": 28,
+          "distance": 120,
+          "narrowestWidth": -1,
+          "elevLength": 0,
+          "elevWidth": 0,
+          "elevDoorWidth": 0,
+          "rampLength": 0,
+          "rampWidth": 0,
+          "rampInclination": 0,
+          "numberSteps": 0,
+          "maxStepHeight": 0
+         },
+         "openingHours": []
+        }
+       ]
+      }
+     ],
+     "footPathInfoRedundant": true,
+     "infos": [
+      {
+       "timestamps": {
+        "creation": "2026-10-01T08:05:00Z"
+       },
+       "priority": "high",
+       "id": "ems-1014590",
+       "version": 82983,
+       "type": "lineInfo",
+       "properties": {
+        "publisher": "ems.comm.addinfo",
+        "infoType": "lineInfo",
+        "sourceSystemID": "live_efa_config"
+       },
+       "infoLinks": [
+        {
+         "urlText": "Tübingen - Mössingen: Zugausfälle und Schienenersatzverkehr",
+         "url": "http://nohost",
+         "content": "<span style=\"color:#808080; font-size: 0.7em; display: block; align-items: flex-start;  height: 15px;\">\n[ Ereignis Tübingen, Hauptbahnhof ] </span>\n<div>Zwischen T&uuml;bingen und M&ouml;ssingen, sowie Du&szlig;lingen, kommt es von Montag, 05. Oktober 2026 bis Samstag, 10. Oktober 2026 zu Zugausf&auml;llen wegen einer Baustelle. Es wird ein Schienenersatzverkehr (SEV) eingerichtet. Betroffen sind die Linien RB66 und RE6a.</div>\n<div>&nbsp;</div>\n<div>&gt;&gt;&gt;<strong>Die Ersatzhaltestelle in T&uuml;bingen befindet sich in der Hegelstra&szlig;e zwischen B28 und Finanzamt.</strong>&lt;&lt;&lt;</div>\n<div>&nbsp;</div>\n<div><strong>HINWEIS</strong>: In der elektronischen Beauskunftung wird \"T&uuml;bingen, Steinlachallee/Hbf S&uuml;d\" als Ersatzhaltestelle angegeben. Dies ist <strong>falsch</strong>. Die Ersatzhaltestelle befindet sich zwischen B28 und Finanzamt. Die Angabe in der elektronischen Auskunft wird schnellstm&ouml;glich korrigiert.<br />&nbsp;<br />SEV:<br />_______________________________________________________________________<br />&nbsp;<br />RE6a -&nbsp;T&uuml;bingen Hbf ⇄ M&ouml;ssingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), M&ouml;ssingen Busbahnhof<br />________________________________________________________________________<br />&nbsp;<br />RB66 -&nbsp;T&uuml;bingen Hbf ⇄ Du&szlig;lingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), T&uuml;bingen-Derendingen Feuerh&auml;gle, Du&szlig;lingen Bahnhof<br />&nbsp;<br />Zwischen Du&szlig;lingen und M&ouml;ssingen verkehren die Z&uuml;ge der Linie RB66.<br />&nbsp;<br />&nbsp;<br />Die Mitnahme von Fahrr&auml;dern ist in den Bussen nicht gestattet.<br />&nbsp;<br />Die beschriebenen Fahrplan&auml;nderungen sind in der EFA/naldo-App erfasst.</div>",
+         "subtitle": "Tübingen - Mössingen: Zugausfälle und Schienenersatzverkehr",
+         "htmlText": "<span style=\"color:#808080; font-size: 0.7em; display: block; align-items: flex-start;  height: 15px;\">\n[ Ereignis Tübingen, Hauptbahnhof ] </span>\n<div>Zwischen T&uuml;bingen und M&ouml;ssingen, sowie Du&szlig;lingen, kommt es von Montag, 05. Oktober 2026 bis Samstag, 10. Oktober 2026 zu Zugausf&auml;llen wegen einer Baustelle. Es wird ein Schienenersatzverkehr (SEV) eingerichtet. Betroffen sind die Linien RB66 und RE6a.</div>\n<div>&nbsp;</div>\n<div>&gt;&gt;&gt;<strong>Die Ersatzhaltestelle in T&uuml;bingen befindet sich in der Hegelstra&szlig;e zwischen B28 und Finanzamt.</strong>&lt;&lt;&lt;</div>\n<div>&nbsp;</div>\n<div><strong>HINWEIS</strong>: In der elektronischen Beauskunftung wird \"T&uuml;bingen, Steinlachallee/Hbf S&uuml;d\" als Ersatzhaltestelle angegeben. Dies ist <strong>falsch</strong>. Die Ersatzhaltestelle befindet sich zwischen B28 und Finanzamt. Die Angabe in der elektronischen Auskunft wird schnellstm&ouml;glich korrigiert.<br />&nbsp;<br />SEV:<br />_______________________________________________________________________<br />&nbsp;<br />RE6a -&nbsp;T&uuml;bingen Hbf ⇄ M&ouml;ssingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), M&ouml;ssingen Busbahnhof<br />________________________________________________________________________<br />&nbsp;<br />RB66 -&nbsp;T&uuml;bingen Hbf ⇄ Du&szlig;lingen<br />Ersatzhaltestellen: T&uuml;bingen Finanzamt (zwischen B28 und Finanzamt), T&uuml;bingen-Derendingen Feuerh&auml;gle, Du&szlig;lingen Bahnhof<br />&nbsp;<br />Zwischen Du&szlig;lingen und M&ouml;ssingen verkehren die Z&uuml;ge der Linie RB66.<br />&nbsp;<br />&nbsp;<br />Die Mitnahme von Fahrr&auml;dern ist in den Bussen nicht gestattet.<br />&nbsp;<br />Die beschriebenen Fahrplan&auml;nderungen sind in der EFA/naldo-App erfasst.</div>"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "duration": 840,
+     "distance": 6127,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:2102:4:West",
+      "name": "Dußlingen Bahnhof",
+      "disassembledName": "Bahnhof",
+      "type": "platform",
+      "coord": [
+       48.452562,
+       9.057731
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:2102",
+       "name": "Dußlingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416011:1",
+        "name": "Dußlingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8002102"
+       },
+       "coord": [
+        48.452193,
+        9.058638
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       0,
+       6,
+       13
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T05:42:00Z",
+      "departureTimePlanned": "2026-10-05T05:42:00Z",
+      "departureTimeEstimated": "2026-10-05T05:42:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "areaGid": "de:08416:2102:4",
+       "area": "4",
+       "platform": "West"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08416:4410:0:2",
+      "name": "Gomaringen ZOB",
+      "disassembledName": "Bstg. 2",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.455583,
+       9.09608
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:4410",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "ZOB",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416015:1",
+        "name": "Gomaringen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8004410"
+       },
+       "coord": [
+        48.455529,
+        9.096107
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       6,
+       10
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T05:56:00Z",
+      "arrivalTimePlanned": "2026-10-05T05:56:00Z",
+      "arrivalTimeEstimated": "2026-10-05T05:56:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. 2",
+       "areaGid": "de:08416:4410",
+       "area": "0",
+       "platform": "2",
+       "platformName": "Bstg. 2",
+       "plannedPlatformName": "Bstg. 2"
+      }
+     },
+     "transportation": {
+      "id": "tub:80616: :H:j26",
+      "name": "Buslinie 7616",
+      "disassembledName": "7616",
+      "number": "7616",
+      "description": "Dußlingen - Gomaringen",
+      "product": {
+       "id": 1,
+       "class": 6,
+       "name": "Buslinie",
+       "iconId": 3
+      },
+      "operator": {
+       "code": "SWEGTÜ",
+       "id": "80",
+       "name": "SWEG Bus Tübingen GmbH"
+      },
+      "destination": {
+       "id": "8004410",
+       "name": "Gomaringen ZOB",
+       "type": "stop"
+      },
+      "properties": {
+       "tripCode": 57,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:naldo:a80cf6930a4943c1a04c71172621a2ed:",
+       "OperatorURL": "www.sweg.de"
+      }
+     },
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2102:4:West",
+       "name": "Dußlingen Bahnhof",
+       "disassembledName": "Bahnhof",
+       "type": "platform",
+       "coord": [
+        48.452562,
+        9.057731
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2102",
+        "name": "Dußlingen Bahnhof",
+        "disassembledName": "Bahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002102"
+        },
+        "coord": [
+         48.452193,
+         9.058638
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        0,
+        6,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2102:4",
+        "area": "4",
+        "platform": "West",
+        "zone": "bod:;tub:113"
+       },
+       "departureTimePlanned": "2026-10-05T05:42:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:2120:0:2",
+       "name": "Dußlingen Bürgerpark",
+       "disassembledName": "Bürgerpark",
+       "type": "platform",
+       "coord": [
+        48.449684,
+        9.059231
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:2120",
+        "name": "Dußlingen Bürgerpark",
+        "disassembledName": "Bürgerpark",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8002120"
+        },
+        "coord": [
+         48.449708,
+         9.059267
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:2120",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:43:00Z",
+       "departureTimePlanned": "2026-10-05T05:43:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4466:0:2",
+       "name": "Dußlingen Steinlachburg",
+       "disassembledName": "Steinlachburg",
+       "type": "platform",
+       "coord": [
+        48.449929,
+        9.063166
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4466",
+        "name": "Dußlingen Steinlachburg",
+        "disassembledName": "Steinlachburg",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004466"
+        },
+        "coord": [
+         48.449958,
+         9.063866
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4466",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:44:00Z",
+       "departureTimePlanned": "2026-10-05T05:44:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4467:0:2",
+       "name": "Dußlingen Brücke Eichachstraße",
+       "disassembledName": "Brücke Eichachstraße",
+       "type": "platform",
+       "coord": [
+        48.450268,
+        9.068843
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4467",
+        "name": "Dußlingen Brücke Eichachstraße",
+        "disassembledName": "Brücke Eichachstraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004467"
+        },
+        "coord": [
+         48.450256,
+         9.069149
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4467",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:45:00Z",
+       "departureTimePlanned": "2026-10-05T05:45:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4464:0:2",
+       "name": "Dußlingen Geigesried",
+       "disassembledName": "Geigesried",
+       "type": "platform",
+       "coord": [
+        48.448314,
+        9.070505
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4464",
+        "name": "Dußlingen Geigesried",
+        "disassembledName": "Geigesried",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416011:1",
+         "name": "Dußlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004464"
+        },
+        "coord": [
+         48.447956,
+         9.07046
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4464",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:46:00Z",
+       "departureTimePlanned": "2026-10-05T05:46:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4465:0:2",
+       "name": "Nehren SZ Höhnisch",
+       "disassembledName": "Schulzentrum Höhnisch",
+       "type": "platform",
+       "coord": [
+        48.445615,
+        9.077018
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4465",
+        "name": "Nehren SZ Höhnisch",
+        "disassembledName": "Schulzentrum Höhnisch",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004465"
+        },
+        "coord": [
+         48.445507,
+         9.07567
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4465",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:47:00Z",
+       "departureTimePlanned": "2026-10-05T05:47:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4468:0:1",
+       "name": "Nehren UNIPRO",
+       "disassembledName": "UNIPRO",
+       "type": "platform",
+       "coord": [
+        48.444667,
+        9.078752
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4468",
+        "name": "Nehren UNIPRO",
+        "disassembledName": "UNIPRO",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416026:1",
+         "name": "Nehren (Württ)",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004468"
+        },
+        "coord": [
+         48.444697,
+         9.078608
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4468",
+        "area": "0",
+        "platform": "1",
+        "zone": "tub:113"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:48:00Z",
+       "departureTimePlanned": "2026-10-05T05:48:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4451:0:2",
+       "name": "Gomaringen Hammerhof",
+       "disassembledName": "Hammerhof",
+       "type": "platform",
+       "coord": [
+        48.454415,
+        9.081015
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4451",
+        "name": "Gomaringen Hammerhof",
+        "disassembledName": "Hammerhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004451"
+        },
+        "coord": [
+         48.454367,
+         9.080988
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4451",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:50:00Z",
+       "departureTimePlanned": "2026-10-05T05:50:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4423:0:2",
+       "name": "Gomaringen R.-Bosch-Str.",
+       "disassembledName": "Robert-Bosch-Str.",
+       "type": "platform",
+       "coord": [
+        48.455297,
+        9.081204
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4423",
+        "name": "Gomaringen R.-Bosch-Str.",
+        "disassembledName": "Robert-Bosch-Str.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004423"
+        },
+        "coord": [
+         48.45535,
+         9.081231
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4423",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:51:00Z",
+       "departureTimePlanned": "2026-10-05T05:51:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4420:0:0",
+       "name": "Gomaringen Gustav-Schwab-Stift",
+       "disassembledName": "Gustav-Schwab-Stift",
+       "type": "platform",
+       "coord": [
+        48.46008,
+        9.091732
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4420",
+        "name": "Gomaringen Gustav-Schwab-Stift",
+        "disassembledName": "Gustav-Schwab-Stift",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004420"
+        },
+        "coord": [
+         48.460045,
+         9.091606
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4420",
+        "area": "0",
+        "platform": "0",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:53:00Z",
+       "departureTimePlanned": "2026-10-05T05:53:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4410:0:2",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "Bstg. 2",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.455583,
+        9.09608
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4410",
+        "name": "Gomaringen ZOB",
+        "disassembledName": "ZOB",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004410"
+        },
+        "coord": [
+         48.455529,
+         9.096107
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 2",
+        "areaGid": "de:08416:4410",
+        "area": "0",
+        "platform": "2",
+        "platformName": "Bstg. 2",
+        "plannedPlatformName": "Bstg. 2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T05:56:00Z"
+      }
+     ],
+     "footPathInfo": [
+      {
+       "position": "AFTER",
+       "duration": 120
+      }
+     ],
+     "infos": [],
+     "properties": {}
+    },
+    {
+     "duration": 1320,
+     "distance": 11972,
+     "origin": {
+      "isGlobalId": true,
+      "id": "de:08416:4410:0:3",
+      "name": "Gomaringen ZOB",
+      "disassembledName": "Bstg. 3",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.455499,
+       9.096107
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08416:4410",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "ZOB",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8416015:1",
+        "name": "Gomaringen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8004410"
+       },
+       "coord": [
+        48.455529,
+        9.096107
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       6,
+       10
+      ],
+      "departureTimeBaseTimetable": "2026-10-05T06:14:00Z",
+      "departureTimePlanned": "2026-10-05T06:14:00Z",
+      "departureTimeEstimated": "2026-10-05T06:14:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. 3",
+       "areaGid": "de:08416:4410",
+       "area": "0",
+       "platform": "3",
+       "platformName": "Bstg. 3",
+       "plannedPlatformName": "Bstg. 3"
+      }
+     },
+     "destination": {
+      "isGlobalId": true,
+      "id": "de:08415:29333:2:C",
+      "name": "Reutlingen Stadtmitte",
+      "disassembledName": "Bstg. C",
+      "type": "platform",
+      "pointType": "PLATFORM",
+      "coord": [
+       48.492727,
+       9.207974
+      ],
+      "niveau": 0,
+      "parent": {
+       "isGlobalId": true,
+       "id": "de:08415:29333",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Stadtmitte",
+       "type": "stop",
+       "parent": {
+        "id": "placeID:8415061:19",
+        "name": "Reutlingen",
+        "type": "locality"
+       },
+       "properties": {
+        "stopId": "8029333"
+       },
+       "coord": [
+        48.492483,
+        9.207453
+       ],
+       "niveau": 0
+      },
+      "productClasses": [
+       5,
+       6
+      ],
+      "arrivalTimeBaseTimetable": "2026-10-05T06:36:00Z",
+      "arrivalTimePlanned": "2026-10-05T06:36:00Z",
+      "arrivalTimeEstimated": "2026-10-05T06:36:00Z",
+      "properties": {
+       "AREA_NIVEAU_DIVA": "0",
+       "stoppingPointPlanned": "Bstg. C",
+       "areaGid": "de:08415:29333:2",
+       "area": "2",
+       "platform": "C",
+       "platformName": "Bstg. C",
+       "plannedPlatformName": "Bstg. C"
+      }
+     },
+     "transportation": {
+      "id": "tub:80111: :R:j26",
+      "name": "Buslinie 111",
+      "disassembledName": "111",
+      "number": "111",
+      "description": "Reutlingen - Gomaringen",
+      "product": {
+       "id": 1,
+       "class": 6,
+       "name": "Buslinie",
+       "iconId": 3
+      },
+      "operator": {
+       "code": "SWEGTÜ",
+       "id": "80",
+       "name": "SWEG Bus Tübingen GmbH"
+      },
+      "destination": {
+       "id": "8022006",
+       "name": "Reutlingen Hauptbahnhof",
+       "type": "stop"
+      },
+      "properties": {
+       "tripCode": 5,
+       "timetablePeriod": "Jahresfahrplan 2026",
+       "lineDisplay": "LINE",
+       "globalId": "de:naldo:67b2426df0554e45b6badfecc7187abf:",
+       "OperatorURL": "www.sweg.de"
+      }
+     },
+     "stopSequence": [
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4410:0:3",
+       "name": "Gomaringen ZOB",
+       "disassembledName": "Bstg. 3",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.455499,
+        9.096107
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4410",
+        "name": "Gomaringen ZOB",
+        "disassembledName": "ZOB",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004410"
+        },
+        "coord": [
+         48.455529,
+         9.096107
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. 3",
+        "areaGid": "de:08416:4410",
+        "area": "0",
+        "platform": "3",
+        "platformName": "Bstg. 3",
+        "plannedPlatformName": "Bstg. 3",
+        "zone": "tub:14"
+       },
+       "departureTimePlanned": "2026-10-05T06:14:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4409:0:2",
+       "name": "Gomaringen Ziegelgrubenstr.",
+       "disassembledName": "Ziegelgrubenstraße",
+       "type": "platform",
+       "coord": [
+        48.459419,
+        9.094751
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4409",
+        "name": "Gomaringen Ziegelgrubenstr.",
+        "disassembledName": "Ziegelgrubenstraße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004409"
+        },
+        "coord": [
+         48.459413,
+         9.094831
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6,
+        10
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4409",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:15:00Z",
+       "departureTimePlanned": "2026-10-05T06:15:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4416:0:0",
+       "name": "Gomaringen Engelhagstr.",
+       "disassembledName": "Engelhagstr.",
+       "type": "platform",
+       "coord": [
+        48.462308,
+        9.092972
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4416",
+        "name": "Gomaringen Engelhagstr.",
+        "disassembledName": "Engelhagstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004416"
+        },
+        "coord": [
+         48.462213,
+         9.093017
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4416",
+        "area": "0",
+        "platform": "0",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:16:00Z",
+       "departureTimePlanned": "2026-10-05T06:16:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4417:0:2",
+       "name": "Gomaringen Liststr.",
+       "disassembledName": "Liststr.",
+       "type": "platform",
+       "coord": [
+        48.463988,
+        9.10023
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4417",
+        "name": "Gomaringen Liststr.",
+        "disassembledName": "Liststr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004417"
+        },
+        "coord": [
+         48.464149,
+         9.100033
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4417",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:17:00Z",
+       "departureTimePlanned": "2026-10-05T06:17:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08416:4418:0:1",
+       "name": "Gomaringen Raiffeisenstr.",
+       "disassembledName": "Raiffeisenstr.",
+       "type": "platform",
+       "coord": [
+        48.462255,
+        9.104713
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08416:4418",
+        "name": "Gomaringen Raiffeisenstr.",
+        "disassembledName": "Raiffeisenstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8416015:1",
+         "name": "Gomaringen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8004418"
+        },
+        "coord": [
+         48.462213,
+         9.104794
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08416:4418",
+        "area": "0",
+        "platform": "1",
+        "zone": "tub:14"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:18:00Z",
+       "departureTimePlanned": "2026-10-05T06:18:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:24422:0:2",
+       "name": "Ohmenhausen Hohe Straße",
+       "disassembledName": "Hohe Straße",
+       "type": "platform",
+       "coord": [
+        48.475471,
+        9.132516
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:24422",
+        "name": "Ohmenhausen Hohe Straße",
+        "disassembledName": "Hohe Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:16",
+         "name": "Ohmenhausen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8024422"
+        },
+        "coord": [
+         48.475555,
+         9.132525
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:24422",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:22:00Z",
+       "departureTimePlanned": "2026-10-05T06:22:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29220:0:2",
+       "name": "Ohmenhausen Neue Straße",
+       "disassembledName": "Neue Straße",
+       "type": "platform",
+       "coord": [
+        48.480277,
+        9.139532
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29220",
+        "name": "Ohmenhausen Neue Straße",
+        "disassembledName": "Neue Straße",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:16",
+         "name": "Ohmenhausen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029220"
+        },
+        "coord": [
+         48.480223,
+         9.139478
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29220",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:23:00Z",
+       "departureTimePlanned": "2026-10-05T06:23:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29210:0:2",
+       "name": "Betzingen Adolf-Kolping-Str.",
+       "disassembledName": "Adolf-Kolping-Str.",
+       "type": "platform",
+       "coord": [
+        48.487464,
+        9.153231
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29210",
+        "name": "Betzingen Adolf-Kolping-Str.",
+        "disassembledName": "Adolf-Kolping-Str.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:4",
+         "name": "Betzingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029210"
+        },
+        "coord": [
+         48.487571,
+         9.153294
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29210",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:24:00Z",
+       "departureTimePlanned": "2026-10-05T06:24:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29205:0:2",
+       "name": "Betzingen Markwiesenstr.",
+       "disassembledName": "Markwiesenstr.",
+       "type": "platform",
+       "coord": [
+        48.491685,
+        9.160355
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29205",
+        "name": "Betzingen Markwiesenstr.",
+        "disassembledName": "Markwiesenstr.",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:4",
+         "name": "Betzingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029205"
+        },
+        "coord": [
+         48.491792,
+         9.160453
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29205",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:25:00Z",
+       "departureTimePlanned": "2026-10-05T06:25:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29110:0:2",
+       "name": "Reutlingen Festplatz",
+       "disassembledName": "Festplatz",
+       "type": "platform",
+       "coord": [
+        48.494906,
+        9.194733
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29110",
+        "name": "Reutlingen Festplatz",
+        "disassembledName": "Festplatz",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029110"
+        },
+        "coord": [
+         48.494941,
+         9.194652
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:29110",
+        "area": "0",
+        "platform": "2",
+        "zone": "tub:220"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:30:00Z",
+       "departureTimePlanned": "2026-10-05T06:30:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:22005:1:2",
+       "name": "Reutlingen Westbahnhof",
+       "disassembledName": "Westbahnhof",
+       "type": "platform",
+       "coord": [
+        48.492953,
+        9.201785
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:22005",
+        "name": "Reutlingen Westbahnhof",
+        "disassembledName": "Westbahnhof",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8022005"
+        },
+        "coord": [
+         48.492679,
+         9.201551
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6,
+        13
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "areaGid": "de:08415:22005:1",
+        "area": "1",
+        "platform": "2",
+        "zone": "kvv:;tub:220;vvs:"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:31:00Z",
+       "departureTimePlanned": "2026-10-05T06:31:00Z"
+      },
+      {
+       "isGlobalId": true,
+       "id": "de:08415:29333:2:C",
+       "name": "Reutlingen Stadtmitte",
+       "disassembledName": "Bstg. C",
+       "type": "platform",
+       "pointType": "PLATFORM",
+       "coord": [
+        48.492727,
+        9.207974
+       ],
+       "niveau": 0,
+       "parent": {
+        "isGlobalId": true,
+        "id": "de:08415:29333",
+        "name": "Reutlingen Stadtmitte",
+        "disassembledName": "Stadtmitte",
+        "type": "stop",
+        "parent": {
+         "id": "placeID:8415061:19",
+         "name": "Reutlingen",
+         "type": "locality"
+        },
+        "properties": {
+         "stopId": "8029333"
+        },
+        "coord": [
+         48.492483,
+         9.207453
+        ],
+        "niveau": 0
+       },
+       "productClasses": [
+        5,
+        6
+       ],
+       "properties": {
+        "AREA_NIVEAU_DIVA": "0",
+        "CountyPass": "BADEN-WÃœRTTEMBERG-TICKET",
+        "stoppingPointPlanned": "Bstg. C",
+        "areaGid": "de:08415:29333:2",
+        "area": "2",
+        "platform": "C",
+        "platformName": "Bstg. C",
+        "plannedPlatformName": "Bstg. C",
+        "zone": "tub:220;vvs:"
+       },
+       "arrivalTimePlanned": "2026-10-05T06:36:00Z"
+      }
+     ],
+     "infos": [],
+     "properties": {}
+    }
+   ],
+   "daysOfService": {
+    "rvb": "000000000000000000000000000001F00000000000000000"
+   }
+  }
+ ]
+}

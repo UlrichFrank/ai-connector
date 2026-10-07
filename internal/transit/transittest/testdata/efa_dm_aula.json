@@ -1,0 +1,706 @@
+{
+ "serverInfo": {
+  "controllerVersion": "10.6.33.33",
+  "serverID": "bw-ww33",
+  "virtDir": "naldo",
+  "serverTime": "2026-10-04T07:07:01",
+  "calcTime": 158.878
+ },
+ "version": "11.0.6.72",
+ "systemMessages": [],
+ "locations": [
+  {
+   "id": "de:08416:10503",
+   "isGlobalId": true,
+   "name": "Tübingen, Uni / Neue Aula",
+   "disassembledName": "Uni / Neue Aula",
+   "coord": [
+    48.524644,
+    9.060264
+   ],
+   "type": "stop",
+   "matchQuality": 100000,
+   "isBest": true,
+   "parent": {
+    "id": "placeID:8416041:13",
+    "name": "Tübingen",
+    "type": "locality"
+   },
+   "assignedStops": [
+    {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "coord": [
+      48.524644,
+      9.060264
+     ],
+     "parent": {
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "productClasses": [
+      5
+     ],
+     "connectingMode": 100,
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   ],
+   "properties": {
+    "stopId": "8010503"
+   }
+  }
+ ],
+ "stopEvents": [
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:1",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524959,
+     9.060695
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "1"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:16:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:16:00Z",
+   "departureTimeEstimated": "2026-10-04T05:16:00Z",
+   "transportation": {
+    "id": "vvs:31X82: :R:j26",
+    "name": "Bus X82",
+    "disassembledName": "X82",
+    "number": "X82",
+    "description": "Tübingen - Waldenbuch - Echterdingen - Flughafen",
+    "product": {
+     "id": 5,
+     "class": 5,
+     "name": "Bus",
+     "iconId": 3
+    },
+    "operator": {
+     "id": "26",
+     "name": "Friedrich Müller Omnibusunternehmen (FMO)"
+    },
+    "destination": {
+     "id": "5002103",
+     "name": "Echterdingen Flughafen/Messe (SAB)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "5641602",
+     "tripCode": 191,
+     "lineDisplay": "LINE",
+     "globalId": "de:vvs:31X82_:",
+     "OperatorURL": "www.fmobus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:3",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524335,
+     9.060147
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "3"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:17:42Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:17:42Z",
+   "departureTimeEstimated": "2026-10-04T05:17:42Z",
+   "transportation": {
+    "id": "tub:09003: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 3",
+    "disassembledName": "3",
+    "number": "3",
+    "description": "Gartenstadt - Feuerhägle - Loretto - Hauptbahnhof - Sternwarte - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "3804",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 269,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:20803d2ac58e4aa5a6a51a2007a1526c:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010723",
+     "name": "Tübingen Nelkenweg",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:3",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524335,
+     9.060147
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "3"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:30:42Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:30:42Z",
+   "departureTimeEstimated": "2026-10-04T05:30:42Z",
+   "transportation": {
+    "id": "tub:09004: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 4",
+    "disassembledName": "4",
+    "number": "4",
+    "description": "Wennfelder Garten - Sternplatz - Hauptbahnhof - Schönblick - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "4805",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 357,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:6cf1a8bd26eb49ff858c22006ee24402:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010815",
+     "name": "Tübingen Wennf. Garten",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "EXTRA_STOPS",
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:1",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524959,
+     9.060695
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "1"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:36:00Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:36:00Z",
+   "departureTimeEstimated": "2026-10-04T05:36:00Z",
+   "transportation": {
+    "id": "vvs:31828: :R:j26",
+    "name": "Bus 828",
+    "disassembledName": "828",
+    "number": "828",
+    "description": "Tübingen - Waldenbuch - Echterdingen - Flughafen",
+    "product": {
+     "id": 5,
+     "class": 5,
+     "name": "Bus",
+     "iconId": 3
+    },
+    "operator": {
+     "id": "26",
+     "name": "Friedrich Müller Omnibusunternehmen (FMO)"
+    },
+    "destination": {
+     "id": "5002103",
+     "name": "Echterdingen Flughafen/Messe (SAB)",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "5641606",
+     "tripCode": 192,
+     "lineDisplay": "LINE",
+     "globalId": "de:vvs:31828_:",
+     "OperatorURL": "www.fmobus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:3",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524335,
+     9.060147
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "3"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:37:42Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:37:42Z",
+   "departureTimeEstimated": "2026-10-04T05:37:42Z",
+   "transportation": {
+    "id": "tub:09002: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 2",
+    "disassembledName": "2",
+    "number": "2",
+    "description": "Hauptbahnhof - Sand - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "2804",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 278,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:b1119539edff4c7096e8942ed6ce281a:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:2",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524489,
+     9.060318
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "2"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:38:36Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:38:36Z",
+   "departureTimeEstimated": "2026-10-04T05:38:36Z",
+   "transportation": {
+    "id": "tub:09001: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 1",
+    "disassembledName": "1",
+    "number": "1",
+    "description": "Franz. Viertel - Depot Areal - Hauptbahnhof - Lustnau - Herrlesberg (- Pfrondorf)",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010323",
+     "name": "Pfrondorf Lindenstraße",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "1804",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 890,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:6f22b8743ef748639bc49ce5a87cbced:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:3",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524335,
+     9.060147
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "3"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:47:42Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:47:42Z",
+   "departureTimeEstimated": "2026-10-04T05:47:42Z",
+   "transportation": {
+    "id": "tub:09003: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 3",
+    "disassembledName": "3",
+    "number": "3",
+    "description": "Gartenstadt - Feuerhägle - Loretto - Hauptbahnhof - Sternwarte - Waldhäuser Ost",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "3805",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 272,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:20803d2ac58e4aa5a6a51a2007a1526c:",
+     "OperatorURL": "www.tuebus.de",
+     "attributes": [
+      "PLAN_LOWFLOORVEHICLE"
+     ]
+    },
+    "origin": {
+     "id": "8010723",
+     "name": "Tübingen Nelkenweg",
+     "type": "stop"
+    }
+   },
+   "properties": {
+    "PlanLowFloorVehicle": "1"
+   }
+  },
+  {
+   "realtimeStatus": [
+    "MONITORED"
+   ],
+   "isRealtimeControlled": true,
+   "location": {
+    "id": "de:08416:10503:0:3",
+    "isGlobalId": true,
+    "name": "Tübingen Uni / Neue Aula",
+    "type": "platform",
+    "coord": [
+     48.524335,
+     9.060147
+    ],
+    "properties": {
+     "stopId": "8010503",
+     "area": "0",
+     "platform": "3"
+    },
+    "parent": {
+     "id": "de:08416:10503",
+     "isGlobalId": true,
+     "name": "Tübingen Uni / Neue Aula",
+     "disassembledName": "Uni / Neue Aula",
+     "type": "stop",
+     "parent": {
+      "id": "placeID:8416041:13",
+      "name": "Tübingen",
+      "type": "locality"
+     },
+     "properties": {
+      "stopId": "8010503"
+     }
+    }
+   },
+   "departureTimePlanned": "2026-10-04T05:52:12Z",
+   "departureTimeBaseTimetable": "2026-10-04T05:52:12Z",
+   "departureTimeEstimated": "2026-10-04T05:52:12Z",
+   "transportation": {
+    "id": "tub:09006: :R:j26",
+    "name": "Stadtverkehr Tübingen (TüBus) 6",
+    "disassembledName": "6",
+    "number": "6",
+    "description": "Mühlbachäcker - Hauptbahnhof - Haußerstraße - Waldhäuser Ost - Sand",
+    "product": {
+     "id": 7,
+     "class": 5,
+     "name": "Stadtverkehr Tübingen (TüBus)",
+     "iconId": 3
+    },
+    "operator": {
+     "code": "TüBus",
+     "id": "09",
+     "name": "Stadtverkehr Tüb."
+    },
+    "destination": {
+     "id": "8010260",
+     "name": "Tübingen WHO Ulmenweg",
+     "type": "stop"
+    },
+    "properties": {
+     "trainNumber": "6802",
+     "isTTB": true,
+     "isSTT": true,
+     "tripCode": 430,
+     "lineDisplay": "LINE",
+     "globalId": "de:naldo:b4db8b147da8404f82cfcf57a5ed68cc:",
+     "OperatorURL": "www.tuebus.de"
+    },
+    "origin": {
+     "id": "8011000",
+     "name": "Tübingen Hauptbahnhof",
+     "type": "stop"
+    }
+   },
+   "properties": {}
+  }
+ ]
+}

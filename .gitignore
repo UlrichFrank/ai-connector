@@ -1,0 +1,10 @@
+bin/
+.DS_Store
+__pycache__/
+# the web app's build (make web); .keep lets the Go embed compile before the first build
+/internal/webui/dist/*
+!/internal/webui/dist/.keep
+/web/node_modules
+
+# the files sandbox demo (make sandbox-files-try)
+/sandbox-files-out/

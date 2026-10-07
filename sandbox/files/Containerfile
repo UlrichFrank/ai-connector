@@ -1,0 +1,56 @@
+# The files sandbox of mlxlab's chat: model-written Python that makes PDFs, documents, spreadsheets and charts.
+# Each call runs in a fresh container with --network none, a read-only root, a tmpfs /out and CPU/memory limits
+# (see internal/sandbox/files). Everything comes from Debian packages: no compilers, no pip, nothing fetched at
+# run time.
+FROM docker.io/library/debian:trixie-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg \
+    MPLCONFIGDIR=/opt/sandbox/mpl \
+    XDG_CACHE_HOME=/tmp/cache \
+    HOME=/tmp
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      python3 \
+      python3-reportlab \
+      python3-matplotlib \
+      python3-numpy \
+      python3-pandas \
+      python3-openpyxl \
+      python3-xlsxwriter \
+      python3-docx \
+      python3-markdown \
+      python3-pygments \
+      python3-pil \
+      python3-pypdf \
+      weasyprint \
+      fontconfig \
+      fonts-dejavu-core \
+      fonts-dejavu-extra \
+      fonts-liberation2 \
+      fonts-noto-core \
+      fonts-noto-mono \
+      fonts-noto-color-emoji \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /usr/share/doc/* /usr/share/man/* \
+ && fc-cache -f
+
+RUN useradd --uid 1000 --create-home --home-dir /home/sandbox --shell /usr/sbin/nologin sandbox \
+ && mkdir -p /opt/sandbox/mpl /out \
+ && chown sandbox:sandbox /out
+
+COPY runner.py markdown_pdf.py /opt/sandbox/
+
+# warm matplotlib's font cache (the root is read-only at run time) and check that everything imports
+RUN python3 -c "import matplotlib.pyplot, reportlab, pandas, openpyxl, xlsxwriter, docx, markdown, weasyprint, pypdf, PIL" \
+ && python3 -m py_compile /opt/sandbox/runner.py /opt/sandbox/markdown_pdf.py \
+ && chmod -R a+rX /opt/sandbox
+
+USER sandbox
+WORKDIR /out
+ENTRYPOINT ["python3", "/opt/sandbox/runner.py"]

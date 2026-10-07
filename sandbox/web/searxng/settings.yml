@@ -1,0 +1,30 @@
+# SearXNG settings for the web sandbox; @PROXY_URL@ and @SECRET@ are filled in by lockdown.sh at start.
+use_default_settings: true
+
+general:
+  instance_name: "mlxlab"
+  enable_metrics: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "@SECRET@"
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: "GET"
+
+valkey:
+  url: false
+
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 12.0
+  # every engine request goes through the egress proxy (the VM has no other route out)
+  proxies:
+    all://:
+      - "@PROXY_URL@"

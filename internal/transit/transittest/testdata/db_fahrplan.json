@@ -1,0 +1,3006 @@
+{
+ "verbindungen": [
+  {
+   "tripId": "581fc2f1_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+       "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      },
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "2726",
+     "anschlussBewertungCode": 2,
+     "showWeitereAbfahrten": "VORLAUF",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T07:11:00",
+       "echtzeit": "2026-10-04T07:11:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8002785",
+      "name": "Herrenberg",
+      "ankunft": {
+       "sollzeit": "2026-10-04T07:41:00",
+       "echtzeit": "2026-10-04T07:41:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 1800,
+     "abschnittsAnteil": 43.48,
+     "ankunftsOrt": "Herrenberg",
+     "ankunftsOrtExtId": "8002785",
+     "ezAbschnittsDauerInSeconds": 1800,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T07:11:00",
+      "echtzeit": "2026-10-04T07:11:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T07:41:00",
+      "echtzeit": "2026-10-04T07:41:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:11:00",
+        "echtzeit": "2026-10-04T07:11:00"
+       },
+       "gleis": "13",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "8006D2",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Tübingen West@X=9038249@Y=48520041@U=80@L=8005916@i=U×008029333@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:15:00",
+        "echtzeit": "2026-10-04T07:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:13:00",
+        "echtzeit": "2026-10-04T07:13:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Tübingen West",
+       "risNotizen": [],
+       "extId": "8005916",
+       "adminID": "8006D2",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Unterjesingen Sandäcker@X=8988260@Y=48523304@U=80@L=8006003@i=U×008034676@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:20:00",
+        "echtzeit": "2026-10-04T07:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:19:00",
+        "echtzeit": "2026-10-04T07:19:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Unterjesingen Sandäcker",
+       "risNotizen": [],
+       "extId": "8006003",
+       "adminID": "8006D2",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Unterjesingen Mitte@X=8981734@Y=48524679@U=80@L=8006002@i=U×008034675@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:21:00",
+        "echtzeit": "2026-10-04T07:21:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:21:00",
+        "echtzeit": "2026-10-04T07:21:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Unterjesingen Mitte",
+       "risNotizen": [],
+       "extId": "8006002",
+       "adminID": "8006D2",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Pfäffingen@X=8964699@Y=48532167@U=80@L=8004778@i=U×008029331@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:24:00",
+        "echtzeit": "2026-10-04T07:24:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:23:00",
+        "echtzeit": "2026-10-04T07:23:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Pfäffingen",
+       "risNotizen": [],
+       "extId": "8004778",
+       "adminID": "8006D2",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Entringen@X=8963009@Y=48552294@U=80@L=8001802@i=U×008029330@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:28:00",
+        "echtzeit": "2026-10-04T07:28:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:27:00",
+        "echtzeit": "2026-10-04T07:27:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Entringen",
+       "risNotizen": [],
+       "extId": "8001802",
+       "adminID": "8006D2",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Altingen(Württ)@X=8908849@Y=48561931@U=80@L=8070591@i=U×008029328@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:33:00",
+        "echtzeit": "2026-10-04T07:33:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:33:00",
+        "echtzeit": "2026-10-04T07:33:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Altingen(Württ)",
+       "risNotizen": [],
+       "extId": "8070591",
+       "adminID": "8006D2",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gültstein@X=8881558@Y=48577491@U=80@L=8070604@i=U×008029327@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:36:00",
+        "echtzeit": "2026-10-04T07:36:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:36:00",
+        "echtzeit": "2026-10-04T07:36:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Gültstein",
+       "risNotizen": [],
+       "extId": "8070604",
+       "adminID": "8006D2",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Herrenberg Zwerchweg@X=8867661@Y=48584970@U=80@L=8002786@i=U×008060919@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:38:00",
+        "echtzeit": "2026-10-04T07:38:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:38:00",
+        "echtzeit": "2026-10-04T07:38:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Herrenberg Zwerchweg",
+       "risNotizen": [],
+       "extId": "8002786",
+       "adminID": "8006D2",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Herrenberg@X=8862663@Y=48593995@U=80@L=8002785@i=U×008029394@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:41:00",
+        "echtzeit": "2026-10-04T07:41:00"
+       },
+       "gleis": "102",
+       "haltTyp": "PL",
+       "name": "Herrenberg",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2726",
+       "extId": "8002785",
+       "adminID": "8006D2",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267547#TA#0#DA#41026#1S#8000141#1T#711#LS#8002785#LT#741#PU#80#RT#1#CA#NRB#ZE#22731#ZB#            22731#PC#3#FR#8000141#FT#711#TO#8002785#TT#741#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRB",
+      "name": "22731",
+      "nummer": "22731",
+      "richtung": "Herrenberg",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EH",
+        "value": "Fahrzeuggebundene Einstiegshilfe vorhanden"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RB",
+      "mittelText": "RB63",
+      "langText": "RB63 (22731)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "2726",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "showWeitereAbfahrten": "NACHLAUF",
+     "abfahrtsOrt": "Herrenberg",
+     "startHalt": {
+      "extId": "8002785",
+      "name": "Herrenberg",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T07:46:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8098096",
+      "name": "Stuttgart Hbf (tief)",
+      "ankunft": {
+       "sollzeit": "2026-10-04T08:25:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8002785",
+     "abschnittsDauer": 2340,
+     "abschnittsAnteil": 56.52,
+     "ankunftsOrt": "Stuttgart Hbf (tief)",
+     "ankunftsOrtExtId": "8098096",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T07:46:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T08:25:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Herrenberg@X=8862663@Y=48593995@U=80@L=8002785@i=U×008029394@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:46:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Herrenberg",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2726",
+       "extId": "8002785",
+       "adminID": "800643",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nufringen@X=8889828@Y=48620136@U=80@L=8004490@i=U×008029393@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:49:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:49:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Nufringen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4592",
+       "extId": "8004490",
+       "adminID": "800643",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Gärtringen@X=8908993@Y=48640910@U=80@L=8002165@i=U×008029392@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:52:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:52:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Gärtringen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2016",
+       "extId": "8002165",
+       "adminID": "800643",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Ehningen(b Böblingen)@X=8944258@Y=48662682@U=80@L=8001689@i=U×008029391@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:55:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:55:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Ehningen(b Böblingen)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1486",
+       "extId": "8001689",
+       "adminID": "800643",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Hulb@X=8982642@Y=48679267@U=80@L=8003022@i=U×008029382@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:58:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:58:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Hulb",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2943",
+       "extId": "8003022",
+       "adminID": "800643",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Böblingen@X=9004126@Y=48687762@U=80@L=8001055@i=U×008029383@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:00:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:00:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Böblingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "0720",
+       "extId": "8001055",
+       "adminID": "800643",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Goldberg(Württ)@X=9020432@Y=48696913@U=80@L=8005201@i=U×008029569@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:02:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:02:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Goldberg(Württ)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2171",
+       "extId": "8005201",
+       "adminID": "800643",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Rohr@X=9108329@Y=48717903@U=80@L=8005773@i=U×008029381@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:08:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:07:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Rohr",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6082",
+       "extId": "8005773",
+       "adminID": "800643",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Vaihingen@X=9113228@Y=48726280@U=80@L=8005776@i=U×008029367@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:10:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:10:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Vaihingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6087",
+       "extId": "8005776",
+       "adminID": "800643",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Österfeld@X=9116770@Y=48737652@U=80@L=8005779@i=U×008029044@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Österfeld",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6075",
+       "extId": "8005779",
+       "adminID": "800643",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Universität@X=9105399@Y=48745841@U=80@L=8006513@i=U×008029723@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:14:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Universität",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6076",
+       "extId": "8006513",
+       "adminID": "800643",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Schwabstr.@X=9156961@Y=48770256@U=80@L=8006698@i=U×008029373@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Schwabstr.",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6083",
+       "extId": "8006698",
+       "adminID": "800643",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Feuersee@X=9166273@Y=48772764@U=80@L=8006699@i=U×008029374@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:22:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:21:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Feuersee",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6079",
+       "extId": "8006699",
+       "adminID": "800643",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Stadtmitte@X=9172925@Y=48776225@U=80@L=8006700@i=U×008029375@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:23:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:23:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Stadtmitte",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6085",
+       "extId": "8006700",
+       "adminID": "800643",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf (tief)@X=9179811@Y=48783002@U=80@L=8098096@i=U×008029376@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:25:00"
+       },
+       "gleis": "102",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf (tief)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8098096",
+       "adminID": "800643",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 1,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#356134#TA#2#DA#41026#1S#8002785#1T#746#LS#8003280#LT#909#PU#80#RT#1#CA#DBS#ZE#S1#ZB#               S1#PC#4#FR#8002785#FT#746#TO#8003280#TT#909#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "SBAHN",
+      "kategorie": "DBS",
+      "linienNummer": "S1",
+      "name": "S1",
+      "nummer": "S1",
+      "richtung": "Kirchheim(Teck)",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG S-Bahn Stuttgart"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "ZB",
+        "value": "Fahrzeuggebundene Einstiegshilfe am Zuganfang"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "S",
+      "mittelText": "S1",
+      "langText": "S1"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 4440,
+   "ezVerbindungsDauerInSeconds": 4440,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-12",
+     "regular": "täglich",
+     "irregular": "nicht 9. bis 15. Nov 2026",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA",
+      "SO"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "a983ef82_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T07:32:00",
+       "echtzeit": "2026-10-04T07:32:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000096",
+      "name": "Stuttgart Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-04T08:31:00",
+       "echtzeit": "2026-10-04T08:31:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 3540,
+     "abschnittsAnteil": 100,
+     "ankunftsOrt": "Stuttgart Hbf",
+     "ankunftsOrtExtId": "8000096",
+     "ezAbschnittsDauerInSeconds": 3540,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T07:32:00",
+      "echtzeit": "2026-10-04T07:32:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T08:31:00",
+      "echtzeit": "2026-10-04T08:31:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:32:00",
+        "echtzeit": "2026-10-04T07:32:00"
+       },
+       "gleis": "5",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "SBSMEX",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Reutlingen Hbf@X=9209116@Y=48496076@U=80@L=8000314@i=U×008029309@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:42:00",
+        "echtzeit": "2026-10-04T07:42:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:41:00",
+        "echtzeit": "2026-10-04T07:41:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Reutlingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5242",
+       "extId": "8000314",
+       "adminID": "SBSMEX",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Metzingen(Württ)@X=9290154@Y=48539727@U=80@L=8004009@i=U×008029303@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:48:00",
+        "echtzeit": "2026-10-04T07:48:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:47:00",
+        "echtzeit": "2026-10-04T07:47:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Metzingen(Württ)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4087",
+       "extId": "8004009",
+       "adminID": "SBSMEX",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bempflingen@X=9273425@Y=48572367@U=80@L=8000865@i=U×008029302@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:52:00",
+        "echtzeit": "2026-10-04T07:52:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:51:00",
+        "echtzeit": "2026-10-04T07:51:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Bempflingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "0479",
+       "extId": "8000865",
+       "adminID": "SBSMEX",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nürtingen@X=9342804@Y=48628064@U=80@L=8004488@i=U×008029299@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:59:00",
+        "echtzeit": "2026-10-04T07:59:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:58:00",
+        "echtzeit": "2026-10-04T07:58:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Nürtingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4612",
+       "extId": "8004488",
+       "adminID": "SBSMEX",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Oberboihingen@X=9364342@Y=48648155@U=80@L=8004517@i=U×008029298@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:02:00",
+        "echtzeit": "2026-10-04T08:02:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:02:00",
+        "echtzeit": "2026-10-04T08:02:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Oberboihingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4626",
+       "extId": "8004517",
+       "adminID": "SBSMEX",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Wendlingen(Neckar)@X=9373007@Y=48672965@U=80@L=8006331@i=U×008019638@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:06:00",
+        "echtzeit": "2026-10-04T08:06:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:05:00",
+        "echtzeit": "2026-10-04T08:05:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Wendlingen(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6671",
+       "extId": "8006331",
+       "adminID": "SBSMEX",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Plochingen@X=9410807@Y=48713084@U=80@L=8000302@i=U×008029060@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:13:00",
+        "echtzeit": "2026-10-04T08:13:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:12:00",
+        "echtzeit": "2026-10-04T08:12:00"
+       },
+       "gleis": "6",
+       "haltTyp": "PL",
+       "name": "Plochingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4967",
+       "extId": "8000302",
+       "adminID": "SBSMEX",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Esslingen(Neckar)@X=9300518@Y=48738542@U=80@L=8001920@i=U×008029055@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:20:00",
+        "echtzeit": "2026-10-04T08:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:19:00",
+        "echtzeit": "2026-10-04T08:19:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Esslingen(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1716",
+       "extId": "8001920",
+       "adminID": "SBSMEX",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Bad Cannstatt@X=9217530@Y=48801376@U=80@L=8005769@i=U×008029041@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:27:00",
+        "echtzeit": "2026-10-04T08:27:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:26:00",
+        "echtzeit": "2026-10-04T08:26:00"
+       },
+       "gleis": "5",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Bad Cannstatt",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6077",
+       "extId": "8005769",
+       "adminID": "SBSMEX",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:31:00",
+        "echtzeit": "2026-10-04T08:31:00"
+       },
+       "gleis": "8",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8000096",
+       "adminID": "SBSMEX",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266890#TA#0#DA#41026#1S#8000141#1T#732#LS#8000096#LT#831#PU#80#RT#1#CA#NRE#ZE#19308#ZB#            19308#PC#3#FR#8000141#FT#732#TO#8000096#TT#831#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRE",
+      "name": "19308",
+      "nummer": "19308",
+      "richtung": "Stuttgart Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "ZM",
+        "value": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RE",
+      "mittelText": "MEX18",
+      "langText": "MEX18 (19308)"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 0,
+   "verbindungsDauerInSeconds": 3540,
+   "ezVerbindungsDauerInSeconds": 3540,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-12",
+     "regular": "täglich",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA",
+      "SO"
+     ]
+    }
+   ],
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "e4e61bfe_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [
+      {
+       "key": "FT",
+       "value": "Verspätete Bereitstellung des Zuges",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 10
+      }
+     ],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "HOCH",
+       "text": "Verspätete Bereitstellung des Zuges",
+       "type": "RIS_NOTE"
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T06:33:00",
+       "echtzeit": "2026-10-04T07:43:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000096",
+      "name": "Stuttgart Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-04T07:36:00",
+       "echtzeit": "2026-10-04T08:43:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 3780,
+     "abschnittsAnteil": 100,
+     "ankunftsOrt": "Stuttgart Hbf",
+     "ankunftsOrtExtId": "8000096",
+     "ezAbschnittsDauerInSeconds": 3600,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T06:33:00",
+      "echtzeit": "2026-10-04T07:43:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T07:36:00",
+      "echtzeit": "2026-10-04T08:43:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T06:33:00",
+        "echtzeit": "2026-10-04T07:43:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "SBSMEX",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Reutlingen Hbf@X=9209116@Y=48496076@U=80@L=8000314@i=U×008029309@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T06:43:00",
+        "echtzeit": "2026-10-04T07:53:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T06:42:00",
+        "echtzeit": "2026-10-04T07:52:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Reutlingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5242",
+       "extId": "8000314",
+       "adminID": "SBSMEX",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Metzingen(Württ)@X=9290154@Y=48539727@U=80@L=8004009@i=U×008029303@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T06:49:00",
+        "echtzeit": "2026-10-04T07:59:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T06:49:00",
+        "echtzeit": "2026-10-04T07:58:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Metzingen(Württ)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4087",
+       "extId": "8004009",
+       "adminID": "SBSMEX",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bempflingen@X=9273425@Y=48572367@U=80@L=8000865@i=U×008029302@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T06:53:00",
+        "echtzeit": "2026-10-04T08:03:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T06:52:00",
+        "echtzeit": "2026-10-04T08:02:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Bempflingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "0479",
+       "extId": "8000865",
+       "adminID": "SBSMEX",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nürtingen@X=9342804@Y=48628064@U=80@L=8004488@i=U×008029299@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:00:00",
+        "echtzeit": "2026-10-04T08:10:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T06:59:00",
+        "echtzeit": "2026-10-04T08:09:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Nürtingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4612",
+       "extId": "8004488",
+       "adminID": "SBSMEX",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Oberboihingen@X=9364342@Y=48648155@U=80@L=8004517@i=U×008029298@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:03:00",
+        "echtzeit": "2026-10-04T08:14:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:02:00",
+        "echtzeit": "2026-10-04T08:13:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Oberboihingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4626",
+       "extId": "8004517",
+       "adminID": "SBSMEX",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Wendlingen(Neckar)@X=9373007@Y=48672965@U=80@L=8006331@i=U×008019638@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:07:00",
+        "echtzeit": "2026-10-04T08:18:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:06:00",
+        "echtzeit": "2026-10-04T08:17:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Wendlingen(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6671",
+       "extId": "8006331",
+       "adminID": "SBSMEX",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Plochingen@X=9410807@Y=48713084@U=80@L=8000302@i=U×008029060@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:17:00",
+        "echtzeit": "2026-10-04T08:25:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:14:00",
+        "echtzeit": "2026-10-04T08:24:00"
+       },
+       "gleis": "6",
+       "haltTyp": "PL",
+       "name": "Plochingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4967",
+       "extId": "8000302",
+       "adminID": "SBSMEX",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Esslingen(Neckar)@X=9300518@Y=48738542@U=80@L=8001920@i=U×008029055@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:24:00",
+        "echtzeit": "2026-10-04T08:32:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:23:00",
+        "echtzeit": "2026-10-04T08:31:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Esslingen(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1716",
+       "extId": "8001920",
+       "adminID": "SBSMEX",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Bad Cannstatt@X=9217530@Y=48801376@U=80@L=8005769@i=U×008029041@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:32:00",
+        "echtzeit": "2026-10-04T08:40:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:31:00",
+        "echtzeit": "2026-10-04T08:38:00"
+       },
+       "gleis": "5",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Bad Cannstatt",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6077",
+       "extId": "8005769",
+       "adminID": "SBSMEX",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T07:36:00",
+        "echtzeit": "2026-10-04T08:43:00"
+       },
+       "gleis": "8",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8000096",
+       "adminID": "SBSMEX",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266875#TA#0#DA#41026#1S#8000141#1T#633#LS#8000096#LT#736#PU#80#RT#1#CA#NRE#ZE#19306#ZB#            19306#PC#3#FR#8000141#FT#633#TO#8000096#TT#736#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRE",
+      "name": "19306",
+      "nummer": "19306",
+      "richtung": "Stuttgart Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "ZM",
+        "value": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RE",
+      "mittelText": "MEX18",
+      "langText": "MEX18 (19306)"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 0,
+   "verbindungsDauerInSeconds": 3780,
+   "ezVerbindungsDauerInSeconds": 3600,
+   "isAlternativeVerbindung": true,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-12",
+     "regular": "täglich",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA",
+      "SO"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "3be604d3_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+       "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T07:58:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000096",
+      "name": "Stuttgart Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-04T08:56:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 3480,
+     "abschnittsAnteil": 100,
+     "ankunftsOrt": "Stuttgart Hbf",
+     "ankunftsOrtExtId": "8000096",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T07:58:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T08:56:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T07:58:00"
+       },
+       "gleis": "6",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "SBSRE",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Reutlingen Hbf@X=9209116@Y=48496076@U=80@L=8000314@i=U×008029309@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:09:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:08:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Reutlingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5242",
+       "extId": "8000314",
+       "adminID": "SBSRE",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Metzingen(Württ)@X=9290154@Y=48539727@U=80@L=8004009@i=U×008029303@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:14:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Metzingen(Württ)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4087",
+       "extId": "8004009",
+       "adminID": "SBSRE",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Nürtingen@X=9342804@Y=48628064@U=80@L=8004488@i=U×008029299@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:25:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:24:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Nürtingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4612",
+       "extId": "8004488",
+       "adminID": "SBSRE",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:56:00"
+       },
+       "gleis": "13",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8000096",
+       "adminID": "SBSRE",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#267174#TA#0#DA#41026#1S#8000141#1T#758#LS#8000096#LT#856#PU#80#RT#1#CA#NRE#ZE#19380#ZB#            19380#PC#3#FR#8000141#FT#758#TO#8000096#TT#856#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRE",
+      "name": "19380",
+      "nummer": "19380",
+      "richtung": "Stuttgart Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "ZM",
+        "value": "Fahrzeuggebundene Einstiegshilfe in der Zugmitte"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RE",
+      "mittelText": "RE6",
+      "langText": "RE6 (19380)"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 0,
+   "verbindungsDauerInSeconds": 3480,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-12",
+     "regular": "täglich",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA",
+      "SO"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "bf8ebafe_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+       "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      },
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "2906",
+     "showWeitereAbfahrten": "VORLAUF",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T08:06:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000177",
+      "name": "Horb",
+      "ankunft": {
+       "sollzeit": "2026-10-04T08:38:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 1920,
+     "abschnittsAnteil": 40.51,
+     "ankunftsOrt": "Horb",
+     "ankunftsOrtExtId": "8000177",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T08:06:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T08:38:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:06:00"
+       },
+       "gleis": "12",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "800632",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kiebingen@X=8973743@Y=48479365@U=80@L=8003248@i=U×008029321@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Kiebingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "3170",
+       "extId": "8003248",
+       "adminID": "800632",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Rottenburg(Neckar)@X=8935547@Y=48472434@U=80@L=8005197@i=U×008029322@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:16:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Rottenburg(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5399",
+       "extId": "8005197",
+       "adminID": "800632",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Mühlen(b Horb)@X=8726800@Y=48449943@U=80@L=8004104@i=U×008029326@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:34:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:34:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Mühlen(b Horb)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4202",
+       "extId": "8004104",
+       "adminID": "800632",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Horb@X=8688982@Y=48441475@U=80@L=8000177@i=U×008029399@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:38:00"
+       },
+       "gleis": "5",
+       "haltTyp": "PL",
+       "name": "Horb",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2906",
+       "extId": "8000177",
+       "adminID": "800632",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266342#TA#0#DA#41026#1S#8000141#1T#806#LS#8000299#LT#1023#PU#80#RT#1#CA#NRB#ZE#17920#ZB#            17920#PC#3#FR#8000141#FT#806#TO#8000299#TT#1023#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRB",
+      "name": "17920",
+      "nummer": "17920",
+      "richtung": "Pforzheim Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EH",
+        "value": "Fahrzeuggebundene Einstiegshilfe vorhanden"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RB",
+      "mittelText": "RB74",
+      "langText": "RB74 (17920)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Die Fahrradmitnahme ist in allen IC-Zügen auf der Strecke Stuttgart Hbf, Horb, Singen(Htw) und Konstanz ausschließlich mit vorheriger kostenpflichtiger Stellplatzreservierung möglich. Die Buchung der Stellplatzreservierung ist unter bahn.de, im DB Navigator und im DB Reisezentren oder unter 030/2970 möglich (Fahrradkarte Fernverkehr).  Weitere Informationen finden Sie unter Fahrradmitnahme auf Fernverkehrsstrecken mit Nahverkehrsfreigabe.",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 5,
+       "routeIdxTo": 7,
+       "url": "https://www.bahn.de/service/individuelle-reise/fahrrad/fahrradmitnahme-nahverkehrsfreigabe"
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Die Fahrradmitnahme ist in allen IC-Zügen auf der Strecke Stuttgart Hbf, Horb, Singen(Htw) und Konstanz ausschließlich mit vorheriger kostenpflichtiger Stellplatzreservierung möglich. Die Buchung der Stellplatzreservierung ist unter bahn.de, im DB Navigator und im DB Reisezentren oder unter 030/2970 möglich (Fahrradkarte Fernverkehr).  Weitere Informationen finden Sie unter Fahrradmitnahme auf Fernverkehrsstrecken mit Nahverkehrsfreigabe.",
+       "url": "https://www.bahn.de/service/individuelle-reise/fahrrad/fahrradmitnahme-nahverkehrsfreigabe",
+       "routeIdxFrom": 5,
+       "routeIdxTo": 7
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "2906",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "abfahrtsOrt": "Horb",
+     "startHalt": {
+      "extId": "8000177",
+      "name": "Horb",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T08:45:00",
+       "echtzeit": "2026-10-04T08:47:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000096",
+      "name": "Stuttgart Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-04T09:32:00",
+       "echtzeit": "2026-10-04T09:32:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000177",
+     "abschnittsDauer": 2820,
+     "abschnittsAnteil": 59.49,
+     "ankunftsOrt": "Stuttgart Hbf",
+     "ankunftsOrtExtId": "8000096",
+     "ezAbschnittsDauerInSeconds": 2700,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T08:45:00",
+      "echtzeit": "2026-10-04T08:47:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T09:32:00",
+      "echtzeit": "2026-10-04T09:32:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Horb@X=8688982@Y=48441475@U=80@L=8000177@i=U×008029399@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:45:00",
+        "echtzeit": "2026-10-04T08:47:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Horb",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2906",
+       "extId": "8000177",
+       "adminID": "80",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Böblingen@X=9004126@Y=48687762@U=80@L=8001055@i=U×008029383@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:11:00",
+        "echtzeit": "2026-10-04T09:11:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:09:00",
+        "echtzeit": "2026-10-04T09:09:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Böblingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "0720",
+       "extId": "8001055",
+       "adminID": "80",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:32:00",
+        "echtzeit": "2026-10-04T09:32:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8000096",
+       "adminID": "80",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 1,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#388868#TA#0#DA#41026#1S#8503000#1T#637#LS#8000096#LT#932#PU#80#RT#1#CA#IC#ZE#284#ZB#IC            284#PC#1#FR#8503000#FT#637#TO#8000096#TT#932#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "EC_IC",
+      "kategorie": "ICd",
+      "name": "IC 284",
+      "nummer": "284",
+      "richtung": "Stuttgart Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Fernverkehr AG"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FR",
+        "value": "Fahrradmitnahme reservierungspflichtig",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "NJ",
+        "value": "Nahverkehrsfahrkarten werden anerkannt",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "9K",
+        "value": "Deutschlandticket gültig (ohne Mitnahmeregelung)",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "CK",
+        "value": "Komfort Check-in verfügbar - wenn möglich bitte einchecken",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "MP",
+        "value": "Snacks und Getränke am Platz",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "RZ",
+        "value": "Einstieg mit Rollstuhl stufenfrei",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "IZ",
+        "value": "Intercity 2: Info unter www.bahn.de/ic2",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       }
+      ],
+      "kurzText": "IC",
+      "mittelText": "IC 284",
+      "langText": "IC 284 / RE IC87 (50284)"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 5160,
+   "ezVerbindungsDauerInSeconds": 5160,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-10-11",
+     "regular": "nicht täglich",
+     "irregular": "4., 11. Okt",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "SO"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "37e78a1e_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F-G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte die verbleibenden Gleise. Ebenso ist der Aufzug auf Gleis 1/13 außer Betrieb. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "disruptionCommunicationId": "5f2b97fb-c2e8-45d4-9d03-0f67580125f6",
+       "parameterizedTextShort": "Andere Beeinträchtigungen durch Sonstige Qualitätsmängel",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      },
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Aufzug in Tübingen Hbf Bahnsteig 2 (Gleise 2, 3, 12 und 2 F¿G) ist aufgrund von Erneuerung außer Betrieb und der Bahnsteig ist nur über Treppen erreichbar. Für eine stufenfreie An- und Abreise nutzen Sie bitte alternative Verbindungen über die Gleise 1 oder 5. Mobilitätseingeschränkte Reisende können sich an die Mobilitätsservice-Zentrale der Deutschen Bahn wenden (Telefon: 030 65212888; E-Mail: msz@deutschebahn.com).",
+       "routeIdxFrom": 0,
+       "routeIdxTo": 0
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "2906",
+     "showWeitereAbfahrten": "VORLAUF",
+     "abfahrtsOrt": "Tübingen Hbf",
+     "startHalt": {
+      "extId": "8000141",
+      "name": "Tübingen Hbf",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T08:06:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000177",
+      "name": "Horb",
+      "ankunft": {
+       "sollzeit": "2026-10-04T08:38:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000141",
+     "abschnittsDauer": 1920,
+     "abschnittsAnteil": 40.51,
+     "ankunftsOrt": "Horb",
+     "ankunftsOrtExtId": "8000177",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T08:06:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T08:38:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Tübingen Hbf@X=9055392@Y=48515645@U=80@L=8000141@i=U×008029318@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:06:00"
+       },
+       "gleis": "12",
+       "haltTyp": "PL",
+       "name": "Tübingen Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "8000141",
+       "adminID": "800632",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kiebingen@X=8973743@Y=48479365@U=80@L=8003248@i=U×008029321@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Kiebingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "3170",
+       "extId": "8003248",
+       "adminID": "800632",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Rottenburg(Neckar)@X=8935547@Y=48472434@U=80@L=8005197@i=U×008029322@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:16:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Rottenburg(Neckar)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "5399",
+       "extId": "8005197",
+       "adminID": "800632",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Mühlen(b Horb)@X=8726800@Y=48449943@U=80@L=8004104@i=U×008029326@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:34:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:34:00"
+       },
+       "gleis": "1",
+       "haltTyp": "PL",
+       "name": "Mühlen(b Horb)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4202",
+       "extId": "8004104",
+       "adminID": "800632",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Horb@X=8688982@Y=48441475@U=80@L=8000177@i=U×008029399@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:38:00"
+       },
+       "gleis": "5",
+       "haltTyp": "PL",
+       "name": "Horb",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2906",
+       "extId": "8000177",
+       "adminID": "800632",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#266342#TA#0#DA#41026#1S#8000141#1T#806#LS#8000299#LT#1023#PU#80#RT#1#CA#NRB#ZE#17920#ZB#            17920#PC#3#FR#8000141#FT#806#TO#8000299#TT#1023#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "NRB",
+      "name": "17920",
+      "nummer": "17920",
+      "richtung": "Pforzheim Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG Baden-Württemberg"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "K2",
+        "value": "nur 2. Klasse"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "EH",
+        "value": "Fahrzeuggebundene Einstiegshilfe vorhanden"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar"
+       }
+      ],
+      "kurzText": "RB",
+      "mittelText": "RB74",
+      "langText": "RB74 (17920)"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [
+      {
+       "ueberschrift": "",
+       "text": "Die Fahrradmitnahme ist in allen RE IC87 Zügen von DB Fernverkehr auf der Strecke Stuttgart Hbf, Horb, Singen(Htw) und Konstanz ausschließlich mit vorheriger kostenpflichtiger Stellplatzreservierung möglich. Die Buchung der Stellplatzreservierung ist in DB Reisezentren oder unter 030/2970 möglich. Alternativ kann über Auswahl der zeitgleichen IC-Verbindung unter bahn.de oder im DB-Navigator eine Reservierung (Fahrradkarte Fernverkehr) erworben werden. Weitere Informationen finden Sie unter Fahrradmitnahme auf Fernverkehrsstrecken mit Nahverkehrsfreigabe.",
+       "prioritaet": "NIEDRIG",
+       "routeIdxFrom": 3,
+       "routeIdxTo": 5,
+       "url": "https://www.bahn.de/service/individuelle-reise/fahrrad/fahrradmitnahme-nahverkehrsfreigabe"
+      }
+     ],
+     "priorisierteMeldungen": [
+      {
+       "prioritaet": "NIEDRIG",
+       "text": "Die Fahrradmitnahme ist in allen RE IC87 Zügen von DB Fernverkehr auf der Strecke Stuttgart Hbf, Horb, Singen(Htw) und Konstanz ausschließlich mit vorheriger kostenpflichtiger Stellplatzreservierung möglich. Die Buchung der Stellplatzreservierung ist in DB Reisezentren oder unter 030/2970 möglich. Alternativ kann über Auswahl der zeitgleichen IC-Verbindung unter bahn.de oder im DB-Navigator eine Reservierung (Fahrradkarte Fernverkehr) erworben werden. Weitere Informationen finden Sie unter Fahrradmitnahme auf Fernverkehrsstrecken mit Nahverkehrsfreigabe.",
+       "url": "https://www.bahn.de/service/individuelle-reise/fahrrad/fahrradmitnahme-nahverkehrsfreigabe",
+       "routeIdxFrom": 3,
+       "routeIdxTo": 5
+      }
+     ],
+     "externeBahnhofsinfoIdOrigin": "2906",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "showWeitereAbfahrten": "NACHLAUF",
+     "abfahrtsOrt": "Horb",
+     "startHalt": {
+      "extId": "8000177",
+      "name": "Horb",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T08:45:00",
+       "echtzeit": "2026-10-04T08:47:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8000096",
+      "name": "Stuttgart Hbf",
+      "ankunft": {
+       "sollzeit": "2026-10-04T09:32:00",
+       "echtzeit": "2026-10-04T09:32:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8000177",
+     "abschnittsDauer": 2820,
+     "abschnittsAnteil": 59.49,
+     "ankunftsOrt": "Stuttgart Hbf",
+     "ankunftsOrtExtId": "8000096",
+     "ezAbschnittsDauerInSeconds": 2700,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T08:45:00",
+      "echtzeit": "2026-10-04T08:47:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T09:32:00",
+      "echtzeit": "2026-10-04T09:32:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Horb@X=8688982@Y=48441475@U=80@L=8000177@i=U×008029399@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:45:00",
+        "echtzeit": "2026-10-04T08:47:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Horb",
+       "risNotizen": [],
+       "bahnhofsInfoId": "2906",
+       "extId": "8000177",
+       "adminID": "NZ",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Böblingen@X=9004126@Y=48687762@U=80@L=8001055@i=U×008029383@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:11:00",
+        "echtzeit": "2026-10-04T09:11:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:09:00",
+        "echtzeit": "2026-10-04T09:09:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Böblingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "0720",
+       "extId": "8001055",
+       "adminID": "NZ",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf@X=9182760@Y=48784782@U=80@L=8000096@i=U×008029034@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:32:00",
+        "echtzeit": "2026-10-04T09:32:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8000096",
+       "adminID": "NZ",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 1,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#225929#TA#0#DA#41026#1S#8000073#1T#736#LS#8000096#LT#932#PU#80#RT#1#CA#RE#ZE#50284#ZB#RE          50284#PC#3#FR#8000073#FT#736#TO#8000096#TT#932#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "REGIONAL",
+      "kategorie": "RE",
+      "name": "RE 50284",
+      "nummer": "50284",
+      "richtung": "Stuttgart Hbf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Fernverkehr AG"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FR",
+        "value": "Fahrradmitnahme reservierungspflichtig",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "NJ",
+        "value": "Nahverkehrsfahrkarten werden anerkannt",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "9K",
+        "value": "Deutschlandticket gültig (ohne Mitnahmeregelung)",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "FO",
+        "value": "Fahrradreservierung unter 030 2970 oder in Reisezentren + DB Agenturen",
+        "teilstreckenHinweis": "(Horb - Stuttgart Hbf)"
+       }
+      ],
+      "kurzText": "RE",
+      "mittelText": "RE IC87",
+      "langText": "RE IC87 (50284) / IC 284"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 5160,
+   "ezVerbindungsDauerInSeconds": 5160,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-10-11",
+     "regular": "nicht täglich",
+     "irregular": "4., 11. Okt",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "SO"
+     ]
+    }
+   ],
+   "ereignisZusammenfassung": {
+    "prioritaet": "NIEDRIG"
+   },
+   "hasTeilpreis": false,
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  },
+  {
+   "tripId": "567b7935_3",
+   "verbindungsAbschnitte": [
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "6279",
+     "externeBahnhofsinfoIdDestination": "1451",
+     "showWeitereAbfahrten": "VORLAUF",
+     "abfahrtsOrt": "Hauptbahnhof, Tübingen",
+     "startHalt": {
+      "extId": "752100",
+      "name": "Hauptbahnhof, Tübingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T08:12:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "561413",
+      "name": "Echterdingen Bahnhof, Leinfelden-Echterdingen",
+      "ankunft": {
+       "sollzeit": "2026-10-04T09:03:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "752100",
+     "abschnittsDauer": 3060,
+     "abschnittsAnteil": 64.56,
+     "ankunftsOrt": "Echterdingen Bahnhof, Leinfelden-Echterdingen",
+     "ankunftsOrtExtId": "561413",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T08:12:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T09:03:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Hauptbahnhof, Tübingen@X=9056003@Y=48516706@U=80@L=752100@i=U×008099041@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:12:00"
+       },
+       "name": "Hauptbahnhof, Tübingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6279",
+       "extId": "752100",
+       "adminID": "rbgFMO",
+       "routeIdx": 0,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Wilhelmstraße, Tübingen@X=9058529@Y=48522666@U=80@L=752076@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:15:00"
+       },
+       "name": "Wilhelmstraße, Tübingen",
+       "risNotizen": [],
+       "extId": "752076",
+       "adminID": "rbgFMO",
+       "routeIdx": 1,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Uni/Neue Aula, Tübingen@X=9060264@Y=48524643@U=80@L=752135@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:16:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:16:00"
+       },
+       "name": "Uni/Neue Aula, Tübingen",
+       "risNotizen": [],
+       "extId": "752135",
+       "adminID": "rbgFMO",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Pauline-Krone-Heim, Tübingen@X=9066844@Y=48530415@U=80@L=751480@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:18:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:18:00"
+       },
+       "name": "Pauline-Krone-Heim, Tübingen",
+       "risNotizen": [],
+       "extId": "751480",
+       "adminID": "rbgFMO",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgarter Straße, Tübingen@X=9076903@Y=48531259@U=80@L=752115@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:20:00"
+       },
+       "name": "Stuttgarter Straße, Tübingen",
+       "risNotizen": [],
+       "extId": "752115",
+       "adminID": "rbgFMO",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bebenhausen Waldhorn, Tübingen@X=9062898@Y=48560600@U=80@L=750194@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:24:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:24:00"
+       },
+       "name": "Bebenhausen Waldhorn, Tübingen",
+       "risNotizen": [],
+       "extId": "750194",
+       "adminID": "rbgFMO",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kälberstelle, Weil im Schönbuch@X=9074961@Y=48593060@U=80@L=561893@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:29:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:29:00"
+       },
+       "name": "Kälberstelle, Weil im Schönbuch",
+       "risNotizen": [],
+       "extId": "561893",
+       "adminID": "rbgFMO",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Tübinger Straße, Dettenhausen@X=9097740@Y=48605016@U=80@L=555198@i=U×028002353@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:32:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:32:00"
+       },
+       "name": "Tübinger Straße, Dettenhausen",
+       "risNotizen": [],
+       "extId": "555198",
+       "adminID": "rbgFMO",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Alte Post, Dettenhausen@X=9101165@Y=48607659@U=80@L=555861@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:33:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:33:00"
+       },
+       "name": "Alte Post, Dettenhausen",
+       "risNotizen": [],
+       "extId": "555861",
+       "adminID": "rbgFMO",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Bonholz, Waldenbuch@X=9131926@Y=48628622@U=80@L=422905@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:37:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:37:00"
+       },
+       "name": "Bonholz, Waldenbuch",
+       "risNotizen": [],
+       "extId": "422905",
+       "adminID": "rbgFMO",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Schloss, Waldenbuch@X=9129804@Y=48638150@U=80@L=562160@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:43:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:39:00"
+       },
+       "name": "Schloss, Waldenbuch",
+       "risNotizen": [],
+       "extId": "562160",
+       "adminID": "rbgFMO",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Goldäcker, Steinenbronn@X=9125948@Y=48668776@U=80@L=559102@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:49:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:49:00"
+       },
+       "name": "Goldäcker, Steinenbronn",
+       "risNotizen": [],
+       "extId": "559102",
+       "adminID": "rbgFMO",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Seebruckenmühle, Leinfelden-Echterdingen@X=9127422@Y=48678512@U=80@L=561269@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:51:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:51:00"
+       },
+       "name": "Seebruckenmühle, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "extId": "561269",
+       "adminID": "rbgFMO",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Sportzentrum, Leinfelden-Echterdingen@X=9142596@Y=48687007@U=80@L=557394@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:54:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:54:00"
+       },
+       "name": "Sportzentrum, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "extId": "557394",
+       "adminID": "rbgFMO",
+       "routeIdx": 13,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Kelterrain, Leinfelden-Echterdingen@X=9150264@Y=48684364@U=80@L=556015@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:55:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:55:00"
+       },
+       "name": "Kelterrain, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "extId": "556015",
+       "adminID": "rbgFMO",
+       "routeIdx": 14,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Tübinger Straße, Leinfelden-Echterdingen@X=9161266@Y=48683420@U=80@L=555999@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:56:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:56:00"
+       },
+       "name": "Tübinger Straße, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "extId": "555999",
+       "adminID": "rbgFMO",
+       "routeIdx": 15,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Echterdingen Waldhornstraße, Leinfelden-Echterding@X=9166184@Y=48685128@U=80@L=555654@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:57:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:57:00"
+       },
+       "name": "Echterdingen Waldhornstraße, Leinfelden-Echterding",
+       "risNotizen": [],
+       "extId": "555654",
+       "adminID": "rbgFMO",
+       "routeIdx": 16,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Echterdingen Hirschstraße, Leinfelden-Echterdingen@X=9166885@Y=48687771@U=80@L=561416@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T08:59:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T08:59:00"
+       },
+       "name": "Echterdingen Hirschstraße, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "extId": "561416",
+       "adminID": "rbgFMO",
+       "routeIdx": 17,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Echterdingen Bahnhof, Leinfelden-Echterdingen@X=9168314@Y=48692328@U=80@L=561413@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:03:00"
+       },
+       "name": "Echterdingen Bahnhof, Leinfelden-Echterdingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1451",
+       "extId": "561413",
+       "adminID": "rbgFMO",
+       "routeIdx": 18,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 0,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#885411#TA#1#DA#41026#1S#752100#1T#812#LS#422028#LT#911#PU#80#RT#1#CA#Bus#ZE#X82#ZB#Bus           X82#PC#5#FR#752100#FT#812#TO#422028#TT#911#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "BUS",
+      "kategorie": "Bus",
+      "linienNummer": "X82",
+      "name": "Bus X82",
+      "nummer": "X82",
+      "richtung": "Stuttgart Flughafen/Messe (SAB), Leinfelden-Echter",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "Friedrich Müller Omnibusunternehmen GmbH"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "bg",
+        "value": "Behindertengerechtes Fahrzeug"
+       }
+      ],
+      "kurzText": "Bus",
+      "mittelText": "Bus X82",
+      "langText": "Bus X82"
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1451",
+     "externeBahnhofsinfoIdDestination": "1451",
+     "abfahrtsOrt": "Echterdingen Bahnhof, Leinfelden-Echterdingen",
+     "startHalt": {
+      "extId": "561413",
+      "name": "Echterdingen Bahnhof, Leinfelden-Echterdingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T09:03:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8001650",
+      "name": "Echterdingen",
+      "ankunft": {
+       "sollzeit": "2026-10-04T09:06:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "561413",
+     "abschnittsDauer": 180,
+     "abschnittsAnteil": 3.8,
+     "ankunftsOrt": "Echterdingen",
+     "ankunftsOrtExtId": "8001650",
+     "distanz": 66,
+     "abfahrt": {
+      "sollzeit": "2026-10-04T09:03:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T09:06:00"
+     },
+     "halte": [],
+     "idx": 1,
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "name": "Fußweg",
+      "typ": "WALK",
+      "zugattribute": []
+     }
+    },
+    {
+     "risNotizen": [],
+     "himMeldungen": [],
+     "priorisierteMeldungen": [],
+     "externeBahnhofsinfoIdOrigin": "1451",
+     "externeBahnhofsinfoIdDestination": "6071",
+     "showWeitereAbfahrten": "NACHLAUF",
+     "abfahrtsOrt": "Echterdingen",
+     "startHalt": {
+      "extId": "8001650",
+      "name": "Echterdingen",
+      "abfahrt": {
+       "sollzeit": "2026-10-04T09:10:00"
+      }
+     },
+     "zielHalt": {
+      "extId": "8098096",
+      "name": "Stuttgart Hbf (tief)",
+      "ankunft": {
+       "sollzeit": "2026-10-04T09:35:00"
+      }
+     },
+     "destinationCancelled": false,
+     "originCancelled": false,
+     "abfahrtsOrtExtId": "8001650",
+     "abschnittsDauer": 1500,
+     "abschnittsAnteil": 31.65,
+     "ankunftsOrt": "Stuttgart Hbf (tief)",
+     "ankunftsOrtExtId": "8098096",
+     "abfahrt": {
+      "sollzeit": "2026-10-04T09:10:00"
+     },
+     "ankunft": {
+      "sollzeit": "2026-10-04T09:35:00"
+     },
+     "halte": [
+      {
+       "id": "A=1@O=Echterdingen@X=9169168@Y=48692148@U=80@L=8001650@i=U×008029724@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:10:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Echterdingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "1451",
+       "extId": "8001650",
+       "adminID": "800643",
+       "routeIdx": 2,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Leinfelden@X=9142866@Y=48696508@U=80@L=8003622@i=U×008029369@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:13:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:12:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Leinfelden",
+       "risNotizen": [],
+       "bahnhofsInfoId": "3626",
+       "extId": "8003622",
+       "adminID": "800643",
+       "routeIdx": 3,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Oberaichen@X=9127332@Y=48705192@U=80@L=8004496@i=U×008029789@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:15:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:15:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Oberaichen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "4617",
+       "extId": "8004496",
+       "adminID": "800643",
+       "routeIdx": 4,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Rohr@X=9108329@Y=48717903@U=80@L=8005773@i=U×008029381@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:18:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:17:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Rohr",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6082",
+       "extId": "8005773",
+       "adminID": "800643",
+       "routeIdx": 5,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Vaihingen@X=9113228@Y=48726280@U=80@L=8005776@i=U×008029367@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:20:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:20:00"
+       },
+       "gleis": "3",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Vaihingen",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6087",
+       "extId": "8005776",
+       "adminID": "800643",
+       "routeIdx": 6,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart-Österfeld@X=9116770@Y=48737652@U=80@L=8005779@i=U×008029044@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:22:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:22:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart-Österfeld",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6075",
+       "extId": "8005779",
+       "adminID": "800643",
+       "routeIdx": 7,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Universität@X=9105399@Y=48745841@U=80@L=8006513@i=U×008029723@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:24:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:24:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Universität",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6076",
+       "extId": "8006513",
+       "adminID": "800643",
+       "routeIdx": 8,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Schwabstr.@X=9156961@Y=48770256@U=80@L=8006698@i=U×008029373@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:30:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:30:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Schwabstr.",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6083",
+       "extId": "8006698",
+       "adminID": "800643",
+       "routeIdx": 9,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Feuersee@X=9166273@Y=48772764@U=80@L=8006699@i=U×008029374@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:32:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:31:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Feuersee",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6079",
+       "extId": "8006699",
+       "adminID": "800643",
+       "routeIdx": 10,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Stadtmitte@X=9172925@Y=48776225@U=80@L=8006700@i=U×008029375@",
+       "abfahrt": {
+        "sollzeit": "2026-10-04T09:33:00"
+       },
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:33:00"
+       },
+       "gleis": "2",
+       "haltTyp": "PL",
+       "name": "Stuttgart Stadtmitte",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6085",
+       "extId": "8006700",
+       "adminID": "800643",
+       "routeIdx": 11,
+       "priorisierteMeldungen": []
+      },
+      {
+       "id": "A=1@O=Stuttgart Hbf (tief)@X=9179811@Y=48783002@U=80@L=8098096@i=U×008029376@",
+       "ankunft": {
+        "sollzeit": "2026-10-04T09:35:00"
+       },
+       "gleis": "102",
+       "haltTyp": "PL",
+       "name": "Stuttgart Hbf (tief)",
+       "risNotizen": [],
+       "bahnhofsInfoId": "6071",
+       "extId": "8098096",
+       "adminID": "800643",
+       "routeIdx": 12,
+       "priorisierteMeldungen": []
+      }
+     ],
+     "idx": 2,
+     "journeyId": "2|#VN#1#ST#1790795983#PI#0#ZI#356298#TA#2#DA#41026#1S#8001984#1T#903#LS#8005424#LT#1010#PU#80#RT#1#CA#DBS#ZE#S2#ZB#               S2#PC#4#FR#8001984#FT#903#TO#8005424#TT#1010#",
+     "samePlatform": false,
+     "verkehrsmittel": {
+      "produktGattung": "SBAHN",
+      "kategorie": "DBS",
+      "linienNummer": "S2",
+      "name": "S2",
+      "nummer": "S2",
+      "richtung": "Schorndorf",
+      "typ": "PUBLICTRANSPORT",
+      "zugattribute": [
+       {
+        "kategorie": "BEFÖRDERER",
+        "key": "BEF",
+        "value": "DB Regio AG S-Bahn Stuttgart"
+       },
+       {
+        "kategorie": "FAHRRADMITNAHME",
+        "key": "FB",
+        "value": "Fahrradmitnahme begrenzt möglich",
+        "teilstreckenHinweis": "(Echterdingen - Stuttgart Hbf (tief))"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "ZB",
+        "value": "Fahrzeuggebundene Einstiegshilfe am Zuganfang",
+        "teilstreckenHinweis": "(Echterdingen - Stuttgart Hbf (tief))"
+       },
+       {
+        "kategorie": "INFORMATION",
+        "key": "WV",
+        "value": "WLAN verfügbar",
+        "teilstreckenHinweis": "(Echterdingen - Stuttgart Hbf (tief))"
+       }
+      ],
+      "kurzText": "S",
+      "mittelText": "S2",
+      "langText": "S2"
+     }
+    }
+   ],
+   "umstiegsAnzahl": 1,
+   "verbindungsDauerInSeconds": 4980,
+   "isAlternativeVerbindung": false,
+   "risNotizen": [],
+   "priorisierteMeldungen": [],
+   "isAngebotseinholungNachgelagert": false,
+   "isAlterseingabeErforderlich": false,
+   "serviceDays": [
+    {
+     "lastDateInPeriod": "2026-12-12",
+     "regular": "täglich",
+     "planningPeriodBegin": "2025-12-14",
+     "planningPeriodEnd": "2026-12-12",
+     "weekdays": [
+      "MO",
+      "DI",
+      "MI",
+      "DO",
+      "FR",
+      "SA",
+      "SO"
+     ]
+    }
+   ],
+   "hasTeilpreis": false,
+   "verbundCode": "",
+   "unvollstaendigeAngeboteMeldung": "Momentan stehen noch nicht alle Angebote unserer Tarifpartner zur Verfügung.",
+   "hinRueckPauschalpreis": false,
+   "isReservierungAusserhalbVorverkaufszeitraum": false
+  }
+ ]
+}

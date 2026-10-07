@@ -1,0 +1,17 @@
+# SearXNG for the web sandbox when no Brave key is configured: the upstream image plus the lockdown entrypoint.
+# Every engine request goes through the egress proxy (settings.yml). No package installs.
+ARG GO_IMAGE=docker.io/library/golang:1.24-alpine
+ARG SEARXNG_IMAGE=docker.io/searxng/searxng:latest
+FROM ${GO_IMAGE} AS build
+WORKDIR /src
+COPY go.mod ./
+COPY lockdown/*.go ./lockdown/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/lockdown ./lockdown
+
+FROM ${SEARXNG_IMAGE}
+USER root
+# IPv6 is off in the VM (lockdown), so listen on IPv4
+ENV GRANIAN_HOST=0.0.0.0
+COPY --from=build /out/lockdown /opt/mlxlab/lockdown
+COPY searxng/settings.yml /opt/mlxlab/settings.yml
+ENTRYPOINT ["/opt/mlxlab/lockdown", "searxng", "--", "/usr/local/searxng/entrypoint.sh"]

@@ -1,0 +1,132 @@
+{
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "stack_items",
+    "description": "Stack notes — neatly.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "ids": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "gap": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "ids"
+     ]
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "create_items",
+    "description": "Create items",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "text": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  }
+ ],
+ "messages": [
+  {
+   "role": "system",
+   "content": "You are the local AI of Ada.\nBoard „Retro“ (3 items)."
+  },
+  {
+   "role": "user",
+   "content": "Hi"
+  },
+  {
+   "role": "assistant",
+   "content": "Hello! How can I help?"
+  },
+  {
+   "role": "user",
+   "content": "stack these two"
+  },
+  {
+   "role": "assistant",
+   "content": "",
+   "tool_calls": [
+    {
+     "id": "c1",
+     "type": "function",
+     "function": {
+      "name": "stack_items",
+      "arguments": {
+       "ids": [
+        "a",
+        "b"
+       ],
+       "gap": 10
+      }
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "c1",
+   "content": "stacked 2 items"
+  },
+  {
+   "role": "assistant",
+   "content": "Let me also add a note.",
+   "tool_calls": [
+    {
+     "id": "c2",
+     "type": "function",
+     "function": {
+      "name": "create_items",
+      "arguments": {
+       "text": "Done\nmultiline"
+      }
+     }
+    },
+    {
+     "id": "c3",
+     "type": "function",
+     "function": {
+      "name": "stack_items",
+      "arguments": {
+       "ids": [
+        "x"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "c2",
+   "content": "created 1"
+  },
+  {
+   "role": "tool",
+   "tool_call_id": "c3",
+   "content": "stacked 1"
+  }
+ ],
+ "rendered": {
+  "qwen35_nothink": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"stack_items\", \"description\": \"Stack notes — neatly.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"gap\": {\"type\": \"number\"}}, \"required\": [\"ids\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"create_items\", \"description\": \"Create items\", \"parameters\": {\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT>\n\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).<|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\nHello! How can I help?<|im_end|>\n<|im_start|>user\nstack these two<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n<tool_call>\n<function=stack_items>\n<parameter=ids>\n[\"a\", \"b\"]\n</parameter>\n<parameter=gap>\n10\n</parameter>\n</function>\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\nstacked 2 items\n</tool_response><|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nLet me also add a note.\n\n<tool_call>\n<function=create_items>\n<parameter=text>\nDone\nmultiline\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=stack_items>\n<parameter=ids>\n[\"x\"]\n</parameter>\n</function>\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\ncreated 1\n</tool_response>\n<tool_response>\nstacked 1\n</tool_response><|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "qwen35_think": "<|im_start|>system\n# Tools\n\nYou have access to the following functions:\n\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"stack_items\", \"description\": \"Stack notes — neatly.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"gap\": {\"type\": \"number\"}}, \"required\": [\"ids\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"create_items\", \"description\": \"Create items\", \"parameters\": {\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}}}}\n</tools>\n\nIf you choose to call a function ONLY reply in the following format with NO suffix:\n\n<tool_call>\n<function=example_function_name>\n<parameter=example_parameter_1>\nvalue_1\n</parameter>\n<parameter=example_parameter_2>\nThis is the value for the second parameter\nthat can span\nmultiple lines\n</parameter>\n</function>\n</tool_call>\n\n<IMPORTANT>\nReminder:\n- Function calls MUST follow the specified format: an inner <function=...></function> block must be nested within <tool_call></tool_call> XML tags\n- Required parameters MUST be specified\n- You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after\n- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls\n</IMPORTANT>\n\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).<|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\nHello! How can I help?<|im_end|>\n<|im_start|>user\nstack these two<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n<tool_call>\n<function=stack_items>\n<parameter=ids>\n[\"a\", \"b\"]\n</parameter>\n<parameter=gap>\n10\n</parameter>\n</function>\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\nstacked 2 items\n</tool_response><|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nLet me also add a note.\n\n<tool_call>\n<function=create_items>\n<parameter=text>\nDone\nmultiline\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=stack_items>\n<parameter=ids>\n[\"x\"]\n</parameter>\n</function>\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\ncreated 1\n</tool_response>\n<tool_response>\nstacked 1\n</tool_response><|im_end|>\n<|im_start|>assistant\n<think>\n",
+  "qwen35_notools": "<|im_start|>system\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).<|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "qwen3_nothink": "<|im_start|>system\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"stack_items\", \"description\": \"Stack notes — neatly.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"gap\": {\"type\": \"number\"}}, \"required\": [\"ids\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"create_items\", \"description\": \"Create items\", \"parameters\": {\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}}}}\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call><|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\nHello! How can I help?<|im_end|>\n<|im_start|>user\nstack these two<|im_end|>\n<|im_start|>assistant\n<tool_call>\n{\"name\": \"stack_items\", \"arguments\": {\"ids\": [\"a\", \"b\"], \"gap\": 10}}\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\nstacked 2 items\n</tool_response><|im_end|>\n<|im_start|>assistant\nLet me also add a note.\n<tool_call>\n{\"name\": \"create_items\", \"arguments\": {\"text\": \"Done\\nmultiline\"}}\n</tool_call>\n<tool_call>\n{\"name\": \"stack_items\", \"arguments\": {\"ids\": [\"x\"]}}\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\ncreated 1\n</tool_response>\n<tool_response>\nstacked 1\n</tool_response><|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "qwen3_think": "<|im_start|>system\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{\"type\": \"function\", \"function\": {\"name\": \"stack_items\", \"description\": \"Stack notes — neatly.\", \"parameters\": {\"type\": \"object\", \"properties\": {\"ids\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"gap\": {\"type\": \"number\"}}, \"required\": [\"ids\"]}}}\n{\"type\": \"function\", \"function\": {\"name\": \"create_items\", \"description\": \"Create items\", \"parameters\": {\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}}}}\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call><|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\nHello! How can I help?<|im_end|>\n<|im_start|>user\nstack these two<|im_end|>\n<|im_start|>assistant\n<tool_call>\n{\"name\": \"stack_items\", \"arguments\": {\"ids\": [\"a\", \"b\"], \"gap\": 10}}\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\nstacked 2 items\n</tool_response><|im_end|>\n<|im_start|>assistant\nLet me also add a note.\n<tool_call>\n{\"name\": \"create_items\", \"arguments\": {\"text\": \"Done\\nmultiline\"}}\n</tool_call>\n<tool_call>\n{\"name\": \"stack_items\", \"arguments\": {\"ids\": [\"x\"]}}\n</tool_call><|im_end|>\n<|im_start|>user\n<tool_response>\ncreated 1\n</tool_response>\n<tool_response>\nstacked 1\n</tool_response><|im_end|>\n<|im_start|>assistant\n",
+  "qwen3_notools": "<|im_start|>system\nYou are the local AI of Ada.\nBoard „Retro“ (3 items).<|im_end|>\n<|im_start|>user\nHi<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+ }
+}
