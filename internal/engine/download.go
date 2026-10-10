@@ -90,11 +90,16 @@ type Downloads struct {
 	// Changed is told the new state of a download (nil: nobody); a download's progress tells it often.
 	Changed func(DownloadState)
 
-	mu     sync.Mutex
-	runs   map[string]*download // by model id: the newest download of each
-	queue  []*download
-	wake   chan struct{}
-	once   sync.Once
+	mu    sync.Mutex
+	runs  map[string]*download // by model id: the newest download of each
+	queue []*download
+	wake  chan struct{}
+	once  sync.Once
+
+	// the states for Changed, in the order they happened (one goroutine delivers them)
+	noteMu sync.Mutex
+	notes  []DownloadState
+	noting bool
 	access map[string]accessSeen
 }
 
@@ -406,10 +411,34 @@ func (d *Downloads) Access(ctx context.Context, m *Model, fresh bool) string {
 	return a
 }
 
+// changed queues a state for Changed. One goroutine at a time delivers the queue, so Changed hears the states in the
+// order they happened (queued before downloading) without anyone waiting for it.
 func (d *Downloads) changed(st DownloadState) {
-	if d.Changed != nil {
-		d.Changed(st)
+	if d.Changed == nil {
+		return
 	}
+	d.noteMu.Lock()
+	d.notes = append(d.notes, st)
+	if d.noting {
+		d.noteMu.Unlock()
+		return
+	}
+	d.noting = true
+	d.noteMu.Unlock()
+	go func() {
+		for {
+			d.noteMu.Lock()
+			if len(d.notes) == 0 {
+				d.noting = false
+				d.noteMu.Unlock()
+				return
+			}
+			next := d.notes[0]
+			d.notes = d.notes[1:]
+			d.noteMu.Unlock()
+			d.Changed(next)
+		}
+	}()
 }
 
 func (d *Downloads) find(id string) *Model {
@@ -466,7 +495,7 @@ func (d *Downloads) Start(id string, mem int64) (DownloadState, error) {
 	case d.wake <- struct{}{}:
 	default:
 	}
-	go d.changed(r.st)
+	d.changed(r.st)
 	return r.st, nil
 }
 
@@ -511,9 +540,8 @@ func (d *Downloads) Cancel(id string) bool {
 			}
 		}
 	}
-	st := r.st
+	d.changed(r.st)
 	d.mu.Unlock()
-	go d.changed(st)
 	return true
 }
 
@@ -537,9 +565,8 @@ func (d *Downloads) loop() {
 func (d *Downloads) set(r *download, f func(st *DownloadState)) {
 	d.mu.Lock()
 	f(&r.st)
-	st := r.st
+	d.changed(r.st) // queued under the lock: in the order the states were set
 	d.mu.Unlock()
-	d.changed(st)
 }
 
 // run does one download: the access to a gated model, the files (with the disk checked first), their check, the
