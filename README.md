@@ -139,6 +139,13 @@ The server ships as the image `pharndt/ai-connector-server` (linux/arm64 + amd64
 its own release next to the mlxlab hub (`make deploy`). First install, values, upgrading, workers and backups:
 [docs/deploy.md](docs/deploy.md).
 
+### Locally, with vboard
+
+`make local-up` runs the server, this Mac as its worker (own config and state, the model store shared with
+`~/.config/mlxlab`), a vboard from `~/dev/vboard` and a connector whose agents (a local Qwen, Claude Code) appear in
+vboard's chat panel; `make local-down` stops it, the data stays in `~/.local/share/ai-connector-local`.
+[docs/local.md](docs/local.md).
+
 ---
 
 # mlxlab — local AI models on a Mac
@@ -242,7 +249,7 @@ Pi): `--config <file>` (`$MLXLAB_WORKER_CONFIG`) keeps its hub and token in anot
 `--state <dir>` (`$MLXLAB_STATE`) its own jobs (`history.json`, `outputs/`), prompts, `approvals.json` and Claude Code
 sessions (`agents/`, `agents.json`). The models, `envs/`, `lib/`, `tools/`, `mcp.json`, the voices and trained styles
 stay shared in `~/.config/mlxlab` — nothing is downloaded twice. Defaults: `worker.json` and the config dir itself, as
-before.
+before. `make local-up` runs such a second worker ([docs/local.md](docs/local.md)).
 
 ## iOS app
 

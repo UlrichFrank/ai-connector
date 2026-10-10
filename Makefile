@@ -191,3 +191,16 @@ sandbox-firewall-status:
 # the isolation check against the real sandbox (starts it, probes from inside every VM, stops it)
 sandbox-check:
 	go test -tags sandbox -v -count=1 -timeout 30m -run TestIsolation ./internal/sandbox/web
+
+# ---------- the local integration: server, this Mac as worker, a local vboard, the connector (docs/local.md) ----------
+.PHONY: local-up local-down local-status local-logs local-open
+local-up:
+	deploy/local/local.sh up
+local-down:
+	deploy/local/local.sh down
+local-status:
+	deploy/local/local.sh status
+local-logs:
+	deploy/local/local.sh logs
+local-open:
+	deploy/local/local.sh open
