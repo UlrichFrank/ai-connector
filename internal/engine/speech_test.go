@@ -138,7 +138,7 @@ func TestSpeechCatalog(t *testing.T) {
 	if _, ok := presets["qwen3-asr"]; ok {
 		t.Error("the transcriber has no voices")
 	}
-	if len(presets["voxtral-tts"]) != 20 || len(presets["qwen3-tts-1.7b"]) != 9 {
+	if len(presets["voxtral-tts"]) != 20 || len(presets["qwen3-tts-1.7b"]) != 9 || len(presets["kokoro-82m"]) != 49 {
 		t.Errorf("presets %v", presets)
 	}
 	for _, m := range speechModels() {
@@ -169,6 +169,7 @@ func TestSpeechCatalog(t *testing.T) {
 		"voxcpm2":        "clone,design,instruct,speed",
 		"higgs-audio-v3": "clone,instruct,speed",
 		"voxtral-tts":    "presets,speed,language",
+		"kokoro-82m":     "presets,speed,language",
 		"qwen3-asr":      "transcribe",
 	} {
 		if tasks[id] != want {

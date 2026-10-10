@@ -18,6 +18,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/philipparndt/ai-connector/internal/audio"
 	"github.com/philipparndt/ai-connector/internal/models"
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
@@ -34,6 +35,11 @@ var SpeechEnv = pyenv.Env{Name: "speech", Python: "3.12", Packages: []string{
 	"mlx==0.32.3", "numpy==2.3.5", "transformers==5.18.0", // numpy < 2.4: mistral-common
 	"mistral-common[audio]==1.12.0", // Voxtral's tekken.json (voice_num_audio_tokens) needs ≥ 1.12
 	"torch==2.14.1",                 // Higgs v3: its codec's bf16 weights are read through PyTorch (CPU, at load)
+	// Kokoro's G2P: misaki (English with spaCy's small model, pinned here so it is not fetched at run time; Chinese;
+	// espeak-ng for es/fr/it/pt/hi comes as a library inside espeakng-loader's wheel — nothing to install on the
+	// system). Not Japanese: misaki[ja] builds pyopenjtalk from source and needs unidic's 500 MB dictionary.
+	"misaki[en,zh]==0.9.4",
+	"en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
 }}
 
 // speechFamily is what a model family can do with a request; see speechFamilies.
@@ -45,6 +51,8 @@ type speechFamily struct {
 	speed    bool                     // honours speed itself (else the wav is time-stretched afterwards, pitch kept)
 	langs    []string                 // languages it needs to be told (nil: it detects them)
 	honoured string                   // what of the request it honours, for the model's "about"
+	words    bool                     // it gives word timings (Kokoro, English)
+	speaks   []string                 // the languages it speaks when it is not told them (langs) — nil: many, it detects
 }
 
 var qwenPresets = []string{"Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"}
@@ -53,12 +61,43 @@ var voxtralPresets = []string{"casual_male", "casual_female", "cheerful_female",
 	"fr_male", "fr_female", "es_male", "es_female", "de_male", "de_female", "it_male", "it_female", "pt_male",
 	"pt_female", "nl_male", "nl_female", "ar_male", "hi_male", "hi_female"}
 
+// kokoroVoices are Kokoro v1.0's voices (voices/*.safetensors of the weights), Japanese left out (see SpeechEnv).
+// The first letter is the language, the second f(emale) or m(ale).
+var kokoroVoices = []string{"af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole",
+	"af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
+	"am_onyx", "am_puck", "am_santa", "bf_alice", "bf_emma", "bf_isabella", "bf_lily", "bm_daniel", "bm_fable",
+	"bm_george", "bm_lewis", "ef_dora", "em_alex", "em_santa", "ff_siwis", "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
+	"if_sara", "im_nicola", "pf_dora", "pm_alex", "pm_santa", "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
+	"zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang"}
+
+// kokoroLangs: Kokoro's voice prefixes as languages (a American, b British English).
+var kokoroLangs = map[byte]string{'a': "en", 'b': "en", 'e': "es", 'f': "fr", 'h': "hi", 'i': "it", 'p': "pt", 'z': "zh"}
+
+// kokoroLanguage is a Kokoro voice's language, and whether it is British English.
+func kokoroLanguage(voice string) (string, bool) {
+	if voice == "" {
+		return "", false
+	}
+	return kokoroLangs[voice[0]], voice[0] == 'b'
+}
+
 // speechFamilies: the worker's model families (Model.workerModel).
 var speechFamilies = map[string]*speechFamily{
+	// Kokoro 82M: 49 preset voices in 7 languages (the voice's prefix); fast, small. Speed is its own; no instruct,
+	// no cloning. English gives word timings.
+	"kokoro": {presets: kokoroVoices, preset: func(lang string) string {
+		if v, ok := map[string]string{"es": "ef_dora", "fr": "ff_siwis", "hi": "hf_alpha", "it": "if_sara", "pt": "pf_dora",
+			"zh": "zf_xiaobei"}[lang]; ok {
+			return v
+		}
+		return "af_heart"
+	}, speed: true, langs: []string{"en", "es", "fr", "it", "pt", "hi", "zh"}, words: true,
+		honoured: "49 preset voices in 7 languages (the voice sets the language), speed, word timings (English)"},
 	// Qwen3-TTS: CustomVoice speaks the presets and follows instruct; Base clones (sample + transcript); VoiceDesign
 	// makes a voice from its description. Language is passed (10 languages, German among them); speed by stretching.
 	"qwen3-tts": {presets: qwenPresets, preset: func(string) string { return "Ryan" }, clone: true, design: true,
-		honoured: "presets with instruct (emotion, style), cloning, voice design (1.7B), language"},
+		honoured: "presets with instruct (emotion, style), cloning, voice design (1.7B), language",
+		speaks:   []string{"zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"}},
 	// Chatterbox Multilingual v3: one default voice (Resemble's), clones from a sample; instruct sets the emotion
 	// exaggeration (a number 0–2, or words: calm … dramatic). Needs the language (23).
 	"chatterbox": {presets: []string{"default"}, preset: func(string) string { return "default" }, clone: true,
@@ -80,7 +119,8 @@ var speechFamilies = map[string]*speechFamily{
 			return "ar_male"
 		}
 		return "neutral_female"
-	}, honoured: "presets (the language picks the default one)"},
+	}, honoured: "presets (the language picks the default one)",
+		speaks: []string{"en", "fr", "es", "de", "it", "pt", "nl", "ar", "hi"}},
 	"asr": {},
 }
 
@@ -112,6 +152,11 @@ var asrRepo = hubRepo{key: "asr", repo: "mlx-community/Qwen3-ASR-1.7B-8bit", rev
 func speechModels() []*Model {
 	d := Request{Speed: 1}
 	ms := []*Model{
+		{ID: "kokoro-82m", Name: "Kokoro 82M", Kind: Speech, Backend: "speech", workerModel: "kokoro",
+			repos: []hubRepo{{key: "model", repo: "mlx-community/Kokoro-82M-bf16", rev: "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
+				include: []string{"config.json", "kokoro-v1_0.safetensors", "voices/*.safetensors"}}},
+			Licence: "Apache-2.0", Size: 339 << 20, Defaults: d,
+			About: "hexgrad's Kokoro 82M (bf16): small and fast, 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi and Chinese — no German; word timings for English"},
 		{ID: "qwen3-tts-1.7b", Name: "Qwen3-TTS 1.7B", Kind: Speech, Backend: "speech", workerModel: "qwen3-tts",
 			repos:   qwenRepos("1.7B", "52f4770fd9726457eae3d3b6aa92047a25a10776", "a6eb4f68e4b056f1215157bb696209bc82a6db48", "7d3824abff87e49756bb0f83fb5411de75d160c4"),
 			Licence: "Apache-2.0", Size: 12 * gb, Defaults: d,
@@ -147,6 +192,7 @@ func speechModels() []*Model {
 	}
 	for _, m := range ms {
 		m.Tasks = speechTasks(m)
+		m.Audio = speechCaps(m)
 	}
 	return ms
 }
@@ -168,11 +214,11 @@ func speechTasks(m *Model) []string {
 	if len(f.presets) > 0 {
 		t = append(t, "presets")
 	}
-	if m.workerModel != "voxtral" { // Voxtral has no instruction; the others take it (see speechFamilies)
+	if m.workerModel != "voxtral" && m.workerModel != "kokoro" { // no instruction; the others take it (see speechFamilies)
 		t = append(t, "instruct")
 	}
-	t = append(t, "speed") // the model's own (Higgs) or by time-stretching
-	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" {
+	t = append(t, "speed") // the model's own (Higgs, Kokoro) or by time-stretching
+	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" || m.workerModel == "kokoro" {
 		t = append(t, "language") // told the language (Voxtral: it picks the default preset)
 	}
 	return t
@@ -222,6 +268,10 @@ type SpeechBackend struct {
 	Catalog *Catalog   // Speak looks its model up here
 	Voices  VoiceStore // the voice library (nil: presets only)
 
+	// tests: a fake runtime, and the repositories' folders without fetching
+	env   *pyenv.Env
+	fetch func(ctx context.Context, name string, hr hubRepo, emit Emit) (string, error)
+
 	mu    sync.Mutex
 	w     *pyWorker
 	state status
@@ -267,11 +317,36 @@ func (b *SpeechBackend) Run(ctx context.Context, m *Model, r Request, outDir str
 		r.Seed = rand.Int64N(1_000_000_000)
 	}
 	out := filepath.Join(outDir, fmt.Sprintf("%s-%d.wav", time.Now().Format("20060102-150405"), r.Seed))
-	if err := b.speak(ctx, m, r, out, emit); err != nil {
+	said, err := b.speak(ctx, m, r, out, emit)
+	if err != nil {
 		return err
 	}
 	emit(Event{Type: "file", File: out})
+	// what was said, with which voice and language, and when each word is (a model that gives timings)
+	res := map[string]any{"text": said.text, "language": said.language}
+	if said.voice.ID != "" {
+		res["voice"] = said.voice
+	}
+	if len(said.words) > 0 {
+		res["words"] = said.words
+	}
+	emit(Event{Type: "result", Data: res})
 	return nil
+}
+
+// spoken is what speak said: the text, the voice (a preset or a voice of the library; none: the model's own),
+// the language, and the words' timings when the model gives them.
+type spoken struct {
+	text, language string
+	voice          PresetVoice
+	words          []Word
+}
+
+// Word is a spoken word and when it is said (seconds from the start).
+type Word struct {
+	Text  string  `json:"text"`
+	Start float64 `json:"start"`
+	End   float64 `json:"end"`
 }
 
 // Speak says r.Text with r.Voice into outFile, in this process (the avatar backend runs it inside its own job).
@@ -286,7 +361,8 @@ func (b *SpeechBackend) Speak(ctx context.Context, model string, r Request, outF
 	if r.Seed == 0 {
 		r.Seed = rand.Int64N(1_000_000_000)
 	}
-	return b.speak(ctx, m, r, outFile, emit)
+	_, err = b.speak(ctx, m, r, outFile, emit)
+	return err
 }
 
 func (b *SpeechBackend) speechModel(id string) (*Model, error) {
@@ -361,6 +437,9 @@ func (b *SpeechBackend) transcribe(ctx context.Context, file, language string, e
 
 // fetchRepo makes sure one pinned repository is in the store and returns its folder.
 func (b *SpeechBackend) fetchRepo(ctx context.Context, name string, hr hubRepo, emit Emit) (string, error) {
+	if b.fetch != nil {
+		return b.fetch(ctx, name, hr, emit)
+	}
 	hm, err := b.Store.FromHub(ctx, name, hr.repo, hr.rev, hr.keep())
 	if errors.Is(err, models.ErrGated) {
 		return "", GatedError(hr.repo)
@@ -373,7 +452,11 @@ func (b *SpeechBackend) fetchRepo(ctx context.Context, name string, hr hubRepo, 
 
 func (b *SpeechBackend) worker(ctx context.Context, emit Emit) error {
 	if b.w == nil {
-		b.w = &pyWorker{env: SpeechEnv, script: "speech.py"}
+		env := SpeechEnv
+		if b.env != nil {
+			env = *b.env
+		}
+		b.w = &pyWorker{env: env, script: "speech.py"}
 	}
 	if b.w.running() {
 		return nil
@@ -389,21 +472,22 @@ func (b *SpeechBackend) afterError() {
 }
 
 // speak does the work of Run and Speak (b.mu held).
-func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out string, emit Emit) error {
+func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out string, emit Emit) (spoken, error) {
+	var said spoken
 	fam := speechFamilies[m.workerModel]
 	if fam == nil || m.workerModel == "asr" {
-		return fmt.Errorf("%s does not speak", m.Name)
+		return said, fmt.Errorf("%s does not speak", m.Name)
 	}
 	text := strings.TrimSpace(r.Text)
 	if text == "" {
 		text = strings.TrimSpace(r.Prompt)
 	}
 	if text == "" {
-		return errors.New("a text to say")
+		return said, errors.New("a text to say")
 	}
 	v, err := resolveVoice(m, b.Voices, r.Voice)
 	if err != nil {
-		return err
+		return said, err
 	}
 	lang := strings.ToLower(strings.TrimSpace(r.Language))
 	if lang == "" {
@@ -417,7 +501,7 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	}
 	if fam.langs != nil && !slices.Contains(fam.langs, lang) {
 		if r.Language != "" {
-			return fmt.Errorf("%s does not speak %q (it speaks: %s)", m.Name, lang, strings.Join(fam.langs, ", "))
+			return said, fmt.Errorf("%s does not speak %q (it speaks: %s)", m.Name, lang, strings.Join(fam.langs, ", "))
 		}
 		lang = "en"
 	}
@@ -435,15 +519,15 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 		}
 		dir, err := b.fetchRepo(ctx, m.Name, hr, emit)
 		if err != nil {
-			return err
+			return said, err
 		}
 		dirs[key] = dir
 	}
 	if dirs["model"] == "" {
-		return fmt.Errorf("%s cannot speak with a %s voice", m.Name, v.Mode)
+		return said, fmt.Errorf("%s cannot speak with a %s voice", m.Name, v.Mode)
 	}
 	if err := b.worker(ctx, emit); err != nil {
-		return err
+		return said, err
 	}
 	req := map[string]any{"op": "tts", "family": m.workerModel, "dirs": dirs, "voice": v, "instruct": r.Instruct,
 		"language": lang, "seed": r.Seed, "chunks": chunks, "output": out}
@@ -459,12 +543,12 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	ev, err := b.w.call(ctx, req, emit)
 	if err != nil {
 		b.afterError()
-		return err
+		return said, err
 	}
 	if !fam.speed && r.Speed > 0 && (r.Speed < 0.99 || r.Speed > 1.01) {
 		emit.Status(fmt.Sprintf("speed ×%.2f …", r.Speed))
 		if err := stretch(ctx, out, r.Speed); err != nil {
-			return err
+			return said, err
 		}
 	}
 	rate, dur := wavInfo(out)
@@ -477,7 +561,14 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	}
 	emit(Event{Type: "stats", Data: stats})
 	emit.Log(fmt.Sprintf("%.1f s of speech in %.1f s", dur, ev.Seconds))
-	return nil
+	said.text, said.language, said.words = text, lang, ev.Words
+	switch {
+	case v.Mode == "preset":
+		said.voice = presetVoice(m.workerModel, v.Preset)
+	case v.name != "":
+		said.voice = PresetVoice{ID: strings.TrimSpace(r.Voice), Name: v.name, Language: v.language}
+	}
+	return said, nil
 }
 
 // qwenPart is the Qwen3-TTS checkpoint a voice needs.
@@ -548,7 +639,11 @@ func resolveVoice(m *Model, lib VoiceStore, name string) (speechVoice, error) {
 			if p == "default" {
 				return speechVoice{Mode: "default"}, nil
 			}
-			return speechVoice{Mode: "preset", Preset: p}, nil
+			sv := speechVoice{Mode: "preset", Preset: p}
+			if m.workerModel == "kokoro" { // the voice is made for one language: it is the default
+				sv.language, _ = kokoroLanguage(p)
+			}
+			return sv, nil
 		}
 	}
 	if len(fam.presets) == 0 {
@@ -590,30 +685,8 @@ func exaggeration(instruct string) float64 {
 	return 0.5
 }
 
-// guessLanguage tells German from English (for the models that must be told; "" when it cannot tell).
-func guessLanguage(text string) string {
-	de, en := 0, 0
-	for _, w := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool { return !unicode.IsLetter(r) }) {
-		switch w {
-		case "der", "die", "das", "und", "ist", "nicht", "ein", "eine", "ich", "du", "wir", "sie", "es", "mit", "auf",
-			"für", "zu", "den", "dem", "von", "auch", "sich", "noch", "wie", "aber", "heute", "guten", "danke", "bitte":
-			de++
-		case "the", "and", "is", "not", "a", "an", "i", "you", "we", "they", "it", "with", "on", "for", "to", "of",
-			"also", "this", "that", "are", "be", "what", "how", "but", "today", "good", "thanks", "please":
-			en++
-		}
-		if strings.ContainsAny(w, "äöüß") {
-			de += 2
-		}
-	}
-	switch {
-	case de > en:
-		return "de"
-	case en > de:
-		return "en"
-	}
-	return ""
-}
+// guessLanguage is a text's language where it is easy to tell (for the models that must be told; "" when it cannot tell).
+func guessLanguage(text string) string { return audio.GuessLanguage(text) }
 
 // speechChunk is one piece the model says at once, and the silence after it.
 type speechChunk struct {

@@ -64,7 +64,8 @@ type Connector struct {
 	Models  ConnectorModels `json:"models"`
 	// Agents: the chosen list in its order ([] = the default: the chat model alone)
 	Agents []ConnectorAgent `json:"agents"`
-	// Generators: the image and video models offered to vboard's board, in order (catalogue ids; [] = none)
+	// Generators: the image, video, music, sound and speech models offered to vboard's board, in order (catalogue
+	// ids; [] = none)
 	Generators []string  `json:"generators"`
 	Owner      string    `json:"owner"` // the user of the device that made it (Device.User)
 	Created    time.Time `json:"created"`

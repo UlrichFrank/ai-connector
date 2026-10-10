@@ -81,6 +81,8 @@ type catalogModel struct {
 	Tasks         []string       `json:"tasks,omitempty"`
 	NonCommercial bool           `json:"nonCommercial,omitempty"`
 	Defaults      *modelDefaults `json:"defaults,omitempty"`
+	// music, sound and speech models (vboard_audio.go): what they take
+	Audio *audioCaps `json:"audio,omitempty"`
 }
 
 // modelDefaults are the request fields a model starts with (the part the hub reads).
@@ -89,6 +91,28 @@ type modelDefaults struct {
 	Height int `json:"height,omitempty"`
 	FPS    int `json:"fps,omitempty"`
 	Frames int `json:"frames,omitempty"`
+	// music, sound: the length (seconds)
+	Duration float64 `json:"duration,omitempty"`
+}
+
+// audioCaps is what a music, sound or speech model takes (engine.AudioCaps).
+type audioCaps struct {
+	MaxSeconds   float64    `json:"maxSeconds,omitempty"`
+	Lyrics       bool       `json:"lyrics,omitempty"`
+	Instrumental bool       `json:"instrumental,omitempty"`
+	BPM          bool       `json:"bpm,omitempty"`
+	Voices       []genVoice `json:"voices,omitempty"`
+	Languages    []string   `json:"languages,omitempty"`
+	Instruct     bool       `json:"instruct,omitempty"`
+	MaxChars     int        `json:"maxChars,omitempty"`
+	Words        bool       `json:"words,omitempty"`
+}
+
+// genVoice is a speech model's preset voice (engine.PresetVoice).
+type genVoice struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Language string `json:"language"`
 }
 
 // node is one connected Mac.

@@ -37,19 +37,20 @@ type workerSetup struct {
 }
 
 type setupModel struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	Kind          string `json:"kind"`
-	About         string `json:"about"`
-	Here          bool   `json:"here"`
-	Size          int64  `json:"size"`
-	Licence       string `json:"licence,omitempty"`
-	NonCommercial bool   `json:"nonCommercial"`
-	Gated         bool   `json:"gated"`
-	Access        string `json:"access,omitempty"`
-	URL           string `json:"url,omitempty"`
-	Fits          bool   `json:"fits"`
-	Recommended   bool   `json:"recommended"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Kind          string   `json:"kind"`
+	About         string   `json:"about"`
+	Here          bool     `json:"here"`
+	Size          int64    `json:"size"`
+	Licence       string   `json:"licence,omitempty"`
+	NonCommercial bool     `json:"nonCommercial"`
+	Gated         bool     `json:"gated"`
+	Access        string   `json:"access,omitempty"`
+	URL           string   `json:"url,omitempty"`
+	Fits          bool     `json:"fits"`
+	Recommended   bool     `json:"recommended"`
+	Tasks         []string `json:"tasks,omitempty"`
 }
 
 // downloadState is a worker's download (engine.DownloadState).
@@ -345,6 +346,9 @@ func (r *vboardRun) modelList(ctx context.Context, conf storedConnector) []map[s
 				"recommended": false, "worker": trimRunes(nodes[i].name, agentChars)}
 			if m.Gated {
 				e["access"] = m.Access
+			}
+			if len(m.Tasks) > 0 { // an upscaler (["upscale"]) is told apart before it is a generator
+				e["tasks"] = m.Tasks
 			}
 			if m.Recommended {
 				if j, ok := best[m.Kind]; !ok || ws.Memory > bestMem[m.Kind] {

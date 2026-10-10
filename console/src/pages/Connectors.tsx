@@ -390,21 +390,25 @@ function AgentsEditor({ value, onChange, models, error }: { value: AgentRow[]; o
   );
 }
 
-/** An image or video model the connector knows how to ask (FLUX and Qwen-Image through mflux, LTX). */
-const isGenerator = (m: Model) => (m.kind === "image" && m.backend === "mflux") || (m.kind === "video" && m.backend === "ltx");
+/** A model the connector knows how to ask: images (FLUX, Qwen-Image, SeedVR2 through mflux), videos (LTX), and the music, sound and speech models the worker describes. */
+const isGenerator = (m: Model) =>
+  (m.kind === "image" && m.backend === "mflux") ||
+  (m.kind === "video" && m.backend === "ltx") ||
+  ((m.kind === "music" || m.kind === "sound") && !!m.audio) ||
+  (m.kind === "speech" && !!m.audio?.maxChars);
 
 /** On a worker's disk (only those are offered to vboard: nothing is downloaded for a board). */
 const onDisk = (m: Model) => !!m.here || !!m.workers?.some((w) => w.here);
 
-/** The image and video models vboard may make pictures and videos on the board with, in order (the first of each kind is the default). */
+/** The models vboard may make pictures, videos, songs, sounds and speech on the board with, in order (the first of each kind is the default). */
 function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChange: (v: string[]) => void; models: Model[] }) {
   const options = models.filter((m) => isGenerator(m) && !value.includes(m.id));
   const model = (id: string) => models.find((m) => m.id === id);
   return (
     <div className="flex flex-col gap-1.5">
-      <Label>Images and videos on the board</Label>
+      <Label>Generators on the board</Label>
       <p className="text-xs text-muted-foreground">
-        The models vboard may make pictures and videos with (the first of each kind is the default). Offered only while a connected worker has the model on disk. Without a list: none — a video holds a Mac for minutes.
+        The models vboard may make pictures, videos, songs, sounds and speech with (the first of each kind is the default). Offered only while a connected worker has the model on disk. Without a list: none — a video holds a Mac for minutes.
       </p>
       {value.length > 0 && (
         <ol className="flex flex-col gap-1.5">
@@ -435,8 +439,8 @@ function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChan
       )}
       {value.length < maxGenerators && (
         <Select value="" onValueChange={(m) => onChange(addGenerator(value, m))}>
-          <SelectTrigger className="w-full" aria-label="Add an image or video model">
-            <SelectValue placeholder={options.length ? "Add an image or video model…" : "No other image or video model is listed"} />
+          <SelectTrigger className="w-full" aria-label="Add a generator model">
+            <SelectValue placeholder={options.length ? "Add a generator model…" : "No other generator model is listed"} />
           </SelectTrigger>
           <SelectContent>
             {options.map((m) => (

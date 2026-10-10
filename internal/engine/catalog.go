@@ -39,6 +39,8 @@ type Model struct {
 	// Images: a chat model that takes images with the messages (llm.Message.Images): Claude Code, and the models a
 	// local runtime says can see (LM Studio type "vlm", Ollama capability "vision"). The built-in MLX chat cannot.
 	Images bool `json:"images,omitempty"`
+	// Audio: what a music, sound or speech model takes (audiocaps.go; vboard's generators)
+	Audio *AudioCaps `json:"audio,omitempty"`
 	// Defaults are the request fields the UIs start with.
 	Defaults Request `json:"defaults"`
 	// Sampling: a chat model's settings with thinking on and off (generation_config.json and Qwen's

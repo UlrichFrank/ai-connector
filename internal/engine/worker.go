@@ -48,6 +48,7 @@ type workerEvent struct {
 	Seconds  float64 `json:"seconds"`
 	Duration float64 `json:"duration"`
 	PeakGB   float64 `json:"peakGB"`
+	Words    []Word  `json:"words"` // speech: when each word is said (Kokoro)
 }
 
 // running: the process is alive.

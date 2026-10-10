@@ -60,6 +60,8 @@ export interface Model {
   gated?: boolean;
   licence?: string;
   nonCommercial?: boolean;
+  /** A music, sound or speech model: what it takes (vboard's generators; the transcriber has no maxChars). */
+  audio?: { maxSeconds?: number; maxChars?: number };
   workers?: ModelWorker[];
 }
 

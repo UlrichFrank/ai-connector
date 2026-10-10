@@ -702,7 +702,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 ```
 
 * `id`: the catalogue id (as for chat models, cut to 80 characters); `name`, `worker` as for agents. `kind`:
-  `image` | `video` (| `upscale`, see "Upscaling" below). The first of each kind is the default.
+  `image` | `video` (| `upscale`, see "Upscaling" below; | `music` | `sound` | `speech`, see "Music, sound and
+  speech" below). The first of each kind is the default.
 * `edit` (image): takes reference images (edits, "make this sketch a photo"); a model that only edits has
   `"textToImage": false` and needs at least one. `firstFrame` (video): may start from an image. `audio` (video): the
   video has a soundtrack unless the request says `"audio": false`.
@@ -710,12 +711,12 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   for images, 1280 for LTX); `default`: what an empty request gets (the catalogue's defaults; a video's `seconds`
   from its default frames: 97 at 24 fps → 4); `maxSeconds` (video: 10).
 * Which models are generators: image models run by mflux (FLUX.2 klein, Qwen-Image; `edit`/`textToImage` from the
-  catalogue's tasks), the SeedVR2 upscalers (mflux, task `upscale`: kind `upscale`) and the LTX video models;
-  anything else in the setting is not offered.
+  catalogue's tasks), the SeedVR2 upscalers (mflux, task `upscale`: kind `upscale`), the LTX video models, and the
+  music, sound and speech models the worker describes (below); anything else in the setting is not offered.
 * `nonCommercial`: true when the weights' licence forbids commercial use (vboard may show it or leave the model out);
   always sent.
 * Which ones: the connector's setting `generators` (console → Connectors, `--generators` for `ai-connector vboard`),
-  ids in order, `"*"` for every image and video model on disk (after the ids before it). **Default: none** for a
+  ids in order, `"*"` for every generator model on disk (after the ids before it). **Default: none** for a
   connector (opt-in — a video holds a Mac for minutes); `ai-connector vboard` defaults to `*` (one person, one Mac:
   a model downloaded from vboard is offered at once; `--generators=none` for none). Offered only while a connected worker has
   the model on disk (`here`): nothing is downloaded for a board. Image and video models are **shared** like Qwen (any
@@ -765,7 +766,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   * At most one a second (the job is asked every second; only a change is sent); one at least every 60 s as
     keep-alive (the last one again), so vboard's 3-minute idle rule never fires for a long render.
 * The file in pieces (an answer must stay under vboard's 8 MB): `{"type":"generateFile","id","mime","size","seq",
-  "data","last"}` — `mime` `image/png` | `image/jpeg` | `video/mp4`, `size` the whole file's bytes, `seq` 0, 1, …
+  "data","last"}` — `mime` `image/png` | `image/jpeg` | `video/mp4` (| `audio/mp4` | `audio/wav`: "Music, sound and
+  speech" below), `size` the whole file's bytes, `seq` 0, 1, …
   in order, `data` base64 of at most 1 MiB, `last: true` on the final piece. At most **15 MB an image** (vboard's
   limit for image assets; a 2048² PNG fits) and **200 MB a video** (vboard takes 500 MB). A larger PNG is sent as
   `image/jpeg` (quality 92; see "Upscaling" below), still too large → `error`; a larger video → `error` (not
@@ -864,68 +866,108 @@ detail without repainting the picture), which the pinned mflux (0.20.0, `mflux-u
 * Video upscaling is not part of this: LTX already runs its own spatial upscaler inside its two-stage pipeline, and
   mflux offers SeedVR2 for images only.
 
-#### Music, sound and speech (planned, contract)
+#### Music, sound and speech (as built)
 
-Not built yet; additive to the generators above, the same path (`generators` → `generate` → `generateStatus` →
-`generateFile` → `generateDone`, `generateCancel`). Needs **audio items on vboard's board** (vboard's side, below),
-which do not exist yet. Three new generator kinds — vboards that do not know them drop them:
+Additive to the generators above, the same path (`generators` → `generate` → `generateStatus` → `generateFile` →
+`generateDone`, `generateCancel`). The connector: `internal/hub/vboard_audio.go` (tested in `vboard_audio_test.go`);
+the worker: the catalogue's `audio` (`internal/engine/audiocaps.go`), `POST /api/audio` (`internal/web/audio.go`),
+the WAV reader and the encoder (`internal/audio`); Kokoro in `internal/engine/speech.go` and `workers/speech.py`.
+Needs **audio items on vboard's board** (vboard's side, below), which do not exist yet. Three new generator kinds —
+vboards that do not know them drop them. Which models: those whose catalogue entry has `audio` (what they take, below;
+a worker before this version describes none, so offers none); the transcriber (Qwen3-ASR) is no generator. `"*"` in
+the connector's `generators` includes them (and `ai-connector vboard` offers them by default like the others); it
+puts the defaults of each kind first: `ace-step-1.5-turbo`, `stable-audio-3-small`; `kokoro-82m`, `qwen3-tts-1.7b`
+(the first of a kind is its default).
 
 * **`music`** — songs and instrumentals. Catalogue models: ACE-Step 1.5 (turbo, XL, base, techno), Stable Audio 3
-  (small, medium), MiniMax Music 3, HeartMuLa 3B, YuE2 3B, LeVo 2. Defaults in this order: `ace-step-1.5-turbo`
-  (songs with lyrics, fast), then `stable-audio-3-small` (short instrumentals, loops).
+  (small, medium), MiniMax Music 3, HeartMuLa 3B, YuE2 3B, LeVo 2.
 
   ```json
   {"id": "ace-step-1.5-turbo", "name": "ACE-Step 1.5 turbo", "kind": "music", "worker": "Mac Studio",
-   "lyrics": true, "instrumental": true, "bpm": true, "default": {"seconds": 120}, "maxSeconds": 240,
+   "lyrics": true, "instrumental": true, "bpm": true, "default": {"seconds": 60}, "maxSeconds": 600,
    "nonCommercial": false}
   ```
 
-  `lyrics`: it sings given lyrics (absent: instrumental only, e.g. Stable Audio 3); `instrumental`: it can leave the
-  voice out; `bpm`: it takes a tempo. Request: `{"kind":"music","generator"?,"prompt":"<the style: genre, mood,
-  instruments>","lyrics"?,"instrumental"?,"seconds"?,"bpm"?,"title"?,"seed"?}` — `prompt` required; `lyrics` at most
-  8000 characters with the usual `[verse]` / `[chorus]` section marks (the chat model writes them: "write a song about
-  our retro"); lyrics to a model without `lyrics` → `error`; `seconds` 0 → the default, at most `maxSeconds`.
-  `title` names the file and the item.
-* **`sound`** — sound effects ("a door creaking", "rain on a window"): `moss-soundeffect`. `{"id","name","kind":
-  "sound","worker","default":{"seconds":5},"maxSeconds":30}`; request `{"kind":"sound","prompt","seconds"?,"seed"?}`.
-* **`speech`** — text read aloud. Catalogue models: **Kokoro 82M** (new: `kokoro-82m`, Apache-2.0, ≈ 0.3 GB, fast,
-  preset voices; English, Spanish, French, Italian, Portuguese, Hindi, Japanese, Chinese — **no German**), Qwen3-TTS
-  (0.6B, 1.7B), Chatterbox, VoxCPM2, Higgs Audio, Voxtral TTS — all on mlx-audio (the speech backend's one Python
-  worker; Kokoro is one more model there). Default order: `kokoro-82m` (when the language is one of its own), then
-  `qwen3-tts-1.7b`.
+  `lyrics`: it sings given lyrics (`false`: instrumental only — Stable Audio 3); `instrumental`: it can leave the
+  voice out (all of them); `bpm`: it takes a tempo (ACE-Step; Stable Audio 3 and MiniMax Music 3 in their
+  description). `default.seconds`: the catalogue's default length (60 s; HeartMuLa, YuE2, LeVo 2: 30 s);
+  `maxSeconds`: the longest the backend makes — ACE-Step 600 (its `DURATION_MAX`), Stable Audio 3 Small 120 /
+  Medium 380, MiniMax Music 3 300, LeVo 2 270 (levo-cli's limit), HeartMuLa and YuE2 240.
+  Request: `{"kind":"music","generator"?,"prompt":"<the style: genre, mood, instruments>","lyrics"?,"instrumental"?,
+  "seconds"?,"bpm"?,"title"?,"seed"?}` — `prompt` required (at most 4000 characters); `lyrics` at most 8000 characters
+  with the usual `[verse]` / `[chorus]` section marks (the chat model writes them: "write a song about our retro");
+  lyrics to a model without `lyrics` → `error`, as is `instrumental` to one without it, `bpm` to one without `bpm`, a
+  `bpm` outside 30–300, a `title` over 200 characters, negative numbers; `seconds` 0 → the default, then at least 1
+  and at most `maxSeconds` (cut, no error). `title` names the file and the item. The job: `{model, prompt, lyrics,
+  instrumental, duration, bpm, title, seed}` (`steps` passed on when given).
+* **`sound`** — sound effects ("a door creaking", "rain on a window"): `moss-soundeffect`.
+  `{"id","name","kind":"sound","worker","default":{"seconds":8},"maxSeconds":30,"nonCommercial"}`; request
+  `{"kind":"sound","prompt","seconds"?,"seed"?}` (`seconds` 0 → 8, then 1 to 30).
+* **`speech`** — text read aloud. Catalogue models, all on mlx-audio (the speech backend's one Python worker):
+  **Kokoro 82M** (`kokoro-82m`, Apache-2.0, 339 MB, fast; 49 preset voices in English (US, UK), Spanish, French,
+  Italian, Portuguese, Hindi, Chinese — **no German**, and no Japanese: its G2P would need a source build and a
+  500 MB dictionary, see docs/voice-avatar.md), Qwen3-TTS (0.6B, 1.7B), Chatterbox, VoxCPM2, Higgs Audio, Voxtral TTS.
 
   ```json
   {"id": "kokoro-82m", "name": "Kokoro 82M", "kind": "speech", "worker": "Mac Studio",
-   "voices": [{"id": "af_heart", "name": "Heart", "language": "en"}, …], "languages": ["en", "es", "fr", …],
-   "instruct": false, "maxChars": 5000}
+   "voices": [{"id": "af_heart", "name": "Heart", "language": "en"}, {"id": "bf_emma", "name": "Emma (British)",
+   "language": "en"}, …], "languages": ["en", "es", "fr", "it", "pt", "hi", "zh"],
+   "instruct": false, "maxChars": 5000, "nonCommercial": false}
   ```
 
-  `voices`: the model's preset voices (id, name, language; the worker's own voice library — cloned voices — is not
-  offered to boards); `languages`: what it speaks (`[]` = it detects); `instruct`: it takes how to say it ("warm,
-  slow") (Qwen3-TTS). Request: `{"kind":"speech","generator"?,"text","voice"?,"language"?,"instruct"?}` — `text`
-  required, at most `maxChars`; `voice` absent → the model's default for the language; a language the model does not
-  speak → the next speech generator that does, else `error`. The first `generateStatus` then names the one used
-  (`generator`, `name`), so the placeholder never shows a model that does not read it.
+  `voices`: the model's preset voices (id, name, language — the language it is made for; Qwen3-TTS's speak all ten;
+  `[]`: none, the model's own voice — VoxCPM2, Higgs; the worker's voice library — cloned voices — is not offered to
+  boards); `languages`: what it speaks (`[]` = it detects them: VoxCPM2, Higgs); `instruct`: it takes how to say it
+  ("warm, slow") (Qwen3-TTS, Chatterbox as emotion, VoxCPM2, Higgs); `maxChars`: 5000 for all.
+  Request: `{"kind":"speech","generator"?,"text","voice"?,"language"?,"instruct"?,"seed"?}` — `text` required, at
+  most `maxChars` (trimmed); `instruct` at most 500 characters. **Which generator reads it** (the request's, else the
+  first): `voice` belongs to a generator — not one of the named generator's voices → `error`; none named → the first
+  generator that has it (none → `error`); its language is the voice's unless `language` says otherwise. `language`
+  (`"de-DE"` → `de`) absent → the voice's, else as the text looks (its script, or common German / English words; ""
+  when it cannot tell). A language the generator does not speak → the next speech generator that does (after it in
+  the list, then from the start; also past a named one), else `error` — but a guess nobody speaks is left to the
+  generator, and with a `voice` it is an `error` ("leave the voice out"). With `instruct`, no `voice` and no named
+  generator, one that takes instructions and speaks the language goes first; a generator without `instruct` gets
+  none (dropped). Every `generateStatus` — so the first one — names the one used (`generator`, `name`), so the
+  placeholder never shows a model that does not read it. `voice` absent → the model's default for the language
+  (Kokoro: af_heart, ef_dora, ff_siwis, if_sara, pf_dora, hf_alpha, zf_xiaobei). The job: `{model, text, voice,
+  language, instruct, seed}`.
+* No `images` for any of them (`error`).
 
-**The file.** The worker writes WAV; the connector sends **`audio/mp4`** (AAC, 192 kbit/s stereo for music and sound,
-96 kbit/s mono for speech; `afconvert` on macOS, `ffmpeg` elsewhere) — a 3-minute song ≈ 4–5 MB instead of ≈ 35 MB.
-No encoder → `audio/wav` when it is at most vboard's audio limit, else `error`. `generateFile`'s `mime` may now also
-be `audio/mp4` | `audio/wav`.
+**The file.** The worker writes WAV; the connector sends **`audio/mp4`** (AAC in an MP4 container, `.m4a`) — a
+3-minute song ≈ 4–5 MB instead of ≈ 35 MB; 6 s of Kokoro: 65 KB instead of 286 KB. It is made **on the worker**,
+where the WAV is, so only the small file goes through the tunnel: after the job the connector asks
+`POST /api/audio {"file":"/files/…wav","bitrate","channels","peaks":256}` → `{"file":"/files/…m4a","mime":
+"audio/mp4","size","seconds","peaks","encoder"}` (the `.m4a` next to the WAV; route-mapped like the job's files)
+and fetches that file. AAC at **192 kbit/s, stereo for music and sound, 96 kbit/s mono for speech** (a mono source
+stays mono; a rate other than 44.1 / 48 kHz — Kokoro's and MOSS's 24 kHz, which AAC takes badly — becomes 48 kHz):
+`afconvert -f m4af -d aac@<rate> -b <bitrate> -c <channels>` on macOS, else `ffmpeg … -c:a aac -b:a … -ac … -ar …
+-movflags +faststart`. No encoder on the worker → the answer names the WAV (`audio/wav`). An older worker (no
+`/api/audio`: 404) or a failed encode → the connector fetches the WAV (at most 512 MB), computes the peaks itself
+and makes AAC when its own computer has an encoder. A WAV is sent when it is at most vboard's audio limit
+(**100 MB**), else `error` ("… no AAC encoder (afconvert, ffmpeg) is there"); an AAC file over 100 MB too.
+`generateFile`'s `mime` may now also be `audio/mp4` | `audio/wav`.
 **Status and done.** `generateStatus` as for the others (a song: tens of seconds to a few minutes; `step`/`total`
-where the model reports them); the first one carries `seconds` (the length that will be made) instead of
-`width`/`height`. `generateDone` has `seconds`, `seed`, `generator`, `took`, `peaks`, and for music `title` and `bpm`
-(when known). `peaks`: the waveform, 256 numbers 0..1 — the maximum of the mono mix per slice of the length,
-computed from the WAV before it is encoded (vboard's backend has no decoder for AAC; uploads get theirs from the
-browser).
-What else `generateDone` carries, so vboard can draw each kind as what it is:
-* `speech`: `text` (as read), `voice` (`{id, name}`), `language`, and `words: [{"text","start","end"}]` (seconds) when
-  the model gives timings — for subtitles and the word being spoken; absent otherwise (vboard then shows the whole
-  text). Kokoro's pipeline has them per token; the others where mlx-audio reports them.
-* `music`: `title`, `bpm` (when known), and `lyrics` as sung (with their `[verse]` / `[chorus]` marks; absent for an
-  instrumental).
+where the model reports them: speech per sentence); the statuses carry `seconds` (the length that will be made —
+speech: an estimate, the text's characters / 14) instead of `width`/`height`. `generateDone` has `seconds` (the
+WAV's length), `seed` (the job's: a random one when 0 was asked), `generator`, `took`, `peaks`, and per kind:
+`peaks`: the waveform, 256 numbers 0..1 (3 decimals) — the largest magnitude of the mono mix (the channels' mean)
+per slice of the length, computed from the WAV before it is encoded (PCM 8/16/24/32-bit and 32/64-bit float, also
+WAVE_FORMAT_EXTENSIBLE; vboard's backend has no decoder for AAC; uploads get theirs from the browser).
+* `speech`: `text` (as read, trimmed), `voice` (`{id, name}`; absent for a model's own voice), `language`, and
+  `words: [{"text","start","end"}]` (seconds from the start) when the model gives timings — for subtitles and the
+  word being spoken; absent otherwise (vboard then shows the whole text). **Kokoro gives them for English** (from
+  its pipeline's tokens, punctuation left out; checked on a real run: "Hello" 0.28–0.75 s …); its other languages
+  are phonemized without tokens, and the other models give none (mlx-audio reports no timings for them).
+* `music`: `title` (the request's, else the style's first part: "dark techno, 130 bpm" → "dark techno"), `bpm` (the
+  tempo as the job measured it, else the one asked; absent when neither), and `lyrics` as sent (with their `[verse]`
+  / `[chorus]` marks; absent for an instrumental and for a model without `lyrics`).
 * `sound`: nothing more (`seconds`, `peaks` as for all).
+
 **Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song
-unloads the built-in chat model first. Kokoro is small but runs in the same speech worker, which is one large runtime.
+unloads the built-in chat model first. Kokoro is small (2–3 GB peak) but runs in the speech worker, which is one
+large runtime. **Downloading** a music, sound or speech model from vboard is not part of this (the setup lists
+chat, embed, classify, image and video models): they are offered once they are on a worker's disk.
 
 **vboard's side (for reference; vboard decides the details)**
 
@@ -1035,7 +1077,9 @@ model, which may not exist yet.
   worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when unknown) and
   `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein 4B Apache-2.0,
   9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers Apache-2.0 — listed as
-  `image` models). `url`: the Hugging Face page.
+  `image` models). `url`: the Hugging Face page. `tasks` (absent when the model has none): what an image model does
+  — `["upscale"]` for the SeedVR2 upscalers (so vboard tells an upscaler from a picture model before it is a
+  generator), `["generate"]` / `["edit"]` for a model that does only that (Qwen-Image, Qwen-Image-Edit).
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
   accepted on `url`), `token` (no token is set, or Hugging Face does not take it: 4), `unknown` (no answer). Asked of
   Hugging Face per repository (`GET https://huggingface.co/api/models/<repo>/auth-check` with the token: 200

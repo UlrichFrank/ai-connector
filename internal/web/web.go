@@ -263,6 +263,7 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusAccepted)
 	})
 	mux.HandleFunc("POST /api/upload", s.upload)
+	mux.HandleFunc("POST /api/audio", s.encodeAudio) // a WAV made AAC for vboard, with its waveform (audio.go)
 	mux.HandleFunc("GET /api/events", s.events)
 	mux.HandleFunc("GET /files/{name...}", s.file)
 	mux.HandleFunc("GET /api/prompts", func(w http.ResponseWriter, r *http.Request) {

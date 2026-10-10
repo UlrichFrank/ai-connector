@@ -62,7 +62,8 @@ func soundModels() []*Model {
 			},
 			About: "MOSS-SoundEffect (OpenMOSS), a description to a sound effect or ambience (nature, city, animals, actions), " +
 				"pure MLX, 24 kHz mono, 1–30 s; about 8–20 s for 8 s of sound, 6 GB (up to 11 GB for the process)",
-			Licence: "Apache-2.0", Size: 6720 << 20, Defaults: Request{Duration: soundDefaultSeconds}},
+			Licence: "Apache-2.0", Size: 6720 << 20, Defaults: Request{Duration: soundDefaultSeconds},
+			Audio: &AudioCaps{MaxSeconds: soundMaxSeconds}},
 	}
 }
 

@@ -194,7 +194,9 @@ func TestVboardSetupDownloads(t *testing.T) {
 	_, setAccess := setupWorld(t)
 	_, base, device := vbHub(t)
 	_, wtok := enroll(t, base, device, "Mac")
-	mac := startSetupMac(t, base, wtok)
+	up := &engine.Model{ID: "seedvr2-3b", Name: "SeedVR2 3B", Kind: engine.Image, Backend: "vbchat", Size: 7 * gib, Tasks: []string{"upscale"}}
+	up.SetRepo("org/seedvr2-3b", "rev")
+	mac := startSetupMac(t, base, wtok, up)
 	v := newFakeVboard(t, stageImages)
 	c := addConnector(t, base, device, `{"url":"`+v.srv.URL+`","token":"vbp_secret"}`)
 
@@ -213,7 +215,7 @@ func TestVboardSetupDownloads(t *testing.T) {
 	// the model list: everything of the setup's kinds, with the worker; the chat model for 64 GB recommended
 	b.send(t, `{"type":"models","id":"d_1"}`)
 	list := b.nextSetup(t, "d_1")
-	if list.Type != "models" || len(list.Models) != 5 {
+	if list.Type != "models" || len(list.Models) != 6 {
 		t.Fatalf("models %+v", list)
 	}
 	byID := map[string]map[string]any{}
@@ -226,6 +228,10 @@ func TestVboardSetupDownloads(t *testing.T) {
 	if byID["qwen3.6-35b-a3b"]["recommended"] != true || byID["qwen3.5-4b"]["recommended"] != false ||
 		byID["qwen3-embedding-0.6b"]["recommended"] != true {
 		t.Fatalf("recommended %v", list.Models)
+	}
+	// an upscaler says so (tasks), the others have none
+	if tk, _ := byID["seedvr2-3b"]["tasks"].([]any); len(tk) != 1 || tk[0] != "upscale" || byID["flux2-klein-9b"]["tasks"] != nil {
+		t.Fatalf("tasks %v", list.Models)
 	}
 	if f := byID["flux2-klein-9b"]; f["gated"] != true || f["access"] != "token" || f["url"] != "https://huggingface.co/org/flux2-klein-9b" ||
 		f["nonCommercial"] != true || f["licence"] != "FLUX Non-Commercial License" {

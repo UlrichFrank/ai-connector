@@ -9,6 +9,7 @@ Models (ids as the catalog shows them; weights from mlx-community where there is
 
 | id | model | licence |
 |---|---|---|
+| `kokoro-82m` | Kokoro 82M (bf16, 339 MB): 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi, Chinese — no German, no Japanese (below); speed; word timings for English | Apache-2.0 |
 | `qwen3-tts-1.7b` | Qwen3-TTS 12Hz 1.7B (Base: cloning; CustomVoice: presets + instruct; VoiceDesign) | Apache-2.0 |
 | `qwen3-tts-0.6b` | the small one | Apache-2.0 |
 | `chatterbox-v3` | Chatterbox Multilingual (emotion exaggeration) | MIT |
@@ -17,7 +18,23 @@ Models (ids as the catalog shows them; weights from mlx-community where there is
 | `voxtral-tts` | Voxtral 4B TTS | CC BY-NC 4.0, **non-commercial** |
 
 Request: `text`, `voice` (library id or preset name), `instruct`, `language`, `speed`, `seed`. Output: one wav
-(job file); stats: seconds, rtf, sampleRate. Long texts are split at sentences and joined.
+(job file); stats: seconds, rtf, sampleRate; result: `text`, `language`, `voice` (`{id, name, language}` of the
+preset or library voice; absent: the model's own) and `words` (`[{text, start, end}]`, seconds; Kokoro in English).
+Long texts are split at sentences and joined. A model's presets, languages and limits are in the catalogue's
+`audio` (`engine.AudioCaps`; vboard's generators read it).
+
+**Kokoro** runs through mlx-audio's Kokoro pipeline (the worker calls it directly: `model.generate` does not hand
+out the tokens' times), the voices read from the weights' `voices/` folder (pinned `mlx-community/Kokoro-82M-bf16`:
+`config.json`, `kokoro-v1_0.safetensors`, `voices/*.safetensors`). The voice's first letter is its language
+(a American, b British English, e es, f fr, h hi, i it, p pt-br, z zh); a language without a voice gets its default
+(af_heart, ef_dora, ff_siwis, hf_alpha, if_sara, pf_dora, zf_xiaobei). Text processing (G2P) is misaki 0.9.4 in the
+speech environment: English with spaCy's `en_core_web_sm` (pinned as a wheel, so nothing is fetched at run time)
+and espeak-ng for unknown words, Chinese with jieba/pypinyin, Spanish, French, Italian, Portuguese and Hindi through
+espeak-ng — which comes as a library inside `espeakng-loader`'s wheel: **nothing to install on the system**. (That
+espeak-ng keeps its data path in 160 bytes and ends the process when it cannot find its data; with a deep
+`MLXLAB_HOME` the worker copies the data, 19 MB, to the temp folder once and uses it from there.) Japanese is left out: misaki[ja] builds
+pyopenjtalk from source and needs unidic's 500 MB dictionary (`python -m unidic download`). Measured on an M1 Max:
+6 s of English in 2 s on first use (the pipeline loads), then 5 s in 0.3 s; 2.5–2.8 GB peak.
 
 Voice library API (worker; proxied by the hub):
 
