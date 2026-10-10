@@ -385,11 +385,15 @@ func cleanAgents(in []ConnectorAgent) ([]ConnectorAgent, error) {
 	seen := map[string]bool{}
 	for i, a := range in {
 		a.Model = strings.TrimSpace(a.Model)
-		if a.Model == "" || len(a.Model) > 200 || strings.ContainsAny(a.Model, " \t\r\n") {
+		// the first may leave its model empty: the default chat model (models.chat, else the first a worker has)
+		if a.Model == "" && i > 0 || len(a.Model) > 200 || strings.ContainsAny(a.Model, " \t\r\n") {
 			return nil, &connectorError{"agents", fmt.Sprintf("Agent %d: choose a model", i+1)}
 		}
 		if a.ID = strings.TrimSpace(a.ID); a.ID == "" {
 			a.ID = agentID(a.Model)
+			if a.Model == "" {
+				a.ID = agentDefault
+			}
 		}
 		ok := a.ID != "" && len([]rune(a.ID)) <= agentChars
 		for _, r := range a.ID {

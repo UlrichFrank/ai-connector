@@ -80,6 +80,7 @@ type Server struct {
 	rp         *httputil.ReverseProxy
 	ui         http.Handler
 	console    http.Handler
+	setup      *setupPage // the standalone hub's setup page (setup_page.go; nil: none)
 
 	// failDelay slows down wrong passwords (shorter in tests).
 	failDelay time.Duration
@@ -177,6 +178,9 @@ func (s *Server) Handler() http.Handler {
 	s.clientAPI(mux) // /v1/*, /embed: a client token or a device token (api.go)
 
 	mux.Handle(consoleui.Prefix, s.console) // the console; GET / on its host names leads there
+	if s.setup != nil {
+		mux.HandleFunc("/setup", s.serveSetupPage) // the standalone hub's (setup_page.go)
+	}
 	mux.Handle("/", s.withConsoleHosts(s.ui))
 	return mux
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/philipparndt/ai-connector/internal/engine"
 	"github.com/philipparndt/ai-connector/internal/hub"
+	"github.com/philipparndt/ai-connector/internal/llm"
 	"github.com/philipparndt/ai-connector/internal/prompts"
 	"github.com/philipparndt/ai-connector/internal/web"
 )
@@ -46,21 +47,29 @@ const vboardUsage = `ai-connector vboard — vboard's local AI on this computer,
 
 usage:
   ai-connector vboard [<vboard address>] [--token T] [--board ID] [--name NAME] [--chat MODEL] [--agents LIST]
-                      [--generators LIST] [--console 127.0.0.1:8485] [--state DIR]
+                      [--generators LIST] [--console 127.0.0.1:8485] [--state DIR] [--install]
+  ai-connector vboard --uninstall
 
   <vboard address>  e.g. https://vboard.example.com (or --url, $VBOARD_URL)
   --token T         a vboard token: "Set up AI" → "Create token" ($VBOARD_TOKEN)
   --board ID        everyone on this board uses this AI (the token needs "Can edit" there); --board= for all boards
   --name NAME       what vboard shows (default: "<this computer> (ai-connector)")
   --chat MODEL      the chat model (default: the first one this computer offers that is not Claude Code)
-  --agents LIST     what vboard's chat panel offers, in order, comma-separated — the first must be a chat model,
+  --agents LIST     what vboard's chat panel offers, in order, comma-separated — the first is the default chat model,
                     e.g. "qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus" (Claude Code: installed and logged in
-                    here). Default: the chat model alone. With only claude-code/… models the --chat model goes first.
+                    here). Default: the chat model, and Claude Code (Sonnet, Opus) when it is installed and logged in
+                    here. With only claude-code/… models the --chat model (or the default one) goes first.
   --generators LIST image and video models vboard may make pictures and videos on the board with, in order,
                     comma-separated, e.g. "flux2-klein-4b,ltx-2.5-q4" (only those on this computer's disk are
-                    offered). Default: none.
+                    offered; "*" for all of them). Default: all image and video models on this computer's
+                    disk, so one downloaded from vboard is offered at once; "none" for none.
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/vboard/worker, apart from a plain worker's)
+  --install         start it at login with these settings (a launchd agent, a systemd user unit, a scheduled task)
+  --uninstall       stop that and remove it
+
+On its first start it downloads the embedder and the classifier (about 1 GB); vboard asks before anything else
+is downloaded ("Set up AI").
 
 An empty flag (--board=, --name=, --chat=, --agents=, --generators=) goes back to the default.
 The settings are kept in <files>/vboard/settings.json: ` + "`ai-connector vboard`" + ` alone starts the same connection again.
@@ -78,6 +87,8 @@ func vboardCommand(args []string) error {
 	generators := fs.String("generators", "", "the image and video models vboard offers, in order")
 	console := fs.String("console", "", "serve the console here")
 	state := fs.String("state", "", "this process's jobs and sessions")
+	install := fs.Bool("install", false, "start at login")
+	uninstall := fs.Bool("uninstall", false, "do not start at login any more")
 	// the address may come first (as with vboard-ai): flags after it still count
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		*url, args = args[0], args[1:]
@@ -92,19 +103,45 @@ func vboardCommand(args []string) error {
 		*url = fs.Arg(0)
 	}
 
+	if *uninstall { // install.go
+		svc, err := newService(os.Getenv)
+		if err != nil {
+			return err
+		}
+		if err := svc.uninstall(); err != nil {
+			return err
+		}
+		fmt.Println("ai-connector vboard does not start at login any more")
+		return nil
+	}
+
 	root := engine.ConfigDir()
 	dir := filepath.Join(root, "vboard")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
+	// its own jobs, sessions and approvals, apart from a plain worker's in root (both may run at once); models shared
+	own := stateDir(*state, os.Getenv, filepath.Join(dir, "worker"))
 	given := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
 	set, err := resolveVboard(vboardSettings{URL: *url, Token: *token, Board: *board, Name: *name, Chat: *chat, Agents: *agentList, Generators: *generators}, given, os.Getenv, filepath.Join(dir, "settings.json"))
 	if err != nil {
 		return err
 	}
+	if *install { // the settings are kept: the service starts with them
+		svc, err := newService(os.Getenv)
+		if err != nil {
+			return err
+		}
+		if err := svc.install(); err != nil {
+			return err
+		}
+		fmt.Println(svc.describe())
+		return nil
+	}
 	host := web.HostName()
-	agents, err := vboardAgents(set.Agents, set.Chat)
+	// --agents, else Claude Code beside the chat model when it is ready here (vboard_setup.go)
+	agents, err := defaultAgents(set.Agents, set.Chat, func() bool { return claudeReady(own) })
 	if err != nil {
 		return err
 	}
@@ -130,12 +167,13 @@ func vboardCommand(args []string) error {
 	if err != nil {
 		return err
 	}
+	setupPage := s.EnableSetupPage("http://" + l.Addr().String()) // the Hugging Face token, on this computer only
 	workerToken, err := s.LocalWorker(host, standaloneOwner)
 	if err != nil {
 		return fmt.Errorf("this computer as worker: %w", err)
 	}
 	if _, err := s.EnsureConnector(hub.ConnectorSettings{Name: connName, URL: set.URL, Token: set.Token, Board: set.Board,
-		Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Generators: splitList(set.Generators), Owner: standaloneOwner}); err != nil {
+		Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Generators: vboardGenerators(set.Generators), Owner: standaloneOwner}); err != nil {
 		if f := hub.ConnectorErrorField(err); f != "" {
 			return fmt.Errorf("%s: %w", f, err)
 		}
@@ -156,12 +194,19 @@ func vboardCommand(args []string) error {
 	}
 	go logConnector(ctx, s)
 
-	// its own jobs, sessions and approvals, apart from a plain worker's in root (both may run at once); models shared
-	own := stateDir(*state, os.Getenv, filepath.Join(dir, "worker"))
 	_, mgr := setup(root, own)
-	fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\n", set.URL, connName, filepath.Join(dir, "settings.json"))
+	// downloads on request (vboard's Download), and the small models vboard needs at once
+	dl := downloads(root, mgr.Catalog)
+	dl.Changed = func(st engine.DownloadState) {
+		if st.State == engine.DownloadDone {
+			go s.RefreshWorkers() // offered now
+		}
+	}
+	startFirstModels(dl, llm.MemBytes())
+	fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\nsetup page (Hugging Face token): %s\n", set.URL, connName, filepath.Join(dir, "settings.json"), setupPage)
 	werr := worker(mgr, workerConfig{Hub: "http://" + l.Addr().String(), Token: workerToken}, host,
-		(&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
+		(&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents,
+			Downloads: dl}).Handler())
 	stop()
 	<-hubDone
 	mgr.Unload()
@@ -212,7 +257,8 @@ func resolveVboard(flags vboardSettings, given map[string]bool, getenv func(stri
 	return out, nil
 }
 
-// vboardAgents parses --agents ("model[=name],…"); Claude Code alone gets the chat model in front (the first must be one).
+// vboardAgents parses --agents ("model[=name],…"); Claude Code alone gets the chat model in front (--chat, else the
+// first chat model this computer has; with none yet, Claude Code is the default until there is one).
 func vboardAgents(list, chat string) ([]hub.ConnectorAgent, error) {
 	var out []hub.ConnectorAgent
 	for _, part := range strings.Split(list, ",") {
@@ -224,10 +270,7 @@ func vboardAgents(list, chat string) ([]hub.ConnectorAgent, error) {
 		out = append(out, hub.ConnectorAgent{Model: strings.TrimSpace(model), Name: strings.TrimSpace(name)})
 	}
 	if len(out) > 0 && strings.HasPrefix(out[0].Model, "claude-code/") {
-		if chat == "" {
-			return nil, errors.New("--agents: the first is the default and must be a chat model (e.g. --chat qwen3.6-35b-a3b, or a chat model first in --agents)")
-		}
-		out = append([]hub.ConnectorAgent{{Model: chat}}, out...)
+		out = append([]hub.ConnectorAgent{{ID: "default", Model: chat}}, out...)
 	}
 	return out, nil
 }
@@ -280,4 +323,16 @@ func randomHex(n int) string {
 	b := make([]byte, n)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// vboardGenerators: the --generators list; none given means every image and video model on this computer's disk
+// ("*": a model downloaded from vboard is offered at once), "none" means none.
+func vboardGenerators(list string) []string {
+	switch strings.TrimSpace(list) {
+	case "":
+		return []string{"*"}
+	case "none":
+		return nil
+	}
+	return splitList(list)
 }

@@ -66,8 +66,9 @@ func TestVboardAgents(t *testing.T) {
 	if as, _ := vboardAgents("", ""); len(as) != 0 {
 		t.Fatalf("empty list: %+v", as)
 	}
-	if _, err := vboardAgents("claude-code/opus", ""); err == nil {
-		t.Fatal("Claude Code first without --chat: want an error")
+	// Claude Code first without --chat: the default chat model goes first (Claude Code leads only while there is none)
+	if as, err := vboardAgents("claude-code/opus", ""); err != nil || len(as) != 2 || as[0].Model != "" || as[0].ID != "default" {
+		t.Fatalf("Claude Code first: %+v %v", as, err)
 	}
 	as, err = vboardAgents("claude-code/opus", "qwen3.5-4b")
 	if err != nil || len(as) != 2 || as[0].Model != "qwen3.5-4b" {

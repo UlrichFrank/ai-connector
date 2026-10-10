@@ -25,7 +25,7 @@ type Env struct {
 }
 
 // ErrNoUV: uv is not installed.
-var ErrNoUV = errors.New("uv is needed for this model (brew install uv)")
+var ErrNoUV = errors.New("uv is needed for this model, and there is no standalone uv for this machine: install it (https://docs.astral.sh/uv/)")
 
 func (e Env) hash() string {
 	h := sha256.Sum256([]byte(e.Python + "\n" + strings.Join(e.Packages, "\n")))
@@ -49,9 +49,9 @@ func (e Env) Ensure(ctx context.Context, root string, log func(string)) error {
 	if e.Ready(root) {
 		return nil
 	}
-	uv, err := exec.LookPath("uv")
+	uv, err := UV(ctx, root, log) // on the PATH, else fetched into <root>/bin (uv.go)
 	if err != nil {
-		return ErrNoUV
+		return err
 	}
 	dir := e.Dir(root)
 	_ = os.RemoveAll(dir) // a half-made one

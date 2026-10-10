@@ -360,6 +360,19 @@ func TestVboardGenerators(t *testing.T) {
 	if got := b2.helloGenerators(); !reflect.DeepEqual(got, []vbGenerator{wantLTX, wantFlux}) {
 		t.Fatalf("hello after the handover %s", b2.raw)
 	}
+	// "*": every image and video model on disk, after those named before it, each once
+	patchConnector(t, base, device, c.ID, `{"generators":["ltx-2.5-q4","*"]}`)
+	all := nextGenerators(t, b2)
+	ids := map[string]bool{}
+	for _, g := range all {
+		if ids[g.ID] || (g.Kind != "image" && g.Kind != "video") {
+			t.Fatalf("\"*\": %+v", all)
+		}
+		ids[g.ID] = true
+	}
+	if len(all) < 3 || all[0].ID != "ltx-2.5-q4" || !ids["flux2-klein-4b"] || ids["flux2-klein-9b"] {
+		t.Fatalf("\"*\": %+v (want LTX first, then the others on disk)", all)
+	}
 	// off again: an empty list
 	patchConnector(t, base, device, c.ID, `{"generators":[]}`)
 	if got := nextGenerators(t, b2); len(got) != 0 {

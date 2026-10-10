@@ -127,7 +127,17 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 	models := fleetModels(routed)
 	var out []advertisedGenerator
 	seen := map[string]bool{}
+	var ids []string
 	for _, id := range conf.Generators {
+		if id != allGenerators {
+			ids = append(ids, id)
+			continue
+		}
+		for _, fm := range models { // "*": every image and video model on disk, after those named before it
+			ids = append(ids, fm.ID)
+		}
+	}
+	for _, id := range ids {
 		fm, ok := findModel(models, id)
 		if !ok || seen[fm.ID] {
 			continue
@@ -184,8 +194,12 @@ func generatorIDs(gs []advertisedGenerator) string {
 	return strings.Join(ids, " ")
 }
 
-// cleanGenerators checks the setting: catalogue ids (or names as in /v1/*), unique, at most 20. Whether one is an
-// image or video model is seen only when a worker lists it (others are not offered).
+// allGenerators in the setting stands for every image and video model a connected worker has on disk (the default
+// of `ai-connector vboard`: a model downloaded from vboard is offered at once).
+const allGenerators = "*"
+
+// cleanGenerators checks the setting: catalogue ids (or names as in /v1/*) or "*", unique, at most 20. Whether one
+// is an image or video model is seen only when a worker lists it (others are not offered).
 func cleanGenerators(in []string) ([]string, error) {
 	if len(in) > maxGenerators {
 		return nil, &connectorError{"generators", fmt.Sprintf("At most %d generators", maxGenerators)}

@@ -26,16 +26,39 @@ func HFToken() string {
 			return t
 		}
 	}
-	p := os.Getenv("HF_TOKEN_PATH")
-	if p == "" {
-		if hf := os.Getenv("HF_HOME"); hf != "" {
-			p = filepath.Join(hf, "token")
-		} else if home, err := os.UserHomeDir(); err == nil {
-			p = filepath.Join(home, ".cache", "huggingface", "token")
-		}
-	}
-	b, _ := os.ReadFile(p)
+	b, _ := os.ReadFile(HFTokenPath())
 	return strings.TrimSpace(string(b))
+}
+
+// HFTokenPath is where `hf auth login` keeps the token: $HF_TOKEN_PATH, $HF_HOME/token, ~/.cache/huggingface/token.
+func HFTokenPath() string {
+	if p := os.Getenv("HF_TOKEN_PATH"); p != "" {
+		return p
+	}
+	if hf := os.Getenv("HF_HOME"); hf != "" {
+		return filepath.Join(hf, "token")
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".cache", "huggingface", "token")
+	}
+	return ""
+}
+
+// SaveHFToken stores the token where `hf auth login` does (HFTokenPath), readable by this user only.
+func SaveHFToken(token string) error {
+	p := HFTokenPath()
+	if p == "" {
+		return errors.New("no home folder for the Hugging Face token")
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		return err
+	}
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, []byte(strings.TrimSpace(token)), 0o600); err != nil {
+		return err
+	}
+	_ = os.Chmod(tmp, 0o600)
+	return os.Rename(tmp, p)
 }
 
 // FromHub lists the files of repo at rev from the Hugging Face API, pinned like the built-in models: large (LFS)

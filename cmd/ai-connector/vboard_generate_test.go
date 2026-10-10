@@ -21,3 +21,11 @@ func TestResolveVboardGenerators(t *testing.T) {
 		t.Fatalf("--generators=: want none, got %+v", s)
 	}
 }
+
+func TestVboardGeneratorsDefault(t *testing.T) {
+	for in, want := range map[string][]string{"": {"*"}, "none": nil, "flux2-klein-4b, *": {"flux2-klein-4b", "*"}} {
+		if got := vboardGenerators(in); !reflect.DeepEqual(got, want) {
+			t.Errorf("%q → %q, want %q", in, got, want)
+		}
+	}
+}

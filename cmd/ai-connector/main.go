@@ -136,7 +136,8 @@ func run() error {
 			fmt.Println("mlxlab worker: hub and token kept in", file)
 		}
 		_, mgr := setup(root, own)
-		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
+		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents,
+			Downloads: downloads(root, mgr.Catalog)}).Handler()) // a server's vboard connector downloads on request (vboard_setup.go)
 	case "serve":
 		_, mgr := setup(root, own)
 		url, err := serve(mgr, *addr)

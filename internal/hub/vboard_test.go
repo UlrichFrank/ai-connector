@@ -29,13 +29,13 @@ import (
 type vbStage int
 
 const (
-	stageClassify vbStage = iota // d508560: hello {type,name,device,model}; classify → answers | error
-	stageEmbed                   // 0992b68: + hello.embed; embed → vectors
-	stageChat                    // f914d44: + hello.chat; chat/chatCancel → chatDelta (text, thinking) / chatDone
-	stageHead                    // 175647c → main: + hello.instance/handover, {reconnect}, chatDelta.status
-	stageAgents                  // ai-agents (e5a7292c): + hello.agents, {type:"agents"}, chat.agent/context
-	stageImages                  // images in chats: + hello.images, agents[].images, chat messages[].images
-	stageGenerators              // images and videos on the board: + hello.generators, {type:"generators"}, generate…
+	stageClassify   vbStage = iota // d508560: hello {type,name,device,model}; classify → answers | error
+	stageEmbed                     // 0992b68: + hello.embed; embed → vectors
+	stageChat                      // f914d44: + hello.chat; chat/chatCancel → chatDelta (text, thinking) / chatDone
+	stageHead                      // 175647c → main: + hello.instance/handover, {reconnect}, chatDelta.status
+	stageAgents                    // ai-agents (e5a7292c): + hello.agents, {type:"agents"}, chat.agent/context
+	stageImages                    // images in chats: + hello.images, agents[].images, chat messages[].images
+	stageGenerators                // images and videos on the board: + hello.generators, {type:"generators"}, generate…
 )
 
 func (s vbStage) String() string {
@@ -131,6 +131,7 @@ type fakeBridge struct {
 	updates chan []vbAgent       // ai-agents: {type:"agents"} as they come
 	gens    sync.Map             // generators: id → chan vbGenEv (vboard_generate_test.go)
 	genList chan []vbGenerator   // generators: {type:"generators"} as they come
+	setups  chan []byte          // setup: {setup}, {models}, {downloadStatus}, … (vboard_setup_test.go)
 	n       int
 	nmu     sync.Mutex
 }
@@ -221,6 +222,7 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 	}
 	b.updates = make(chan []vbAgent, 16)
 	b.genList = make(chan []vbGenerator, 16)
+	b.setups = make(chan []byte, 256)
 	if err != nil || typ != "hello" {
 		c.Close(websocket.StatusPolicyViolation, "hello expected")
 		return
@@ -269,6 +271,10 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if v.stage >= stageGenerators && b.genMessage(m.Type, m.ID, raw) {
+			continue
+		}
+		if v.stage >= stageHead && setupAnswer(m.Type, m.ID, b) {
+			b.setups <- raw
 			continue
 		}
 		if v.stage >= stageAgents && m.Type == "agents" {
@@ -561,10 +567,10 @@ type vbMac struct {
 func startVboardMac(t *testing.T, base, token string, kinds ...string) *vbMac {
 	t.Helper()
 	all := map[string]*engine.Model{
-		"chat":     {ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: gib},
-		"embed":    {ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib},
-		"classify": {ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib},
-		"vision":   {ID: "lmstudio/qwen3.6-27b", Name: "Qwen3.6 27B · lmstudio", Kind: engine.Chat, Backend: "vbchat", Size: gib, Images: true},
+		"chat":     {ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: gib, Here: true},
+		"embed":    {ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib, Here: true},
+		"classify": {ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib, Here: true},
+		"vision":   {ID: "lmstudio/qwen3.6-27b", Name: "Qwen3.6 27B · lmstudio", Kind: engine.Chat, Backend: "vbchat", Size: gib, Here: true, Images: true},
 	}
 	cat := &engine.Catalog{}
 	for _, k := range kinds {

@@ -193,7 +193,7 @@ func TestConnectorAgentsValidation(t *testing.T) {
 		{`[{"model":"claude-code/haiku"},{"model":"qwen"}]`, "must be a chat model"},
 		{`[{"model":"qwen"},{"model":"qwen"}]`, "twice"},
 		{`[{"model":"qwen","id":"a"},{"model":"claude-code/opus","id":"a"}]`, "twice"},
-		{`[{"model":""}]`, "choose a model"},
+		{`[{"model":"qwen"},{"model":""}]`, "choose a model"}, // only the first may leave it to the default chat model
 		{`[{"model":"q","id":"has space"}]`, "without spaces"},
 		{`[` + strings.TrimSuffix(strings.Repeat(`{"model":"m"},`, 21), ",") + `]`, "At most 20"},
 	} {
