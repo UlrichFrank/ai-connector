@@ -373,10 +373,22 @@ func TestStdio(t *testing.T) {
 	}
 }
 
+// A server that exits during startup is reported as such, with its exit status, whether it was gone before the
+// first write (a broken pipe) or only after it.
 func TestStdioServerExits(t *testing.T) {
 	_, err := Open(context.Background(), &Server{Name: "x", Command: "/bin/sh", Args: []string{"-c", "exit 3"}}, Options{})
-	if err == nil || !strings.Contains(err.Error(), "exit") {
+	if err == nil || !strings.Contains(err.Error(), "the server exited: exit status 3") {
 		t.Fatalf("got %v", err)
+	}
+	// gone before the write
+	st, err := startStdio(&Server{Command: "/bin/sh", Args: []string{"-c", "exit 3"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-st.done
+	if err := st.write(&message{JSONRPC: "2.0", Method: "notifications/initialized"}); err == nil ||
+		!strings.Contains(err.Error(), "the server exited: exit status 3") {
+		t.Fatalf("write after the exit: %v", err)
 	}
 	_, err = Open(context.Background(), &Server{Name: "x", Command: "/nonexistent/mcp"}, Options{})
 	if err == nil {

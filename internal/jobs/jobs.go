@@ -655,9 +655,13 @@ func (m *Manager) Job(id string) (*Job, bool) {
 	return j.clone(), true
 }
 
-// Subscribe gets every update until the returned function is called.
+// subBuffer: updates kept for a subscriber that has not taken them yet.
+const subBuffer = 4096
+
+// Subscribe gets every update until the returned function is called. A subscriber that does not keep up misses
+// events, never a job's state (publish).
 func (m *Manager) Subscribe() (<-chan Update, func()) {
-	ch := make(chan Update, 4096)
+	ch := make(chan Update, subBuffer)
 	m.mu.Lock()
 	m.next++
 	id := m.next
@@ -679,7 +683,45 @@ func (m *Manager) publish(u Update) {
 	for _, ch := range m.subs {
 		select {
 		case ch <- u:
-		default: // a subscriber that does not keep up misses events (it still gets the job's state at the end)
+		default: // a subscriber that does not keep up misses events
+			if u.Job != nil { // but not a job's state (its end above all): an older event makes room for it
+				makeRoom(ch)
+				ch <- u
+			}
+		}
+	}
+}
+
+// makeRoom drops one update from a full subscriber channel: the oldest event (a follower sees the gap in the text by
+// its "at" and takes the text from the job), else the oldest state. Called with m.mu held, so nothing else sends
+// meanwhile; the subscriber may take updates concurrently, which only leaves more room. The order is kept.
+func makeRoom(ch chan Update) {
+	var q []Update
+	for len(q) < cap(ch) {
+		select {
+		case u := <-ch:
+			q = append(q, u)
+			continue
+		default:
+		}
+		break
+	}
+	if len(q) < cap(ch) {
+		for _, u := range q { // the subscriber took some meanwhile: there is room already
+			ch <- u
+		}
+		return
+	}
+	drop := 0
+	for i, u := range q {
+		if u.Job == nil {
+			drop = i
+			break
+		}
+	}
+	for i, u := range q {
+		if i != drop {
+			ch <- u
 		}
 	}
 }
