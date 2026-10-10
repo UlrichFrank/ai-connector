@@ -132,6 +132,7 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("GET /api/workers", s.listWorkers)
 	auth.HandleFunc("POST /api/workers", s.addWorker)
 	auth.HandleFunc("DELETE /api/workers/{id}", s.revokeWorker)
+	auth.HandleFunc("PATCH /api/workers/{id}", s.patchWorker) // its owner (agents.go)
 	auth.HandleFunc("PUT /api/workers/{id}/primary", s.setPrimary)
 	auth.HandleFunc("DELETE /api/workers/{id}/primary", s.setPrimary)
 	auth.HandleFunc("GET /api/worker/events", s.workerEvents)

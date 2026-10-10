@@ -25,6 +25,9 @@ type Worker struct {
 	// Route is the short id that prefixes this Mac's job ids and file urls ("m1": "m1.<job id>",
 	// "/files/m1/…"); given once at enrollment, so links stay valid across restarts.
 	Route string `json:"route"`
+	// Owner is the person (a device's user) who enrolled it: Claude Code on it runs with their subscription, so
+	// only their claude-code jobs go there (agents.go). "" for the legacy worker and workers from before owners.
+	Owner string `json:"owner,omitempty"`
 }
 
 // legacyRoute is the route of the worker with the legacy shared token.
@@ -123,10 +126,10 @@ func (ws *workers) byRoute(route string) (id, name string) {
 }
 
 // add enrolls a worker and returns its token (only the caller ever sees it).
-func (ws *workers) add(name string) (string, Worker, error) {
+func (ws *workers) add(name, owner string) (string, Worker, error) {
 	token := randomString(32)
 	now := time.Now().UTC().Truncate(time.Second)
-	s := &storedWorker{Worker: Worker{ID: randomString(9), Name: name, Created: now}, Hash: hashToken(token)}
+	s := &storedWorker{Worker: Worker{ID: randomString(9), Name: name, Created: now, Owner: owner}, Hash: hashToken(token)}
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 	s.Route = ws.nextRouteLocked()
@@ -277,7 +280,7 @@ func (s *Server) addWorker(w http.ResponseWriter, r *http.Request) {
 	if len(name) > 100 {
 		name = name[:100]
 	}
-	token, wk, err := s.workers.add(name)
+	token, wk, err := s.workers.add(name, deviceOf(r).User)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal", "message": err.Error()})
 		return
