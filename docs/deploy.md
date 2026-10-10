@@ -25,11 +25,14 @@ Small JSON files, written atomically (temp file + rename):
 
 | File | What | Lost means |
 |---|---|---|
-| `devices.json` | signed-in devices (tokens hashed), owners, invites' results | everyone signs in again |
-| `workers.json` | enrolled workers (tokens hashed), their route ids | every worker is connected again (console → Connect a worker) |
-| `clients.json` | API clients (`aic_…` tokens hashed) | every app gets a new token |
-| `primary.json` | the pinned primary worker | — (falls back to automatic) |
-| `connectors.json` | vboard connectors (once phase 4 is in; the exact name is the connector store's) | the connectors are added again |
+| `devices.json` | signed-in devices (tokens hashed), their users, owners, who invited whom | everyone signs in again |
+| `workers.json` | enrolled workers (tokens hashed), their route ids and owners (whose Claude Code they run) | every worker is connected again (console → Connect a worker), owners set again |
+| `clients.json` | API clients (`aic_…` tokens hashed) and their owners | every app gets a new token |
+| `primary.json` | the pinned primary worker (only after a pin) | — (falls back to automatic) |
+| `connectors.json` | vboard connectors, **with their vboard tokens in clear** (mode 0600) — written once phase 4 (the vboard connector) is merged | the connectors are added again |
+
+These are all the files the server writes there (pending invites live in memory only). Treat a backup like a
+secret once `connectors.json` is in it: it holds tokens that open vboard boards.
 
 ## First install on the Pi
 
@@ -200,7 +203,7 @@ list. Workers on Linux need glibc (not Alpine); see the README for what each pla
 
 ## Backups
 
-Everything worth keeping is the JSON in `/data` (a few KB). The image is distroless (no shell, `cat` or `tar`, so
+Everything worth keeping is the JSON in `/data` (a few KB; the files are listed in "What is in `/data`"). The image is distroless (no shell, `cat` or `tar`, so
 `kubectl cp` and `kubectl exec … cat` do not work): read the volume on the node instead. The local-path PV names its
 directory on the Pi:
 
