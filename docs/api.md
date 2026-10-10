@@ -44,6 +44,11 @@ As implemented: `type` is `invalid_request_error` for 400/401/404 and `server_er
 name above (`invalid_api_key`, `model_not_found`, `no_worker`, `worker_error`; `unknown_url` for a path that is no
 endpoint) and `null` for a plain 400. A model of another kind (an embedder for a chat) is a 400.
 
+Before a 404 `model_not_found` the server asks the connected workers for their models once more (`GET
+/api/models?refresh=1`: a worker first asks its local runtimes and adds what is new, at most 1.5 s; the server waits
+at most 2 s, and asks at most once in 2 s) and tries again — a model pulled into Ollama a moment ago works at once
+instead of after the next scan (every 30 s).
+
 Limits: a request body of at most 32 MB; at most 2048 inputs per embedding call (OpenAI and TEI); no cap on
 `max_tokens` beyond the worker's (when unset: 4096, thinking 32768 on the MLX chat models; a runtime's own default for `ollama/…` and the like).
 

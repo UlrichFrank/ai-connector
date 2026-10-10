@@ -162,6 +162,9 @@ func (s *Server) place(ctx context.Context, name, kind string) (*node, catalogMo
 		return nil, catalogModel{}, &apiError{http.StatusServiceUnavailable, "no_worker", "no worker is connected"}
 	}
 	fm, ok := findModel(fleetModels(routed), name)
+	if !ok && s.fleet.refreshModels(ctx, routed) { // pulled a moment ago? the workers' lists are up to 30 s old
+		fm, ok = findModel(fleetModels(routed), name)
+	}
 	if !ok {
 		return nil, catalogModel{}, &apiError{http.StatusNotFound, "model_not_found", fmt.Sprintf("no connected worker has the model %q", name)}
 	}

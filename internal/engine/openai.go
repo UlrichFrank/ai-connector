@@ -50,6 +50,13 @@ func (b *OpenAIBackend) Discover(ctx context.Context) []*Model {
 	return ms
 }
 
+// DiscoverNew asks every runtime for its models now and adds those that are new (a model pulled a moment ago),
+// keeping the others: a runtime that does not answer within ctx (a short wait) takes nothing away; the next full
+// scan (Watch) also drops what is gone. It returns how many were added.
+func (b *OpenAIBackend) DiscoverNew(ctx context.Context) int {
+	return b.Catalog.AddRuntime(BackendOpenAI, discover(ctx, b.client(), b.Runtimes))
+}
+
 // Watch discovers the models every interval until ctx ends (a runtime started or a model pulled after the worker
 // shows up without a restart).
 func (b *OpenAIBackend) Watch(ctx context.Context, every time.Duration) {

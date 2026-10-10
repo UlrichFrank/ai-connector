@@ -124,7 +124,10 @@ type fleet struct {
 	changed chan struct{}
 	subs    map[int]chan []byte
 	feeds   map[int]*jobFeed // followJob
-	next    int
+
+	refreshMu sync.Mutex // refreshModels
+	refreshed time.Time
+	next      int
 }
 
 func newFleet(t *tunnel.Hub, ws *workers, dataDir string) *fleet {
@@ -383,6 +386,48 @@ func (f *fleet) probe(ctx context.Context, n *node) error {
 	}
 	n.mu.Unlock()
 	return nil
+}
+
+// Asking the workers for their models again when a model is listed nowhere (refreshModels).
+var (
+	refreshModelsWait = 2 * time.Second // what a request waits for it at most
+	refreshModelsGap  = 2 * time.Second // at most one in this time (a client asking for nonsense again and again)
+)
+
+// refreshModels asks the Macs for their models now (GET /api/models?refresh=1: a worker first asks its local
+// runtimes, so a model pulled a moment ago is there), instead of waiting for the next probe (every 30 s). One at a
+// time, at most once in refreshModelsGap, at most refreshModelsWait long; false: it did not ask (too soon).
+func (f *fleet) refreshModels(ctx context.Context, nodes []*node) bool {
+	f.refreshMu.Lock()
+	defer f.refreshMu.Unlock()
+	if time.Since(f.refreshed) < refreshModelsGap {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(ctx, refreshModelsWait)
+	defer cancel()
+	var wg sync.WaitGroup
+	for _, n := range nodes {
+		if !n.isRouted() {
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var ms struct {
+				Models []catalogModel `json:"models"`
+			}
+			if err := f.getJSON(ctx, n, "/api/models?refresh=1", &ms); err != nil {
+				return
+			}
+			n.mu.Lock()
+			n.models = ms.Models
+			n.mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	f.refreshed = time.Now()
+	f.notify()
+	return true
 }
 
 func isDecode(err error) bool {

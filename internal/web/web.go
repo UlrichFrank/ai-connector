@@ -341,7 +341,27 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// discoverer is a backend whose models are found at run time (engine.OpenAIBackend: the local runtimes).
+type discoverer interface {
+	DiscoverNew(ctx context.Context) int
+}
+
+// refreshWait bounds what ?refresh=1 waits for the runtimes.
+var refreshWait = 1500 * time.Millisecond
+
+// models: GET /api/models. ?refresh=1 asks the local runtimes for their models first (at most 1.5 s; new ones are added) instead of
+// waiting for the next scan (every 30 s): the hub asks so when a model it was asked for is listed nowhere (one
+// pulled a moment ago).
 func (s *Server) models(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("refresh") != "" {
+		ctx, cancel := context.WithTimeout(r.Context(), refreshWait)
+		for _, b := range s.Jobs.Backends {
+			if d, ok := b.(discoverer); ok {
+				d.DiscoverNew(ctx)
+			}
+		}
+		cancel()
+	}
 	writeJSON(w, map[string]any{"models": s.Jobs.Catalog.List(), "loaded": s.Jobs.Loaded(), "kinds": engine.Kinds,
 		"examples": engine.Examples})
 }
