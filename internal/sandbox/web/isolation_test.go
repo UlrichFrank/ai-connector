@@ -38,7 +38,11 @@ func TestIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := New(Config{BraveKey: key, Logf: t.Logf})
+	deny, err := LoadDeny() // the worker's deny list: Check probes its names too
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := New(Config{BraveKey: key, Deny: deny, Logf: t.Logf})
 	defer s.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Minute)
 	defer cancel()
@@ -82,7 +86,7 @@ func TestIsolation(t *testing.T) {
 	if res.IsError || !strings.Contains(res.Text, "Example Domain") {
 		t.Errorf("web_fetch example.com failed")
 	}
-	for _, u := range []string{"http://192.168.1.1.nip.io/", "https://example.org/", "http://127.0.0.1:8484/", "file:///etc/passwd"} {
+	for _, u := range []string{"http://192.168.1.1.nip.io/", "https://printer.local/", "http://127.0.0.1:8484/", "file:///etc/passwd"} {
 		res, err = s.Call(ctx, ToolFetch, json.RawMessage(`{"url":"`+u+`"}`))
 		if err != nil {
 			t.Fatal(err)

@@ -58,7 +58,12 @@ func webSandbox(context.Context) (agent.Toolbox, error) {
 			webErr = fmt.Errorf("the Brave key: %w", err)
 			return
 		}
-		webBox = web.New(web.Config{BraveKey: key})
+		deny, err := web.LoadDeny()
+		if err != nil {
+			webErr = fmt.Errorf("the web deny list: %w", err)
+			return
+		}
+		webBox = web.New(web.Config{BraveKey: key, Deny: deny})
 	})
 	if webErr != nil {
 		return nil, webErr

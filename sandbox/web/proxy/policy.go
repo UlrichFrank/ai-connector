@@ -44,10 +44,10 @@ var blockedNets = mustPrefixes(
 	"ff00::/8",        // multicast
 )
 
-// deniedSuffixes are names (and their subdomains) that are never resolved: the user's own domain and the
-// names that only mean something on a LAN.
+// deniedSuffixes are names (and their subdomains) that are never resolved: the names that only mean something on
+// a LAN. Your own domain goes into DENY (the worker's MLXLAB_WEB_DENY or ~/.config/mlxlab/web.deny).
 var deniedSuffixes = []string{
-	"localhost", "example.org", "local", "internal", "lan", "home.arpa", "intranet", "corp", "private", "localdomain",
+	"localhost", "local", "internal", "lan", "home.arpa", "intranet", "corp", "private", "localdomain",
 	"home", "arpa",
 }
 

@@ -9,14 +9,14 @@ import (
 
 func testPolicy() *Policy {
 	p := &Policy{Ports: map[int]bool{80: true, 443: true}}
-	_ = p.ParseDeny("203.0.114.0/24, 8.8.4.4, evil.example")
+	_ = p.ParseDeny("203.0.114.0/24, 8.8.4.4, evil.example, example.org")
 	return p
 }
 
 func TestCheckIP(t *testing.T) {
 	p := testPolicy()
 	deny := []string{
-		"127.0.0.1", "127.1.2.3", "10.0.0.1", "10.10.2.1", "172.16.0.1", "172.31.255.255", "192.168.0.1",
+		"127.0.0.1", "127.1.2.3", "10.0.0.1", "10.200.2.1", "172.16.0.1", "172.31.255.255", "192.168.0.1",
 		"192.168.240.1", "192.168.241.1", "100.64.0.1", "100.127.255.254", "169.254.169.254", "0.0.0.0",
 		"224.0.0.1", "239.255.255.250", "255.255.255.255", "240.0.0.1", "198.18.0.1", "192.0.0.170",
 		"::1", "::", "::ffff:192.168.0.1", "::ffff:127.0.0.1", "fe80::1", "fd00::1", "fc00::1", "ff02::1",
@@ -48,14 +48,14 @@ func TestCheckName(t *testing.T) {
 			t.Errorf("%s allowed, want denied", s)
 		}
 	}
-	allow := []string{"example.com", "www.example.org.example.com", "rnd7de.com", "api.search.brave.com", "x.de", "b.cafe",
+	allow := []string{"example.com", "www.example.org.example.com", "exampleorg.com", "api.search.brave.com", "x.de", "b.cafe",
 		"xn--nicode-2ya.de", "192.168.1.1.nip.io"}
 	for _, s := range allow {
 		if err := p.CheckName(NormalizeHost(s)); err != nil {
 			t.Errorf("%s denied: %v", s, err)
 		}
 	}
-	if NormalizeHost("K8S.RND7.DE.") != "k8s.example.org" {
+	if NormalizeHost("K8S.EXAMPLE.ORG.") != "k8s.example.org" {
 		t.Error("normalize")
 	}
 }

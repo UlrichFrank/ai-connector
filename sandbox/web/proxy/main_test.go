@@ -12,7 +12,7 @@ import (
 func testProxy(t *testing.T) *proxy {
 	t.Setenv("ALLOW_CLIENTS", "192.168.240.0/24")
 	t.Setenv("BRAVE_KEY", "secret-key")
-	t.Setenv("DENY", "")
+	t.Setenv("DENY", "example.org")
 	p, err := newProxy(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +39,7 @@ func TestProxyRefusals(t *testing.T) {
 		code                   int
 		body                   string
 	}{
-		{http.MethodGet, "http://example.com/", "10.10.2.1:5000", 403, "client not allowed"},
+		{http.MethodGet, "http://example.com/", "10.200.2.1:5000", 403, "client not allowed"},
 		{http.MethodGet, "http://192.168.1.1/", client, 403, "not a public address"},
 		{http.MethodGet, "http://k8s.example.org/", client, 403, "example.org"},
 		{http.MethodGet, "http://example.com:8080/", client, 403, "port 8080"},

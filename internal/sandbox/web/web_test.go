@@ -34,6 +34,25 @@ func TestReadKeyFile(t *testing.T) {
 	}
 }
 
+func TestLoadDeny(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("MLXLAB_WEB_DENY", " example.org, 10.1.2.0/24 ")
+	if d, err := LoadDeny(); d != "example.org,10.1.2.0/24" || err != nil {
+		t.Errorf("env only: %q %v", d, err)
+	}
+	dir := filepath.Join(home, ".config", "mlxlab")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "web.deny"), []byte("# my domains\nexample.net\n\n a.example, b.example\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if d, err := LoadDeny(); d != "example.org,10.1.2.0/24,example.net,a.example,b.example" || err != nil {
+		t.Errorf("env and file: %q %v", d, err)
+	}
+}
+
 func TestLoadBraveKeyEnv(t *testing.T) {
 	t.Setenv("MLXLAB_BRAVE_KEY", " k1 ")
 	if k, err := LoadBraveKey(); k != "k1" || err != nil {

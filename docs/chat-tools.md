@@ -37,8 +37,8 @@ them.
 
 * **web**: a VM with the search (SearXNG; Brave Search API when `MLXLAB_BRAVE_KEY` / `~/.config/mlxlab/brave.key`
   is set) and a fetcher (page → readable text, size-capped). Its only route out is an egress proxy container that
-  refuses private, loopback, link-local, CGNAT, multicast and the Mac's/Pi's addresses and names (`*.example.org`,
-  `*.nip.io` to private IPs, `*.local`), resolving DNS itself (no DNS rebinding). A pf anchor on the Mac
+  refuses private, loopback, link-local, CGNAT, multicast and the Mac's/Pi's addresses and names (your own domain
+  from the deny list, `*.nip.io` to private IPs, `*.local`), resolving DNS itself (no DNS rebinding). A pf anchor on the Mac
   (`make sandbox-firewall`, needs sudo) additionally drops traffic from the container network to the LAN and to
   the Mac. Nothing secret is in the VM (the Brave key stays in the proxy).
 * **files**: a VM without network (`--network none`) with Python (reportlab, matplotlib, pandas, python-docx,
@@ -129,7 +129,8 @@ fails, stopped after 10 minutes idle:
 
 * **Proxy**: resolves names itself, refuses the whole name if any address is not public (RFC1918, loopback,
   link-local, CGNAT, ULA, multicast, NAT64/6to4/Teredo, the container networks, its own addresses), refuses
-  `*.example.org`, `*.local`, `*.internal`, `*.lan`, `*.home.arpa`, `localhost`, single-label and numeric names, dials
+  the deny list (`MLXLAB_WEB_DENY` or `~/.config/mlxlab/web.deny` on the Mac: CIDRs, IPs and name suffixes such as
+  your own domain, `example.org` for `*.example.org`), `*.local`, `*.internal`, `*.lan`, `*.home.arpa`, `localhost`, single-label and numeric names, dials
   the address it checked (no DNS rebinding), caps bytes (32 MiB) and time (90 s), logs every decision as JSON
   (`container logs mlxlab-web-proxy`). The Brave key (`MLXLAB_BRAVE_KEY` or `~/.config/mlxlab/brave.key`, mode
   0600) is passed only to the proxy, which adds it to `http://api.search.brave.com/res/v1/…` and sends that on
@@ -147,7 +148,7 @@ fails, stopped after 10 minutes idle:
 * **Check**: `make sandbox-check` (`go test -tags sandbox ./internal/sandbox/web`) probes from inside every VM, as
   the service user: a canary port on every address of the Mac, the LAN router, 192.168.0.1, 10.0.0.1, 100.64.0.1,
   169.254.169.254, `localhost:8484`, the internet directly (all must fail), the internet via the proxy (must
-  work), the proxy with private names/addresses (`192.168.1.1.nip.io`, `example.org`, `[::1]`, `2130706433`, …) (must
+  work), the proxy with private names/addresses (`192.168.1.1.nip.io`, `printer.local`, the deny list's names, `[::1]`, `2130706433`, …) (must
   be refused), and that the services run without capabilities. A "control" VM without the lockdown shows what
   only the network and pf block (WARN until pf is loaded).
 

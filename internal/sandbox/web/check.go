@@ -153,8 +153,8 @@ func (s *Sandbox) Check(ctx context.Context) ([]Probe, error) {
 		{"http://[::1]/", false},
 		{"http://2130706433/", false},
 		{"http://0x7f000001/", false},
-		{"https://example.org/", false},
-		{"https://www.example.org/", false},
+		{"https://printer.local/", false},
+		{"https://nas.lan/", false},
 		{"https://192.168.1.1.nip.io/", false},
 		{"http://192.168.1.1.nip.io/", false},
 		{"http://10.0.0.1.nip.io/", false},
@@ -163,6 +163,22 @@ func (s *Sandbox) Check(ctx context.Context) ([]Probe, error) {
 		{"https://example.com:8443/", false},
 		{"http://example.com/", true},
 		{"https://example.com/", true},
+	}
+	// the names of the configured deny list (Config.Deny, e.g. your own domain) and a subdomain of each
+	for _, item := range strings.Split(s.cfg.Deny, ",") {
+		item = strings.Trim(strings.ToLower(strings.TrimSpace(item)), ".")
+		if item == "" || strings.Contains(item, "/") {
+			continue
+		}
+		if _, err := netip.ParseAddr(item); err == nil {
+			continue
+		}
+		for _, u := range []string{"https://" + item + "/", "https://www." + item + "/"} {
+			via = append(via, struct {
+				url  string
+				want bool
+			}{u, false})
+		}
 	}
 	for _, ip := range macIPs {
 		via = append(via, struct {

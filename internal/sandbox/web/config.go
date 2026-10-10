@@ -33,7 +33,7 @@ type Config struct {
 	IntSubnetV6 string        // (default fd6d:6c78:7765:f0::/64)
 	ExtSubnetV6 string        // (default fd6d:6c78:7765:f1::/64)
 	Idle        time.Duration // stop after this long without a call (default 10m)
-	Deny        string        // extra deny list for the proxy: CIDRs, IPs, name suffixes (comma separated)
+	Deny        string        // extra deny list for the proxy: CIDRs, IPs, name suffixes (comma separated; see LoadDeny)
 	BraveKey    string        // Brave Search API key; empty = SearXNG (see LoadBraveKey)
 	Logf        func(format string, args ...any)
 }
@@ -88,6 +88,34 @@ func LoadBraveKey() (string, error) {
 		return "", nil
 	}
 	return readKeyFile(filepath.Join(home, ".config", "mlxlab", "brave.key"))
+}
+
+// LoadDeny reads the proxy's extra deny list (Config.Deny): MLXLAB_WEB_DENY and ~/.config/mlxlab/web.deny, both
+// comma or line separated CIDRs, IPs and name suffixes (e.g. your own domain: "example.org" denies it and its
+// subdomains). Lines starting with # are comments. No file is no error.
+func LoadDeny() (string, error) {
+	var items []string
+	add := func(s string) {
+		for _, line := range strings.Split(s, "\n") {
+			if line = strings.TrimSpace(line); line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			for _, it := range strings.Split(line, ",") {
+				if it = strings.TrimSpace(it); it != "" {
+					items = append(items, it)
+				}
+			}
+		}
+	}
+	add(os.Getenv("MLXLAB_WEB_DENY"))
+	if home, err := os.UserHomeDir(); err == nil {
+		b, err := os.ReadFile(filepath.Join(home, ".config", "mlxlab", "web.deny"))
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+		add(string(b))
+	}
+	return strings.Join(items, ","), nil
 }
 
 func readKeyFile(path string) (string, error) {
