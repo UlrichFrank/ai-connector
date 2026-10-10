@@ -896,6 +896,13 @@ where the model reports them); the first one carries `seconds` (the length that 
 (when known). `peaks`: the waveform, 256 numbers 0..1 — the maximum of the mono mix per slice of the length,
 computed from the WAV before it is encoded (vboard's backend has no decoder for AAC; uploads get theirs from the
 browser).
+What else `generateDone` carries, so vboard can draw each kind as what it is:
+* `speech`: `text` (as read), `voice` (`{id, name}`), `language`, and `words: [{"text","start","end"}]` (seconds) when
+  the model gives timings — for subtitles and the word being spoken; absent otherwise (vboard then shows the whole
+  text). Kokoro's pipeline has them per token; the others where mlx-audio reports them.
+* `music`: `title`, `bpm` (when known), and `lyrics` as sung (with their `[verse]` / `[chorus]` marks; absent for an
+  instrumental).
+* `sound`: nothing more (`seconds`, `peaks` as for all).
 **Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song
 unloads the built-in chat model first. Kokoro is small but runs in the same speech worker, which is one large runtime.
 
@@ -910,7 +917,17 @@ unloads the built-in chat model first. Kokoro is small but runs in the same spee
   `generate_image`: `generate_music {prompt, lyrics?, instrumental?, seconds?, bpm?, title?, near?}`,
   `generate_sound {prompt, seconds?, near?}`, `speak {text, voice?, language?, instruct?, near?}` (and `list_voices`
   for the voices of the speech generators).
-* The placeholder is an audio card of the final size with the animation and progress; done → the audio item.
+* **Each kind its own item**, so they are told apart on the board:
+  * `speech` → a **voice clip**: speaker and voice name, the text as transcript, play. It can belong to a slide or
+    frame: in presentation mode it plays when that slide is shown (narration), with subtitles from `words`; or it is
+    attached to an item as its "read aloud".
+  * `music` → a **track**: cover, title, length, bpm, the lyrics to unfold. Tracks gather in a **playlist** (a
+    container that plays its tracks one after another; drop a track in, drag to reorder). `generate_music` takes
+    `playlist?: <item id>`, so a new song lands in the playlist the chat works on.
+  * `sound` → a small **sound pad**: one button, loop on/off, meant to be triggered (a click in a presentation).
+  * An uploaded file → a plain player, which the person can turn into a voice clip, track or sound pad.
+* The placeholder already has the shape of the item it becomes (voice clip, track, sound pad), with the animation and
+  progress; done → that item.
 * Later (not part of this): a cover image for a song (a FLUX job; the worker already has `coverFor`), and the other
   direction — transcribing an audio item into a note with Qwen3-ASR (a new request, not a generator).
 
