@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/philipparndt/ai-connector/internal/consoleui"
 	"github.com/philipparndt/ai-connector/internal/tunnel"
 	"github.com/philipparndt/ai-connector/internal/webui"
 )
@@ -35,10 +36,12 @@ type Config struct {
 	// the client APIs' default models (docs/api.md): MLXLAB_EMBED_MODEL, MLXLAB_CLASSIFY_MODEL
 	EmbedModel    string
 	ClassifyModel string
+	// ConsoleHosts: host names (lower case, no port) on which / redirects to the console (/console/)
+	ConsoleHosts []string
 }
 
-// FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL and
-// MLXLAB_CLASSIFY_MODEL.
+// FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL,
+// MLXLAB_CLASSIFY_MODEL and MLXLAB_CONSOLE_HOSTS (a comma list of host names).
 func FromEnv() Config {
 	c := Config{
 		Password:      os.Getenv("MLXLAB_PASSWORD"),
@@ -49,6 +52,7 @@ func FromEnv() Config {
 		EmbedModel:    os.Getenv("MLXLAB_EMBED_MODEL"),
 		ClassifyModel: os.Getenv("MLXLAB_CLASSIFY_MODEL"),
 	}
+	c.ConsoleHosts = parseHosts(os.Getenv("MLXLAB_CONSOLE_HOSTS"))
 	if c.Data == "" {
 		c.Data = "/data"
 	}
@@ -74,6 +78,7 @@ type Server struct {
 	proxy   http.Handler
 	rp      *httputil.ReverseProxy
 	ui      http.Handler
+	console http.Handler
 
 	// failDelay slows down wrong passwords (shorter in tests).
 	failDelay time.Duration
@@ -122,6 +127,7 @@ func New(cfg Config) (*Server, error) {
 		invites:   newInvites(),
 		logins:    newLimiter(10, time.Minute),
 		ui:        webui.Handler(),
+		console:   consoleui.Handler(),
 		failDelay: time.Second,
 	}
 	s.fleet = newFleet(s.tunnel, ws, cfg.Data)
@@ -162,7 +168,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("/files/", s.requireDevice(auth))
 	s.clientAPI(mux) // /v1/*, /embed: a client token or a device token (api.go)
 
-	mux.Handle("/", s.ui)
+	mux.Handle(consoleui.Prefix, s.console) // the console; GET / on its host names leads there
+	mux.Handle("/", s.withConsoleHosts(s.ui))
 	return mux
 }
 

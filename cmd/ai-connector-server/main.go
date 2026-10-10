@@ -1,6 +1,7 @@
 // mlxlab-hub is the public side of mlxlab: the web UI, sign-in, and the proxy to the worker on the Mac.
 // See docs/architecture.md. Configured from the environment (MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN (optional,
-// the legacy shared worker token), MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS).
+// the legacy shared worker token), MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS,
+// MLXLAB_CONSOLE_HOSTS).
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/philipparndt/ai-connector/internal/consoleui"
 	"github.com/philipparndt/ai-connector/internal/hub"
 	"github.com/philipparndt/ai-connector/internal/webui"
 )
@@ -39,6 +41,12 @@ func main() {
 	}
 	if !webui.Built() {
 		log.Printf("the web app is not built into this binary (make web); only the API is served")
+	}
+	if !consoleui.Built() {
+		log.Printf("the console is not built into this binary (make console): /console/ answers 404")
+	}
+	if len(cfg.ConsoleHosts) > 0 {
+		log.Printf("console hosts (/ → /console/): %s", strings.Join(cfg.ConsoleHosts, ", "))
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

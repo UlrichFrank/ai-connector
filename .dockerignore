@@ -1,4 +1,4 @@
-# Dockerfile needs only go.mod/go.sum, cmd/, internal/ and web/ (sources)
+# Dockerfile needs only go.mod/go.sum, cmd/, internal/, web/ and console/ (sources)
 .git
 .github
 .claude
@@ -15,5 +15,7 @@ docs/
 *.gguf
 web/node_modules
 web/dist
+console/node_modules
 # built in the image from web/; a host build here would mix stale hashed assets into the embed
 internal/webui/dist
+internal/consoleui/dist

@@ -1,26 +1,34 @@
-.PHONY: build web web-dev test vet worker serve server server-linux
+.PHONY: build web web-dev console console-dev test vet worker serve server server-linux
 
 # the build's version (mlxlab version, the hub's log): the commit, -dirty with local changes
 VERSION ?= $(shell git describe --always --dirty 2>/dev/null || echo dev)
 LDFLAGS  = -ldflags "-X main.version=$(VERSION)"
 
-build: web
+build: web console
 	go build -trimpath $(LDFLAGS) -o bin/ai-connector ./cmd/ai-connector
 
 # the React web app (web/), built into internal/webui/dist and embedded into the binary
 web:
 	cd web && pnpm install --frozen-lockfile --silent && pnpm build
 
+# the console of ai-connector (console/), built into internal/consoleui/dist and embedded, served under /console/
+console:
+	cd console && pnpm install --frozen-lockfile --silent && pnpm build
+
 # the server (web UI, sign-in, proxy to the workers) for this machine, and for the Raspberry Pi (no cgo)
-server: web
+server: web console
 	go build -trimpath $(LDFLAGS) -o bin/ai-connector-server ./cmd/ai-connector-server
 
-server-linux: web
+server-linux: web console
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath $(LDFLAGS) -o bin/ai-connector-server-linux-arm64 ./cmd/ai-connector-server
 
 # the web app with hot reload on http://localhost:5173, against a running mlxlab (MLXLAB_URL, default :8484)
 web-dev:
 	cd web && pnpm dev
+
+# the console with hot reload on http://localhost:5173/console/, against a running server (MLXLAB_URL)
+console-dev:
+	cd console && pnpm dev
 
 test:
 	go test ./...

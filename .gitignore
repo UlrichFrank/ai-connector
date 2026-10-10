@@ -5,6 +5,10 @@ __pycache__/
 /internal/webui/dist/*
 !/internal/webui/dist/.keep
 /web/node_modules
+# the console's build (make console), likewise
+/internal/consoleui/dist/*
+!/internal/consoleui/dist/.keep
+/console/node_modules
 
 # the files sandbox demo (make sandbox-files-try)
 /sandbox-files-out/
