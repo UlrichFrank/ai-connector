@@ -70,13 +70,15 @@ Request (OpenAI): `model` (required), `messages` (`system|user|assistant|tool`; 
 `{"type":"text","text"}` parts — image parts → 400), `stream`, `temperature`, `top_p`, `presence_penalty`,
 `max_tokens` / `max_completion_tokens`, `tools` (`[{"type":"function","function":{"name","description","parameters"}}]`),
 assistant `tool_calls`, tool `tool_call_id`. Thinking is off unless asked: `reasoning_effort` other than `"none"`,
-or `"think": true`, or `"chat_template_kwargs":{"enable_thinking":true}`. Other fields are ignored.
+or `"think": true`, or `"chat_template_kwargs":{"enable_thinking":true}`. For a `claude-code/*` model a
+`reasoning_effort` of `low`, `medium`, `high`, `xhigh` or `max` is Claude Code's effort level (the job's `effort`,
+"Agents (Claude Code)"). Other fields are ignored.
 
 It becomes a **chat job** in the chosen worker's queue (visible in the job lists, `"client":"<client name>"`). The
 model may call the given tools; the calls are returned, never run (`finish_reason:"tool_calls"`).
 
 * `stream:false` → `{"id":"<job id>","object":"chat.completion","created","model","choices":[{"index":0,"message":{"role":"assistant","content":"…","reasoning_content"?: "…","tool_calls"?: [{"id","type":"function","function":{"name","arguments":"<JSON string>"}}]},"finish_reason":"stop|tool_calls|length"}],"usage":{"prompt_tokens","completion_tokens","total_tokens"}}`
-* `stream:true` → SSE `data: {"id","object":"chat.completion.chunk","created","model","choices":[{"index":0,"delta":{…},"finish_reason":null}]}` … — the first delta has `role:"assistant"`; thinking comes as `delta.reasoning_content`, the answer as `delta.content`, tool calls in the last chunk as `delta.tool_calls` (with `index`); a final chunk with `finish_reason` and `usage`; then `data: [DONE]`. While the job waits in the queue or loads its model, `: ping` comments keep the stream open. A failure after the stream started is sent as `data: {"error":{…}}` before `[DONE]`.
+* `stream:true` → SSE `data: {"id","object":"chat.completion.chunk","created","model","choices":[{"index":0,"delta":{…},"finish_reason":null}]}` … — the first delta has `role:"assistant"`; thinking comes as `delta.reasoning_content`, the answer as `delta.content`, tool calls in the last chunk as `delta.tool_calls` (with `index`); a final chunk with `finish_reason` and `usage`; then `data: [DONE]`. While the job waits in the queue or loads its model, and every 5 s while it runs (e.g. a Claude Code agent writing a long tool call), `: ping` comments keep the stream open. A failure after the stream started is sent as `data: {"error":{…}}` before `[DONE]`.
 * The client going away cancels the job.
 
 Details of the implementation:
@@ -165,7 +167,7 @@ and chat (with tools) as vboard-ai does, through the workers. vboard is not chan
 | | |
 |---|---|
 | `GET /api/connectors` | `[<connector>]` in the order they were made (never the token) |
-| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?},"agents"?:[{"id"?,"model","name"?}]}` → the connector (201) |
+| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?},"agents"?:[{"id"?,"model","name"?,"effort"?}]}` → the connector (201) |
 | `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models`, `agents` → the connector (200) |
 | `DELETE /api/connectors/{id}` | 204 (unknown id: 404 `{"error":"not found"}`) |
 | `GET /api/connectors/events` | SSE: `data: [<connector>,…]` (the whole list) at once and on every change; `: ping` every 25 s |
@@ -192,9 +194,11 @@ A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"cl
   name, required), `id` (stable — vboard's panel remembers the pick by it; blank → derived from the model:
   `claude-code/haiku` → `claude-code-haiku`), `name` (what vboard shows; blank → the model's name), `kind` set by the
   server: `agent` for `claude-code/*` (it works on the board itself through vboard's MCP, below), else `model`
-  (answered with vboard's tools). Checked: at most 20, ids unique (≤ 80 characters, no spaces), and **the first must
-  be a model** — it is the default, which older vboards, search ("Ask") and requests relayed by older replicas use
-  with vboard's tools; else 400 `{"error":"agents","message"}`. PATCH `agents` replaces the list.
+  (answered with vboard's tools), `effort` (an agent's only: Claude Code's effort level `low` … `max`, see "Agents
+  (Claude Code)"; absent = the worker's default; the console has a picker per agent). Checked: at most 20, ids
+  unique (≤ 80 characters, no spaces), an effort only for an agent and one of the five, and **the first must be a
+  model** — it is the default, which older vboards, search ("Ask") and requests relayed by older replicas use with
+  vboard's tools; else 400 `{"error":"agents","message"}`. PATCH `agents` replaces the list.
 * `advertised`: the agents vboard was told of on the open connection (empty when not connected): those whose model a
   connected worker offers now — a `claude-code/*` one only while a worker of the connector's **owner** with Claude
   Code is connected — with `worker` (where it would run: the owner's worker for Claude Code, else the worker the
@@ -306,13 +310,16 @@ job of such a model is **one turn** in a Claude Code session. `engine.Request` f
 | `mcp` | `[{"name","url","type"?: "http"\|"sse","headers"?: {…}}]` — the MCP servers the session may use (only these: `--strict-mcp-config`); their tools are allowed as `mcp__<name>` |
 | `owner` | **set by the server** (a caller's value is dropped): the signed-in device's user, or the client token's owner |
 | `fresh` | with `session`: start that conversation anew — its running session is closed and nothing is resumed (for keys that can repeat, e.g. a new chat opening with the same question as an old one) |
+| `effort` | Claude Code's effort level: `low`, `medium`, `high`, `xhigh` or `max` (`--effort`; absent: `agents.json`'s `effort`, else Claude Code's default). Another effort for a running conversation restarts its process (resumed); anything else → the job fails |
 
 With a `session`, only the last user message is sent: the session keeps its own history — except on the first turn
 of a session that is new on the worker (no turn yet, nothing to `--resume`: another worker had it, its folder is gone,
 `fresh`), which gets the earlier messages as a transcript in front of the last one. `system` messages become
 `--append-system-prompt` when the session starts. `zone` is refused (Claude Code has its own tools).
 
-Events of the job: `text` (the answer, streamed as Claude Code writes it with the json driver), `status`, `tool`
+Events of the job: `text` (the answer, streamed as Claude Code writes it with the json driver), `status` (with the
+json driver also `writing <tool> … 8 KB` while the model writes a tool call's input — Claude Code streams it as
+`input_json_delta`; a large `create_items` takes Opus minutes — at most every 2 s; an MCP tool by its own name), `tool`
 (the job's `tools` list, upserted by id: `{"id","name","state":"running|done|error","arguments":{…},"summary":"<path,
 command, URL …>","result":"<shortened>","zone":""}`), and `stats`: `{"session","driver","claudeSession","seconds",
 "turns"}` plus, with the json driver, `{"promptTokens","tokens","cacheReadTokens","costUSD","firstTokenSeconds"}`
@@ -337,7 +344,8 @@ conversation restarts its process (resumed).
 * **json** (default; for the APIs) — `claude -p --input-format stream-json --output-format stream-json --verbose
   --include-partial-messages --restricted --tools <built-in tools of the allow-list>[,ToolSearch] --model <m> --strict-mcp-config
   --mcp-config <file> --allowedTools <list> --disallowedTools <deny rules> --permission-prompts none
-  [--append-system-prompt …] [--resume <id>]` (see "Security" below), kept running. A turn is a line
+  [--append-system-prompt …] [--effort <level>] [--resume <id>]` with `CLAUDE_CONFIG_DIR=<agents>/.claude-home`
+  ("Claude Code's own files" below; see "Security" below), kept running. A turn is a line
   `{"type":"user","message":{"role":"user","content":"…"}}` on its stdin; the answer is read from stdout
   (`stream_event` `content_block_delta`/`text_delta` → text; `tool_use` blocks of `assistant` messages and
   `tool_result` blocks of `user` messages → tools; the `result` line ends the turn with usage and cost). **Cancel**
@@ -377,6 +385,60 @@ Calling a deferred tool costs one extra round in the turn (`ToolSearch` `select:
 then the call); checked with both models. A worker that sets `ENABLE_TOOL_SEARCH=false` in its environment (or talks
 to a proxy) gets the old behaviour.
 
+**Claude Code's own files (large tool results).** Claude Code does not put a large tool result into the
+conversation: it saves it to `<its config folder>/projects/<the working folder as a name>/<its session id>/
+tool-results/<call id>.json` and gives the model `Output too large (67.4KB). Full output saved to: <path>` plus a
+2 KB preview, for the model to `Read`. In Claude Code 2.1.288 (read from the binary, confirmed by measuring) an MCP
+tool's result is saved this way above **50 000 characters** (`min(maxResultSizeChars 100 000, a 50 000 ceiling)`;
+a remote feature flag can change it per tool). Only the MCP server can raise it: a tool definition with
+`"_meta":{"anthropic/maxResultSizeChars": N}` keeps results up to `N` (at most 500 000) in the conversation.
+`MAX_MCP_OUTPUT_TOKENS` (default 25 000 tokens) is another limit — results above it are cut down (`[OUTPUT TRUNCATED
+…]`) before they are saved — and does **not** keep a result in the conversation. A saved MCP result is a JSON array
+with the whole text on one line, so only a `Read` of the whole file gets it (`Read` pages by lines, `Grep` leaves out
+lines over 500 characters); `Read` stops at 25 000 tokens (`CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS`).
+
+Before, the sessions used the user's Claude Code config (`~/.claude`), which they may not read (credentials, the
+user's own conversations; deny rules always beat allow rules, so "all of `~/.claude` but this folder" cannot be
+said): a vboard agent lost a 58 KB `get_board` and the widget docs of `help`, and started probing the board instead.
+Now a **json session runs with a config folder of the agents' own**, `<agents>/.claude-home` (mode 0700):
+
+* `CLAUDE_CONFIG_DIR=<agents>/.claude-home` — transcripts and saved results land there.
+* `CLAUDE_SECURESTORAGE_CONFIG_DIR=` (empty; the user's `CLAUDE_CONFIG_DIR` when the worker has one) — where Claude
+  Code finds its **credentials**: empty means the default ones (on macOS the Keychain item `Claude Code-credentials`,
+  elsewhere `~/.claude/.credentials.json`; without it a new config folder would get its own Keychain item
+  `Claude Code-credentials-<hash of the folder>` and need a login of its own). So the agents use the login of the
+  user's Claude Code — nothing is copied, nothing to do. Checked with Claude Code 2.1.288: `claude auth status`
+  with a new config folder says `loggedIn: false`, with the empty `CLAUDE_SECURESTORAGE_CONFIG_DIR` `loggedIn: true`.
+* `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS=60000` (unless the worker sets it): the largest MCP result Claude Code
+  keeps (25 000 tokens) is about 30 000 tokens as JSON.
+* The deny rules: the user's `~/.claude*` (and their own `CLAUDE_CONFIG_DIR`) entirely, as before; of `.claude-home`
+  every entry but `projects/` (`.claude.json*` with the account, settings, backups, …) and every other session's
+  project folder. `--restricted` lets the file tools reach the session's own saved results outside its working
+  folder and nothing else there (measured: reading `.claude-home/policy-limits.json`, not denied, is refused by
+  `--restricted`), so entries made after the session started are out of reach too.
+* A **tty** session keeps the user's own config (a person may attach; a new config folder would ask Claude Code's
+  first-run questions again — the managed-settings approval, the theme): its saved results stay out of reach, and it
+  may read nothing of `.claude-home`. `agents.json` `"claudeConfig":"user"` makes json sessions do the same (the old
+  way). Conversations started before keep going: their first `--resume` finds nothing in the new folder and the
+  conversation goes on with its history as a transcript (as after a lost folder).
+* **Login.** Before a session starts the worker asks `claude auth status --json` with that environment (~0.5 s; then
+  trusted for 10 minutes, or until a turn fails): no login → the job fails with *"Claude Code is not logged in on
+  this worker: log in once on it with `ai-connector agents login` (or `claude auth login`), then try again"*; the
+  `claude-code/*` models stay listed. A turn that fails with Claude Code's "Not logged in · Please run /login" gives
+  the same error and closes the session (the next turn starts a new process, resumed). `ai-connector agents login`
+  (`[--state DIR]`) runs `claude auth login` with the sessions' environment — the same login as a plain
+  `claude auth login` —, `ai-connector agents status` `claude auth status --text`.
+
+Measured with Claude Code 2.1.288 and haiku against a local MCP server whose one tool returns 60 KB of text (one
+turn each; the model asked for the text of the board's last item):
+
+| | result |
+|---|---|
+| before: user's config, `~/.claude*` denied | saved (67.4 KB as JSON); `Read` of the file: "File is in a directory that is denied by your permission settings"; `Grep` denied — "I cannot determine the last item's text" (5 requests, $0.027) |
+| own config folder, not denied, `Read` limit 25 000 | the file is read, but whole it is 25 948 tokens: "exceeds maximum allowed tokens (25000)"; offsets and `Grep` miss the one long line — a wrong answer after 18 requests ($0.087) |
+| now: own config folder, `Read` limit 60 000 | one `Read` of the whole file, the right answer (5 requests, $0.067) |
+| the MCP tool with `_meta` `anthropic/maxResultSizeChars: 200000` (config denied as before) | kept in the conversation (59.6 KB), the right answer (3 requests, $0.045) — the better fix on the MCP server's side |
+
 Each session works in **its own folder** `<config>/agents/<session id>/` (the same id for the same owner and key,
 so `--resume` finds the conversation, which Claude Code keeps per folder); its control files (`mcp.json`,
 `settings.json`, `hooks.jsonl`, mode 0600; no secrets) are in `<config>/agents/.ctl/<session id>/`, outside that
@@ -387,14 +449,24 @@ folder and denied to the session (see "Security").
 
 ```json
 {"allowedTools": ["Read(./**)", "Glob(./**)", "Grep(./**)", "WebSearch", "WebFetch", "TodoWrite"],
- "model": "sonnet", "idleMinutes": 30, "maxSessions": 4, "autoTrust": true, "folders": []}
+ "model": "sonnet", "idleMinutes": 30, "maxSessions": 4, "autoTrust": true, "folders": [],
+ "effort": "", "claudeConfig": "worker"}
 ```
 
 All fields optional; the values above are the defaults (read-mostly: reading and searching the session's own
 folder and the web; nothing that edits files or runs commands). `allowedTools` takes Claude Code's rule syntax
 (`"Bash(git status)"`, `"Edit(./**)"`; `./` is the session's folder); the `mcp__<name>` of the session's own MCP
 servers are always added. `model` is used when a request names none. `folders`: absolute folders a person's own
-tty session may work in (`POST /api/agents/sessions` `cwd`), besides the agents folder.
+tty session may work in (`POST /api/agents/sessions` `cwd`), besides the agents folder. `effort`: the effort level
+of a session whose job names none (`low` … `max`; `""` Claude Code's default). `claudeConfig`: `worker` (json
+sessions keep Claude Code's files in `<agents>/.claude-home`) or `user` (in the user's `~/.claude`; their large tool
+results are then out of reach) — "Claude Code's own files" above.
+
+**Effort and thinking.** Claude Code 2.1.288 headless takes `--effort <low|medium|high|xhigh|max>` per process
+(also `CLAUDE_CODE_EFFORT_LEVEL`); thinking itself has the env switches `MAX_THINKING_TOKENS`,
+`CLAUDE_CODE_DISABLE_THINKING` and `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING` (process-wide, not used here). The worker
+passes `--effort` from the job's `effort` (a connector's agent `effort`, `/v1/chat/completions` `reasoning_effort`),
+else from `agents.json`; nothing by default (Claude Code's own default, unchanged).
 
 ### Security: what a session must not read
 
@@ -419,10 +491,12 @@ Code's credentials and ssh keys would then leak to everyone who sees the board, 
 * **Explicit deny rules** (`--disallowedTools`, `Read(…)`, `Edit(…)`, `Glob(…)` and `Grep(…)`; deny beats allow): the control tree
   `<agents>/.ctl/**`, `<agents>/resume.json`, the other sessions' folders, every other entry of the config folder
   (`worker.json` with the worker token, `agents.json`, `client.json`, `history.json`, `outputs/`, `models/`, …),
-  `~/.config/mlxlab/**` when the session is not inside it, `~/.claude*` (credentials, settings, transcripts),
-  `~/.ssh/**` and `//proc/**` (on Linux the process environment, with the MCP secrets, is readable there).
+  `~/.config/mlxlab/**` when the session is not inside it, `~/.claude*` (credentials, settings, transcripts; and
+  the user's `CLAUDE_CONFIG_DIR` when set), of `<agents>/.claude-home` everything but the session's own project
+  folder ("Claude Code's own files"; a tty session: all of it), `~/.ssh/**` and `//proc/**` (on Linux the process
+  environment, with the MCP secrets, is readable there).
 * **Folders.** A person's tty session (`POST /api/agents/sessions`) takes a `cwd` only inside the worker's agents
-  folder (not the folder itself, not `.ctl`) or inside a folder of `agents.json`'s `folders`; links are resolved
+  folder (not the folder itself, not `.ctl` or `.claude-home`) or inside a folder of `agents.json`'s `folders`; links are resolved
   first. Anything else → 400.
 
 **What remains.** The session can always use its own MCP servers (that is their point) and the web (WebSearch,
@@ -520,5 +594,7 @@ vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local
     conversation as a transcript first).
 * While it works: the job's status as for models ("Running on <worker> (claude-code/haiku)"), each tool call as it
   starts as a `chatDelta` `status` line (`create_items …` — an MCP tool's own name; a built-in tool with its path or
-  query), its text as `text` deltas; then `chatDone {content, toolCalls: []}`. `chatCancel` cancels the job, which
-  interrupts the turn; the session stays for the next one.
+  query) — and before that, while the model still writes a large call's input, `writing create_items … 8 KB` (from
+  the worker at most every 2 s; the last line is repeated as the keep-alive) —, its text as `text` deltas; then
+  `chatDone {content, toolCalls: []}`. `chatCancel` cancels the job, which interrupts the turn; the session stays for
+  the next one. The connector agent's `effort` (if set) is the job's `effort` (`--effort`).

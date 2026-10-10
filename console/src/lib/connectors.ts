@@ -6,7 +6,12 @@ export interface AgentRow {
   id: string;
   model: string;
   name: string;
+  /** A Claude Code agent's effort level ("" or absent: the worker's default). */
+  effort?: string;
 }
+
+/** Claude Code's effort levels (claude --effort). */
+export const efforts = ["low", "medium", "high", "xhigh", "max"] as const;
 
 export interface ConnectorForm {
   name: string;
@@ -32,9 +37,11 @@ export function formOf(c: Connector): ConnectorForm {
     classify: c.models?.classify ?? "",
     embed: c.models?.embed ?? "",
     chat: c.models?.chat ?? "",
-    agents: (c.agents ?? []).map((a) => ({ id: a.id, model: a.model, name: a.name ?? "" })),
+    agents: (c.agents ?? []).map(rowOf),
   };
 }
+
+const rowOf = (a: ConnectorAgent): AgentRow => ({ id: a.id, model: a.model, name: a.name ?? "", ...(a.effort ? { effort: a.effort } : {}) });
 
 // ---------- agents ----------
 
@@ -93,7 +100,14 @@ export function agentsProblem(list: AgentRow[]): string {
   return "";
 }
 
-const agentsBody = (list: AgentRow[]): ConnectorAgent[] => list.map((a) => ({ id: a.id.trim() || agentId(a.model), model: a.model.trim(), name: a.name.trim() }));
+const agentsBody = (list: AgentRow[]): ConnectorAgent[] =>
+  list.map((a) => ({
+    id: a.id.trim() || agentId(a.model),
+    model: a.model.trim(),
+    name: a.name.trim(),
+    // an effort only for a Claude Code agent (the server refuses it for a model)
+    ...(a.effort && agentKind(a.model) === "agent" ? { effort: a.effort } : {}),
+  }));
 
 /** "vboard.example.com/" → "https://vboard.example.com"; keeps an explicit http:// (a LAN vboard). */
 export function normalizeUrl(u: string): string {
@@ -164,7 +178,7 @@ export function patchBody(c: Connector, f: ConnectorForm): ConnectorInput {
   if ((before.classify ?? "") !== f.classify || (before.embed ?? "") !== f.embed || (before.chat ?? "") !== f.chat)
     p.models = { classify: f.classify, embed: f.embed, chat: f.chat };
   const agents = agentsBody(f.agents);
-  const was = (c.agents ?? []).map((a) => ({ id: a.id, model: a.model, name: a.name ?? "" }));
+  const was = agentsBody((c.agents ?? []).map(rowOf));
   if (JSON.stringify(agents) !== JSON.stringify(was)) p.agents = agents; // [] = back to the default
   return p;
 }

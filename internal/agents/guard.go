@@ -21,7 +21,9 @@ import (
 //     built-in tools of the allow-list.
 //   - The default allow-list reads only the session's folder (Read(./**) …).
 //   - --disallowedTools denies reading and editing the control tree (<agents>/.ctl), the rest of the config folder
-//     (worker.json with the worker token, agents.json, other sessions), ~/.claude*, ~/.ssh and /proc.
+//     (worker.json with the worker token, agents.json, other sessions), ~/.claude*, ~/.ssh and /proc; of the
+//     agents' own Claude Code config folder (<agents>/.claude-home, home.go) everything but the session's own
+//     project folder, where Claude Code saves the large tool results the model is to read.
 //   - A person's own tty session works only in a folder inside the agents folder or one agents.json lists.
 
 // mcpEnvPrefix starts the environment variables that carry MCP header values.
@@ -97,8 +99,9 @@ func absRule(p string) string {
 }
 
 // denyRules are the --disallowedTools of a session: no reading or editing of the control tree, the rest of the
-// config folder, other sessions' folders, Claude Code's own files, ssh keys and /proc (the process environment
-// holds the MCP secrets).
+// config folder, other sessions' folders, Claude Code's own files (the user's ~/.claude* entirely; of the agents'
+// config folder all but the session's own project folder, where its saved tool results are), ssh keys and /proc
+// (the process environment holds the MCP secrets).
 func (m *Manager) denyRules(s *Session) []string {
 	var paths []string // absolute; each denied itself and everything below it
 	paths = append(paths, filepath.Join(m.Root, ".ctl"), filepath.Join(m.Root, "resume.json"))
@@ -110,11 +113,18 @@ func (m *Manager) denyRules(s *Session) []string {
 	if es, err := os.ReadDir(m.Root); err == nil {
 		for _, e := range es {
 			p := filepath.Join(m.Root, e.Name())
-			if e.Name() == ".ctl" || e.Name() == "resume.json" || inside(s.cwd, p) {
+			if e.Name() == ".ctl" || e.Name() == "resume.json" || p == m.ClaudeHome() || inside(s.cwd, p) {
 				continue
 			}
 			paths = append(paths, p)
 		}
+	}
+	// the agents' Claude Code config folder: all but the session's own project folder (home.go)
+	homePaths, homePrefixes := m.homeDenyPaths(s)
+	paths = append(paths, homePaths...)
+	// the user's Claude Code config folder when it is not ~/.claude (denied below)
+	if user, _ := m.lookupEnv("CLAUDE_CONFIG_DIR"); filepath.IsAbs(user) && !inside(s.cwd, user) {
+		paths = append(paths, user)
 	}
 	// the config folder around the agents folder: worker.json (the worker token), agents.json, client.json, …;
 	// and the shared config folder when this worker's state is elsewhere (each entry: the folders of the session
@@ -148,6 +158,9 @@ func (m *Manager) denyRules(s *Session) []string {
 		add(absRule(p))
 		add(absRule(p) + "/**")
 	}
+	for _, p := range homePrefixes {
+		add(absRule(p) + "*")
+	}
 	home, _ := os.UserHomeDir()
 	if mlx := filepath.Join(home, ".config", "mlxlab"); home != "" && !inside(s.cwd, mlx) && !inside(m.Root, mlx) {
 		add("~/.config/mlxlab")
@@ -160,7 +173,8 @@ func (m *Manager) denyRules(s *Session) []string {
 }
 
 // CheckCwd says whether a person's tty session may work in cwd: an absolute folder inside the agents folder (not
-// its control tree, not the agents folder itself) or inside one of agents.json's folders. It answers the folder
+// its control tree or Claude Code's config folder, not the agents folder itself) or inside one of agents.json's
+// folders. It answers the folder
 // with its links resolved.
 func (m *Manager) CheckCwd(cwd string) (string, error) {
 	bad := fmt.Errorf("cwd %q is not a folder on this worker", cwd)
@@ -187,7 +201,7 @@ func (m *Manager) CheckCwd(cwd string) (string, error) {
 	}
 	if under(m.Root, false) {
 		rel, _ := filepath.Rel(mustReal(m.Root), real)
-		if first := strings.Split(rel, string(filepath.Separator))[0]; first != ".ctl" {
+		if first := strings.Split(rel, string(filepath.Separator))[0]; first != ".ctl" && first != claudeHomeName {
 			return real, nil
 		}
 	}

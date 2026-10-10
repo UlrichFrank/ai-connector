@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,8 @@ type ConnectorAgent struct {
 	Model string `json:"model"` // a catalogue id or name as in /v1/* ("" only in the default list: the default chat model)
 	Name  string `json:"name"`  // shown in vboard ("" = the model's name)
 	Kind  string `json:"kind"`  // model | agent (claude-code/* is an agent; set by the server)
+	// Effort: an agent's Claude Code effort level (low, medium, high, xhigh, max; "" the worker's default)
+	Effort string `json:"effort,omitempty"`
 }
 
 // AdvertisedAgent is an agent as the connector offers it to vboard now (its model offered by a connected worker).
@@ -339,6 +342,9 @@ const (
 	kindAgent    = "agent"
 )
 
+// claudeEfforts are Claude Code's effort levels (claude --effort; internal/agents.Efforts on the worker).
+var claudeEfforts = []string{"low", "medium", "high", "xhigh", "max"}
+
 // agentKind: a claude-code model is an agent (it works on the board itself, through MCP), anything else a model.
 func agentKind(model string) string {
 	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), claudePrefix) {
@@ -392,6 +398,10 @@ func cleanAgents(in []ConnectorAgent) ([]ConnectorAgent, error) {
 		seen[a.ID] = true
 		a.Name = trimRunes(strings.TrimSpace(a.Name), agentChars)
 		a.Kind = agentKind(a.Model)
+		if a.Effort = strings.ToLower(strings.TrimSpace(a.Effort)); a.Effort != "" && (a.Kind != kindAgent || !slices.Contains(claudeEfforts, a.Effort)) {
+			return nil, &connectorError{"agents", fmt.Sprintf("Agent %d: an effort (%s) is for Claude Code agents only", i+1,
+				strings.Join(claudeEfforts, ", "))}
+		}
 		if i == 0 && a.Kind != kindModel {
 			return nil, &connectorError{"agents", "The first agent is the default, which older vboards and search ask with " +
 				"vboard's tools: it must be a chat model, not " + a.Model}
@@ -399,6 +409,16 @@ func cleanAgents(in []ConnectorAgent) ([]ConnectorAgent, error) {
 		out = append(out, a)
 	}
 	return out, nil
+}
+
+// effortOf is the Claude Code effort level of the connector's agent id ("" none chosen).
+func (c storedConnector) effortOf(id string) string {
+	for _, a := range c.Agents {
+		if a.ID == id {
+			return a.Effort
+		}
+	}
+	return ""
 }
 
 // agentList is what a connector offers: the chosen agents, else the chat model alone (models.chat or the server's

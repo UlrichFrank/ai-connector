@@ -182,6 +182,8 @@ export interface ConnectorAgent {
   name?: string;
   /** Set by the server: claude-code/* is an agent (it works on the board through vboard's MCP). */
   kind?: "model" | "agent";
+  /** A Claude Code agent's effort level (low, medium, high, xhigh, max; absent: the worker's default). */
+  effort?: string;
 }
 
 /** An agent as the connector offers it to vboard now. */

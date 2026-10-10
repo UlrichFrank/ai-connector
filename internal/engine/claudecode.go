@@ -89,7 +89,7 @@ func (b *ClaudeCodeBackend) Run(ctx context.Context, m *Model, r Request, _ stri
 	emit.Status("starting Claude Code …")
 	tools := map[string]map[string]any{}
 	res, err := b.Agents.Turn(ctx, agents.Options{Key: r.Session, Owner: r.Owner, Model: alias, Driver: r.Driver, MCP: r.MCP,
-		System: system, Fresh: r.Fresh, Opening: opening}, prompt, func(e agents.Event) {
+		System: system, Fresh: r.Fresh, Opening: opening, Effort: r.Effort}, prompt, func(e agents.Event) {
 		switch e.Type {
 		case "text":
 			emit(Event{Type: "text", Text: e.Text})
