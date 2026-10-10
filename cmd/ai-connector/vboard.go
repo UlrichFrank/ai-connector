@@ -36,7 +36,7 @@ type vboardSettings struct {
 	Name   string `json:"name,omitempty"`
 	Chat   string `json:"chat,omitempty"`
 	Agents string `json:"agents,omitempty"`
-	// Generators: the image and video models offered to the board (comma list; "" none)
+	// Generators: the image, video, music, sound and speech models offered to the board (comma list; "" none)
 	Generators string `json:"generators,omitempty"`
 }
 
@@ -59,9 +59,9 @@ usage:
                     e.g. "qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus" (Claude Code: installed and logged in
                     here). Default: the chat model, and Claude Code (Sonnet, Opus) when it is installed and logged in
                     here. With only claude-code/… models the --chat model (or the default one) goes first.
-  --generators LIST image and video models vboard may make pictures and videos on the board with, in order,
-                    comma-separated, e.g. "flux2-klein-4b,ltx-2.5-q4" (only those on this computer's disk are
-                    offered; "*" for all of them). Default: all image and video models on this computer's
+  --generators LIST the models vboard may make pictures, videos, songs, sounds and speech on the board with, in
+                    order, comma-separated, e.g. "flux2-klein-4b,ltx-2.5-q4,kokoro-82m" (only those on this
+                    computer's disk are offered; "*" for all of them). Default: all of them on this computer's
                     disk, so one downloaded from vboard is offered at once; "none" for none.
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/vboard/worker, apart from a plain worker's)
@@ -84,7 +84,7 @@ func vboardCommand(args []string) error {
 	name := fs.String("name", "", "the name vboard shows")
 	chat := fs.String("chat", "", "the chat model")
 	agentList := fs.String("agents", "", "the AIs vboard offers, in order")
-	generators := fs.String("generators", "", "the image and video models vboard offers, in order")
+	generators := fs.String("generators", "", "the image, video, music, sound and speech models vboard offers, in order")
 	console := fs.String("console", "", "serve the console here")
 	state := fs.String("state", "", "this process's jobs and sessions")
 	install := fs.Bool("install", false, "start at login")
@@ -325,7 +325,7 @@ func randomHex(n int) string {
 	return hex.EncodeToString(b)
 }
 
-// vboardGenerators: the --generators list; none given means every image and video model on this computer's disk
+// vboardGenerators: the --generators list; none given means every generator model on this computer's disk
 // ("*": a model downloaded from vboard is offered at once), "none" means none.
 func vboardGenerators(list string) []string {
 	switch strings.TrimSpace(list) {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"mime/multipart"
 	"net/http"
@@ -24,7 +25,7 @@ import (
 // {generate}; the connector runs an image or video job on a worker that has the model, says how it goes
 // ({generateStatus}), sends the file in pieces ({generateFile}) and ends with {generateDone}. {generateCancel}
 // cancels the job. The generation is a request of its own, not part of a chat turn: it runs as long as it takes.
-// Upscales (SeedVR2) are generators of their own kind: vboard_upscale.go.
+// Upscales (SeedVR2) are generators of their own kind: vboard_upscale.go; music, sound and speech: vboard_audio.go.
 
 // Limits (docs/api.md).
 const (
@@ -58,7 +59,7 @@ var genMaxImageFile int64 = 15 << 20
 // genTypes are the reference images a generator takes.
 var genTypes = map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
 
-// advertisedGenerator is an image or video model as the connector offers it now (a connected worker has it on disk).
+// advertisedGenerator is a generator model as the connector offers it now (a connected worker has it on disk).
 type advertisedGenerator struct {
 	ID, Name, Kind, Worker string
 	Model                  string // the catalogue id
@@ -70,6 +71,12 @@ type advertisedGenerator struct {
 	MaxSeconds                           int
 	Scales                               []int // upscale: the factors it takes
 	NonCommercial                        bool
+	// music: it sings lyrics, it leaves the voice out, it takes a tempo (Seconds, MaxSeconds: its lengths);
+	// speech: its voices, languages (none: it detects them), instruct, the longest text
+	Lyrics, Instrumental, BPM, Instruct bool
+	Voices                              []genVoice
+	Languages                           []string
+	MaxChars                            int
 }
 
 // generatorOf is what a catalogue model can do on the board (false: it is no image or video model the connector
@@ -98,6 +105,8 @@ func generatorOf(m catalogModel) (advertisedGenerator, bool) {
 		if d.Frames > 1 {
 			g.Seconds = max(1, (d.Frames-1)/g.FPS) // 97 frames at 24 fps: 4 s
 		}
+	case audioKind(m.Kind):
+		return audioGenerator(m, g)
 	default:
 		return g, false
 	}
@@ -146,9 +155,12 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 			ids = append(ids, id)
 			continue
 		}
-		for _, fm := range models { // "*": every image and video model on disk, after those named before it
-			ids = append(ids, fm.ID)
+		var all []string // "*": every generator model on disk, after those named before it, the defaults first
+		for _, fm := range models {
+			all = append(all, fm.ID)
 		}
+		slices.SortStableFunc(all, func(a, b string) int { return genRank(a) - genRank(b) })
+		ids = append(ids, all...)
 	}
 	for _, id := range ids {
 		fm, ok := findModel(models, id)
@@ -178,6 +190,10 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 func wireGenerators(gs []advertisedGenerator) []map[string]any {
 	out := make([]map[string]any, len(gs))
 	for i, g := range gs {
+		if audioKind(g.Kind) {
+			out[i] = wireAudioGenerator(g)
+			continue
+		}
 		if g.Kind == "upscale" {
 			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "scales": g.Scales,
 				"max": g.Max, "nonCommercial": g.NonCommercial}
@@ -212,7 +228,7 @@ func generatorIDs(gs []advertisedGenerator) string {
 	return strings.Join(ids, " ")
 }
 
-// allGenerators in the setting stands for every image and video model a connected worker has on disk (the default
+// allGenerators in the setting stands for every generator model a connected worker has on disk (the default
 // of `ai-connector vboard`: a model downloaded from vboard is offered at once).
 const allGenerators = "*"
 
@@ -227,7 +243,7 @@ func cleanGenerators(in []string) ([]string, error) {
 	for i, id := range in {
 		id = strings.TrimSpace(id)
 		if id == "" || len(id) > 200 || strings.ContainsAny(id, " \t\r\n") {
-			return nil, &connectorError{"generators", fmt.Sprintf("Generator %d: a model id (an image or video model)", i+1)}
+			return nil, &connectorError{"generators", fmt.Sprintf("Generator %d: a model id (an image, video, music, sound or speech model)", i+1)}
 		}
 		if seen[strings.ToLower(id)] {
 			return nil, &connectorError{"generators", fmt.Sprintf("%q is there twice", id)}
@@ -284,7 +300,16 @@ type genRequest struct {
 	Audio     *bool       `json:"audio"`
 	Scale     int         `json:"scale"` // upscale
 	Images    []chatImage `json:"images"`
-	Context   *struct {
+	// music (prompt: the style); speech (text …)
+	Lyrics       string `json:"lyrics"`
+	Instrumental bool   `json:"instrumental"`
+	BPM          int    `json:"bpm"`
+	Title        string `json:"title"`
+	Text         string `json:"text"`
+	Voice        string `json:"voice"`
+	Language     string `json:"language"`
+	Instruct     string `json:"instruct"`
+	Context      *struct {
 		BoardID       string `json:"boardId"`
 		UserID        string `json:"userId"`
 		UserName      string `json:"userName"`
@@ -298,6 +323,9 @@ type genPlan struct {
 	scale                      int // upscale
 	images                     [][]byte
 	exts                       []string
+	// music, sound, speech: the length to be made (speech: an estimate) and the job's fields
+	seconds float64
+	job     map[string]any
 }
 
 // planGenerate checks a request against its generator and works out what will actually be made: width and height
@@ -306,6 +334,9 @@ type genPlan struct {
 func planGenerate(g advertisedGenerator, q *genRequest) (genPlan, error) {
 	if g.Kind == "upscale" {
 		return planUpscale(g, q)
+	}
+	if audioKind(g.Kind) {
+		return planAudio(g, q)
 	}
 	var p genPlan
 	q.Prompt = strings.TrimSpace(q.Prompt)
@@ -396,7 +427,7 @@ func genImage(im chatImage) ([]byte, string, error) {
 	return b, ext, nil
 }
 
-// genJob is the part of a worker's image or video job the connector reads.
+// genJob is the part of a worker's generation job the connector reads.
 type genJob struct {
 	State    string         `json:"state"`
 	Status   string         `json:"status"`
@@ -407,6 +438,7 @@ type genJob struct {
 	Started  time.Time      `json:"started"`
 	Finished time.Time      `json:"finished"`
 	Stats    map[string]any `json:"stats"`
+	Result   map[string]any `json:"result"` // speech: what was said (text, voice, language, words)
 }
 
 func (j *genJob) stat(k string) (float64, bool) {
@@ -443,9 +475,21 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 		if q.Generator != "" {
 			fail(fmt.Sprintf("%q is not available now: no connected worker has it", q.Generator))
 		} else {
-			fail(fmt.Sprintf("this connector cannot make %s now: no %s generator is offered", cmpStr(q.Kind, "image")+"s", cmpStr(q.Kind, "image")))
+			kind := cmpStr(q.Kind, "image")
+			what := kind + "s"
+			if kind == "music" || kind == "speech" {
+				what = kind
+			}
+			fail(fmt.Sprintf("this connector cannot make %s now: no %s generator is offered", what, kind))
 		}
 		return
+	}
+	if g.Kind == "speech" { // the language decides which one reads it
+		var err error
+		if g, err = c.pickSpeech(g, &q); err != nil {
+			fail(err.Error())
+			return
+		}
 	}
 	plan, err := planGenerate(g, &q)
 	if err != nil {
@@ -468,10 +512,14 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 		// one image and the factor: the worker works out the size itself (as planUpscale did)
 		job = map[string]any{"model": g.Model, "scale": plan.scale, "client": "vboard: " + c.conf.Name}
 	}
+	if audioKind(g.Kind) { // music, sound, speech: their own fields (planAudio)
+		job = map[string]any{"model": g.Model, "client": "vboard: " + c.conf.Name}
+		maps.Copy(job, plan.job)
+	}
 	if q.Seed > 0 {
 		job["seed"] = q.Seed
 	}
-	if q.Steps > 0 && g.Kind != "upscale" { // SeedVR2 takes one step
+	if q.Steps > 0 && g.Kind != "upscale" && g.Kind != "sound" && g.Kind != "speech" { // SeedVR2 takes one step
 		job["steps"] = q.Steps
 	}
 	if g.Kind == "video" {
@@ -505,12 +553,20 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 	if q.Context != nil && q.Context.UserName != "" {
 		who = " for " + q.Context.UserName
 	}
-	r.logf("generate %s%s: %s on %s (%d×%d)", id, who, g.ID, n.name, plan.width, plan.height)
-
 	// the status: queued (with the jobs before it) → loading (the model is read: no steps yet) → running (steps)
 	st := map[string]any{"type": "generateStatus", "worker": n.name, "width": plan.width, "height": plan.height}
 	if g.Kind == "video" {
 		st["frames"], st["fps"] = plan.frames, plan.fps
+	}
+	if audioKind(g.Kind) {
+		// the length instead of a size; speech names the generator that reads it (the language may have chosen it)
+		st = map[string]any{"type": "generateStatus", "worker": n.name, "seconds": plan.seconds}
+		if g.Kind == "speech" {
+			st["generator"], st["name"] = g.ID, g.Name
+		}
+		r.logf("generate %s%s: %s on %s (%g s)", id, who, g.ID, n.name, plan.seconds)
+	} else {
+		r.logf("generate %s%s: %s on %s (%d×%d)", id, who, g.ID, n.name, plan.width, plan.height)
 	}
 	ahead, running := st0.load(), ""
 	if st0.Running != nil {
@@ -590,6 +646,15 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 		return
 	case "canceled":
 		fail("the job was canceled on " + n.name)
+		return
+	}
+	if audioKind(g.Kind) {
+		seconds, peaks, ok := r.sendAudio(ctx, c, id, n, g, j, fail)
+		if !ok {
+			return
+		}
+		send(audioDone(g, &q, plan, j, seconds, peaks))
+		r.logf("generate %s: done in %.1f s on %s", id, j.Finished.Sub(j.Started).Seconds(), n.name)
 		return
 	}
 	if !r.sendFile(ctx, c, id, n, g, j, fail) {
@@ -686,6 +751,12 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 		fail(fmt.Sprintf("the %s is %.1f MB, more than vboard takes (%d MB)", what, float64(size)/(1<<20), limit>>20))
 		return false
 	}
+	return r.sendPieces(ctx, c, id, n, mime, size, body, fail)
+}
+
+// sendPieces sends a file of size bytes in pieces: base64 of at most 1 MiB each, in order (seq), the last one says
+// so. false: it failed (said) or was canceled.
+func (r *vboardRun) sendPieces(ctx context.Context, c *bridgeConn, id string, n *node, mime string, size int64, body io.Reader, fail func(string)) bool {
 	buf := make([]byte, genPieceBytes)
 	var sent int64
 	for seq := 0; sent < size || seq == 0; seq++ {

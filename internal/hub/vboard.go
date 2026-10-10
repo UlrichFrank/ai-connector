@@ -65,7 +65,7 @@ const (
 type bridgeCaps struct {
 	classify, embed, chat string
 	agents                []AdvertisedAgent
-	generators            []advertisedGenerator // image and video models for the board (vboard_generate.go)
+	generators            []advertisedGenerator // generator models for the board (vboard_generate.go, vboard_audio.go)
 }
 
 func (c bridgeCaps) empty() bool {
