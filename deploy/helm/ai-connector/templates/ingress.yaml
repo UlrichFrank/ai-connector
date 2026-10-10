@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled -}}
+{{- $hosts := include "ai-connector.hosts" . | fromJsonArray }}
+{{- if not $hosts }}
+{{- fail "ingress: set hosts.console (and hosts.app), or ingress.enabled=false" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-connector.fullname" . }}
+  labels:
+    {{- include "ai-connector.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        {{- range $hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .Values.ingress.tls.secretName | default (printf "%s-tls" (include "ai-connector.fullname" .)) }}
+  {{- end }}
+  rules:
+    {{- range $hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: {{ $.Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "ai-connector.fullname" $ }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
