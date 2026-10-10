@@ -68,6 +68,7 @@ func StyleEstimate(st styles.Style) float64 {
 func withStyles(ms []*Model) []*Model {
 	for _, m := range ms {
 		m.Styles = CanTrain(m.ID)
+		m.Audio = musicCaps(m)
 	}
 	return ms
 }

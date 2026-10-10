@@ -49,7 +49,7 @@ func TestSpeechLive(t *testing.T) {
 		m := byID[id]
 		var stats map[string]any = map[string]any{}
 		file := filepath.Join(out, id+"-"+name+".wav")
-		err := b.speak(ctx, m, Request{Text: text, Voice: voice, Language: "de", Seed: 7}, file, func(ev Event) {
+		_, err := b.speak(ctx, m, Request{Text: text, Voice: voice, Language: "de", Seed: 7}, file, func(ev Event) {
 			if ev.Type == "stats" {
 				for k, v := range ev.Data {
 					stats[k] = v
@@ -74,7 +74,7 @@ func TestSpeechLive(t *testing.T) {
 	lib["designed"] = Voice{ID: "designed", Name: "Designed", Kind: "design", Language: "de",
 		Description: "A man in his forties with a warm, calm baritone voice, speaking clear standard German at a relaxed pace."}
 	if _, err := os.Stat(sample); err != nil {
-		err := b.speak(ctx, byID["qwen3-tts-1.7b"], Request{Voice: "designed", Language: "de", Seed: 11,
+		_, err := b.speak(ctx, byID["qwen3-tts-1.7b"], Request{Voice: "designed", Language: "de", Seed: 11,
 			Text: "Ich wohne seit vielen Jahren in einer kleinen Stadt am Fluss. Morgens trinke ich gern einen Kaffee und lese die Zeitung, bevor die Arbeit beginnt."},
 			sample, emit)
 		if err != nil {
@@ -93,7 +93,7 @@ func TestSpeechLive(t *testing.T) {
 			"Eines Nachts fiel ein Stern direkt vor seine Pfoten. „Wer bist du?“, fragte der Fuchs leise."
 		file := filepath.Join(out, "long.wav")
 		var events []string
-		err := b.speak(ctx, byID["qwen3-tts-1.7b"], Request{Text: long, Voice: "Vivian", Instruct: "warm, slow, like a bedtime story",
+		_, err := b.speak(ctx, byID["qwen3-tts-1.7b"], Request{Text: long, Voice: "Vivian", Instruct: "warm, slow, like a bedtime story",
 			Speed: 1.15, Seed: 3}, file, func(ev Event) {
 			if ev.Type == "progress" || ev.Type == "stats" {
 				events = append(events, fmt.Sprint(ev.Step, "/", ev.Total, ev.Data))

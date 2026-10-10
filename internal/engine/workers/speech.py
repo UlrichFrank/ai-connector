@@ -3,13 +3,14 @@
 #
 # Protocol: one JSON request per line on stdin; events as JSON lines on file descriptor 3 (stdout and stderr stay
 # free for the libraries' own output, which mlxlab shows as log lines).
-#   tts:  {"op": "tts", "family": "qwen3-tts"|"chatterbox"|"voxcpm2"|"higgs"|"voxtral",
+#   tts:  {"op": "tts", "family": "qwen3-tts"|"chatterbox"|"voxcpm2"|"higgs"|"voxtral"|"kokoro",
 #          "dirs": {"model": "/dir", …}  (the model's folder; chatterbox also "conds" and "s3tok"),
 #          "voice": {"mode": "preset"|"clone"|"design"|"default", "preset": "Ryan", "ref_audio": "/x.wav",
 #                    "ref_text": "…", "description": "…"},
 #          "instruct": "…", "language": "de", "seed": 1, "exaggeration": 0.5 (chatterbox),
 #          "chunks": [{"text": "…", "pause": 0.3}], "output": "/out.wav"}
-#        → progress per chunk; result {"file", "seconds" (generation), "duration" (audio), "peakGB"}
+#        → progress per chunk; result {"file", "seconds" (generation), "duration" (audio), "peakGB",
+#          "words": [{"text", "start", "end"}] (Kokoro, English: when each word is said, in seconds)}
 #   asr:  {"op": "asr", "dirs": {"asr": "/dir"}, "audio": "/x.wav", "language": "de"} → result {"text"}
 #   unload_asr: frees the ASR model.
 #
@@ -63,7 +64,7 @@ def _offline_snapshot(repo_id=None, *a, **kw):
 huggingface_hub.snapshot_download = _offline_snapshot
 
 MODEL_TYPES = {"qwen3-tts": "qwen3_tts", "chatterbox": "chatterbox", "voxcpm2": "voxcpm2", "higgs": "higgs_audio_v3",
-               "voxtral": "voxtral_tts"}
+               "voxtral": "voxtral_tts", "kokoro": "kokoro"}
 
 LANG_NAMES = {"de": "german", "en": "english", "zh": "chinese", "fr": "french", "es": "spanish", "it": "italian",
               "pt": "portuguese", "ja": "japanese", "ko": "korean", "ru": "russian", "nl": "dutch", "ar": "arabic",
@@ -264,9 +265,92 @@ def gen_kwargs(req, model):
     return kw
 
 
+def short_espeak_data():
+    """espeak-ng (inside espeakng-loader's wheel) keeps its data path in 160 bytes: when the environment is deep
+    (a long MLXLAB_HOME) its data is copied to the temp folder once and used from there."""
+    try:
+        import espeakng_loader
+        from importlib.metadata import version
+    except ImportError:
+        return
+    data = os.path.realpath(espeakng_loader.get_data_path())
+    if len(data.encode()) < 150:
+        return
+    short = os.path.join(tempfile.gettempdir(), "mlxlab-espeak-ng-data-" + version("espeakng-loader"))
+    if not os.path.isfile(os.path.join(short, "phontab")):
+        tmp = f"{short}.{os.getpid()}"
+        shutil.copytree(data, tmp, dirs_exist_ok=True)
+        try:
+            os.rename(tmp, short)
+        except OSError:  # another worker was quicker
+            shutil.rmtree(tmp, ignore_errors=True)
+    import misaki.espeak  # noqa: F401  (it sets the long path when imported)
+    from phonemizer.backend.espeak.wrapper import EspeakWrapper
+
+    EspeakWrapper.set_data_path(short)
+    emit(type="log", text=f"espeak-ng's data from {short} (its own path is too long for it)")
+
+
+# Kokoro's pipelines by language (misaki G2P; American/British English by the voice's first letter)
+KOKORO_CODES = {"es": "e", "fr": "f", "hi": "h", "it": "i", "pt": "p", "zh": "z"}
+
+
+def kokoro_tts(req, model):
+    """Kokoro through its pipeline (model.generate does not hand out the tokens): the voice from the weights' voices
+    folder (nothing is fetched), the words' times from the tokens (English only: the other languages are phonemized
+    by espeak-ng or misaki's zh without tokens)."""
+    voice = (req.get("voice") or {}).get("preset") or "af_heart"
+    lang = (req.get("language") or "en").lower()
+    code = ("b" if voice.startswith("b") else "a") if lang == "en" else KOKORO_CODES.get(lang, "a")
+    path = os.path.join(req["dirs"]["model"], "voices", voice + ".safetensors")
+    if not os.path.isfile(path):
+        raise ValueError(f"no Kokoro voice {voice!r}")
+    if code not in model._pipelines:
+        emit(type="status", text=f"preparing the {lang} text processing …")
+        short_espeak_data()
+    pipe = model._get_pipeline(code)
+    speed = float(req.get("speed") or 1.0)
+    sr = int(model.sample_rate)
+    chunks = req.get("chunks") or []
+    if not chunks:
+        raise ValueError("no text")
+    parts, words, at, t0 = [], [], 0, time.time()
+    for i, ch in enumerate(chunks):
+        emit(type="status", text=f"sentence {i + 1} of {len(chunks)} …")
+        emit(type="progress", step=i, total=len(chunks))
+        got = False
+        for res in pipe(ch["text"], voice=path, speed=speed, split_pattern=None):
+            if res.audio is None:
+                continue
+            a = np.asarray(res.audio, dtype=np.float32).reshape(-1)
+            for t in res.tokens or []:
+                start, end = getattr(t, "start_ts", None), getattr(t, "end_ts", None)
+                if start is None or end is None or not any(c.isalnum() for c in t.text):
+                    continue
+                words.append({"text": t.text, "start": round(at / sr + start, 3), "end": round(at / sr + end, 3)})
+            parts.append(a)
+            at += len(a)
+            got = True
+        if not got:
+            raise RuntimeError(f"no audio for: {ch['text'][:60]}")
+        pause = float(ch.get("pause") or 0)
+        if pause > 0 and i < len(chunks) - 1:
+            parts.append(np.zeros(int(pause * sr), dtype=np.float32))
+            at += int(pause * sr)
+        mx.clear_cache()
+    emit(type="progress", step=len(chunks), total=len(chunks))
+    wav = np.clip(np.concatenate(parts), -1.0, 1.0)
+    seconds = time.time() - t0
+    os.makedirs(os.path.dirname(os.path.abspath(req["output"])), exist_ok=True)
+    audio_write(req["output"], wav, sr)
+    return seconds, len(wav) / sr, words
+
+
 def tts(req):
     model = tts_model(req)
     fam = req["family"]
+    if fam == "kokoro":
+        return kokoro_tts(req, model)
     kw = gen_kwargs(req, model)
     prefix = higgs_prefix(req.get("instruct"), req.get("speed")) if fam == "higgs" else ""
     seed = req.get("seed")
@@ -301,7 +385,7 @@ def tts(req):
     seconds = time.time() - t0
     os.makedirs(os.path.dirname(os.path.abspath(req["output"])), exist_ok=True)
     audio_write(req["output"], wav, sr)
-    return seconds, len(wav) / sr
+    return seconds, len(wav) / sr, []
 
 
 def asr(req):
@@ -332,13 +416,16 @@ for line in sys.stdin:
             if op == "asr":
                 text, seconds = asr(req)
             else:
-                seconds, duration = tts(req)
+                seconds, duration, words = tts(req)
         finally:
             peak = sampler.done()
         if op == "asr":
             emit(type="result", text=text, seconds=seconds, peakGB=peak)
         else:
-            emit(type="result", file=req["output"], seconds=seconds, duration=duration, peakGB=peak)
+            res = dict(file=req["output"], seconds=seconds, duration=duration, peakGB=peak)
+            if words:
+                res["words"] = words
+            emit(type="result", **res)
     except Exception as e:  # noqa: BLE001
         traceback.print_exc()
         emit(type="error", text=f"{type(e).__name__}: {e}")
