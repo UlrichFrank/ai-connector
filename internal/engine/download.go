@@ -261,6 +261,7 @@ func (d *Downloads) Models(ctx context.Context, mem int64, withAccess bool) []Se
 	free := d.FreeBytes()
 	var out []SetupModel
 	var gated []int
+	d.mu.Lock() // a download marks its model here under it
 	for _, m := range d.Catalog.List() {
 		switch m.Kind {
 		case Chat, Embed, Classify, Image, Video:
@@ -281,6 +282,7 @@ func (d *Downloads) Models(ctx context.Context, mem int64, withAccess bool) []Se
 		}
 		out = append(out, sm)
 	}
+	d.mu.Unlock()
 	if withAccess && len(gated) > 0 {
 		var wg sync.WaitGroup
 		for _, i := range gated {
@@ -598,14 +600,17 @@ func (d *Downloads) run(r *download) {
 			return
 		}
 	}
-	m.Here = true
+	where := m.Where
 	if d.Fetch == nil {
-		m.Where = d.Store.Path(hm)
+		where = d.Store.Path(hm)
 		if m.repo != "" {
-			m.Where = filepath.Join(d.Store.Dir, filepath.FromSlash(hm.Repo), hm.Rev)
+			where = filepath.Join(d.Store.Dir, filepath.FromSlash(hm.Repo), hm.Rev)
 		}
 	}
-	d.set(r, func(st *DownloadState) { st.State = DownloadDone })
+	d.set(r, func(st *DownloadState) {
+		m.Here, m.Where = true, where // under the lock Models reads it with
+		st.State = DownloadDone
+	})
 }
 
 // gated explains a refused download of a gated model: no token, or the licence not accepted.

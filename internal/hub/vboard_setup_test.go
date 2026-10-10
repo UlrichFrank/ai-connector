@@ -135,7 +135,7 @@ type setupMac struct {
 	release chan struct{}
 }
 
-func startSetupMac(t *testing.T, base, token string) *setupMac {
+func startSetupMac(t *testing.T, base, token string, extra ...*engine.Model) *setupMac {
 	t.Helper()
 	ms := []*engine.Model{
 		{ID: "qwen3.5-4b", Name: "Qwen3.5 4B", Kind: engine.Chat, Backend: "vbchat", Size: 3 * gib},
@@ -147,6 +147,7 @@ func startSetupMac(t *testing.T, base, token string) *setupMac {
 	for _, m := range ms {
 		m.SetRepo("org/"+m.ID, "rev")
 	}
+	ms = append(ms, extra...)
 	mac := &setupMac{cat: &engine.Catalog{Models: ms}, free: 500 * gib, release: make(chan struct{}, 16)}
 	mac.dl = &engine.Downloads{Catalog: mac.cat, Store: &models.Store{Dir: t.TempDir()},
 		Free: func() int64 {
@@ -438,4 +439,65 @@ func mustWorker(t *testing.T, s *Server) (string, string) {
 		t.Fatal(err)
 	}
 	return "Mac", tok
+}
+
+// Claude Code is the default while there is no chat model at all (the first agent's model left to the default chat
+// model, as `ai-connector vboard` sets it when Claude Code is ready); a chat model downloaded goes first.
+func TestVboardClaudeFirstUntilAChatModel(t *testing.T) {
+	fastBridges(t)
+	poll := bridgeDownloadPoll
+	bridgeDownloadPoll = 50 * time.Millisecond
+	t.Cleanup(func() { bridgeDownloadPoll = poll })
+	setupWorld(t)
+	_, base, device := vbHub(t)
+	_, wtok := enroll(t, base, device, "Mac")
+	mac := startSetupMac(t, base, wtok, &engine.Model{ID: "claude-code/sonnet", Name: "Claude Code · Sonnet", Kind: engine.Chat, Backend: "vbchat", Here: true})
+	v := newFakeVboard(t, stageImages)
+	addConnector(t, base, device, `{"url":"`+v.srv.URL+`","token":"vbp_secret","agents":[{"model":""},{"model":"claude-code/sonnet"}]}`)
+	b := v.next(t)
+	if b.hello.Chat != "" || len(b.agents) != 1 || b.agents[0].ID != "claude-code-sonnet" || b.agents[0].Kind != "agent" {
+		t.Fatalf("no chat model: %+v %+v", b.hello, b.agents)
+	}
+	b.send(t, `{"type":"download","id":"d_1","model":"qwen3.5-4b","context":{"userId":"u_1"}}`)
+	mac.release <- struct{}{}
+	m := b.nextSetup(t, "d_1")
+	for m.Type == "downloadStatus" {
+		m = b.nextSetup(t, "d_1")
+	}
+	if m.Type != "downloadDone" {
+		t.Fatalf("done %+v", m)
+	}
+	b = v.next(t)
+	if b.hello.Chat != "qwen3.5-4b" || len(b.agents) != 2 || b.agents[0].ID != "default" || b.agents[0].Kind != "model" || b.agents[1].Kind != "agent" {
+		t.Fatalf("with a chat model: %+v %+v", b.hello, b.agents)
+	}
+}
+
+// The oldest vboard takes a hello with nothing to offer (its fields empty; the setup ignored), and the embedder
+// arrives by handover once a download vboard did not start is done (the first start's).
+func TestVboardSetupOldVboard(t *testing.T) {
+	fastBridges(t)
+	setupWorld(t)
+	_, base, device := vbHub(t)
+	_, wtok := enroll(t, base, device, "Mac")
+	mac := startSetupMac(t, base, wtok)
+	v := newFakeVboard(t, stageClassify)
+	c := addConnector(t, base, device, `{"url":"`+v.srv.URL+`","token":"vbp_secret"}`)
+	b := v.next(t)
+	if b.hello.Model != "" || b.hello.Name != "ai-connector" {
+		t.Fatalf("hello %+v", b.hello)
+	}
+	waitState(t, base, device, c.ID, "connected")
+	if res := b.ask(t, "classify", `"states":[{"a":"b"}],"instructions":"x","options":{"a":"b"}`); res.Error == "" {
+		t.Fatalf("classify without a model %+v", res)
+	}
+	// the worker downloads the classifier by itself (as `ai-connector vboard` does on its first start)
+	if _, err := mac.dl.Start("laya-typed-decisions", 64*gib); err != nil {
+		t.Fatal(err)
+	}
+	mac.release <- struct{}{}
+	b2 := v.next(t)
+	if b2.hello.Model != "laya-typed-decisions" {
+		t.Fatalf("hello after the download %+v", b2.hello)
+	}
 }
