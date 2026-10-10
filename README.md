@@ -81,7 +81,22 @@ Thinking is off unless asked for (`reasoning_effort` other than `"none"`); the t
 ### vboard without vboard-ai
 
 vboard's "local AI" (classify, "Group by theme", the board chat with its tools) can come from the workers without
-anyone running vboard-ai. Two ways:
+anyone running vboard-ai. Three ways:
+
+0. **Standalone, no server** (what vboard-ai was): on the computer that runs the models,
+
+   ```bash
+   ai-connector vboard https://vboard.example.com --token vbp_…            # the token: vboard → "Set up AI" → "Create token"
+   ai-connector vboard --agents qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus   # what the chat panel offers
+   ai-connector vboard                                                      # later: the same connection again
+   ```
+
+   The server runs inside this process on a loopback port only, this computer is its one worker, and its one vboard
+   connector dials vboard — the same connector, routing and Claude Code agents as with a server (`--board ID` for
+   one board, `--name`, `--chat MODEL`, `--console 127.0.0.1:8485` to look inside; `ai-connector vboard --help`).
+   The settings (with the token) are kept in `<files>/vboard/settings.json` (0600), the server's files beside them.
+   The program comes from the GitHub releases (`ai-connector-<version>-<os>-<arch>.tar.gz` / `.zip`); vboard's
+   "Set up AI" shows the download and the start for your system.
 
 1. **A connector** (the server dials vboard, as vboard-ai does): in vboard, *Set up AI* (a board's AI menu or the user
    menu) → *Create token* (a personal token `vbp_…`, or a board token for one board). In the console, *Connectors* →
