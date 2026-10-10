@@ -802,6 +802,47 @@ that has the model and is least busy, so a second Mac keeps the chat warm.
   MCP client of the person (their own Claude Code with vboard's MCP) uses the same — so it works directly or through
   a server, with any chat.
 
+#### Upscaling (planned, contract)
+
+Not built yet; additive to the generators above. An image on the board made larger and sharper — "make this sharper",
+or "Upscale ×2" on an image — by **SeedVR2** (ByteDance, Apache-2.0; diffusion super-resolution that adds detail
+without repainting the picture), which the pinned mflux (0.20.0, `mflux-upscale-seedvr2`) already runs.
+
+* **Worker:** two catalogue models, `seedvr2-3b` (the default: faster, smaller) and `seedvr2-7b` (better, larger),
+  kind `image` with `Tasks: ["upscale"]`, backend mflux (same Python environment as FLUX; only the weights are
+  downloaded — through "setting up models" below like any other). The job takes one image (`images`) and a scale;
+  no prompt. Large outputs use mflux's VAE tiling so a 4096² result does not need the memory of a 4096² decode.
+* **Advertised** like the other generators, with its own kind (vboards that do not know it drop it):
+
+  ```json
+  {"id": "seedvr2-3b", "name": "SeedVR2 3B", "kind": "upscale", "worker": "Mac Studio",
+   "scales": [2, 4], "max": 4096, "nonCommercial": false}
+  ```
+
+  `scales`: the factors it takes; `max`: the longest side of the result. The first `upscale` generator is the default.
+  `"*"` in the connector's `generators` includes them; `ai-connector vboard` offers them by default like the others.
+* **Request:** `generate` with `{"kind":"upscale","generator"?,"images":[exactly one],"scale":2}` — `prompt` is not
+  needed (ignored). The result is `scale` × the source's size, cut so the longer side is at most `max` (aspect kept);
+  `scale` not in `scales` → the nearest one below. A source larger than `max` / 2 → `error` "already as large as …
+  can make it". The first `generateStatus` carries the result's `width`/`height` as for the others.
+* **The file:** an image result larger than vboard's 15 MB as PNG (a 4096² PNG is 30–50 MB) is sent as
+  **`image/jpeg`** (quality 92) instead — for every kind, not only upscales: `generateFile`'s `mime` may now be
+  `image/png` | `image/jpeg` | `video/mp4`. Still too large as JPEG → `error`. (vboards that took only `image/png`:
+  they get JPEG only from an upscale, which they never ask for.)
+* Progress, `generateDone`, cancel, errors, handover: as for images.
+
+**vboard's side (for reference; vboard decides the details)**
+
+* A tool `upscale_image {item, scale?}` in the board chat and in vboard's MCP (needs edit rights; offered while an
+  `upscale` generator is advertised; returns at once like `generate_image`), and **"Upscale ×2 / ×4"** in an image's
+  context menu — it works without a chat.
+* The result **replaces the image in place**, keeping its size on the board (only sharper), with the previous file
+  kept so it can be undone — or goes next to it as a new item; vboard decides. While it runs the image shows the
+  progress over itself (the placeholder's animation and state on top of the old picture) rather than a separate
+  placeholder.
+* Video upscaling is not part of this: LTX already runs its own spatial upscaler inside its two-stage pipeline, and
+  mflux offers SeedVR2 for images only.
+
 ### vboard: setting up models from vboard (as built)
 
 Builds on the generators section above (the hub: `internal/hub/vboard_setup.go`, `setup_page.go`; the worker:
