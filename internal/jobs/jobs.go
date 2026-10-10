@@ -123,6 +123,9 @@ type Update struct {
 	JobID string        `json:"jobId"`
 	Job   *Job          `json:"job,omitempty"`
 	Event *engine.Event `json:"event,omitempty"`
+	// At: a text event's place in the job's text (its length in bytes before the piece), so that a follower that
+	// missed a piece sees the gap (and takes the text from the job) instead of joining the pieces wrongly
+	At *int `json:"at,omitempty"`
 }
 
 // Manager runs the jobs.
@@ -794,6 +797,7 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 
 // event records an event in the job and passes it on.
 func (m *Manager) event(j *Job, ev engine.Event) {
+	var at *int
 	m.mu.Lock()
 	switch ev.Type {
 	case "status":
@@ -804,6 +808,8 @@ func (m *Manager) event(j *Job, ev engine.Event) {
 			j.Logs = j.Logs[len(j.Logs)-maxLogs:]
 		}
 	case "text":
+		n := len(j.Text)
+		at = &n
 		j.Text += ev.Text
 	case "progress":
 		j.Step, j.Total = ev.Step, ev.Total
@@ -839,7 +845,7 @@ func (m *Manager) event(j *Job, ev engine.Event) {
 		}
 	}
 	m.mu.Unlock()
-	m.publish(Update{JobID: j.ID, Event: &ev})
+	m.publish(Update{JobID: j.ID, Event: &ev, At: at})
 }
 
 func (m *Manager) historyPath() string { return filepath.Join(m.Dir, "history.json") }

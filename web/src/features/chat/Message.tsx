@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { duration, took } from "@/lib/format";
 import { useNow } from "@/lib/now";
 import { shapeOf, stepsOf, thoughtSeconds, wordsOf, type Step } from "@/lib/thinkSteps";
+import { routeOfJob } from "@/lib/files";
 import { cn } from "@/lib/utils";
 import { isActive, useApp } from "@/store/app";
 import { Markdown } from "./Markdown";
@@ -94,7 +95,7 @@ export const Answer = memo(function Answer({
               expand={expand}
             />
           );
-        return <Markdown key={s.key} text={s.text} streaming={active && isLast} />;
+        return <Markdown key={s.key} text={s.text} streaming={active && isLast} route={routeOfJob(j.id)} />;
       })}
       {active && <Pending job={j} last={last} />}
       {ended && !failed && last?.kind === "think" && (
@@ -271,7 +272,7 @@ function Thought({
       </button>
       {open && (
         <div ref={scroller} className="mt-1 ml-[7px] max-h-96 overflow-y-auto border-l-2 pr-1 pl-3.5">
-          {step.text ? <Markdown text={step.text} thought streaming={live} /> : <p className="text-[0.8125rem] text-muted-foreground">…</p>}
+          {step.text ? <Markdown text={step.text} thought streaming={live} route={routeOfJob(j.id)} /> : <p className="text-[0.8125rem] text-muted-foreground">…</p>}
         </div>
       )}
       {tail && (

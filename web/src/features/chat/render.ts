@@ -20,6 +20,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { Marked, type Tokens } from "marked";
+import { routedFile } from "@/lib/files";
 
 const languages = { bash, c, cpp, css, diff, go, java, javascript, json, python, rust, sql, swift, typescript, xml, yaml };
 for (const [name, lang] of Object.entries(languages)) hljs.registerLanguage(name, lang);
@@ -36,6 +37,9 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 const copyIcon =
   '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+
+// the route of the job whose answer is being rendered (set by renderMarkdown, read by the link hook; synchronous)
+let route: string | undefined;
 
 const marked = new Marked({
   gfm: true,
@@ -60,6 +64,8 @@ const marked = new Marked({
 
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "A") {
+    const href = node.getAttribute("href");
+    if (href && route) node.setAttribute("href", routedFile(href, route));
     node.setAttribute("target", "_blank");
     node.setAttribute("rel", "noreferrer noopener");
   }
@@ -86,8 +92,16 @@ const thoughts = new Marked({
   },
 });
 
-/** Markdown → safe HTML. `thought`: the model's thinking (raw HTML escaped, single line breaks kept). */
-export function renderMarkdown(md: string, streaming = false, thought = false): string {
-  const html = (thought ? thoughts : marked).parse(streaming ? closeFences(md) : md, { async: false }) as string;
-  return DOMPurify.sanitize(html, { ADD_ATTR: ["target", "data-copy"], FORBID_TAGS: ["style", "form", "img"] });
+/**
+ * Markdown → safe HTML. `thought`: the model's thinking (raw HTML escaped, single line breaks kept). `jobRoute`: the
+ * route of the job's worker through the hub — /files/ links the model wrote then point at that Mac (lib/files.ts).
+ */
+export function renderMarkdown(md: string, streaming = false, thought = false, jobRoute?: string): string {
+  route = jobRoute;
+  try {
+    const html = (thought ? thoughts : marked).parse(streaming ? closeFences(md) : md, { async: false }) as string;
+    return DOMPurify.sanitize(html, { ADD_ATTR: ["target", "data-copy"], FORBID_TAGS: ["style", "form", "img"] });
+  } finally {
+    route = undefined;
+  }
 }

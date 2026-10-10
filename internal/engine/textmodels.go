@@ -15,14 +15,70 @@ import (
 )
 
 // TextBackend runs vboard's small models in Go (matrix products on Accelerate or Metal): the Qwen3 embedder and the
-// Laya classifier. Both stay loaded (about 2 GB together).
+// Laya classifier. Both stay loaded (about 2 GB together; one copy of each).
+//
+// Each model has its own lock, so an embedding never waits for a classification and the other way round. Jobs work
+// in parts (textJobPart texts at a time) and let go of the model between parts; a direct call (Embed, Classify,
+// Choose: the API's direct path, a chat's guard) waiting for the model goes first at the next part — it never waits
+// behind a long batch job, only for the part that runs.
 type TextBackend struct {
 	Store *models.Store
 
-	mu    sync.Mutex
-	emb   *qwen3.Model
-	cls   *laya.Model
+	embLock, clsLock prioLock // who uses the embedder, the classifier
+
+	mu    sync.Mutex   // emb and cls (set with their lock held as well)
+	emb   textEmbedder // *qwen3.Model
+	cls   textChooser  // *laya.Model
 	state status
+}
+
+// textEmbedder and textChooser are what the backend uses of the loaded models (tests put others in their place).
+type (
+	textEmbedder interface {
+		Embed(texts []string, batch int) [][]float32
+	}
+	textChooser interface {
+		Choose(states []string, instructions string, options []laya.Option, batch int) ([]laya.Answer, error)
+	}
+)
+
+// textJobPart: texts (or states) a job hands to a model at once; a multiple of the models' own batch (32), so the
+// batches and the results are the same as in one call.
+var textJobPart = 128
+
+// prioLock is a lock that direct calls (high) get before jobs (low) waiting for it.
+type prioLock struct {
+	mu   sync.Mutex
+	cond *sync.Cond
+	held bool
+	high int // direct calls waiting
+}
+
+func (l *prioLock) lock(high bool) {
+	l.mu.Lock()
+	if l.cond == nil {
+		l.cond = sync.NewCond(&l.mu)
+	}
+	if high {
+		l.high++
+	}
+	for l.held || !high && l.high > 0 {
+		l.cond.Wait()
+	}
+	if high {
+		l.high--
+	}
+	l.held = true
+	l.mu.Unlock()
+}
+
+func (l *prioLock) unlock() {
+	l.mu.Lock()
+	l.held = false
+	if l.cond != nil {
+		l.cond.Broadcast()
+	}
+	l.mu.Unlock()
 }
 
 func (b *TextBackend) Name() string { return "go" }
@@ -45,10 +101,14 @@ func (b *TextBackend) report() {
 }
 
 func (b *TextBackend) Unload() {
+	b.embLock.lock(true)
+	defer b.embLock.unlock()
+	b.clsLock.lock(true)
+	defer b.clsLock.unlock()
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	b.emb, b.cls = nil, nil
 	b.report()
+	b.mu.Unlock()
 	debug.FreeOSMemory()
 }
 
@@ -57,8 +117,6 @@ func (b *TextBackend) ensure(ctx context.Context, m *Model, emit Emit) (string, 
 }
 
 func (b *TextBackend) Run(ctx context.Context, m *Model, r Request, _ string, emit Emit) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	switch m.Kind {
 	case Embed:
 		return b.embed(ctx, m, r, emit)
@@ -68,88 +126,132 @@ func (b *TextBackend) Run(ctx context.Context, m *Model, r Request, _ string, em
 	return fmt.Errorf("%s: not a text model", m.ID)
 }
 
-// loadEmbedder fetches and loads the embedder unless it is loaded (call with b.mu held).
-func (b *TextBackend) loadEmbedder(ctx context.Context, m *Model, emit Emit) error {
-	if b.emb != nil {
-		return nil
+// embedder is the loaded embedder; it fetches and loads it first (call with embLock held).
+func (b *TextBackend) embedder(ctx context.Context, m *Model, emit Emit) (textEmbedder, error) {
+	b.mu.Lock()
+	loaded := b.emb
+	b.mu.Unlock()
+	if loaded != nil {
+		return loaded, nil
 	}
 	dir, err := b.ensure(ctx, m, emit)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	emit.Status("loading " + m.Name + " …")
 	start := time.Now()
-	if b.emb, err = qwen3.Load(dir); err != nil {
-		return err
-	}
-	b.emb.Embed([]string{"warm up"}, 1)
-	b.report()
-	emit.Log(fmt.Sprintf("loaded %s in %.1f s (matrix products: %s)", m.Name, time.Since(start).Seconds(), tensor.Backend()))
-	return nil
-}
-
-// loadClassifier fetches and loads the classifier unless it is loaded (call with b.mu held).
-func (b *TextBackend) loadClassifier(ctx context.Context, m *Model, emit Emit) error {
-	if b.cls != nil {
-		return nil
-	}
-	dir, err := b.ensure(ctx, m, emit)
+	emb, err := qwen3.Load(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	emit.Status("loading " + m.Name + " …")
-	start := time.Now()
-	if b.cls, err = laya.Load(dir); err != nil {
-		return err
-	}
+	emb.Embed([]string{"warm up"}, 1)
+	b.mu.Lock()
+	b.emb = emb
 	b.report()
+	b.mu.Unlock()
 	emit.Log(fmt.Sprintf("loaded %s in %.1f s (matrix products: %s)", m.Name, time.Since(start).Seconds(), tensor.Backend()))
-	return nil
+	return emb, nil
 }
 
-// vectors embeds the texts (call with b.mu held).
-func (b *TextBackend) vectors(ctx context.Context, m *Model, texts []string, emit Emit) ([][]float32, error) {
-	if err := b.loadEmbedder(ctx, m, emit); err != nil {
+// classifier is the loaded classifier; it fetches and loads it first (call with clsLock held). m nil: the pinned
+// Laya model (Choose).
+func (b *TextBackend) classifier(ctx context.Context, m *Model, emit Emit) (textChooser, error) {
+	b.mu.Lock()
+	loaded := b.cls
+	b.mu.Unlock()
+	if loaded != nil {
+		return loaded, nil
+	}
+	var dir string
+	var err error
+	name := "Laya"
+	if m != nil {
+		dir, err = b.ensure(ctx, m, emit)
+		name = m.Name
+	} else {
+		dir, err = fetch(ctx, b.Store, models.Laya, emit)
+	}
+	if err != nil {
 		return nil, err
 	}
-	if err := ctx.Err(); err != nil {
+	emit.Status("loading " + name + " …")
+	start := time.Now()
+	cls, err := laya.Load(dir)
+	if err != nil {
 		return nil, err
 	}
-	return b.emb.Embed(texts, 32), nil
+	b.mu.Lock()
+	b.cls = cls
+	b.report()
+	b.mu.Unlock()
+	emit.Log(fmt.Sprintf("loaded %s in %.1f s (matrix products: %s)", name, time.Since(start).Seconds(), tensor.Backend()))
+	return cls, nil
 }
 
-// answers asks the question about every state (call with b.mu held).
-func (b *TextBackend) answers(ctx context.Context, m *Model, states []string, instructions string, options []Option, emit Emit) ([]Answer, error) {
-	if err := b.loadClassifier(ctx, m, emit); err != nil {
-		return nil, err
+// vectors embeds the texts: a direct call (high) at once, a job part by part.
+func (b *TextBackend) vectors(ctx context.Context, m *Model, texts []string, emit Emit, direct bool) ([][]float32, error) {
+	part := len(texts)
+	if !direct {
+		part = textJobPart
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
+	out := make([][]float32, 0, len(texts))
+	for lo := 0; lo < len(texts); lo += part {
+		hi := min(lo+part, len(texts))
+		b.embLock.lock(direct)
+		emb, err := b.embedder(ctx, m, emit)
+		if err == nil {
+			err = ctx.Err()
+		}
+		if err != nil {
+			b.embLock.unlock()
+			return nil, err
+		}
+		out = append(out, emb.Embed(texts[lo:hi], 32)...)
+		b.embLock.unlock()
 	}
+	return out, nil
+}
+
+// answers asks the question about every state: a direct call at once, a job part by part.
+func (b *TextBackend) answers(ctx context.Context, m *Model, states []string, instructions string, options []Option, emit Emit, direct bool) ([]Answer, error) {
 	opts := make([]laya.Option, len(options))
 	for i, o := range options {
 		opts[i] = laya.Option{Label: o.Label, Description: o.Description}
 	}
-	ans, err := b.cls.Choose(states, instructions, opts, 32)
-	if err != nil {
-		return nil, err
+	part := len(states)
+	if !direct {
+		part = textJobPart
 	}
-	out := make([]Answer, len(ans))
-	for i, a := range ans {
-		out[i] = Answer{Choice: a.Choice, Probabilities: a.Probabilities, Confidence: a.AnswerConfidence}
+	out := make([]Answer, 0, len(states))
+	for lo := 0; lo < len(states); lo += part {
+		hi := min(lo+part, len(states))
+		b.clsLock.lock(direct)
+		cls, err := b.classifier(ctx, m, emit)
+		if err == nil {
+			err = ctx.Err()
+		}
+		var ans []laya.Answer
+		if err == nil {
+			ans, err = cls.Choose(states[lo:hi], instructions, opts, 32)
+		}
+		b.clsLock.unlock()
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range ans {
+			out = append(out, Answer{Choice: a.Choice, Probabilities: a.Probabilities, Confidence: a.AnswerConfidence})
+		}
 	}
 	return out, nil
 }
 
 // Embed embeds texts directly (Embedder): the embedder is fetched and loaded on first use and stays loaded, as for
-// embed jobs; calls take turns with them.
+// embed jobs; a call goes before the next part of a running embed job.
 func (b *TextBackend) Embed(ctx context.Context, m *Model, texts []string) ([][]float32, error) {
 	if m.Kind != Embed {
 		return nil, fmt.Errorf("%s: not an embedding model", m.ID)
 	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.vectors(ctx, m, texts, func(Event) {})
+	return b.vectors(ctx, m, texts, func(Event) {}, true)
 }
 
 // Classify answers a choice question directly (Classifier), like Embed.
@@ -157,21 +259,22 @@ func (b *TextBackend) Classify(ctx context.Context, m *Model, states []string, i
 	if m.Kind != Classify {
 		return nil, fmt.Errorf("%s: not a classifier", m.ID)
 	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.answers(ctx, m, states, instructions, options, func(Event) {})
+	return b.answers(ctx, m, states, instructions, options, func(Event) {}, true)
 }
 
 func (b *TextBackend) embed(ctx context.Context, m *Model, r Request, emit Emit) error {
 	if len(r.Texts) == 0 {
 		return fmt.Errorf("no texts")
 	}
-	if err := b.loadEmbedder(ctx, m, emit); err != nil {
+	b.embLock.lock(false) // loaded before the status says "embedding"
+	_, err := b.embedder(ctx, m, emit)
+	b.embLock.unlock()
+	if err != nil {
 		return err
 	}
 	emit.Status(fmt.Sprintf("embedding %d texts …", len(r.Texts)))
 	start := time.Now()
-	vecs, err := b.vectors(ctx, m, r.Texts, emit)
+	vecs, err := b.vectors(ctx, m, r.Texts, emit, false)
 	if err != nil {
 		return err
 	}
@@ -186,12 +289,15 @@ func (b *TextBackend) classify(ctx context.Context, m *Model, r Request, emit Em
 	if len(r.States) == 0 || len(r.Options) == 0 {
 		return fmt.Errorf("a question needs texts and options")
 	}
-	if err := b.loadClassifier(ctx, m, emit); err != nil {
+	b.clsLock.lock(false)
+	_, err := b.classifier(ctx, m, emit)
+	b.clsLock.unlock()
+	if err != nil {
 		return err
 	}
 	emit.Status(fmt.Sprintf("asking about %d texts …", len(r.States)))
 	start := time.Now()
-	ans, err := b.answers(ctx, m, r.States, r.Instructions, r.Options, emit)
+	ans, err := b.answers(ctx, m, r.States, r.Instructions, r.Options, emit, false)
 	if err != nil {
 		return err
 	}
@@ -221,22 +327,17 @@ func cosine(a, b []float32) float64 {
 
 // Choose asks the Laya classifier directly, in this process: for callers inside a running job (the guard of a chat
 // with tools) — submitting a classify job from there would wait behind the job that submits it. The classifier is
-// fetched and loaded on first use and stays loaded, as for classify jobs; calls take turns with them.
+// fetched and loaded on first use and stays loaded, as for classify jobs; a call goes before the next part of a
+// running classify job.
 func (b *TextBackend) Choose(ctx context.Context, states []string, instructions string, options []laya.Option) ([]laya.Answer, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.cls == nil {
-		dir, err := fetch(ctx, b.Store, models.Laya, func(Event) {})
-		if err != nil {
-			return nil, err
-		}
-		if b.cls, err = laya.Load(dir); err != nil {
-			return nil, err
-		}
-		b.report()
+	b.clsLock.lock(true)
+	defer b.clsLock.unlock()
+	cls, err := b.classifier(ctx, nil, func(Event) {})
+	if err != nil {
+		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return b.cls.Choose(states, instructions, options, 32)
+	return cls.Choose(states, instructions, options, 32)
 }

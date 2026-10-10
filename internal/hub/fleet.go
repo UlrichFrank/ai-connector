@@ -123,7 +123,11 @@ type fleet struct {
 	pinned  string
 	changed chan struct{}
 	subs    map[int]chan []byte
-	next    int
+	feeds   map[int]*jobFeed // followJob
+
+	refreshMu sync.Mutex // refreshModels
+	refreshed time.Time
+	next      int
 }
 
 func newFleet(t *tunnel.Hub, ws *workers, dataDir string) *fleet {
@@ -384,6 +388,48 @@ func (f *fleet) probe(ctx context.Context, n *node) error {
 	return nil
 }
 
+// Asking the workers for their models again when a model is listed nowhere (refreshModels).
+var (
+	refreshModelsWait = 2 * time.Second // what a request waits for it at most
+	refreshModelsGap  = 2 * time.Second // at most one in this time (a client asking for nonsense again and again)
+)
+
+// refreshModels asks the Macs for their models now (GET /api/models?refresh=1: a worker first asks its local
+// runtimes, so a model pulled a moment ago is there), instead of waiting for the next probe (every 30 s). One at a
+// time, at most once in refreshModelsGap, at most refreshModelsWait long; false: it did not ask (too soon).
+func (f *fleet) refreshModels(ctx context.Context, nodes []*node) bool {
+	f.refreshMu.Lock()
+	defer f.refreshMu.Unlock()
+	if time.Since(f.refreshed) < refreshModelsGap {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(ctx, refreshModelsWait)
+	defer cancel()
+	var wg sync.WaitGroup
+	for _, n := range nodes {
+		if !n.isRouted() {
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var ms struct {
+				Models []catalogModel `json:"models"`
+			}
+			if err := f.getJSON(ctx, n, "/api/models?refresh=1", &ms); err != nil {
+				return
+			}
+			n.mu.Lock()
+			n.models = ms.Models
+			n.mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	f.refreshed = time.Now()
+	f.notify()
+	return true
+}
+
 func isDecode(err error) bool {
 	var se *json.SyntaxError
 	var te *json.UnmarshalTypeError
@@ -498,6 +544,96 @@ func (f *fleet) broadcast(data []byte) {
 		default:
 		}
 	}
+	for _, j := range f.feeds {
+		j.push(data)
+	}
+}
+
+// jobFeedEarly: events kept for a feed while its job's id is not known yet (the moment of the submission); more
+// drop the oldest.
+const jobFeedEarly = 4096
+
+// jobFeed is one job's events for the one that follows it (a chat completion, a connector's chat): unlike
+// subscribe it never drops an event of its job, however slowly they are taken — the queue is bounded by the job's
+// own events. Made before the job is submitted (followJob), it keeps every event until setJob names the job, then
+// only that job's.
+type jobFeed struct {
+	f  *fleet
+	id int
+
+	mu    sync.Mutex
+	key   []byte // `"jobId":"<id>"` once the job is known
+	q     [][]byte
+	early int  // events kept before the key
+	lost  bool // early events were dropped (the job's could be among them)
+	ready chan struct{}
+}
+
+// followJob starts a job feed; close ends it.
+func (f *fleet) followJob() *jobFeed {
+	j := &jobFeed{f: f, ready: make(chan struct{}, 1)}
+	f.mu.Lock()
+	f.next++
+	j.id = f.next
+	if f.feeds == nil {
+		f.feeds = map[int]*jobFeed{}
+	}
+	f.feeds[j.id] = j
+	f.mu.Unlock()
+	return j
+}
+
+func (j *jobFeed) close() {
+	j.f.mu.Lock()
+	delete(j.f.feeds, j.id)
+	j.f.mu.Unlock()
+}
+
+func (j *jobFeed) push(data []byte) {
+	j.mu.Lock()
+	switch {
+	case j.key == nil:
+		if j.early >= jobFeedEarly {
+			j.q, j.lost = j.q[1:], true
+			j.early--
+		}
+		j.q = append(j.q, data)
+		j.early++
+	case bytes.Contains(data, j.key):
+		j.q = append(j.q, data)
+	default:
+		j.mu.Unlock()
+		return
+	}
+	j.mu.Unlock()
+	select {
+	case j.ready <- struct{}{}:
+	default:
+	}
+}
+
+// setJob names the job: from now on only its events are kept (also of those kept so far).
+func (j *jobFeed) setJob(id string) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.key = []byte(`"jobId":"` + id + `"`)
+	kept := j.q[:0]
+	for _, d := range j.q {
+		if bytes.Contains(d, j.key) {
+			kept = append(kept, d)
+		}
+	}
+	clear(j.q[len(kept):])
+	j.q, j.early = kept, 0
+}
+
+// take is what came since the last take (ready says when there is something).
+func (j *jobFeed) take() [][]byte {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	q := j.q
+	j.q = nil
+	return q
 }
 
 // routedSet names the Macs that understand routes now (to see whether the set changed).

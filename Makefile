@@ -92,6 +92,11 @@ base-images:
 chart-lint:
 	helm lint --strict $(CHART) -f $(CHART)/ci/lint-values.yaml
 	helm template ai-connector $(CHART) -n ai-connector -f $(CHART)/ci/lint-values.yaml >/dev/null
+	@# deploy's rollout check finds the Deployment by the chart's fullname rules
+	@test "$$($(call deployment_name,ai-connector,))" = ai-connector
+	@test "$$($(call deployment_name,aic-test,))" = aic-test-ai-connector
+	@test "$$($(call deployment_name,aic-test,--set fullnameOverride=custom))" = custom
+	@test "$$($(call deployment_name,aic-test,--set nameOverride=server))" = aic-test-server
 
 # ---- deploy to the Raspberry Pi (k0s), without a registry ----
 # Run by hand only (docs/deploy.md). The image is built here for linux/arm64, streamed over ssh into the Pi's
@@ -114,12 +119,18 @@ DEPLOY_TAG    := $(shell git rev-parse --short HEAD 2>/dev/null)$(shell git diff
 HELM_UPGRADE   = $(if $(wildcard $(AIC_SECRETS)),helm secrets upgrade,helm upgrade)
 SECRETS_VALUES = $(if $(wildcard $(AIC_SECRETS)),-f $(AIC_SECRETS))
 
+# deployment_name prints the name of the release's Deployment as the chart makes it (its fullname rules:
+# fullnameOverride, nameOverride, a release name that contains the chart's): rendered by helm itself, with the
+# release's values (a placeholder password: the name does not depend on the secrets)
+deployment_name = helm template $(1) $(CHART) $(2) --set-string secrets.MLXLAB_PASSWORD=name-only -s templates/deployment.yaml \
+	| awk '/^kind: Deployment/{d=1} d && /^  name:/{print $$2; exit}'
+
 deploy: deploy-guard deploy-image
 	$(KUBE) $(HELM_UPGRADE) --install -n $(AIC_NAMESPACE) --create-namespace $(AIC_RELEASE) $(CHART) \
 		-f $(AIC_VALUES)/values.yaml $(SECRETS_VALUES) \
 		--set image.repository=$(IMAGE) --set image.tag=$(DEPLOY_TAG) --set image.pullPolicy=Never \
 		--wait --timeout 3m
-	$(KUBE) kubectl -n $(AIC_NAMESPACE) rollout status deploy/$(AIC_RELEASE) --timeout=120s
+	$(KUBE) kubectl -n $(AIC_NAMESPACE) rollout status deploy/$$($(call deployment_name,$(AIC_RELEASE),-f $(AIC_VALUES)/values.yaml)) --timeout=120s
 	@# older ai-connector images on the Pi go (the running pod uses the new one now); mlxlab's are not matched
 	ssh $(PI) 'sudo k0s ctr -n k8s.io images ls -q | grep "$(IMAGE):" | grep -v ":$(DEPLOY_TAG)$$" | xargs -r sudo k0s ctr -n k8s.io images rm' >/dev/null || true
 	@curl -fsS --retry 15 --retry-all-errors --retry-delay 2 $(AIC_URL)/healthz && echo && echo "deployed $(IMAGE):$(DEPLOY_TAG) to $(AIC_URL)"

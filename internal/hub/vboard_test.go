@@ -804,7 +804,7 @@ func TestVboardChatStatusAndCancel(t *testing.T) {
 		mac.chat.setHold(nil)
 		time.Sleep(300 * time.Millisecond)
 		for len(ch) > 0 {
-			if ev := <-ch; ev.Type == "done" || ev.Type == "error" || ev.Text != "" {
+			if ev := <-ch; ev.Type == "done" || ev.Type == "error" || ev.Type == "delta" && ev.Text != "" { // (its status lines came before)
 				t.Fatalf("after the cancel: %+v", ev)
 			}
 		}

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/coder/websocket"
 
@@ -248,16 +249,66 @@ func bridgeRefused(res *http.Response, board string) error {
 type vboardRun struct {
 	m        *connectors
 	s        *Server
-	conf     storedConnector
+	id       string // the connector's
 	gen      int
 	instance string // hello.instance: the old and the new connection of a handover share it
+
+	cmu     sync.Mutex
+	conf    storedConnector // the settings now (an edit replaces them: reconfigure)
+	updated chan struct{}   // an edit came (one pending at most)
+}
+
+func newVboardRun(m *connectors, conf storedConnector, gen int) *vboardRun {
+	return &vboardRun{m: m, s: m.s, id: conf.ID, conf: conf, gen: gen, instance: "aic_" + randomString(12),
+		updated: make(chan struct{}, 1)}
+}
+
+// config is the connector's settings now. A connection keeps those it was dialled with (bridgeConn.conf): its
+// requests are answered with them.
+func (r *vboardRun) config() storedConnector {
+	r.cmu.Lock()
+	defer r.cmu.Unlock()
+	return r.conf
+}
+
+// reconfigure takes edited settings without stopping what runs: the open connection offers the new agents and
+// models (serve), other settings get a new connection by a handover.
+func (r *vboardRun) reconfigure(conf storedConnector) {
+	r.cmu.Lock()
+	r.conf = conf
+	r.cmu.Unlock()
+	select {
+	case r.updated <- struct{}{}:
+	default:
+	}
+}
+
+// sameLink: the settings a connection is dialled with are the same (vboard's address, the token, the board, and
+// the name, which vboard learns only from the URL and hello).
+func sameLink(a, b storedConnector) bool {
+	return a.URL == b.URL && a.Token == b.Token && a.Board == b.Board && a.Name == b.Name
 }
 
 func (r *vboardRun) logf(format string, args ...any) {
-	log.Printf("connector %q: "+format, append([]any{r.conf.Name}, args...)...)
+	log.Printf("connector %q: "+format, append([]any{r.config().Name}, args...)...)
 }
 
-func (r *vboardRun) set(update func(st *connectorStatus)) { r.m.report(r.conf.ID, r.gen, update) }
+func (r *vboardRun) set(update func(st *connectorStatus)) { r.m.report(r.id, r.gen, update) }
+
+// pause waits between attempts; an edit ends it early (the next attempt uses the new settings). Not nil: ctx ended.
+func (r *vboardRun) pause(ctx context.Context, d time.Duration) error {
+	pctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-r.updated:
+			cancel()
+		case <-pctx.Done():
+		}
+	}()
+	_ = r.m.sleep(pctx, d)
+	return ctx.Err()
+}
 
 func (r *vboardRun) connecting(msg string) {
 	r.set(func(st *connectorStatus) {
@@ -285,8 +336,9 @@ func (r *vboardRun) run(ctx context.Context) {
 				return
 			}
 			var user string
-			if user, err = r.me(ctx); err == nil {
-				if c, err = r.dial(ctx, caps); err == nil && c.user == "" {
+			conf := r.config()
+			if user, err = r.me(ctx, conf); err == nil {
+				if c, err = r.dial(ctx, conf, caps); err == nil && c.user == "" {
 					c.user = user
 				}
 			}
@@ -303,7 +355,7 @@ func (r *vboardRun) run(ctx context.Context) {
 			if moved {
 				r.logf("moved to a new connection — answers %s", c.capsNow())
 			} else {
-				r.logf("connected to %s as %s — answers %s", r.conf.URL, c.user, c.capsNow())
+				r.logf("connected to %s as %s — answers %s", c.conf.URL, c.user, c.capsNow())
 			}
 			if next, err = r.serve(ctx, c); next != nil {
 				backoff = bridgeBackoffMin
@@ -329,7 +381,7 @@ func (r *vboardRun) run(ctx context.Context) {
 		}
 		r.logf("connection lost (%v); retrying in %s", err, backoff)
 		r.connecting(fmt.Sprintf("%v (retrying in %s)", err, backoff))
-		if r.m.sleep(ctx, backoff) != nil {
+		if r.pause(ctx, backoff) != nil {
 			return
 		}
 		backoff = min(backoff*2, bridgeBackoffMax)
@@ -340,7 +392,7 @@ func (r *vboardRun) run(ctx context.Context) {
 func (r *vboardRun) waitCaps(ctx context.Context) (bridgeCaps, bool) {
 	for {
 		changed := r.s.fleet.Changed()
-		caps := r.s.connectorCaps(ctx, r.conf)
+		caps := r.s.connectorCaps(ctx, r.config())
 		if ctx.Err() != nil {
 			return caps, false
 		}
@@ -352,20 +404,21 @@ func (r *vboardRun) waitCaps(ctx context.Context) (bridgeCaps, bool) {
 		case <-ctx.Done():
 			return caps, false
 		case <-changed:
+		case <-r.updated:
 		case <-time.After(bridgeCapsEvery):
 		}
 	}
 }
 
 // me asks vboard whose the token is (GET /api/v1/me, as vboard-ai does before it dials): a refused token stops here.
-func (r *vboardRun) me(ctx context.Context) (string, error) {
+func (r *vboardRun) me(ctx context.Context, conf storedConnector) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, bridgeDialTimeout)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.conf.URL+"/api/v1/me", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, conf.URL+"/api/v1/me", nil)
 	if err != nil {
-		return "", &bridgeFatal{fmt.Sprintf("%q is not a vboard address", r.conf.URL)}
+		return "", &bridgeFatal{fmt.Sprintf("%q is not a vboard address", conf.URL)}
 	}
-	req.Header.Set("Authorization", "Bearer "+r.conf.Token)
+	req.Header.Set("Authorization", "Bearer "+conf.Token)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -387,10 +440,10 @@ func (r *vboardRun) me(ctx context.Context) (string, error) {
 }
 
 // wsURL is the bridge's address: ws(s)://<vboard>/api/v1/classifier/bridge?board=&name=.
-func (r *vboardRun) wsURL() (string, error) {
-	u, err := url.Parse(r.conf.URL)
+func wsURL(conf storedConnector) (string, error) {
+	u, err := url.Parse(conf.URL)
 	if err != nil || u.Host == "" {
-		return "", &bridgeFatal{fmt.Sprintf("%q is not a vboard address", r.conf.URL)}
+		return "", &bridgeFatal{fmt.Sprintf("%q is not a vboard address", conf.URL)}
 	}
 	switch u.Scheme {
 	case "https":
@@ -398,14 +451,14 @@ func (r *vboardRun) wsURL() (string, error) {
 	case "http":
 		u.Scheme = "ws"
 	default:
-		return "", &bridgeFatal{fmt.Sprintf("%q: the address starts with https:// (or http://)", r.conf.URL)}
+		return "", &bridgeFatal{fmt.Sprintf("%q: the address starts with https:// (or http://)", conf.URL)}
 	}
 	u.Path = strings.TrimRight(u.Path, "/") + bridgePath
 	q := url.Values{}
-	if r.conf.Board != "" {
-		q.Set("board", r.conf.Board)
+	if conf.Board != "" {
+		q.Set("board", conf.Board)
 	}
-	q.Set("name", r.conf.Name)
+	q.Set("name", conf.Name)
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
@@ -413,7 +466,8 @@ func (r *vboardRun) wsURL() (string, error) {
 // bridgeConn is one WebSocket to vboard.
 type bridgeConn struct {
 	ws   *websocket.Conn
-	user string // welcome.user
+	user string          // welcome.user
+	conf storedConnector // the settings it was dialled with (its requests are answered with them)
 
 	cmu  sync.Mutex
 	caps bridgeCaps // what its hello said, with the agents as last sent
@@ -446,26 +500,26 @@ func (c *bridgeConn) agent(id string) (AdvertisedAgent, bool) {
 }
 
 // dial opens a connection: the WebSocket, {hello} with what the workers offer, vboard's {welcome}.
-func (r *vboardRun) dial(ctx context.Context, caps bridgeCaps) (*bridgeConn, error) {
-	u, err := r.wsURL()
+func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeCaps) (*bridgeConn, error) {
+	u, err := wsURL(conf)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, bridgeDialTimeout)
 	defer cancel()
 	h := http.Header{}
-	h.Set("Authorization", "Bearer "+r.conf.Token)
+	h.Set("Authorization", "Bearer "+conf.Token)
 	ws, res, err := websocket.Dial(ctx, u, &websocket.DialOptions{HTTPHeader: h})
 	if err != nil {
 		if res != nil && res.StatusCode != http.StatusSwitchingProtocols {
-			return nil, bridgeRefused(res, r.conf.Board)
+			return nil, bridgeRefused(res, conf.Board)
 		}
 		return nil, err
 	}
 	ws.SetReadLimit(bridgeInbound)
 	// the caps are vboard's (bridge.go trimTo); instance + handover: this bridge understands {reconnect}; agents: what
 	// a vboard that knows them lets the person pick (older ones ignore the field)
-	hello, _ := json.Marshal(map[string]any{"type": "hello", "name": trimRunes(r.conf.Name, 80), "device": bridgeDevice,
+	hello, _ := json.Marshal(map[string]any{"type": "hello", "name": trimRunes(conf.Name, 80), "device": bridgeDevice,
 		"model": trimRunes(caps.classify, 60), "embed": trimRunes(caps.embed, 80), "chat": trimRunes(caps.chat, 80),
 		"instance": r.instance, "handover": true, "agents": wireAgents(caps.agents)})
 	if err := ws.Write(ctx, websocket.MessageText, hello); err != nil {
@@ -482,7 +536,7 @@ func (r *vboardRun) dial(ctx context.Context, caps bridgeCaps) (*bridgeConn, err
 		ws.CloseNow()
 		return nil, fmt.Errorf("unexpected answer from vboard: %.100s", raw)
 	}
-	return &bridgeConn{ws: ws, caps: caps, user: welcome.User}, nil
+	return &bridgeConn{ws: ws, caps: caps, user: welcome.User, conf: conf}, nil
 }
 
 // send writes a message (one at a time). An answer vboard could not read (over its 8 MB) becomes an error for its id.
@@ -598,6 +652,8 @@ type bridgeContext struct {
 		H float64 `json:"h"`
 	} `json:"view"`
 	Resume bool `json:"resume"`
+	// ConversationID: the panel's id of this chat conversation (stable over its turns; vboards before it send none)
+	ConversationID string `json:"conversationId"`
 }
 
 type bridgeChatMsg struct {
@@ -628,6 +684,7 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 	chats := &chatRuns{m: map[string]context.CancelFunc{}}
 	readErr := make(chan error, 1)
 	moved := make(chan *bridgeConn, 1)
+	refused := make(chan error, 1) // vboard refused the connection with edited settings for good
 	var dialing sync.WaitGroup
 	var hmu sync.Mutex
 	handingOver := false
@@ -642,8 +699,14 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		dialing.Add(1)
 		go func() {
 			defer dialing.Done()
-			nc := r.handoverDial(cctx)
+			nc, err := r.handoverDial(cctx)
 			if nc == nil {
+				if isBridgeFatal(err) && !sameLink(r.config(), c.conf) {
+					// the edited address, token or board does not work: the connector stops with that error (as it
+					// would after a restart), once what runs here is answered
+					refused <- err
+					return
+				}
 				hmu.Lock()
 				handingOver = false
 				hmu.Unlock()
@@ -716,10 +779,34 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		default:
 		}
 	}
+	// retire keeps the old connection open until what runs on it is answered (and the settle time passed), then
+	// closes it
+	retire := func() {
+		r.m.wg.Add(1)
+		go func() {
+			defer r.m.wg.Done()
+			t := time.NewTimer(bridgeRetireSettle)
+			defer t.Stop()
+			select {
+			case <-t.C:
+				if work.wait(readErr) {
+					_ = c.ws.Close(websocket.StatusNormalClosure, "handed over")
+					r.logf("closed the old connection (its work is done)")
+				}
+			case <-readErr:
+			}
+			end()
+		}()
+	}
 	tick := time.NewTicker(bridgeCapsEvery)
 	defer tick.Stop()
 	for {
 		changed := r.s.fleet.Changed()
+		if !sameLink(r.config(), c.conf) {
+			// edited: vboard's address, the token, the board or the name (which vboard learns only from the URL and
+			// hello) — a new connection with them, the requests running here are answered here
+			handover("the connector's settings changed")
+		}
 		select {
 		case err := <-readErr:
 			end()
@@ -731,30 +818,19 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 			}
 			return nil, err
 		case next := <-moved:
-			r.m.wg.Add(1)
-			go func() {
-				defer r.m.wg.Done()
-				// the old connection: open until what runs on it is answered (and the settle time passed), then closed
-				t := time.NewTimer(bridgeRetireSettle)
-				defer t.Stop()
-				select {
-				case <-t.C:
-					if work.wait(readErr) {
-						_ = c.ws.Close(websocket.StatusNormalClosure, "handed over")
-						r.logf("closed the old connection (its work is done)")
-					}
-				case <-readErr:
-				}
-				end()
-			}()
+			retire()
 			return next, nil
+		case err := <-refused:
+			retire()
+			return nil, err
 		case <-ctx.Done():
 			stop(false)
 			return nil, ctx.Err()
 		case <-changed:
+		case <-r.updated: // agents or models edited: offered below
 		case <-tick.C:
 		}
-		caps := r.s.connectorCaps(cctx, r.conf)
+		caps := r.s.connectorCaps(cctx, r.config())
 		cur := c.capsNow()
 		if cctx.Err() != nil || caps.sameHello(cur) && reflect.DeepEqual(caps.agents, cur.agents) {
 			continue
@@ -778,28 +854,33 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 }
 
 // handoverDial opens the new connection of a handover, with what the workers offer now (retrying: the new vboard
-// replica may not be ready yet). nil: it gave up (the old connection ended, a final refusal, nothing to offer).
-func (r *vboardRun) handoverDial(ctx context.Context) *bridgeConn {
+// replica may not be ready yet), with the connector's settings now. nil: it gave up (the old connection ended,
+// nothing to offer, or a final refusal: then the error).
+func (r *vboardRun) handoverDial(ctx context.Context) (*bridgeConn, error) {
 	pause := bridgeBackoffMin
 	for {
-		caps := r.s.connectorCaps(ctx, r.conf)
+		conf := r.config()
+		caps := r.s.connectorCaps(ctx, conf)
 		if ctx.Err() != nil || caps.empty() {
-			return nil
+			return nil, nil
 		}
-		c, err := r.dial(ctx, caps)
+		c, err := r.dial(ctx, conf, caps)
 		if err == nil {
-			return c
+			if c.user == "" {
+				c.user, _ = r.me(ctx, conf)
+			}
+			return c, nil
 		}
 		if ctx.Err() != nil {
-			return nil
+			return nil, nil
 		}
 		if isBridgeFatal(err) {
 			r.logf("new connection refused (%v); staying on the old one", err)
-			return nil
+			return nil, err
 		}
 		r.logf("new connection failed (%v); retrying in %s", err, pause)
 		if r.m.sleep(ctx, pause) != nil {
-			return nil
+			return nil, nil
 		}
 		pause = min(pause*2, 10*time.Second)
 	}
@@ -1043,7 +1124,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	var job map[string]any
 	var err error
 	if asAgent {
-		job, err = r.agentJob(m)
+		job, err = agentJob(c.conf, m, r.m.conversations.seen)
 	} else {
 		job, err = bridgeChatJob(m)
 	}
@@ -1052,16 +1133,16 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		return
 	}
 	// a claude-code model runs on the connector's owner's worker, with them as the job's owner (placeChat)
-	run, e := r.s.placeChat(ctx, a.Model, chatFor{r.conf.Owner, viaConnector})
+	run, e := r.s.placeChat(ctx, a.Model, chatFor{c.conf.Owner, viaConnector})
 	if e != nil {
 		fail(e.message)
 		return
 	}
 	n := run.n
 	job["model"] = run.model
-	job["client"] = "vboard: " + r.conf.Name
-	events, unsubscribe := r.s.fleet.subscribe() // before the job exists: none of its events is missed
-	defer unsubscribe()
+	job["client"] = "vboard: " + c.conf.Name
+	feed := r.s.fleet.followJob() // before the job exists: none of its events is missed
+	defer feed.close()
 	var content strings.Builder
 	thinking, said, status := false, false, ""
 	sp := &thinkSplit{emit: func(thought bool, s string) {
@@ -1124,7 +1205,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 			send(map[string]any{"type": "chatDelta", "status": line})
 		}
 	}
-	j, e := run.run(ctx, events, job, hooks)
+	j, e := run.run(ctx, feed, job, hooks)
 	if e != nil {
 		fail(e.message)
 		return
@@ -1178,7 +1259,9 @@ func toolStatus(name string, data map[string]any) string {
 // a session new on the worker gets the history as a transcript first, engine claudePrompt). What the person selected
 // and sees changes from turn to turn, so it is said in front of the message, not in the system prompt (which a
 // running session read when it started).
-func (r *vboardRun) agentJob(m *bridgeMsg) (map[string]any, error) {
+//
+// seen says whether a conversation key was asked for before (and remembers it); nil: never.
+func agentJob(conf storedConnector, m *bridgeMsg, seen func(key string) bool) (map[string]any, error) {
 	if len(m.Messages) == 0 {
 		return nil, errors.New("the chat has no messages")
 	}
@@ -1188,7 +1271,7 @@ func (r *vboardRun) agentJob(m *bridgeMsg) (map[string]any, error) {
 	}
 	board := cx.BoardID
 	if board == "" {
-		board = r.conf.Board
+		board = conf.Board
 	}
 	var system []string
 	var msgs []map[string]any
@@ -1219,30 +1302,100 @@ func (r *vboardRun) agentJob(m *bridgeMsg) (map[string]any, error) {
 	}
 	system = append(system, agentSystem(cx, board))
 	all := append([]map[string]any{{"role": "system", "content": strings.Join(system, "\n\n")}}, msgs...)
-	mcpURL := r.conf.URL + "/mcp"
+	mcpURL := conf.URL + "/mcp"
 	if board != "" {
 		mcpURL += "?board=" + url.QueryEscape(board) // vboard's MCP: the tools default to this board
+	}
+	key := agentSession(conf.ID, cx.UserID, board, cx.ConversationID, first)
+	// a new conversation (nothing answered yet; not the "Continue" of a broken-off first answer) starts anew: with
+	// vboard's conversation id only the first time the connector sees that id (the key is the conversation's own:
+	// a retried first question keeps its session); without one (older vboards) even when an earlier conversation
+	// began with the same words
+	fresh := !answered && !cx.Resume
+	if conversationID(cx.ConversationID) != "" && seen != nil && seen(key) {
+		fresh = false
 	}
 	return map[string]any{
 		"messages": all,
 		"think":    false,
-		"session":  agentSession(r.conf.ID, cx.UserID, board, first),
-		// a new conversation (nothing answered yet; not the "Continue" of a broken-off first answer) starts anew, even
-		// when an earlier one began with the same words
-		"fresh": !answered && !cx.Resume,
+		"session":  key,
+		"fresh":    fresh,
 		"mcp": []map[string]any{{"name": "vboard", "url": mcpURL,
-			"headers": map[string]string{"Authorization": "Bearer " + r.conf.Token}}},
+			"headers": map[string]string{"Authorization": "Bearer " + conf.Token}}},
 	}, nil
 }
 
 // agentSession is the conversation key of an agent's chat: the connector, the person, the board and the
-// conversation — vboard sends the whole conversation (its last 40 messages) every turn but no id for it, so its first
-// message stands for it. Follow-up turns of a conversation land in its warm session; another conversation, board or
-// person gets another one. When vboard's window drops the first message (long chats), the key changes: a new session
-// that gets the remaining history as a transcript.
-func agentSession(connector, user, board, first string) string {
+// conversation — vboard's conversation id (context.conversationId, one per chat conversation of its panel) when it
+// sends one; else (vboards before it) the conversation's first message stands for it: vboard sends the whole
+// conversation (its last 40 messages) every turn. Follow-up turns of a conversation land in its warm session; another
+// conversation, board or person gets another one. Without an id two conversations that open with the same words at
+// the same time share a session, and when vboard's window drops the first message (long chats) the key changes: a
+// new session that gets the remaining history as a transcript.
+func agentSession(connector, user, board, conversation, first string) string {
+	prefix := "vboard:" + connector + ":" + user + ":" + board + ":"
+	if id := conversationID(conversation); id != "" {
+		return prefix + id
+	}
 	h := sha256.Sum256([]byte(first))
-	return "vboard:" + connector + ":" + user + ":" + board + ":" + hex.EncodeToString(h[:6])
+	return prefix + hex.EncodeToString(h[:6])
+}
+
+// conversationID is vboard's conversation id as a key part: as sent when it is short and plain (at most 128
+// printable characters without spaces), else its hash ("c" + 24 hex digits); "" when there is none.
+func conversationID(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ""
+	}
+	plain := len(id) <= 128
+	for _, r := range id {
+		plain = plain && unicode.IsPrint(r) && !unicode.IsSpace(r)
+	}
+	if plain {
+		return id
+	}
+	h := sha256.Sum256([]byte(id))
+	return "c" + hex.EncodeToString(h[:12])
+}
+
+// seenConversations remembers the conversation keys the connectors were asked for (the newest 10000, for a day):
+// a conversation is new (fresh) only the first time.
+type seenConversations struct {
+	mu sync.Mutex
+	m  map[string]time.Time
+}
+
+const (
+	seenMax = 10000
+	seenAge = 24 * time.Hour
+)
+
+// seen says whether key was seen before, and remembers it.
+func (s *seenConversations) seen(key string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now()
+	if s.m == nil {
+		s.m = map[string]time.Time{}
+	}
+	t, ok := s.m[key]
+	ok = ok && now.Sub(t) < seenAge
+	s.m[key] = now
+	if len(s.m) > seenMax {
+		var oldest string
+		for k, t := range s.m {
+			if now.Sub(t) >= seenAge {
+				delete(s.m, k)
+			} else if oldest == "" || t.Before(s.m[oldest]) {
+				oldest = k
+			}
+		}
+		if len(s.m) > seenMax {
+			delete(s.m, oldest)
+		}
+	}
+	return ok
 }
 
 // agentSystem is what the connector adds to vboard's system message for an agent: how it reaches the board.

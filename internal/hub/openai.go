@@ -263,29 +263,33 @@ type chatRun struct {
 	since int64
 }
 
-// start submits the job to the worker.
-func (s *Server) startChat(ctx context.Context, n *node, job map[string]any) (string, *apiError) {
+// start submits the job to the worker: its id and state ("queued", "running" …).
+func (s *Server) startChat(ctx context.Context, n *node, job map[string]any) (string, string, *apiError) {
 	b, _ := json.Marshal(job)
 	resp, err := s.fleet.request(ctx, n, http.MethodPost, "/api/jobs", bytes.NewReader(b), "application/json")
 	if err != nil {
-		return "", &apiError{http.StatusBadGateway, "worker_error", n.name + ": " + err.Error()}
+		return "", "", &apiError{http.StatusBadGateway, "worker_error", n.name + ": " + err.Error()}
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		msg := strings.TrimSpace(string(raw))
 		if resp.StatusCode == http.StatusBadRequest {
-			return "", badRequest("%s", msg)
+			return "", "", badRequest("%s", msg)
 		}
-		return "", &apiError{http.StatusBadGateway, "worker_error", fmt.Sprintf("%s: %s %s", n.name, resp.Status, msg)}
+		return "", "", &apiError{http.StatusBadGateway, "worker_error", fmt.Sprintf("%s: %s %s", n.name, resp.Status, msg)}
 	}
 	var j struct {
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		State string `json:"state"`
 	}
 	if json.Unmarshal(raw, &j) != nil || j.ID == "" {
-		return "", &apiError{http.StatusBadGateway, "worker_error", n.name + ": no job id"}
+		return "", "", &apiError{http.StatusBadGateway, "worker_error", n.name + ": no job id"}
 	}
-	return j.ID, nil
+	if j.State == "" {
+		j.State = "queued"
+	}
+	return j.ID, j.State, nil
 }
 
 // get asks the worker for the job.
@@ -319,25 +323,28 @@ type chatHooks struct {
 	// text: a piece of the job's text as it streams; at the end what the event stream missed, so that the pieces
 	// add up to the job's whole text
 	text func(string)
-	// tick: every chatPoll while the job waits or runs, with its state as last heard ("queued", "running")
+	// tick: at once when the job is in the queue, again when its state changes (it starts), and every chatPoll while
+	// it waits or runs, with its state as last heard ("queued", "running")
 	tick func(state string)
-	// event: every other event of the job as it comes (status, tool …; may be missed when events are dropped)
+	// event: every other event of the job as it comes (status, tool …)
 	event func(typ, text string, data map[string]any)
 }
 
 // run submits the job to the worker and follows it to its end; it returns the job as the worker has it then. When
-// ctx ends first, the job is canceled (the error returned is then ctx's). events must be subscribed before the call,
-// so that none of the job's events is missed. Shared by /v1/chat/completions and the connectors (vboard.go).
-func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]any, h chatHooks) (*chatJob, *apiError) {
+// ctx ends first, the job is canceled (the error returned is then ctx's). feed must be made (fleet.followJob) before
+// the call, so that none of the job's events is missed. Shared by /v1/chat/completions and the connectors
+// (vboard.go).
+func (c *chatRun) run(ctx context.Context, feed *jobFeed, job map[string]any, h chatHooks) (*chatJob, *apiError) {
 	delete(job, "owner") // the server says whose a job is (placeChat)
 	if c.owner != "" {
 		job["owner"] = c.owner
 	}
-	id, e := c.s.startChat(ctx, c.n, job)
+	id, state, e := c.s.startChat(ctx, c.n, job)
 	if e != nil {
 		return nil, e
 	}
 	c.id = id
+	feed.setJob(id)
 	if h.started != nil {
 		h.started()
 	}
@@ -348,7 +355,7 @@ func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]
 			h.text(s)
 		}
 	}
-	j, err := c.follow(ctx, events, onText, h.tick, h.event)
+	j, err := c.follow(ctx, feed, state, onText, h.tick, h.event)
 	if err != nil {
 		if ctx.Err() != nil {
 			c.cancel()
@@ -368,47 +375,68 @@ func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]
 	return j, nil
 }
 
-// follow waits for the job's end, passing its text on as it streams (onText) and calling tick every chatPoll with the
-// job's state as last heard, and onEvent (if any) with its other events. It returns the job as the worker has it then.
-func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(string), tick func(string),
+// follow waits for the job's end, passing its text on as it streams (onText), calling tick at once with the state
+// the job started in, on every change of its state and every chatPoll, and onEvent (if any) with its other events.
+// It returns the job as the worker has it then.
+//
+// The text is passed on only where it belongs: a text event says where its piece starts in the job's text ("at",
+// jobs.Update.At), so a piece that is already passed on is not passed again, and a gap (a piece the feed never got:
+// the worker's own stream drops for a slow reader) is filled from the job (its text so far) before what follows — or,
+// when the job cannot be asked, nothing more streams and run sends the rest at the end. Pieces without "at" (older
+// workers) are passed on as they come.
+func (c *chatRun) follow(ctx context.Context, feed *jobFeed, state string, onText func(string), tick func(string),
 	onEvent func(typ, text string, data map[string]any)) (*chatJob, error) {
-	key := []byte(`"jobId":"` + c.id + `"`)
 	poll := time.NewTicker(chatPoll)
 	defer poll.Stop()
 	misses := 0
-	state := "queued"
+	if tick != nil {
+		tick(state)
+	}
+	text := &textTrack{out: onText, fetch: func() (string, error) {
+		j, err := c.get(ctx)
+		if err != nil {
+			return "", err
+		}
+		return j.Text, nil
+	}, id: c.id}
+	handle := func(data []byte) (done bool) {
+		var u struct {
+			JobID string `json:"jobId"`
+			Job   *struct {
+				State string `json:"state"`
+			} `json:"job"`
+			Event *struct {
+				Type string         `json:"type"`
+				Text string         `json:"text"`
+				Data map[string]any `json:"data"`
+			} `json:"event"`
+			At *int `json:"at"`
+		}
+		if json.Unmarshal(data, &u) != nil || u.JobID != c.id {
+			return false
+		}
+		if u.Event != nil && u.Event.Type == "text" {
+			text.piece(u.At, u.Event.Text)
+		} else if u.Event != nil && onEvent != nil {
+			onEvent(u.Event.Type, u.Event.Text, u.Event.Data)
+		}
+		if u.Job != nil && u.Job.State != "" && u.Job.State != state {
+			state = u.Job.State
+			if tick != nil && !finished(state) {
+				tick(state) // it started: said at once
+			}
+		}
+		return u.Job != nil && finished(u.Job.State)
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case data := <-events:
-			if !bytes.Contains(data, key) {
-				continue
-			}
-			var u struct {
-				JobID string `json:"jobId"`
-				Job   *struct {
-					State string `json:"state"`
-				} `json:"job"`
-				Event *struct {
-					Type string         `json:"type"`
-					Text string         `json:"text"`
-					Data map[string]any `json:"data"`
-				} `json:"event"`
-			}
-			if json.Unmarshal(data, &u) != nil || u.JobID != c.id {
-				continue
-			}
-			if u.Event != nil && u.Event.Type == "text" && onText != nil {
-				onText(u.Event.Text)
-			} else if u.Event != nil && onEvent != nil {
-				onEvent(u.Event.Type, u.Event.Text, u.Event.Data)
-			}
-			if u.Job != nil && u.Job.State != "" {
-				state = u.Job.State
-			}
-			if u.Job != nil && finished(u.Job.State) {
-				return c.get(ctx)
+		case <-feed.ready:
+			for _, data := range feed.take() {
+				if handle(data) {
+					return c.get(ctx)
+				}
 			}
 		case <-poll.C:
 			if tick != nil {
@@ -429,6 +457,39 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 				}
 			}
 		}
+	}
+}
+
+// textTrack passes a job's text on as its pieces come, each where it belongs (follow): "at" is where the piece starts
+// in the job's text.
+type textTrack struct {
+	out     func(string)
+	fetch   func() (string, error) // the job's text so far
+	id      string
+	sent    int  // bytes of the job's text passed on
+	stopped bool // a gap could not be filled: nothing more is passed on (run sends the rest at the end)
+}
+
+func (t *textTrack) piece(at *int, s string) {
+	switch {
+	case t.out == nil || t.stopped:
+	case at == nil || *at == t.sent: // in order (or an older worker that does not say)
+		t.out(s)
+		t.sent += len(s)
+	case *at < t.sent: // passed on already (filled from the job)
+		if end := *at + len(s); end > t.sent {
+			t.out(s[t.sent-*at:])
+			t.sent = end
+		}
+	default: // a gap: the job has the text in between
+		text, err := t.fetch()
+		if err != nil || len(text) < *at+len(s) {
+			t.stopped = true
+			log.Printf("chat %s: a gap in the streamed text (at %d, %d passed on); the rest comes at the end", t.id, *at, t.sent)
+			return
+		}
+		t.out(text[t.sent:])
+		t.sent = len(text)
 	}
 }
 
@@ -487,13 +548,13 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 	if c, ok := clientOf(r); ok {
 		job["client"] = c.Name
 	}
-	events, stop := s.fleet.subscribe() // before the job exists: none of its events is missed
-	defer stop()
+	feed := s.fleet.followJob() // before the job exists: none of its events is missed
+	defer feed.close()
 	if req.Stream {
-		run.stream(w, r, events, job, req.maxTokens())
+		run.stream(w, r, feed, job, req.maxTokens())
 		return
 	}
-	j, e := run.run(r.Context(), events, job, chatHooks{})
+	j, e := run.run(r.Context(), feed, job, chatHooks{})
 	if e != nil {
 		if r.Context().Err() == nil {
 			e.openAI(w)
@@ -537,7 +598,7 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 // stream answers as server-sent events, chunk by chunk.
 // The stream opens before the job is submitted (a ": ping" at once), so the client sees it open while the job waits
 // in the queue; a failure from then on is sent in the stream.
-func (c *chatRun) stream(w http.ResponseWriter, r *http.Request, events <-chan []byte, job map[string]any, limit int) {
+func (c *chatRun) stream(w http.ResponseWriter, r *http.Request, feed *jobFeed, job map[string]any, limit int) {
 	fl, _ := w.(http.Flusher)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -571,7 +632,7 @@ func (c *chatRun) stream(w http.ResponseWriter, r *http.Request, events <-chan [
 			send(chunk(map[string]any{"content": s}, nil))
 		}
 	}}
-	j, e := c.run(r.Context(), events, job, chatHooks{
+	j, e := c.run(r.Context(), feed, job, chatHooks{
 		started: func() { send(chunk(map[string]any{"role": "assistant", "content": ""}, nil)) },
 		text:    sp.write,
 		tick: func(string) {

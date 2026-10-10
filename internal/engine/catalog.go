@@ -95,6 +95,31 @@ func (c *Catalog) SetRuntime(backend string, ms []*Model) {
 	c.runtime[backend] = ms
 }
 
+// AddRuntime adds the models of ms a runtime backend does not offer yet (by id) and keeps the rest; it returns how
+// many were added.
+func (c *Catalog) AddRuntime(backend string, ms []*Model) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.runtime == nil {
+		c.runtime = map[string][]*Model{}
+	}
+	have := map[string]bool{}
+	for _, m := range c.runtime[backend] {
+		have[m.ID] = true
+	}
+	cur := append([]*Model(nil), c.runtime[backend]...)
+	n := 0
+	for _, m := range ms {
+		if !have[m.ID] {
+			cur = append(cur, m)
+			have[m.ID] = true
+			n++
+		}
+	}
+	c.runtime[backend] = cur
+	return n
+}
+
 // Keep drops the built-in models keep says no to (those of backends this machine cannot run). Call it before the
 // catalogue is used.
 func (c *Catalog) Keep(keep func(*Model) bool) {

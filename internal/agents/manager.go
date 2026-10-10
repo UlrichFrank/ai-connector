@@ -436,7 +436,7 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 	var args []string
 	if m.has("--restricted") {
 		// Claude Code's own confinement: file tools in the working folder, only the built-in tools named
-		tools := strings.Join(builtinTools(m.Config.AllowedTools), ",")
+		tools := strings.Join(sessionTools(m.Config.AllowedTools, len(mcpAllowed) > 0), ",")
 		if strings.HasPrefix(s.opts.Key, personKey) {
 			tools = "default" // a person at the terminal answers the permission prompts
 		}

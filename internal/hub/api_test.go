@@ -53,6 +53,14 @@ func (b *fakeChat) Run(ctx context.Context, _ *engine.Model, r engine.Request, _
 		}
 	}
 	pieces := []string{"Hel", "lo!"}
+	if n := len(r.Messages); n > 0 && strings.HasPrefix(r.Messages[n-1].Content, "say:") {
+		// "say:<text>": the text, in pieces of 3 bytes
+		pieces = nil
+		for s := strings.TrimPrefix(r.Messages[n-1].Content, "say:"); s != ""; {
+			k := min(3, len(s))
+			pieces, s = append(pieces, s[:k]), s[k:]
+		}
+	}
 	if r.Think {
 		pieces = []string{"<think>", "Let me ", "think.</th", "ink>\n\nHel", "lo!"}
 	}

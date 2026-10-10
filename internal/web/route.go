@@ -70,43 +70,63 @@ func (rt *route) inID(id string) string {
 	return strings.TrimPrefix(id, rt.rid+".")
 }
 
-// boundary: what may stand before a /files/ url in a text (a quote, a bracket of a markdown link, a space …),
-// so that a path like /Users/x/files/… is left alone.
-func boundary(s string, i int) bool {
-	if i == 0 {
-		return true
-	}
-	return strings.IndexByte(" \t\n\r(\"'<[=:,", s[i-1]) >= 0
+// Which strings are file urls. Only these get the route: a field that holds file urls (fileKeys: the string, or
+// each string of its list), and any other string that is a /files/ url as a whole — never free text (textKeys and
+// everything inside them: a chat's answer, its messages, logs, a tool's arguments), even when it mentions a
+// /files/ path: what a model wrote reaches the caller as it was written. Keys are compared in lower case (an
+// llm.Message is "Content").
+var (
+	fileKeys = map[string]bool{"files": true, "file": true, "preview": true, "cover": true, "images": true,
+		"image": true, "audio": true, "source": true, "url": true, "sample": true, "video": true, "poster": true}
+	textKeys = map[string]bool{"text": true, "content": true, "prompt": true, "negativeprompt": true, "lyrics": true,
+		"system": true, "logs": true, "log": true, "status": true, "error": true, "message": true, "summary": true,
+		"arguments": true, "reasoning": true, "thinking": true, "title": true, "description": true, "caption": true,
+		"captions": true, "instructions": true, "problem": true}
+)
+
+// isURL: a string that is a /files/ url as a whole (no spaces: not a sentence that mentions one).
+func isURL(s string) bool {
+	return strings.HasPrefix(s, "/files/") && !strings.ContainsAny(s, " \t\r\n")
 }
 
-// replaceAt replaces every from in s that stands at a boundary.
-func replaceAt(s, from, to string) string {
-	if !strings.Contains(s, from) {
+// outURL: /files/… becomes /files/<rid>/….
+func (rt *route) outURL(s string) string {
+	if !strings.HasPrefix(s, "/files/") || strings.HasPrefix(s, "/files/"+rt.rid+"/") {
 		return s
 	}
-	var b strings.Builder
-	rest, at := s, 0
-	for {
-		i := strings.Index(rest, from)
-		if i < 0 {
-			b.WriteString(rest)
-			return b.String()
-		}
-		b.WriteString(rest[:i])
-		if boundary(s, at+i) {
-			b.WriteString(to)
-		} else {
-			b.WriteString(from)
-		}
-		rest, at = rest[i+len(from):], at+i+len(from)
-	}
+	return "/files/" + rt.rid + "/" + strings.TrimPrefix(s, "/files/")
 }
 
-// outText: /files/… urls in a string become /files/<rid>/….
-func (rt *route) outText(s string) string { return replaceAt(s, "/files/", "/files/"+rt.rid+"/") }
+// inURL: /files/<rid>/… becomes /files/… again.
+func (rt *route) inURL(s string) string {
+	if rest, ok := strings.CutPrefix(s, "/files/"+rt.rid+"/"); ok {
+		return "/files/" + rest
+	}
+	return s
+}
 
-// inText: /files/<rid>/… becomes /files/… again.
-func (rt *route) inText(s string) string { return replaceAt(s, "/files/"+rt.rid+"/", "/files/") }
+// mapURLs applies f to the file urls in v (key: the field v is in, "" at the top).
+func mapURLs(key string, v any, f func(string) string) any {
+	k := strings.ToLower(key)
+	if textKeys[k] {
+		return v
+	}
+	switch x := v.(type) {
+	case string:
+		if fileKeys[k] && strings.HasPrefix(x, "/files/") || isURL(x) {
+			return f(x)
+		}
+	case []any:
+		for i := range x {
+			x[i] = mapURLs(key, x[i], f) // a list's strings are what its field holds
+		}
+	case map[string]any:
+		for kk, e := range x {
+			x[kk] = mapURLs(kk, e, f)
+		}
+	}
+	return v
+}
 
 // inPath maps a request path: /api/jobs/<rid>.<id>/… and /files/<rid>/….
 func (rt *route) inPath(p string) string {
@@ -140,19 +160,24 @@ func isJob(m map[string]any) bool {
 }
 
 // out maps a decoded JSON answer: job ids (a job's id and its request's parent and coverFor, an update's jobId),
-// /files/ urls in every string, and the worker on every job.
+// the file urls (mapURLs; not free text), and the worker on every job.
 func (rt *route) out(v any) any {
+	return rt.outIDs(mapURLs("", v, rt.outURL))
+}
+
+// outIDs maps the job and session ids, and adds the worker.
+func (rt *route) outIDs(v any) any {
 	switch x := v.(type) {
-	case string:
-		return rt.outText(x)
 	case []any:
 		for i := range x {
-			x[i] = rt.out(x[i])
+			x[i] = rt.outIDs(x[i])
 		}
 	case map[string]any:
 		job, session := isJob(x), isSession(x)
 		for k, e := range x {
-			x[k] = rt.out(e)
+			if !textKeys[strings.ToLower(k)] {
+				x[k] = rt.outIDs(e)
+			}
 		}
 		if id, ok := x["jobId"].(string); ok {
 			x["jobId"] = rt.outID(id)
@@ -179,18 +204,23 @@ func (rt *route) out(v any) any {
 	return v
 }
 
-// in maps a decoded JSON request body: /files/<rid>/ urls and the job ids in parent and coverFor.
+// in maps a decoded JSON request body: /files/<rid>/ urls (mapURLs; not free text) and the job ids in parent and
+// coverFor.
 func (rt *route) in(v any) any {
+	return rt.inIDs(mapURLs("", v, rt.inURL))
+}
+
+func (rt *route) inIDs(v any) any {
 	switch x := v.(type) {
-	case string:
-		return rt.inText(x)
 	case []any:
 		for i := range x {
-			x[i] = rt.in(x[i])
+			x[i] = rt.inIDs(x[i])
 		}
 	case map[string]any:
 		for k, e := range x {
-			x[k] = rt.in(e)
+			if !textKeys[strings.ToLower(k)] {
+				x[k] = rt.inIDs(e)
+			}
 		}
 		for _, k := range []string{"parent", "coverFor"} {
 			if s, ok := x[k].(string); ok {
