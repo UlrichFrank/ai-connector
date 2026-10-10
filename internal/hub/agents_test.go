@@ -293,7 +293,11 @@ func TestClaudeClientOwner(t *testing.T) {
 	}
 	var listed []Client
 	decode(t, do(t, "GET", base+"/api/clients", alice, nil), &listed)
-	if len(listed) != 2 || listed[0].Owner != "Alice" || listed[1].Owner != "Carol" {
+	owners := map[string]string{}
+	for _, c := range listed {
+		owners[c.Name] = c.Owner
+	}
+	if len(listed) != 2 || owners["alice-app"] != "Alice" || owners["carol-app"] != "Carol" { // made in the same second: any order
 		t.Fatalf("GET /api/clients %+v", listed)
 	}
 	// a token from before owners (clients.json without "owner")
