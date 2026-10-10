@@ -63,9 +63,11 @@ type Connector struct {
 	Enabled bool            `json:"enabled"`
 	Models  ConnectorModels `json:"models"`
 	// Agents: the chosen list in its order ([] = the default: the chat model alone)
-	Agents  []ConnectorAgent `json:"agents"`
-	Owner   string           `json:"owner"` // the user of the device that made it (Device.User)
-	Created time.Time        `json:"created"`
+	Agents []ConnectorAgent `json:"agents"`
+	// Generators: the image and video models offered to vboard's board, in order (catalogue ids; [] = none)
+	Generators []string  `json:"generators"`
+	Owner      string    `json:"owner"` // the user of the device that made it (Device.User)
+	Created    time.Time `json:"created"`
 	// state: connecting | connected | error | disabled; error: why (also while it retries); since: connected since;
 	// user: who the token belongs to, as vboard says; advertised: the agents vboard was told of (while connected)
 	State      string            `json:"state"`
@@ -89,8 +91,10 @@ type storedConnector struct {
 	Enabled bool             `json:"enabled"`
 	Models  ConnectorModels  `json:"models"`
 	Agents  []ConnectorAgent `json:"agents,omitempty"`
-	Owner   string           `json:"owner"`
-	Created time.Time        `json:"created"`
+	// Generators: image and video models for the board (vboard_generate.go); none: off
+	Generators []string  `json:"generators,omitempty"`
+	Owner      string    `json:"owner"`
+	Created    time.Time `json:"created"`
 }
 
 // connectorStatus is what a connector's runner reports.
@@ -241,7 +245,8 @@ func (m *connectors) notify() {
 
 func (e *connectorEntry) view() Connector {
 	c := Connector{ID: e.conf.ID, Kind: e.conf.Kind, Name: e.conf.Name, URL: e.conf.URL, Board: e.conf.Board,
-		Enabled: e.conf.Enabled, Models: e.conf.Models, Agents: append([]ConnectorAgent{}, e.conf.Agents...), Owner: e.conf.Owner,
+		Enabled: e.conf.Enabled, Models: e.conf.Models, Agents: append([]ConnectorAgent{}, e.conf.Agents...),
+		Generators: append([]string{}, e.conf.Generators...), Owner: e.conf.Owner,
 		Created: e.conf.Created, State: e.status.State, Error: e.status.Error, User: e.status.User,
 		Advertised: append([]AdvertisedAgent{}, e.status.Advertised...)}
 	if c.State == "" {
@@ -471,6 +476,8 @@ func (s *Server) addConnector(w http.ResponseWriter, r *http.Request) {
 		Enabled *bool            `json:"enabled"`
 		Models  *ConnectorModels `json:"models"`
 		Agents  []ConnectorAgent `json:"agents"`
+		// Generators: image and video models for the board ([] none)
+		Generators []string `json:"generators"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request", "message": err.Error()})
@@ -499,6 +506,10 @@ func (s *Server) addConnector(w http.ResponseWriter, r *http.Request) {
 		c.Models = cleanModels(*body.Models)
 	}
 	if c.Agents, err = cleanAgents(body.Agents); err != nil {
+		writeConnectorError(w, err)
+		return
+	}
+	if c.Generators, err = cleanGenerators(body.Generators); err != nil {
 		writeConnectorError(w, err)
 		return
 	}
@@ -532,7 +543,8 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 			Embed    *string `json:"embed"`
 			Chat     *string `json:"chat"`
 		} `json:"models"`
-		Agents *[]ConnectorAgent `json:"agents"` // replaces the list ([] = the default)
+		Agents     *[]ConnectorAgent `json:"agents"`     // replaces the list ([] = the default)
+		Generators *[]string         `json:"generators"` // replaces the list ([] = none)
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request", "message": err.Error()})
@@ -580,6 +592,9 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil && body.Agents != nil {
 		c.Agents, err = cleanAgents(*body.Agents)
+	}
+	if err == nil && body.Generators != nil {
+		c.Generators, err = cleanGenerators(*body.Generators)
 	}
 	if err != nil {
 		m.mu.Unlock()

@@ -77,6 +77,18 @@ type catalogModel struct {
 	Size    int64  `json:"size"`
 	Here    bool   `json:"here"`
 	Images  bool   `json:"images,omitempty"` // a chat model that takes images
+	// image and video models (vboard_generate.go): what they do besides text to image, their licence, their defaults
+	Tasks         []string       `json:"tasks,omitempty"`
+	NonCommercial bool           `json:"nonCommercial,omitempty"`
+	Defaults      *modelDefaults `json:"defaults,omitempty"`
+}
+
+// modelDefaults are the request fields a model starts with (the part the hub reads).
+type modelDefaults struct {
+	Width  int `json:"width,omitempty"`
+	Height int `json:"height,omitempty"`
+	FPS    int `json:"fps,omitempty"`
+	Frames int `json:"frames,omitempty"`
 }
 
 // node is one connected Mac.

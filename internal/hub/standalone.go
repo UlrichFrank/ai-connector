@@ -80,7 +80,9 @@ type ConnectorSettings struct {
 	Board  string
 	Models ConnectorModels
 	Agents []ConnectorAgent
-	Owner  string
+	// Generators: image and video models for the board (catalogue ids, in order; none: off)
+	Generators []string
+	Owner      string
 }
 
 // EnsureConnector makes the standalone hub's one vboard connector, or changes it to these settings (a running one
@@ -99,6 +101,9 @@ func (s *Server) EnsureConnector(set ConnectorSettings) (Connector, error) {
 		return Connector{}, err
 	}
 	if c.Agents, err = cleanAgents(set.Agents); err != nil {
+		return Connector{}, err
+	}
+	if c.Generators, err = cleanGenerators(set.Generators); err != nil {
 		return Connector{}, err
 	}
 	m := s.connectors
