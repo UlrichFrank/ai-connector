@@ -310,13 +310,65 @@ func (c *chatRun) cancel() {
 	resp.Body.Close()
 }
 
-// follow waits for the job's end, passing its text on as it streams (onText) and calling tick every chatPoll. It
-// returns the job as the worker has it then.
-func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(string), tick func()) (*chatJob, error) {
+// chatHooks are what a caller of run hears while its job runs (each may be nil). They are called one at a time, from
+// run's goroutine.
+type chatHooks struct {
+	// started: the job is in the worker's queue (the run's id is set)
+	started func()
+	// text: a piece of the job's text as it streams; at the end what the event stream missed, so that the pieces
+	// add up to the job's whole text
+	text func(string)
+	// tick: every chatPoll while the job waits or runs, with its state as last heard ("queued", "running")
+	tick func(state string)
+}
+
+// run submits the job to the worker and follows it to its end; it returns the job as the worker has it then. When
+// ctx ends first, the job is canceled (the error returned is then ctx's). events must be subscribed before the call,
+// so that none of the job's events is missed. Shared by /v1/chat/completions and the connectors (vboard.go).
+func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]any, h chatHooks) (*chatJob, *apiError) {
+	id, e := c.s.startChat(ctx, c.n, job)
+	if e != nil {
+		return nil, e
+	}
+	c.id = id
+	if h.started != nil {
+		h.started()
+	}
+	var got strings.Builder
+	onText := func(s string) {
+		got.WriteString(s)
+		if h.text != nil {
+			h.text(s)
+		}
+	}
+	j, err := c.follow(ctx, events, onText, h.tick)
+	if err != nil {
+		if ctx.Err() != nil {
+			c.cancel()
+		}
+		return nil, &apiError{http.StatusBadGateway, "worker_error", err.Error()}
+	}
+	// the job's text is the whole answer: what the stream missed at the end comes from it
+	if h.text != nil {
+		if rest, ok := strings.CutPrefix(j.Text, got.String()); ok {
+			if rest != "" {
+				h.text(rest)
+			}
+		} else {
+			log.Printf("chat %s: the streamed text is not the job's (events were dropped)", c.id)
+		}
+	}
+	return j, nil
+}
+
+// follow waits for the job's end, passing its text on as it streams (onText) and calling tick every chatPoll with the
+// job's state as last heard. It returns the job as the worker has it then.
+func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(string), tick func(string)) (*chatJob, error) {
 	key := []byte(`"jobId":"` + c.id + `"`)
 	poll := time.NewTicker(chatPoll)
 	defer poll.Stop()
 	misses := 0
+	state := "queued"
 	for {
 		select {
 		case <-ctx.Done():
@@ -341,12 +393,15 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 			if u.Event != nil && u.Event.Type == "text" && onText != nil {
 				onText(u.Event.Text)
 			}
+			if u.Job != nil && u.Job.State != "" {
+				state = u.Job.State
+			}
 			if u.Job != nil && finished(u.Job.State) {
 				return c.get(ctx)
 			}
 		case <-poll.C:
 			if tick != nil {
-				tick()
+				tick(state)
 			}
 			j, err := c.get(ctx)
 			switch {
@@ -354,6 +409,7 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 				return j, nil
 			case err == nil:
 				misses = 0
+				state = j.State
 			case ctx.Err() != nil:
 				return nil, ctx.Err()
 			default:
@@ -396,19 +452,11 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		run.stream(w, r, events, job, req.maxTokens())
 		return
 	}
-	id, e := s.startChat(r.Context(), n, job)
+	j, e := run.run(r.Context(), events, job, chatHooks{})
 	if e != nil {
-		e.openAI(w)
-		return
-	}
-	run.id = id
-	j, err := run.follow(r.Context(), events, nil, nil)
-	if err != nil {
-		if r.Context().Err() != nil {
-			run.cancel()
-			return
+		if r.Context().Err() == nil {
+			e.openAI(w)
 		}
-		(&apiError{http.StatusBadGateway, "worker_error", err.Error()}).openAI(w)
 		return
 	}
 	if e := j.failure(); e != nil {
@@ -439,7 +487,7 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"id": id, "object": "chat.completion", "created": run.since, "model": run.model,
+		"id": run.id, "object": "chat.completion", "created": run.since, "model": run.model,
 		"choices": []map[string]any{{"index": 0, "message": msg, "finish_reason": j.finishReason(req.maxTokens())}},
 		"usage":   j.usage(),
 	})
@@ -475,13 +523,6 @@ func (c *chatRun) stream(w http.ResponseWriter, r *http.Request, events <-chan [
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, ": ping\n\n")
 	flush()
-	id, e := c.s.startChat(r.Context(), c.n, job)
-	if e != nil {
-		fail(e)
-		return
-	}
-	c.id = id
-	send(chunk(map[string]any{"role": "assistant", "content": ""}, nil))
 	sp := &thinkSplit{emit: func(thought bool, s string) {
 		if thought {
 			send(chunk(map[string]any{"reasoning_content": s}, nil))
@@ -489,24 +530,19 @@ func (c *chatRun) stream(w http.ResponseWriter, r *http.Request, events <-chan [
 			send(chunk(map[string]any{"content": s}, nil))
 		}
 	}}
-	var got strings.Builder
-	j, err := c.follow(r.Context(), events, func(s string) { got.WriteString(s); sp.write(s) }, func() {
-		io.WriteString(w, ": ping\n\n") // while it waits in the queue or loads its model
-		flush()
+	j, e := c.run(r.Context(), events, job, chatHooks{
+		started: func() { send(chunk(map[string]any{"role": "assistant", "content": ""}, nil)) },
+		text:    sp.write,
+		tick: func(string) {
+			io.WriteString(w, ": ping\n\n") // while it waits in the queue or loads its model
+			flush()
+		},
 	})
-	if err != nil {
-		if r.Context().Err() != nil {
-			c.cancel()
-			return
+	if e != nil {
+		if r.Context().Err() == nil {
+			fail(e)
 		}
-		fail(&apiError{http.StatusBadGateway, "worker_error", err.Error()})
 		return
-	}
-	// the job's text is the whole answer: what the stream missed at the end comes from it
-	if rest, ok := strings.CutPrefix(j.Text, got.String()); ok {
-		sp.write(rest)
-	} else {
-		log.Printf("chat %s: the streamed text is not the job's (events were dropped)", c.id)
 	}
 	sp.flush()
 	if e := j.failure(); e != nil {
