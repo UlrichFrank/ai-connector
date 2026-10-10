@@ -143,17 +143,86 @@ The server picks a worker that lists the model, preferring one that has it loade
 
 Outbound connections the server makes to applications that expect a local AI to dial in. Kind `vboard`: the server
 dials `wss://<vboard>/api/v1/classifier/bridge` with a vboard personal or board token and answers classify, embed
-and chat (with tools) as vboard-ai does, through the workers.
+and chat (with tools) as vboard-ai does, through the workers. vboard is not changed for it.
 
 | | |
 |---|---|
-| `GET /api/connectors` | `[{"id","kind":"vboard","name","url","board","enabled","state":"connected|connecting|error|disabled","error","since","user","models":{"classify","embed","chat"}}]` (never the token) |
-| `POST /api/connectors` | `{"kind":"vboard","name","url","token","board"?,"models"?:{"classify"?,"embed"?,"chat"?}}` → the connector (201) |
-| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models` → the connector |
-| `DELETE /api/connectors/{id}` | 204 |
-| `GET /api/connectors/events` | SSE: `data: [<connector>,…]` at once and on every change |
+| `GET /api/connectors` | `[<connector>]` in the order they were made (never the token) |
+| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?}}` → the connector (201) |
+| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models` → the connector (200) |
+| `DELETE /api/connectors/{id}` | 204 (unknown id: 404 `{"error":"not found"}`) |
+| `GET /api/connectors/events` | SSE: `data: [<connector>,…]` (the whole list) at once and on every change; `: ping` every 25 s |
+
+A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"classify","embed","chat"},"owner",
+"created","state":"connecting|connected|error|disabled","error","since"?,"user"}`.
+
+* `name`: also the name vboard shows for the local AI (hello.name and `?name=`); blank → `ai-connector`; at most 80
+  characters.
+* `url`: the vboard address, `http(s)://host[:port][/path]` (a trailing slash is dropped); anything else → 400
+  `{"error":"url","message"}`.
+* `token`: required on POST; any text without spaces (vboard's personal tokens start with `vbp_`, the prefix is
+  configurable there, board tokens work too) → else 400 `{"error":"token"}`. PATCH with a blank or missing token keeps
+  the stored one.
+* `board`: optional; with it the AI serves everyone on that board (the token needs "Can edit" there; a board token is
+  bound to its board anyway).
+* `models`: catalogue ids or names as in `/v1/*` (`""` = the server's default: `MLXLAB_CLASSIFY_MODEL`,
+  `MLXLAB_EMBED_MODEL`, and for chat the first chat model a connected worker lists). PATCH replaces the fields given.
+* `enabled`: default true. `owner`: the `user` of the device that made it (for routing by person later).
+* `state`: `connecting` (with `error` saying why it waits or retries: no worker offers a model, a lost connection
+  "… (retrying in 4s)"), `connected` (`since`: RFC 3339, `user`: who the token belongs to, from vboard's
+  `/api/v1/me` and `welcome`), `error` (`error`: why; it stays stopped until the connector is edited — any PATCH
+  dials again), `disabled`.
+* Unknown kind → 400 `{"error":"kind"}`; a bad body → 400 `{"error":"bad request"}`. Client tokens (`aic_…`) get 401.
 
 Stored in `<data>/connectors.json` (mode 0600; the token in clear, the server needs it to dial).
+
+### How the vboard connector works (as built)
+
+One goroutine per enabled connector, started with the server and on create/enable/edit, stopped on
+disable/delete/shutdown (the requests running on it are canceled; a chat's job is canceled on its worker).
+
+1. `GET <url>/api/v1/me` with the token (as vboard-ai does): 401 stops the connector (state `error`); a network
+   error, 429 or 5xx is retried; other answers are left to the bridge.
+2. `GET ws(s)://…/api/v1/classifier/bridge?board=&name=` with `Authorization: Bearer <token>`. 401, 403
+   (`token.boardScope`, `token.scope`) and 404 (`board.notFound`) are final; 503 (`server.draining`), other statuses
+   and network errors are retried after 1 s, 2 s, 4 s … at most 60 s (back to 1 s after a connection that worked).
+3. `{"type":"hello","name","device":"ai-connector","model","embed","chat","instance","handover":true}` — the models
+   the connected workers offer **now** (catalogue ids, cut to vboard's 60/80/80 characters; `""` = cannot), the
+   instance `aic_…` one per runner. While no connected worker offers any of the three, the connector does not dial
+   (`connecting`, "No connected worker offers …"); when that happens on an open connection it closes it.
+4. vboard answers `{"type":"welcome","id","board","user"}` → `connected`.
+5. Requests are answered in goroutines while one loop keeps reading (vboard pings every 30 s):
+   * `classify` → the worker direct path (`/api/direct/classify`, a worker that lists the model, preferring one that
+     has it loaded): each state serialised like Python's `json.dumps(state, ensure_ascii=False)`, the options read
+     in their order (`null` = no description; a structured one becomes compact Python JSON, as vboard-ai does);
+     `{"type":"answers","id","answers":[{"choice","probabilities","answer_confidence"}]}`, one per state.
+   * `embed` → `/api/direct/embed` in batches of 256 texts; `{"type":"vectors","id","vectors"}`, L2-normalised.
+   * `chat` → a chat job in a worker's queue (`"client":"vboard: <connector name>"`, thinking off as vboard-ai's
+     built-in model, vboard's messages with their tool turns and vboard's tools; the calls are returned, never run).
+     While the job waits or its model starts: `{"type":"chatDelta","id","status":"Waiting for Mac Studio (queued)"}`
+     / `"Running on Mac Studio (<model>)"`; a thought (`<think>`) → one `{"thinking":true}` (the thought itself is
+     not sent); the answer → `{"text"}` deltas; then `{"type":"chatDone","id","content","toolCalls":[{"id","name",
+     "arguments"}]}` (`toolCalls` always a list, `arguments` a JSON string, `"{}"` when empty). Every 60 s without
+     anything else sent, a keep-alive (the same status again, `thinking:true` again, or an empty `text`; vboard gives up
+     after 3 minutes of silence). `chatCancel` cancels the job; nothing more is sent for it.
+   * Failures → `{"type":"error","id","message"}` (at most 300 characters); an unknown request type with an id too.
+     A request for something the connector cannot do now (no worker offers the model) is such an error.
+   * An answer larger than vboard reads (8 MB) is replaced by an error for its id.
+6. `{"type":"reconnect"}` (a vboard replica drains), and a change of what the workers offer (a worker with the chat
+   model connects or goes; checked on every fleet change and every 30 s): a new connection with a fresh hello and
+   the same `instance` is opened (retried 1 s … 10 s); new requests are answered there, the old connection is
+   closed normally (1000 "handed over") once what runs on it is answered (and at least 2 s after the handover).
+
+**Compatibility.** What the connector sends is understood by every vboard since the bridge exists; tested against a
+fake vboard of each protocol stage (`internal/hub/vboard_test.go`), which reads the hello and the answers the way
+that commit's `bridge.go` / `chat.go` do:
+
+| vboard | what it has | result |
+|---|---|---|
+| `d508560` (2026-09-26) | hello `{type,name,device,model}`, classify → answers/error | ✓ classify (the other hello fields are ignored); it sends classify to any bridge, so without a classify model the connector answers it with an error |
+| `0992b68` | + embed → vectors, hello.embed | ✓ classify, embed |
+| `f914d44` (2026-09-27) | + chat/chatCancel → chatDelta/chatDone, hello.chat | ✓ chat with tools, thinking, cancel; a status-only `chatDelta` is an empty text there (not shown, it restarts the idle timer) |
+| `175647c` → HEAD | + hello.instance/handover, `reconnect`, `chatDelta.status` | ✓ status shown, handover keeps the running chat |
 
 ## Console UI and host names (phase 6)
 

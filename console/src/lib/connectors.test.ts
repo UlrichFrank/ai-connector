@@ -12,11 +12,12 @@ test("normalizeUrl", () => {
   assert.equal(normalizeUrl(""), "");
 });
 
-test("validate: a new connector needs name, address and a vbp_ token", () => {
-  assert.deepEqual(Object.keys(validate(emptyForm, false)).sort(), ["name", "token", "url"]);
-  assert.ok(validate({ ...emptyForm, name: "x", url: "v.example", token: "abc" }, false).token);
+test("validate: a new connector needs an address and a token (any prefix: vboard's is configurable)", () => {
+  assert.deepEqual(Object.keys(validate(emptyForm, false)).sort(), ["token", "url"]);
+  assert.ok(validate({ ...emptyForm, url: "v.example", token: "vbp_ x" }, false).token);
   assert.ok(validate({ ...emptyForm, name: "x", url: "ftp://v.example", token: "vbp_x" }, false).url);
   assert.deepEqual(validate({ ...emptyForm, name: "x", url: "v.example", token: "vbp_x" }, false), {});
+  assert.deepEqual(validate({ ...emptyForm, url: "v.example", token: "corp_x" }, false), {});
   // editing: a blank token keeps the stored one
   assert.deepEqual(validate({ ...formOf(connector) }, true), {});
 });
@@ -30,6 +31,8 @@ test("createBody", () => {
     models: { embed: "e" },
   });
   assert.equal(createBody({ ...emptyForm, name: "a", url: "b", token: "vbp_" }).models, undefined);
+  // a blank name: the server's default
+  assert.equal(createBody({ ...emptyForm, url: "b", token: "vbp_" }).name, undefined);
 });
 
 test("patchBody: only what changed", () => {
@@ -37,6 +40,10 @@ test("patchBody: only what changed", () => {
   assert.deepEqual(patchBody(connector, { ...formOf(connector), name: "new", token: "vbp_new" }), { name: "new", token: "vbp_new" });
   assert.deepEqual(patchBody(connector, { ...formOf(connector), board: "" }), { board: "" });
   assert.deepEqual(patchBody(connector, { ...formOf(connector), classify: "laya" }), { models: { classify: "laya", embed: "", chat: "qwen" } });
+  // the server's default name: a blank field is no change, clearing another name sends ""
+  const dflt: Connector = { ...connector, name: "ai-connector" };
+  assert.deepEqual(patchBody(dflt, { ...formOf(dflt), name: "" }), {});
+  assert.deepEqual(patchBody(connector, { ...formOf(connector), name: "" }), { name: "" });
 });
 
 test("stateLabel", () => {
