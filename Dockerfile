@@ -22,7 +22,19 @@ COPY web/ ./
 # vite writes to ../internal/webui/dist (vite.config.ts)
 RUN mkdir -p ../internal/webui/dist && pnpm build
 
-# ---- Go sources with the web app (both binaries embed it) ----
+# ---- the console (console/ → internal/consoleui/dist) ----
+FROM --platform=$BUILDPLATFORM node:24-alpine AS console
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
+WORKDIR /src/console
+COPY console/package.json console/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+COPY console/ ./
+# vite writes to ../internal/consoleui/dist (vite.config.ts)
+RUN mkdir -p ../internal/consoleui/dist && pnpm build
+
+# ---- Go sources with the web app and the console (both binaries embed them) ----
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS src
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -32,6 +44,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 COPY sandbox/ sandbox/
 COPY --from=web /src/internal/webui/dist/ internal/webui/dist/
+COPY --from=console /src/internal/consoleui/dist/ internal/consoleui/dist/
 
 # ---- server binary ----
 FROM src AS hub

@@ -32,6 +32,34 @@ A worker offers only what it can run, and the server routes a job only to a work
 Linux worker needs glibc (it loads OpenBLAS at run time; Ubuntu, Debian, Fedora — not Alpine/musl). Windows workers
 build and pass vet but have not run on Windows yet.
 
+### Console
+
+The server has two web apps: the **console** of ai-connector under `/console/` (`console/`, embedded from
+`internal/consoleui`) and the mlxlab app at `/` (`web/`) as before. Both sign in with the server's password
+(`POST /api/login`) and share the session cookie. The console has:
+
+- **Overview** — the connected workers and the merged queue of every worker, live (`/api/events`,
+  `/api/worker/events`): model, kind, state, worker, client, age; queued and running jobs can be cancelled.
+- **Workers** — specs (OS, chip/CPU, RAM, GPU/VRAM), load, models in memory, primary, revoke, and **Connect a
+  worker**: one paste for macOS/Linux (Terminal) or Windows (PowerShell) with the worker's own token, and a live
+  "waiting → connected".
+- **Models** — every model the workers offer, by kind and backend, and on which worker it is loaded, on disk or
+  too big.
+- **Clients** — API tokens for applications (`aic_…`, shown once) and copy-paste snippets with this server filled
+  in: curl and Python (OpenAI SDK) for `/v1/chat/completions` and `/v1/embeddings`, vboard's sidecar environment,
+  docscanner's.
+- **Connectors** — vboard connectors (the server dials vboard's classifier bridge): add, edit, enable/disable,
+  delete, with their live state.
+
+`MLXLAB_CONSOLE_HOSTS` (comma list of host names, e.g. `ai.example.org`) makes `GET /` on those hosts redirect to
+`/console/` (matched against `X-Forwarded-Host` behind traefik, else `Host`; port and case ignored). Every host
+serves both apps at their paths. Pages of the console whose API the server does not have yet say so instead of
+failing.
+
+Build and develop: `make console` (pnpm, into `internal/consoleui/dist`; `make build`/`make server` run it),
+`make console-dev` (Vite on http://localhost:5173/console/, proxying `/api`, `/files` and `/v1` to `MLXLAB_URL`,
+default `http://127.0.0.1:8484`), `cd console && pnpm test` (the pure logic: install commands, snippets, specs).
+
 ---
 
 # mlxlab — local AI models on a Mac
