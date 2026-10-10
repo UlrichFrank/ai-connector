@@ -34,17 +34,21 @@ const (
 	stageChat                    // f914d44: + hello.chat; chat/chatCancel → chatDelta (text, thinking) / chatDone
 	stageHead                    // 175647c → main: + hello.instance/handover, {reconnect}, chatDelta.status
 	stageAgents                  // ai-agents (e5a7292c): + hello.agents, {type:"agents"}, chat.agent/context
+	stageImages                  // images in chats: + hello.images, agents[].images, chat messages[].images
 )
 
 func (s vbStage) String() string {
-	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "main handover", "ai-agents"}[s]
+	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "main handover", "ai-agents", "images"}[s]
 }
 
 // vbAgent is an agent entry as the ai-agents stage keeps it (api/bridge.go: id required, trimmed, at most 80
 // characters, unique; unknown kind → model; at most 20).
-type vbAgent struct{ ID, Name, Kind, Worker string }
+type vbAgent struct {
+	ID, Name, Kind, Worker string
+	Images                 bool // images stage only
+}
 
-func vbAgents(raw []json.RawMessage) []vbAgent {
+func vbAgents(raw []json.RawMessage, stage vbStage) []vbAgent {
 	var out []vbAgent
 	seen := map[string]bool{}
 	for _, r := range raw {
@@ -64,6 +68,9 @@ func vbAgents(raw []json.RawMessage) []vbAgent {
 			a.Name = a.ID
 		}
 		a.Name, a.Worker = trimTo(a.Name, 80), trimTo(a.Worker, 80)
+		if stage < stageImages {
+			a.Images = false
+		}
 		out = append(out, a)
 	}
 	return out
@@ -73,6 +80,7 @@ func vbAgents(raw []json.RawMessage) []vbAgent {
 type vbHello struct {
 	Name, Device, Model, Embed, Chat, Instance string
 	Handover                                   bool
+	Images                                     bool // images stage only
 }
 
 type vbResult struct {
@@ -195,14 +203,17 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 	default:
 		var h struct {
 			Type, Name, Device, Model, Embed, Chat, Instance string
-			Handover                                         bool
+			Handover, Images                                 bool
 			Agents                                           []json.RawMessage
 		}
 		err = errOr(err, json.Unmarshal(raw, &h))
 		typ, b.hello = h.Type, vbHello{Name: trimTo(h.Name, 80), Device: trimTo(h.Device, 20), Model: trimTo(h.Model, 60), Embed: trimTo(h.Embed, 80),
 			Chat: trimTo(h.Chat, 80), Instance: trimTo(h.Instance, 64), Handover: h.Handover}
 		if v.stage >= stageAgents {
-			b.agents = vbAgents(h.Agents)
+			b.agents = vbAgents(h.Agents, v.stage)
+		}
+		if v.stage >= stageImages {
+			b.hello.Images = h.Images
 		}
 	}
 	b.updates = make(chan []vbAgent, 16)
@@ -254,7 +265,7 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if v.stage >= stageAgents && m.Type == "agents" {
-			b.updates <- vbAgents(m.Agents)
+			b.updates <- vbAgents(m.Agents, v.stage)
 			continue
 		}
 		if v.stage >= stageChat && b.chatMessage(m.Type, m.ID, raw) {
@@ -546,6 +557,7 @@ func startVboardMac(t *testing.T, base, token string, kinds ...string) *vbMac {
 		"chat":     {ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: gib},
 		"embed":    {ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib},
 		"classify": {ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib},
+		"vision":   {ID: "lmstudio/qwen3.6-27b", Name: "Qwen3.6 27B · lmstudio", Kind: engine.Chat, Backend: "vbchat", Size: gib, Images: true},
 	}
 	cat := &engine.Catalog{}
 	for _, k := range kinds {
@@ -626,7 +638,7 @@ func waitState(t *testing.T, base, device, id, state string) Connector {
 // Every protocol stage: the hello it reads, classify (order, Python JSON, one answer per state), embed, chat (thinking,
 // text, tool calls, the job's client), errors.
 func TestVboardStages(t *testing.T) {
-	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead, stageAgents} {
+	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead, stageAgents, stageImages} {
 		t.Run(stage.String(), func(t *testing.T) {
 			fastBridges(t)
 			_, base, device := vbHub(t)
@@ -744,7 +756,7 @@ func TestVboardChatStatusAndCancel(t *testing.T) {
 	_, base, device := vbHub(t)
 	_, wtok := enroll(t, base, device, "Mac")
 	mac := startVboardMac(t, base, wtok, "chat")
-	for _, stage := range []vbStage{stageChat, stageHead, stageAgents} {
+	for _, stage := range []vbStage{stageChat, stageHead, stageAgents, stageImages} {
 		v := newFakeVboard(t, stage)
 		c := addConnector(t, base, device, `{"name":"Board AI","url":"`+v.srv.URL+`","token":"vbp_secret"}`)
 		b := v.next(t)

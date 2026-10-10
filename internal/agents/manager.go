@@ -59,6 +59,9 @@ type Options struct {
 	// key ran a turn, nothing to resume): the earlier messages as a transcript in front of the question, so that a
 	// conversation this worker never saw (or lost) still has its history.
 	Opening string
+	// Images go with the turn's text, OpeningImages with the Opening (images.go): each where the text names it
+	// ("[image-1]").
+	Images, OpeningImages []Image
 }
 
 // Event is what happens during a turn.
@@ -489,14 +492,14 @@ func (m *Manager) Turn(ctx context.Context, o Options, text string, emit func(Ev
 	if err != nil {
 		return Result{}, err
 	}
-	res, err := s.run(ctx, s.input(o, text), emit)
+	res, err := s.run(ctx, o, s.input(o, text), emit)
 	if errors.Is(err, errEndedEarly) && m.forget(s.id) {
 		// Claude Code could not resume the conversation (its files are gone): it starts anew
 		o.Fresh = false
 		if s, err = m.open(o, ""); err != nil {
 			return Result{}, err
 		}
-		res, err = s.run(ctx, s.input(o, text), emit)
+		res, err = s.run(ctx, o, s.input(o, text), emit)
 	}
 	if o.Key == "" {
 		m.remove(s, true)
@@ -526,7 +529,7 @@ func (m *Manager) forget(id string) bool {
 	return true
 }
 
-func (s *Session) run(ctx context.Context, text string, emit func(Event)) (Result, error) {
+func (s *Session) run(ctx context.Context, o Options, text string, emit func(Event)) (Result, error) {
 	s.turnMu.Lock()
 	defer s.turnMu.Unlock()
 	s.mu.Lock()
@@ -537,7 +540,7 @@ func (s *Session) run(ctx context.Context, text string, emit func(Event)) (Resul
 	s.busy = true
 	drv := s.drv
 	s.mu.Unlock()
-	res, err := drv.turn(ctx, text, emit)
+	res, err := turnWith(ctx, drv, text, turnImages(o, text), emit)
 	res.Session, res.Driver = s.id, s.opts.Driver
 	s.mu.Lock()
 	s.busy, s.lastUsed = false, time.Now()

@@ -76,6 +76,7 @@ type catalogModel struct {
 	Backend string `json:"backend"`
 	Size    int64  `json:"size"`
 	Here    bool   `json:"here"`
+	Images  bool   `json:"images,omitempty"` // a chat model that takes images
 }
 
 // node is one connected Mac.

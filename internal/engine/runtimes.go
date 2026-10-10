@@ -105,8 +105,9 @@ func discover(ctx context.Context, c *http.Client, rts []Runtime) []*Model {
 
 // runtimeInfo is what a runtime says about one model beyond its id.
 type runtimeInfo struct {
-	kind Kind
-	size int64
+	kind   Kind
+	size   int64
+	images bool // it takes images (a vision-language model)
 }
 
 // probeRuntime lists one runtime's models: their ids from /v1/models, whether each chats or embeds from the
@@ -145,17 +146,20 @@ func probeRuntime(ctx context.Context, c *http.Client, rt *Runtime) []*Model {
 		about := fmt.Sprintf("%s, served by %s (%s)", d.ID, rt.Name, root)
 		out = append(out, &Model{ID: strings.ToLower(rt.Name + "/" + d.ID), Name: d.ID + " · " + rt.Name, Kind: in.kind,
 			Backend: BackendOpenAI, About: about, Size: in.size, Here: true, Where: rt.Name + " (" + root + ")",
-			served: &servedModel{Runtime: rt, Model: d.ID}})
+			Images: in.images && in.kind == Chat, served: &servedModel{Runtime: rt, Model: d.ID}})
 	}
 	return out
 }
 
 // lmStudioInfo: LM Studio's own model list types its models (llm, vlm, embeddings); nil when it is not LM Studio.
+// A "vlm" takes images (LM Studio 0.4 lists Qwen3.5/3.6 MLX checkpoints with their vision tower so; a "vision"
+// capability is taken too).
 func lmStudioInfo(ctx context.Context, c *http.Client, rt *Runtime, root string) map[string]runtimeInfo {
 	var l struct {
 		Data []struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
+			ID           string   `json:"id"`
+			Type         string   `json:"type"`
+			Capabilities []string `json:"capabilities"`
 		} `json:"data"`
 	}
 	if getJSON(ctx, c, rt, root+"/api/v0/models", &l) != nil || len(l.Data) == 0 {
@@ -167,7 +171,7 @@ func lmStudioInfo(ctx context.Context, c *http.Client, rt *Runtime, root string)
 		if d.Type == "embeddings" {
 			k = Embed
 		}
-		out[d.ID] = runtimeInfo{kind: k}
+		out[d.ID] = runtimeInfo{kind: k, images: d.Type == "vlm" || hasCap(d.Capabilities, "vision")}
 	}
 	return out
 }
@@ -195,6 +199,8 @@ func ollamaInfo(ctx context.Context, c *http.Client, rt *Runtime, root string) m
 				switch cp {
 				case "completion":
 					in.kind = Chat
+				case "vision":
+					in.images = true
 				case "embedding":
 					if in.kind == "" {
 						in.kind = Embed
@@ -207,6 +213,15 @@ func ollamaInfo(ctx context.Context, c *http.Client, rt *Runtime, root string) m
 		out[t.Name] = in
 	}
 	return out
+}
+
+func hasCap(caps []string, c string) bool {
+	for _, x := range caps {
+		if strings.EqualFold(x, c) {
+			return true
+		}
+	}
+	return false
 }
 
 func getJSON(ctx context.Context, c *http.Client, rt *Runtime, u string, v any) error {

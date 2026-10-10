@@ -25,6 +25,7 @@ import (
 	"github.com/philipparndt/ai-connector/internal/agents"
 	"github.com/philipparndt/ai-connector/internal/engine"
 	"github.com/philipparndt/ai-connector/internal/jobs"
+	"github.com/philipparndt/ai-connector/internal/llm"
 	"github.com/philipparndt/ai-connector/internal/prompts"
 	"github.com/philipparndt/ai-connector/internal/styles"
 	"github.com/philipparndt/ai-connector/internal/voices"
@@ -368,7 +369,8 @@ func (s *Server) models(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	var req engine.Request
-	if err := json.NewDecoder(io.LimitReader(r.Body, 16<<20)).Decode(&req); err != nil {
+	// 64 MB: a chat's images come with it (llm.MaxImages of llm.MaxImageBytes each, as base64)
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<20)).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -380,6 +382,20 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		req.Images[i] = local
+	}
+	// a chat's images by reference (a retried conversation): the /files/ url of a kept image
+	for i := range req.Messages {
+		for k, im := range req.Messages[i].Images {
+			if im.File == "" {
+				continue
+			}
+			local, ok := s.local(im.File)
+			if !ok {
+				http.Error(w, "unknown image "+im.File, http.StatusBadRequest)
+				return
+			}
+			req.Messages[i].Images[k].File = local
+		}
 	}
 	if req.Source != "" {
 		local, ok := s.local(req.Source)
@@ -552,6 +568,20 @@ func (s *Server) view(j *jobs.Job) *jobs.Job {
 	}
 	if j.Request.Source != "" {
 		v.Request.Source = s.url(j.Request.Source)
+	}
+	if llm.HasImages(j.Request.Messages) { // a chat's images: their /files/ urls (the bytes are not in the job)
+		v.Request.Messages = make([]llm.Message, len(j.Request.Messages))
+		for i, msg := range j.Request.Messages {
+			v.Request.Messages[i] = msg
+			if len(msg.Images) == 0 {
+				continue
+			}
+			v.Request.Messages[i].Images = make([]llm.Image, len(msg.Images))
+			for k, im := range msg.Images {
+				im.File, im.Data = s.url(im.File), nil
+				v.Request.Messages[i].Images[k] = im
+			}
+		}
 	}
 	if j.Request.Audio != "" {
 		v.Request.Audio = s.url(j.Request.Audio)

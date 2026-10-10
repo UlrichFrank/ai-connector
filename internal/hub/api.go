@@ -24,7 +24,7 @@ const (
 	defaultEmbedModel    = "qwen3-embedding-0.6b"
 	defaultClassifyModel = "laya-typed-decisions"
 	maxEmbedInputs       = 2048
-	maxAPIBody           = 32 << 20
+	maxAPIBody           = 64 << 20 // a chat's images come with it (8 of 5 MB, as base64)
 )
 
 // clientAPI registers the client APIs on the server's mux, each behind requireAPI.
@@ -281,8 +281,12 @@ func (s *Server) v1Models(w http.ResponseWriter, r *http.Request) {
 		for i, n := range m.workers {
 			names[i] = n.name
 		}
-		data = append(data, map[string]any{"id": m.ID, "object": "model", "created": 0, "owned_by": "ai-connector",
-			"kind": m.Kind, "workers": names})
+		e := map[string]any{"id": m.ID, "object": "model", "created": 0, "owned_by": "ai-connector",
+			"kind": m.Kind, "workers": names}
+		if m.Kind == "chat" {
+			e["images"] = m.Images
+		}
+		data = append(data, e)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": data})
 }

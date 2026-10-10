@@ -53,7 +53,7 @@ func (b *ClaudeCodeBackend) Discover() []*Model {
 			ms = append(ms, &Model{ID: BackendClaudeCode + "/" + c.alias, Name: c.name, Kind: Chat, Backend: BackendClaudeCode,
 				About: "Claude Code (" + v + ") on this worker, " + c.about + ": an agent with its own tools and folder, " +
 					"on the subscription logged in here. A conversation (session) stays running between turns.",
-				Here: true, Where: "claude " + v})
+				Here: true, Where: "claude " + v, Images: true})
 		}
 	}
 	b.Catalog.SetRuntime(BackendClaudeCode, ms)
@@ -82,14 +82,14 @@ func (b *ClaudeCodeBackend) Run(ctx context.Context, m *Model, r Request, _ stri
 	if r.Zone != "" {
 		return fmt.Errorf("Claude Code brings its own tools: no zone (%s)", r.Zone)
 	}
-	prompt, opening, system := claudePrompt(r)
+	prompt, opening, system, images, openingImages := claudePrompt(r)
 	if strings.TrimSpace(prompt) == "" {
 		return fmt.Errorf("no message")
 	}
 	emit.Status("starting Claude Code …")
 	tools := map[string]map[string]any{}
 	res, err := b.Agents.Turn(ctx, agents.Options{Key: r.Session, Owner: r.Owner, Model: alias, Driver: r.Driver, MCP: r.MCP,
-		System: system, Fresh: r.Fresh, Opening: opening}, prompt, func(e agents.Event) {
+		System: system, Fresh: r.Fresh, Opening: opening, Images: images, OpeningImages: openingImages}, prompt, func(e agents.Event) {
 		switch e.Type {
 		case "text":
 			emit(Event{Type: "text", Text: e.Text})
@@ -148,7 +148,11 @@ func (b *ClaudeCodeBackend) Run(ctx context.Context, m *Model, r Request, _ stri
 // messages are not sent again; a one-off turn (no session) gets them as a transcript in front, and so does the
 // first turn of a session that is new on the worker (opening: the prompt then, "" when there is no history).
 // System messages become the session's appended system prompt (read when it starts).
-func claudePrompt(r Request) (prompt, opening, system string) {
+//
+// images go with the prompt (the last user message's), openingImages with the opening (or a one-off's transcript):
+// every message's, each image named by its tag where it was; an earlier message's image whose id another message
+// uses too ("[image-1]" of every message) is renamed in that message ("[m2-image-1]").
+func claudePrompt(r Request) (prompt, opening, system string, images, openingImages []agents.Image) {
 	var sys []string
 	var turns []llm.Message
 	for _, m := range r.Messages {
@@ -160,28 +164,55 @@ func claudePrompt(r Request) (prompt, opening, system string) {
 	}
 	system = strings.Join(sys, "\n\n")
 	if len(turns) == 0 {
-		return r.Prompt, "", system
+		return r.Prompt, "", system, nil, nil
 	}
 	last := len(turns) - 1
 	for last >= 0 && turns[last].Role != "user" {
 		last--
 	}
 	if last < 0 {
-		return "", "", system
+		return "", "", system, nil, nil
 	}
 	prompt = turns[last].Content
+	images = agentImages(turns[last].Images)
 	if last > 0 {
+		used := map[string]bool{}
+		for _, im := range images {
+			used[im.ID] = true
+		}
 		var b strings.Builder
 		b.WriteString("The conversation so far:\n\n")
-		for _, m := range turns[:last] {
-			fmt.Fprintf(&b, "%s: %s\n\n", strings.ToUpper(m.Role[:1])+m.Role[1:], m.Content)
+		for i, m := range turns[:last] {
+			content := m.Content
+			for _, im := range agentImages(m.Images) {
+				if used[im.ID] {
+					id := fmt.Sprintf("m%d-%s", i+1, im.ID)
+					content = strings.ReplaceAll(content, llm.Tag(im.ID), llm.Tag(id))
+					im.ID = id
+				}
+				used[im.ID] = true
+				openingImages = append(openingImages, im)
+			}
+			fmt.Fprintf(&b, "%s: %s\n\n", strings.ToUpper(m.Role[:1])+m.Role[1:], content)
 		}
 		b.WriteString("Now answer this message:\n\n")
 		b.WriteString(prompt)
+		openingImages = append(openingImages, images...)
 		if r.Session == "" {
-			return b.String(), "", system
+			return b.String(), "", system, openingImages, nil
 		}
 		opening = b.String()
 	}
-	return prompt, opening, system
+	return prompt, opening, system, images, openingImages
+}
+
+// agentImages are a message's images for Claude Code (those with data).
+func agentImages(ims []llm.Image) []agents.Image {
+	var out []agents.Image
+	for _, im := range ims {
+		if len(im.Data) > 0 {
+			out = append(out, agents.Image{ID: im.ID, MIME: im.MIME, Data: im.Data})
+		}
+	}
+	return out
 }
