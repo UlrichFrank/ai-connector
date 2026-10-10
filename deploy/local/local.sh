@@ -278,7 +278,7 @@ connector() {
   agents='[]'
   [[ -n "$model" ]] && agents="$(jq -cn --arg m "$model" '[{model:$m}]')"
   if command -v claude >/dev/null 2>&1; then
-    agents="$(jq -c '. + [{model:"claude-code/sonnet", name:"Claude Code (Sonnet)"}, {model:"claude-code/haiku", name:"Claude Code (Haiku)"}]' <<<"$agents")"
+    agents="$(jq -c '. + [{model:"claude-code/opus", name:"Claude Code (Opus)"}, {model:"claude-code/sonnet", name:"Claude Code (Sonnet)"}, {model:"claude-code/haiku", name:"Claude Code (Haiku)"}]' <<<"$agents")"
   fi
   [[ -n "$model" ]] || say "  no local chat model on this Mac: the connector offers the server's default (LOCAL_CHAT_MODEL=… ALLOW_DOWNLOAD=1 to pick one)"
   if [[ -z "$model" ]]; then agents='[]'; fi # the first agent must be a model

@@ -44,7 +44,7 @@ this order:
 1. the local chat model — `qwen3.6-35b-a3b` when it is on this Mac (LM Studio's copy counts), else the first chat
    model `bin/ai-connector list` shows as here; `LOCAL_CHAT_MODEL=…` picks another (a model that is not on the Mac
    needs `ALLOW_DOWNLOAD=1`: nothing large is downloaded silently);
-2. `claude-code/sonnet` and `claude-code/haiku`, when `claude` is installed — they work on the board themselves
+2. `claude-code/opus`, `claude-code/sonnet` and `claude-code/haiku`, when `claude` is installed — they work on the board themselves
    through vboard's MCP.
 
 ## Using it
