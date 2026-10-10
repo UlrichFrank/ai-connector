@@ -5,7 +5,8 @@
 // stops on an interrupt control request ("slow"), an early exit ("die"), and the result with usage and the
 // session's total cost — many turns on one process. Without -p it is an interactive "terminal" that runs the hooks
 // of its --settings file like Claude Code (SessionStart, UserPromptSubmit, Pre/PostToolUse, Stop) for each line
-// typed. Every start is logged to $AGENTS_FAKE_LOG.
+// typed. Every start is logged to $AGENTS_FAKE_LOG, and its arguments, MCP config and environment as JSON to
+// $AGENTS_FAKE_ARGS.
 package fakeclaude
 
 import (
@@ -48,6 +49,21 @@ func fakeClaude(args []string) int {
 	if log := os.Getenv("AGENTS_FAKE_LOG"); log != "" {
 		f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		fmt.Fprintf(f, "start model=%s resume=%s tools=%s\n", opt["--model"], opt["--resume"], opt["--allowedTools"])
+		f.Close()
+	}
+	if log := os.Getenv("AGENTS_FAKE_ARGS"); log != "" {
+		// how it was started, as JSON per start: the arguments, the MCP config as written and as Claude Code
+		// expands it (${VAR} from the environment), the AIC_MCP_* environment
+		raw, _ := os.ReadFile(opt["--mcp-config"])
+		env := map[string]string{}
+		for _, kv := range os.Environ() {
+			if k, v, _ := strings.Cut(kv, "="); strings.HasPrefix(k, "AIC_MCP_") {
+				env[k] = v
+			}
+		}
+		b, _ := json.Marshal(map[string]any{"args": args, "mcpRaw": string(raw), "mcpExpanded": os.ExpandEnv(string(raw)), "env": env})
+		f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		f.Write(append(b, '\n'))
 		f.Close()
 	}
 	sid := opt["--resume"]

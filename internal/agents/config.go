@@ -36,10 +36,14 @@ type Config struct {
 	// AutoTrust: a tty session answers Claude Code's "do you trust this folder?" question for its own new folder
 	// with yes (default true; the json driver never asks).
 	AutoTrust *bool `json:"autoTrust,omitempty"`
+	// Folders are the absolute folders (and everything inside them) a person's own tty session may work in
+	// (POST /api/agents/sessions "cwd"), besides the agents folder.
+	Folders []string `json:"folders,omitempty"`
 }
 
-// DefaultAllowedTools: reading, searching and the web, nothing that changes files or runs commands.
-var DefaultAllowedTools = []string{"Read", "Glob", "Grep", "LS", "WebSearch", "WebFetch", "TodoWrite"}
+// DefaultAllowedTools: reading and searching the session's own folder, and the web; nothing that changes files or
+// runs commands. Rules with a path ("./**") are relative to the session's folder.
+var DefaultAllowedTools = []string{"Read(./**)", "Glob(./**)", "Grep(./**)", "WebSearch", "WebFetch", "TodoWrite"}
 
 // Defaults.
 const (

@@ -170,6 +170,14 @@ func TestClaudeSessionsThroughHub(t *testing.T) {
 	if r := do(t, "POST", base+"/api/agents/sessions?worker="+aliceID, bob, strings.NewReader(`{"model":"sonnet"}`)); r.StatusCode != 403 {
 		t.Fatalf("bob opens: %d", r.StatusCode)
 	}
+	// the worker takes a cwd only inside its agents folder (or agents.json's folders)
+	for _, cwd := range []string{t.TempDir(), am.Root} {
+		r := do(t, "POST", base+"/api/agents/sessions", alice, strings.NewReader(`{"model":"opus","cwd":"`+cwd+`"}`))
+		r.Body.Close()
+		if r.StatusCode != 400 {
+			t.Fatalf("cwd %s: %d", cwd, r.StatusCode)
+		}
+	}
 	r := do(t, "POST", base+"/api/agents/sessions", alice, strings.NewReader(`{"model":"claude-code/opus","owner":"Bob"}`))
 	if r.StatusCode != 201 {
 		t.Fatalf("open: %d", r.StatusCode)

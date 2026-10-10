@@ -52,7 +52,7 @@ func startJSON(s *Session, args []string) (driver, error) {
 	}
 	cmd := exec.Command(m.command(), full...)
 	cmd.Dir = s.cwd
-	cmd.Env = m.environ()
+	cmd.Env = m.environ(s.env...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err

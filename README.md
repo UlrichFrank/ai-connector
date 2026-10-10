@@ -34,9 +34,10 @@ folder, tools and MCP servers; see [docs/api.md](docs/api.md), "Agents (Claude C
 install Claude Code there (`claude` on the PATH of the worker process) and **log in with your own subscription on
 that machine** (`claude`, then `/login`) — the worker runs Claude Code as you, so the server sends Claude Code jobs
 only to workers **you** enrolled (a worker's `owner` is the user who connected it). Optionally limit what sessions may
-do in `~/.config/mlxlab/agents.json`, e.g. `{"allowedTools":["Read","Glob","Grep","WebSearch"],"model":"sonnet",
-"idleMinutes":30,"maxSessions":4}` (these are about the defaults; nothing that edits files or runs commands is
-allowed unless listed). Sessions can also run in a terminal you attach to from the browser (driver `tty`; macOS and
+do in `~/.config/mlxlab/agents.json`, e.g. `{"allowedTools":["Read(./**)","Grep(./**)","WebSearch"],"model":"sonnet",
+"idleMinutes":30,"maxSessions":4}` (the defaults read only the session's own folder and the web; nothing that edits
+files or runs commands is allowed unless listed; the worker's secrets are denied to sessions — see docs/api.md,
+"Security"). Sessions can also run in a terminal you attach to from the browser (driver `tty`; macOS and
 Linux).
 
 A worker offers only what it can run, and the server routes a job only to a worker that lists its model. The

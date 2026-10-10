@@ -122,7 +122,10 @@ type driver interface {
 
 // Manager keeps the sessions of this worker.
 type Manager struct {
-	Root    string // the sessions' folders: <config>/agents
+	Root string // the sessions' folders: <config>/agents
+	// Home is the config folder around Root (~/.config/mlxlab): sessions may read nothing of it but their own
+	// folder (guard.go). "" in tests.
+	Home    string
 	Config  Config
 	Command string   // "claude"
 	Env     []string // added to the environment of claude
@@ -144,7 +147,7 @@ type Manager struct {
 // New makes the manager of <configDir>/agents with <configDir>/agents.json.
 func New(configDir string) (*Manager, error) {
 	cfg, err := LoadConfig(configDir)
-	m := &Manager{Root: filepath.Join(configDir, "agents"), Config: cfg, Command: "claude"}
+	m := &Manager{Root: filepath.Join(configDir, "agents"), Home: configDir, Config: cfg, Command: "claude"}
 	return m, err
 }
 
@@ -207,8 +210,9 @@ type Session struct {
 	m       *Manager
 	id      string
 	opts    Options
-	cwd     string // where Claude Code works
-	ctl     string // the session's own settings, MCP config and hook log (not inside cwd)
+	cwd     string   // where Claude Code works
+	ctl     string   // the session's own settings, MCP config and hook log (not inside cwd)
+	env     []string // added to claude's environment: the MCP secrets (guard.go)
 	created time.Time
 	start   sync.Once
 	ready   chan struct{} // closed when the process started (or failed to)
@@ -406,30 +410,27 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 	if err := os.MkdirAll(s.ctl, 0o700); err != nil {
 		return nil, err
 	}
-	mcp := map[string]any{}
-	allowed := append([]string(nil), m.Config.AllowedTools...)
-	for _, srv := range s.opts.MCP {
-		name := mcpName(srv.Name)
-		if name == "" || srv.URL == "" {
-			continue
-		}
-		typ := srv.Type
-		if typ == "" {
-			typ = "http"
-		}
-		entry := map[string]any{"type": typ, "url": srv.URL}
-		if len(srv.Headers) > 0 {
-			entry["headers"] = srv.Headers
-		}
-		mcp[name] = entry
-		allowed = append(allowed, "mcp__"+name)
-	}
+	cfg, env, mcpAllowed := mcpConfig(s.opts.MCP)
+	allowed := append(append([]string(nil), m.Config.AllowedTools...), mcpAllowed...)
 	mcpFile := filepath.Join(s.ctl, "mcp.json")
-	if err := writeJSONFile(mcpFile, map[string]any{"mcpServers": mcp}); err != nil {
+	if err := writeJSONFile(mcpFile, cfg); err != nil { // no secrets: ${AIC_MCP_…} references (guard.go)
 		return nil, err
 	}
-	args := []string{"--model", s.opts.Model, "--strict-mcp-config", "--mcp-config", mcpFile,
-		"--allowedTools", strings.Join(allowed, ",")}
+	s.env = env
+	var args []string
+	if m.has("--restricted") {
+		// Claude Code's own confinement: file tools in the working folder, only the built-in tools named
+		tools := strings.Join(builtinTools(m.Config.AllowedTools), ",")
+		if strings.HasPrefix(s.opts.Key, personKey) {
+			tools = "default" // a person at the terminal answers the permission prompts
+		}
+		args = append(args, "--restricted")
+		if tools != "" {
+			args = append(args, "--tools", tools)
+		}
+	}
+	args = append(args, "--model", s.opts.Model, "--strict-mcp-config", "--mcp-config", mcpFile,
+		"--allowedTools", strings.Join(allowed, ","), "--disallowedTools", strings.Join(m.denyRules(s), ","))
 	if s.opts.System != "" {
 		args = append(args, "--append-system-prompt", s.opts.System)
 	}
@@ -616,20 +617,25 @@ func (m *Manager) Stop(id string) error {
 // closed after the idle timeout like the others (never while someone is attached).
 func (m *Manager) OpenTTY(owner, model, cwd string) (Info, error) {
 	if cwd != "" {
-		if st, err := os.Stat(cwd); err != nil || !st.IsDir() || !filepath.IsAbs(cwd) {
-			return Info{}, fmt.Errorf("cwd %q is not a folder on this worker", cwd)
+		real, err := m.CheckCwd(cwd)
+		if err != nil {
+			return Info{}, err
 		}
+		cwd = real
 	}
 	b := make([]byte, 6)
 	rand.Read(b)
 	id := "p" + hex.EncodeToString(b)
-	o := m.normalize(Options{Key: "person:" + id, Owner: owner, Model: model, Driver: DriverTTY, Cwd: cwd})
+	o := m.normalize(Options{Key: personKey + id, Owner: owner, Model: model, Driver: DriverTTY, Cwd: cwd})
 	s, err := m.open(o, id)
 	if err != nil {
 		return Info{}, err
 	}
 	return s.info(), nil
 }
+
+// personKey starts the conversation key of a person's own tty session.
+const personKey = "person:"
 
 // Terminal is an attached view of a tty session.
 type Terminal interface {

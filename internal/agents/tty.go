@@ -82,7 +82,7 @@ func startTTY(s *Session, args []string) (driver, error) {
 		return nil, err
 	}
 	args = append([]string{"--settings", settings}, args...)
-	p, err := startPTY(s.m.command(), args, s.cwd, s.m.environ("TERM=xterm-256color"), 120, 40)
+	p, err := startPTY(s.m.command(), args, s.cwd, s.m.environ(append([]string{"TERM=xterm-256color"}, s.env...)...), 120, 40)
 	if err != nil {
 		return nil, err
 	}

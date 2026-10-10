@@ -79,7 +79,7 @@ func TestSessionReuse(t *testing.T) {
 	if len(st) != 1 {
 		t.Fatalf("one process for three turns, got %v", st)
 	}
-	if !strings.Contains(st[0], "model=sonnet") || !strings.Contains(st[0], "mcp__vboard") || !strings.Contains(st[0], "Read,") {
+	if !strings.Contains(st[0], "model=sonnet") || !strings.Contains(st[0], "mcp__vboard") || !strings.Contains(st[0], "Read(./**),") {
 		t.Fatalf("start %q: the default model, the allow-list and the session's MCP server", st[0])
 	}
 	list := m.List()
@@ -92,7 +92,7 @@ func TestSessionReuse(t *testing.T) {
 		t.Fatalf("cwd %s", list[0].Cwd)
 	}
 	b, err := os.ReadFile(filepath.Join(m.Root, ".ctl", id, "mcp.json"))
-	if err != nil || !strings.Contains(string(b), `"vboard"`) || !strings.Contains(string(b), "Bearer t") {
+	if err != nil || !strings.Contains(string(b), `"vboard"`) || strings.Contains(string(b), "Bearer t") {
 		t.Fatalf("mcp.json: %s %v", b, err)
 	}
 	// another owner with the same key gets a session of their own
