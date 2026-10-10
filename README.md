@@ -94,7 +94,9 @@ anyone running vboard-ai. Three ways:
    The server runs inside this process on a loopback port only, this computer is its one worker, and its one vboard
    connector dials vboard — the same connector, routing and Claude Code agents as with a server (`--board ID` for
    one board, `--name`, `--chat MODEL`, `--console 127.0.0.1:8485` to look inside; `ai-connector vboard --help`).
-   The settings (with the token) are kept in `<files>/vboard/settings.json` (0600), the server's files beside them.
+   The settings (with the token) are kept in `<files>/vboard/settings.json` (0600), the server's files beside them,
+   its jobs and Claude Code sessions in `<files>/vboard/worker` (apart from a plain worker's: both may run at once;
+   the models are shared). An empty flag (`--board=`) goes back to the default.
    The program comes from the GitHub releases (`ai-connector-<version>-<os>-<arch>.tar.gz` / `.zip`); vboard's
    "Set up AI" shows the download and the start for your system.
 

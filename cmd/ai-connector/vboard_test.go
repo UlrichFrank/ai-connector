@@ -9,13 +9,13 @@ import (
 func TestResolveVboardKeepsWhatWasGiven(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "settings.json")
 	none := func(string) string { return "" }
-	if _, err := resolveVboard(vboardSettings{}, none, file); err == nil {
+	if _, err := resolveVboard(vboardSettings{}, nil, none, file); err == nil {
 		t.Fatal("no address and no token: want an error")
 	}
-	if _, err := resolveVboard(vboardSettings{URL: "https://v"}, none, file); err == nil {
+	if _, err := resolveVboard(vboardSettings{URL: "https://v"}, nil, none, file); err == nil {
 		t.Fatal("no token: want an error")
 	}
-	got, err := resolveVboard(vboardSettings{URL: "https://v", Token: "vbp_1", Agents: "a,b"}, none, file)
+	got, err := resolveVboard(vboardSettings{URL: "https://v", Token: "vbp_1", Agents: "a,b"}, nil, none, file)
 	if err != nil || got.Token != "vbp_1" {
 		t.Fatalf("%+v %v", got, err)
 	}
@@ -23,7 +23,7 @@ func TestResolveVboardKeepsWhatWasGiven(t *testing.T) {
 		t.Fatalf("settings file: %v %v (want 0600: it holds the token)", fi, err)
 	}
 	// later: nothing given → the kept settings; a flag or the environment wins over them
-	again, _ := resolveVboard(vboardSettings{}, none, file)
+	again, _ := resolveVboard(vboardSettings{}, nil, none, file)
 	if again != got {
 		t.Fatalf("%+v, want %+v", again, got)
 	}
@@ -33,11 +33,28 @@ func TestResolveVboardKeepsWhatWasGiven(t *testing.T) {
 		}
 		return ""
 	}
-	if s, _ := resolveVboard(vboardSettings{}, env, file); s.Token != "vbp_env" || s.Agents != "a,b" {
+	if s, _ := resolveVboard(vboardSettings{}, nil, env, file); s.Token != "vbp_env" || s.Agents != "a,b" {
 		t.Fatalf("%+v", s)
 	}
-	if s, _ := resolveVboard(vboardSettings{Token: "vbp_flag"}, env, file); s.Token != "vbp_flag" {
+	if s, _ := resolveVboard(vboardSettings{Token: "vbp_flag"}, nil, env, file); s.Token != "vbp_flag" {
 		t.Fatalf("%+v", s)
+	}
+}
+
+func TestResolveVboardClearsAnEmptyFlag(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "settings.json")
+	none := func(string) string { return "" }
+	if _, err := resolveVboard(vboardSettings{URL: "https://v", Token: "vbp_1", Board: "b1"}, nil, none, file); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := resolveVboard(vboardSettings{}, nil, none, file); s.Board != "b1" {
+		t.Fatalf("not given: want the kept board, got %+v", s)
+	}
+	if s, _ := resolveVboard(vboardSettings{}, map[string]bool{"board": true}, none, file); s.Board != "" {
+		t.Fatalf("--board=: want no board, got %+v", s)
+	}
+	if s, _ := resolveVboard(vboardSettings{}, nil, none, file); s.Board != "" || s.Token != "vbp_1" {
+		t.Fatalf("the cleared board is kept cleared: %+v", s)
 	}
 }
 

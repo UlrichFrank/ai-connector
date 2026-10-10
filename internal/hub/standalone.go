@@ -17,13 +17,13 @@ import (
 	"time"
 )
 
-// Serve is Run on a listener the caller opened (a free loopback port, known before the worker dials it).
+// Serve serves on a listener the caller opened (Run, or a free loopback port known before the worker dials it).
 func (s *Server) Serve(ctx context.Context, l net.Listener) error {
 	base, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	srv := &http.Server{
 		Handler:           s.Handler(),
-		ReadHeaderTimeout: 30 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second, // no Read/WriteTimeout: uploads and SSE take as long as they take
 		BaseContext:       func(net.Listener) context.Context { return base },
 	}
 	errc := make(chan error, 1)
@@ -33,8 +33,8 @@ func (s *Server) Serve(ctx context.Context, l net.Listener) error {
 		return err
 	case <-ctx.Done():
 	}
-	cancel()
-	s.Close()
+	cancel()  // ends the event streams, which would otherwise hold Shutdown up
+	s.Close() // the connectors' connections
 	sctx, scancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer scancel()
 	return srv.Shutdown(sctx)
@@ -149,7 +149,7 @@ func (s *Server) EnsureConnector(set ConnectorSettings) (Connector, error) {
 }
 
 // Connectors is the connectors' state now; ConnectorsChanged fires on the next change (for a log of the state).
-func (s *Server) Connectors() []Connector             { return s.connectors.views() }
+func (s *Server) Connectors() []Connector            { return s.connectors.views() }
 func (s *Server) ConnectorsChanged() <-chan struct{} { return s.connectors.Changed() }
 
 // ConnectorErrorField is the setting a connector error is about ("url", "token", "board", "agents", …), "" for

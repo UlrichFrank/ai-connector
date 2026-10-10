@@ -184,26 +184,11 @@ func (s *Server) Handler() http.Handler {
 // Run serves until ctx ends, then shuts down gracefully: streams (SSE) are cancelled, running requests get a
 // few seconds to finish.
 func (s *Server) Run(ctx context.Context) error {
-	base, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	srv := &http.Server{
-		Addr:              s.cfg.Addr,
-		Handler:           s.Handler(),
-		ReadHeaderTimeout: 30 * time.Second, // no Read/WriteTimeout: uploads and SSE take as long as they take
-		BaseContext:       func(net.Listener) context.Context { return base },
-	}
-	errc := make(chan error, 1)
-	go func() { errc <- srv.ListenAndServe() }()
-	select {
-	case err := <-errc:
+	l, err := net.Listen("tcp", s.cfg.Addr)
+	if err != nil {
 		return err
-	case <-ctx.Done():
 	}
-	cancel()  // ends the event streams, which would otherwise hold Shutdown up
-	s.Close() // the connectors' connections
-	sctx, scancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer scancel()
-	return srv.Shutdown(sctx)
+	return s.Serve(ctx, l)
 }
 
 // healthz answers 200 "ok" while the process serves HTTP: no auth, no state, no worker needed (probes).
