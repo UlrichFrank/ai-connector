@@ -44,8 +44,13 @@ this order:
 1. the local chat model — `qwen3.6-35b-a3b` when it is on this Mac (LM Studio's copy counts), else the first chat
    model `bin/ai-connector list` shows as here; `LOCAL_CHAT_MODEL=…` picks another (a model that is not on the Mac
    needs `ALLOW_DOWNLOAD=1`: nothing large is downloaded silently);
-2. `claude-code/opus`, `claude-code/sonnet` and `claude-code/haiku`, when `claude` is installed — they work on the board themselves
-   through vboard's MCP.
+2. `lmstudio/qwen3.6-35b-a3b` — the same Qwen with **images** (screenshots in the chat), through LM Studio: the
+   built-in MLX engine runs Qwen text-only. `up` starts LM Studio's server when it is off (`down` stops it again only
+   then); LM Studio loads the model on the first image question (~20 GB more memory next to the built-in copy, freed
+   by LM Studio when idle). `LMSTUDIO_VISION_MODEL=<LM Studio id of a vlm>` picks another, `LMSTUDIO_VISION=0` leaves
+   it out. LM Studio ignores "thinking off", so this agent always thinks first;
+3. `claude-code/opus`, `claude-code/sonnet` and `claude-code/haiku`, when `claude` is installed — they work on the board themselves
+   through vboard's MCP, and read images too.
 
 ## Using it
 

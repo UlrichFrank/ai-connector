@@ -272,11 +272,56 @@ chat_model() { # the local chat agent's model: on disk, never a silent download
   head -n1 <<<"$here"
 }
 
+# ---------- LM Studio: Qwen with images ----------
+# The built-in MLX engine runs Qwen 3.6 text-only (it skips the vision tower); LM Studio runs the same weights with
+# vision. up starts LM Studio's server when it is off (and down stops it again only then); the worker finds its models
+# by itself (MLXLAB_RUNTIMES unset: LM Studio on :1234). LMSTUDIO_VISION=0 leaves it out, LMSTUDIO_VISION_MODEL picks
+# the model (an LM Studio id of type vlm; default qwen3.6-35b-a3b, else the first vlm).
+LMS="${LMS:-$HOME/.lmstudio/bin/lms}"
+LMS_URL="http://127.0.0.1:1234"
+
+start_lmstudio() {
+  [[ "${LMSTUDIO_VISION:-1}" != 0 && -x "$LMS" ]] || return 0
+  if ! curl -fsS -m 2 "$LMS_URL/v1/models" >/dev/null 2>&1; then
+    step "starting LM Studio's server (for Qwen with images)"
+    "$LMS" server start >>"$LOGS/lmstudio.log" 2>&1 || { say "  LM Studio's server did not start (see $LOGS/lmstudio.log): no vision agent"; return 0; }
+    touch "$RUN/lmstudio-started"
+    wait_url "$LMS_URL/v1/models" 20 || true
+  fi
+}
+
+# vision_model prints LM Studio's id of the vision model to offer ("" when there is none).
+vision_model() {
+  [[ "${LMSTUDIO_VISION:-1}" != 0 ]] || return 0
+  local vlms want="${LMSTUDIO_VISION_MODEL:-qwen3.6-35b-a3b}"
+  vlms="$(curl -fsS -m 3 "$LMS_URL/api/v0/models" 2>/dev/null | jq -r '.data[] | select(.type == "vlm") | .id' 2>/dev/null)" || return 0
+  if grep -qx "$want" <<<"$vlms"; then printf '%s' "$want"; else head -n1 <<<"$vlms"; fi
+}
+
+# wait_model waits until a worker offers the model (the worker asks its runtimes every 30 s; the server's refresh
+# asks at once).
+wait_model() {
+  for _ in $(seq 1 40); do
+    aic GET '/api/models?refresh=1' 2>/dev/null | jq -e --arg m "$1" 'any(.models[]; .id == $m)' >/dev/null && return 0
+    sleep 1
+  done
+  return 1
+}
+
 connector() {
-  local model agents body cid
+  local model agents body cid vlm
   model="$(chat_model)"
   agents='[]'
   [[ -n "$model" ]] && agents="$(jq -cn --arg m "$model" '[{model:$m}]')"
+  vlm="$(vision_model)"
+  if [[ -n "$model" && -n "$vlm" ]]; then
+    local vid; vid="$(tr '[:upper:]' '[:lower:]' <<<"lmstudio/$vlm")"
+    if wait_model "$vid"; then
+      agents="$(jq -c --arg m "$vid" --arg n "$vlm · vision (LM Studio)" '. + [{model:$m, name:$n}]' <<<"$agents")"
+    else
+      say "  the worker does not offer $vid yet: no vision agent this time (local.sh up again adds it)"
+    fi
+  fi
   if command -v claude >/dev/null 2>&1; then
     agents="$(jq -c '. + [{model:"claude-code/opus", name:"Claude Code (Opus)"}, {model:"claude-code/sonnet", name:"Claude Code (Sonnet)"}, {model:"claude-code/haiku", name:"Claude Code (Haiku)"}]' <<<"$agents")"
   fi
@@ -307,6 +352,7 @@ cmd_up() {
   [[ -n "$EXTERNAL_VB" ]] || build_vboard
   start_server
   sign_in
+  start_lmstudio
   start_worker
   start_vboard
   vboard_token
@@ -330,6 +376,12 @@ cmd_down() {
   stop_one vboard 15
   stop_one idp 3
   stop_one server 10
+  if [[ -f "$RUN/lmstudio-started" && -x "$LMS" ]]; then # only when up started it
+    say "stopping LM Studio's server (started by local.sh up)"
+    "$LMS" unload --all >>"$LOGS/lmstudio.log" 2>&1 || true
+    "$LMS" server stop >>"$LOGS/lmstudio.log" 2>&1 || true
+    rm -f "$RUN/lmstudio-started"
+  fi
 }
 
 cmd_status() {
@@ -347,6 +399,14 @@ cmd_status() {
     say "  server   not reachable on $AIC_URL"
   fi
   if curl -fsS -o /dev/null "$VB_URL/healthz" 2>/dev/null; then say "  vboard   $VB_URL"; else say "  vboard   not reachable on $VB_URL"; fi
+  if curl -fsS -m 2 -o /dev/null "$LMS_URL/v1/models" 2>/dev/null; then
+    local by="already running"; [[ -f "$RUN/lmstudio-started" ]] && by="started by local.sh"
+    say "  lmstudio $LMS_URL ($by; vision model: $(vision_model || true))"
+  else
+    say "  lmstudio not running (no Qwen with images)"
+  fi
+  # the advertised agents and whether they take images
+  aic GET /api/connectors 2>/dev/null | jq -r '.[] | "            images: \([.advertised[]? | select(.images == true) | .id] | join(", "))"' 2>/dev/null || true
 }
 
 cmd_logs() {
