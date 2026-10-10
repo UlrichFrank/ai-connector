@@ -119,7 +119,7 @@ make deploy-status # pods, ingress, PVC, /healthz
 `docker save | ssh $(PI) 'sudo k0s ctr -n k8s.io images import -'`, runs
 `helm secrets upgrade --install -n ai-connector --create-namespace ai-connector deploy/helm/ai-connector -f
 <gitops>/…/values.yaml -f <gitops>/…/secrets.yaml --set image.tag=<that tag> --set image.pullPolicy=Never --wait`,
-waits for the rollout, removes older `pharndt/ai-connector-server` images from the Pi and curls `/healthz`. It
+waits for the rollout (of the Deployment named by the chart's fullname rules for `AIC_RELEASE` and the values — `helm template`; `make chart-lint` checks those rules), removes older `pharndt/ai-connector-server` images from the Pi and curls `/healthz`. It
 refuses to run if the release, namespace or image name mentions `mlxlab`, so it cannot touch the mlxlab hub.
 
 The variables, all overridable on the command line:
