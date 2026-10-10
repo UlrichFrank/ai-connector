@@ -843,6 +843,74 @@ without repainting the picture), which the pinned mflux (0.20.0, `mflux-upscale-
 * Video upscaling is not part of this: LTX already runs its own spatial upscaler inside its two-stage pipeline, and
   mflux offers SeedVR2 for images only.
 
+#### Music, sound and speech (planned, contract)
+
+Not built yet; additive to the generators above, the same path (`generators` → `generate` → `generateStatus` →
+`generateFile` → `generateDone`, `generateCancel`). Needs **audio items on vboard's board** (vboard's side, below),
+which do not exist yet. Three new generator kinds — vboards that do not know them drop them:
+
+* **`music`** — songs and instrumentals. Catalogue models: ACE-Step 1.5 (turbo, XL, base, techno), Stable Audio 3
+  (small, medium), MiniMax Music 3, HeartMuLa 3B, YuE2 3B, LeVo 2. Defaults in this order: `ace-step-1.5-turbo`
+  (songs with lyrics, fast), then `stable-audio-3-small` (short instrumentals, loops).
+
+  ```json
+  {"id": "ace-step-1.5-turbo", "name": "ACE-Step 1.5 turbo", "kind": "music", "worker": "Mac Studio",
+   "lyrics": true, "instrumental": true, "bpm": true, "default": {"seconds": 120}, "maxSeconds": 240,
+   "nonCommercial": false}
+  ```
+
+  `lyrics`: it sings given lyrics (absent: instrumental only, e.g. Stable Audio 3); `instrumental`: it can leave the
+  voice out; `bpm`: it takes a tempo. Request: `{"kind":"music","generator"?,"prompt":"<the style: genre, mood,
+  instruments>","lyrics"?,"instrumental"?,"seconds"?,"bpm"?,"title"?,"seed"?}` — `prompt` required; `lyrics` at most
+  8000 characters with the usual `[verse]` / `[chorus]` section marks (the chat model writes them: "write a song about
+  our retro"); lyrics to a model without `lyrics` → `error`; `seconds` 0 → the default, at most `maxSeconds`.
+  `title` names the file and the item.
+* **`sound`** — sound effects ("a door creaking", "rain on a window"): `moss-soundeffect`. `{"id","name","kind":
+  "sound","worker","default":{"seconds":5},"maxSeconds":30}`; request `{"kind":"sound","prompt","seconds"?,"seed"?}`.
+* **`speech`** — text read aloud. Catalogue models: **Kokoro 82M** (new: `kokoro-82m`, Apache-2.0, ≈ 0.3 GB, fast,
+  preset voices; English, Spanish, French, Italian, Portuguese, Hindi, Japanese, Chinese — **no German**), Qwen3-TTS
+  (0.6B, 1.7B), Chatterbox, VoxCPM2, Higgs Audio, Voxtral TTS — all on mlx-audio (the speech backend's one Python
+  worker; Kokoro is one more model there). Default order: `kokoro-82m` (when the language is one of its own), then
+  `qwen3-tts-1.7b`.
+
+  ```json
+  {"id": "kokoro-82m", "name": "Kokoro 82M", "kind": "speech", "worker": "Mac Studio",
+   "voices": [{"id": "af_heart", "name": "Heart", "language": "en"}, …], "languages": ["en", "es", "fr", …],
+   "instruct": false, "maxChars": 5000}
+  ```
+
+  `voices`: the model's preset voices (id, name, language; the worker's own voice library — cloned voices — is not
+  offered to boards); `languages`: what it speaks (`[]` = it detects); `instruct`: it takes how to say it ("warm,
+  slow") (Qwen3-TTS). Request: `{"kind":"speech","generator"?,"text","voice"?,"language"?,"instruct"?}` — `text`
+  required, at most `maxChars`; `voice` absent → the model's default for the language; a language the model does not
+  speak → the next speech generator that does, else `error`.
+
+**The file.** The worker writes WAV; the connector sends **`audio/mp4`** (AAC, 192 kbit/s stereo for music and sound,
+96 kbit/s mono for speech; `afconvert` on macOS, `ffmpeg` elsewhere) — a 3-minute song ≈ 4–5 MB instead of ≈ 35 MB.
+No encoder → `audio/wav` when it is at most vboard's audio limit, else `error`. `generateFile`'s `mime` may now also
+be `audio/mp4` | `audio/wav`.
+**Status and done.** `generateStatus` as for the others (a song: tens of seconds to a few minutes; `step`/`total`
+where the model reports them); the first one carries `seconds` (the length that will be made) instead of
+`width`/`height`. `generateDone` has `seconds`, `seed`, `generator`, `took`, and for music `title` and `bpm` (when
+known).
+**Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song
+unloads the built-in chat model first. Kokoro is small but runs in the same speech worker, which is one large runtime.
+
+**vboard's side (for reference; vboard decides the details)**
+
+* **Audio items** (needed first, useful without any AI): drop or upload mp3 / m4a (AAC) / wav / ogg / flac → a compact
+  player card — title, waveform, play/pause, position, length, an optional cover image. The waveform's peaks are
+  computed once (on upload or when a generation is done) and kept with the item, so drawing the board does not load
+  the audio. Suggested limit ≈ 100 MB a file. `get_board` (MCP and chat) lists audio items with title and length;
+  creating one from a file works through the existing asset upload.
+* Tools in the board chat and in vboard's MCP, offered per kind while one is advertised and returning at once like
+  `generate_image`: `generate_music {prompt, lyrics?, instrumental?, seconds?, bpm?, title?, near?}`,
+  `generate_sound {prompt, seconds?, near?}`, `speak {text, voice?, language?, instruct?, near?}` (and `list_voices`
+  for the voices of the speech generators).
+* The placeholder is an audio card of the final size with the animation and progress; done → the audio item.
+* Later (not part of this): a cover image for a song (a FLUX job; the worker already has `coverFor`), and the other
+  direction — transcribing an audio item into a note with Qwen3-ASR (a new request, not a generator).
+
 ### vboard: setting up models from vboard (as built)
 
 Builds on the generators section above (the hub: `internal/hub/vboard_setup.go`, `setup_page.go`; the worker:
