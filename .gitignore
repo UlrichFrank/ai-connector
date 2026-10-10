@@ -17,3 +17,6 @@ __pycache__/
 
 # agent worktrees
 /.claude/
+
+# this machine's Makefile settings (see local.mk.example)
+/local.mk

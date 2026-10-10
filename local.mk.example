@@ -1,0 +1,11 @@
+# Copy to local.mk (gitignored) and fill in: the Makefile includes it, so these are this machine's defaults.
+# Anything here can still be overridden on the command line (make deploy PI=...).
+# (Comments on lines of their own: make would keep the blanks before a trailing comment in the value.)
+
+# the deploy to the Raspberry Pi (docs/deploy.md)
+# the ssh target of the k0s node
+PI = user@pi.lan
+# the gitops checkout (kubeconfig, values)
+GITOPS = $(HOME)/path/to/gitops-checkout
+# the console host, checked after the deploy
+AIC_URL = https://ai.example.org

@@ -122,12 +122,14 @@ make deploy-status # pods, ingress, PVC, /healthz
 waits for the rollout (of the Deployment named by the chart's fullname rules for `AIC_RELEASE` and the values — `helm template`; `make chart-lint` checks those rules), removes older `pharndt/ai-connector-server` images from the Pi and curls `/healthz`. It
 refuses to run if the release, namespace or image name mentions `mlxlab`, so it cannot touch the mlxlab hub.
 
-The variables, all overridable on the command line:
+The variables, all overridable on the command line. This machine's values (at least `PI`, `GITOPS` and
+`AIC_URL`) go into `local.mk` in the repo root, which the Makefile includes and git ignores: copy
+`local.mk.example` and fill it in. Without `PI` or `GITOPS` the deploy stops at once and says so.
 
 | Variable | Default | |
 |---|---|---|
-| `PI` | `user@pi.lan` | ssh target of the k0s node |
-| `GITOPS` | `<gitops checkout>` | the gitops checkout (kubeconfig, values) |
+| `PI` | (none; e.g. `user@pi.lan`) | ssh target of the k0s node |
+| `GITOPS` | (none; `<gitops checkout>`) | the gitops checkout (kubeconfig, values) |
 | `AIC_VALUES` | `$(GITOPS)/cluster/charts/apps/ai-connector/values` | `values.yaml` and `secrets.yaml` |
 | `AIC_RELEASE` / `AIC_NAMESPACE` | `ai-connector` / `ai-connector` | |
 | `AIC_URL` | `https://ai.example.org` | checked after the deploy (the console host) |
@@ -211,7 +213,7 @@ directory on the Pi:
 export KUBECONFIG=<gitops checkout>/kubeconfig
 P=$(kubectl get pv "$(kubectl -n ai-connector get pvc ai-connector-data -o jsonpath='{.spec.volumeName}')" \
   -o jsonpath='{.spec.local.path}{.spec.hostPath.path}')
-ssh user@pi.lan "sudo tar -C '$P' -czf - ." > ai-connector-data-$(date +%F).tgz
+ssh <user>@<pi> "sudo tar -C '$P' -czf - ." > ai-connector-data-$(date +%F).tgz
 ```
 
 Restore: scale to 0 (`kubectl -n ai-connector scale deploy/ai-connector --replicas=0`), untar into the same path as

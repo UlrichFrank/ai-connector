@@ -1,5 +1,8 @@
 .PHONY: build web web-dev console console-dev test vet worker serve server server-linux
 
+# local.mk (gitignored, see local.mk.example): this machine's settings, e.g. the deploy target (PI, GITOPS, AIC_URL)
+-include local.mk
+
 # the build's version (mlxlab version, the hub's log): the commit, -dirty with local changes
 VERSION ?= $(shell git describe --always --dirty 2>/dev/null || echo dev)
 LDFLAGS  = -ldflags "-X main.version=$(VERSION)"
@@ -56,7 +59,7 @@ serve: build
 	bin/ai-connector serve
 
 # ---------- the server image, the Helm chart, the deploy to the Raspberry Pi (docs/deploy.md) ----------
-.PHONY: image image-multiarch base-images chart-lint deploy deploy-image deploy-status deploy-guard
+.PHONY: image image-multiarch base-images chart-lint deploy deploy-image deploy-status deploy-guard deploy-env
 
 DOCKER      ?= docker --context rancher-desktop
 IMAGE       ?= pharndt/ai-connector-server
@@ -103,8 +106,9 @@ chart-lint:
 # containerd, and the in-repo chart is upgraded with that tag (pullPolicy Never) and the values from the gitops
 # repo. Its own release and namespace (ai-connector): it never touches the mlxlab release (namespace mlxlab).
 # The gitops kubeconfig is used explicitly, whatever kubectl's current context is.
-PI            ?= user@pi.lan
-GITOPS        ?= <gitops checkout>
+# PI and GITOPS have no default: set them in local.mk (see local.mk.example) or on the command line.
+PI            ?=
+GITOPS        ?=
 AIC_RELEASE   ?= ai-connector
 AIC_NAMESPACE ?= ai-connector
 # values.yaml (hosts, models, storage …) and secrets.yaml (sops; helm-secrets) of this release in the gitops repo
@@ -139,12 +143,17 @@ deploy-image: deploy-guard base-images
 	$(DOCKER) build --pull=false --platform linux/arm64 --build-arg VERSION=$(DEPLOY_TAG) -t $(IMAGE):$(DEPLOY_TAG) -f Dockerfile .
 	$(DOCKER) save $(IMAGE):$(DEPLOY_TAG) | ssh $(PI) 'sudo k0s ctr -n k8s.io images import --platform linux/arm64 -'
 
-deploy-status:
+deploy-status: deploy-env
 	$(KUBE) kubectl -n $(AIC_NAMESPACE) get pods,ingress,pvc
 	@curl -fsS $(AIC_URL)/healthz; echo
 
+# the deploy's target must be named: PI (ssh) and GITOPS (kubeconfig, values), in local.mk or on the command line
+deploy-env:
+	@test -n "$(PI)" || { echo "PI is not set: the ssh target of the k0s node (user@host), in local.mk (see local.mk.example) or make PI=..." >&2; exit 1; }
+	@test -n "$(GITOPS)" || { echo "GITOPS is not set: the gitops checkout (kubeconfig, values), in local.mk (see local.mk.example) or make GITOPS=..." >&2; exit 1; }
+
 # the running mlxlab hub has the release and namespace "mlxlab" and the image pharndt/mlxlab-hub: never these
-deploy-guard:
+deploy-guard: deploy-env
 	@case "$(AIC_RELEASE) $(AIC_NAMESPACE) $(IMAGE)" in *mlxlab*) \
 		echo "refusing: release/namespace/image ($(AIC_RELEASE) $(AIC_NAMESPACE) $(IMAGE)) names mlxlab's hub" >&2; exit 1;; esac
 	@test -f $(AIC_VALUES)/values.yaml || { echo "no $(AIC_VALUES)/values.yaml (see docs/deploy.md)" >&2; exit 1; }
