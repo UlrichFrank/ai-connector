@@ -11,6 +11,11 @@
 # (the local chat agent; default qwen3.6-35b-a3b if on disk, else the first chat model on disk), LOCAL_USER (the
 # person; default the first word of git's user.name, else $USER), ALLOW_DOWNLOAD=1 (accept a chat model that is
 # not on disk yet: it is downloaded on its first use), REBUILD=1 (build everything again).
+#
+# Running work: before up restarts (or down stops) the server, the worker or vboard, it waits until no job runs or is
+# queued and no Claude Code turn is busy (a restart ends a vboard chat with "The connection to vboard was lost").
+# WAIT_JOBS (seconds, default 600) bounds the wait, FORCE=1 skips it, NO_RESTART=1 builds without restarting.
+# LOCAL_FAKE_BUSY=<seconds> (tests) reports a made-up running job for that long, LOCAL_POLL the poll interval (2 s).
 set -euo pipefail
 umask 077
 
@@ -68,6 +73,7 @@ start_bg() { # name match-string command… (env set by the caller with env …)
   local pid=$!
   printf '%s' "$pid" >"$RUN/$name.pid"
   printf '%s' "$match" >"$RUN/$name.cmd"
+  cat "$(build_file "$name")" >"$RUN/$name.build" 2>/dev/null || true # the build it runs (see stale)
   printf '\n===== %s started (pid %s) =====\n' "$(date '+%F %T')" "$pid" >>"$LOGS/$name.log"
 }
 
@@ -78,7 +84,7 @@ stop_one() { # name [seconds to wait]
     for _ in $(seq 1 $((wait * 5))); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
     if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; say "  $name ($pid) killed"; else say "  $name ($pid) stopped"; fi
   fi
-  rm -f "$RUN/$name.pid" "$RUN/$name.cmd"
+  rm -f "$RUN/$name.pid" "$RUN/$name.cmd" "$RUN/$name.build"
 }
 
 port_busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
@@ -96,6 +102,135 @@ aic() { # method path [json]
   curl -fsS -X "$m" -H "Authorization: Bearer $(dev_token)" -H 'Content-Type: application/json' "$@" "$AIC_URL$p"
 }
 
+# ---------- builds: which running process runs an older build ----------
+# A build writes its id ("<version> <time>") to $STATE/build-{aic,vboard}.id; start_bg copies it to $RUN/<name>.build.
+# A process whose .build differs runs an older build and needs a restart — also when an earlier up built but did not
+# restart (it waited and gave up, Ctrl-C, NO_RESTART=1).
+
+build_file() { case "$1" in server | worker) printf '%s' "$STATE/build-aic.id" ;; *) printf '%s' "$STATE/build-vboard.id" ;; esac; }
+
+new_build_id() { printf '%s %s' "$2" "$(date +%s)" >"$STATE/build-$1.id"; }
+
+# adopt_builds: processes started before build ids existed run the build that is recorded as built.
+adopt_builds() {
+  local c n
+  for c in aic vboard; do
+    [[ -f "$STATE/build-$c.id" || ! -f "$STATE/built-$c" ]] || new_build_id "$c" "$(cat "$STATE/built-$c")"
+  done
+  for n in server worker vboard idp; do
+    if pid_of "$n" >/dev/null && [[ ! -f "$RUN/$n.build" ]]; then cat "$(build_file "$n")" >"$RUN/$n.build" 2>/dev/null || true; fi
+  done
+}
+
+stale() { # name → true when it runs an older build
+  pid_of "$1" >/dev/null && [[ "$(cat "$RUN/$1.build" 2>/dev/null)" != "$(cat "$(build_file "$1")" 2>/dev/null)" ]]
+}
+
+stale_list() { # the processes to restart: "server worker vboard" or fewer
+  local out=()
+  stale server && out+=(server)
+  stale worker && out+=(worker)
+  if [[ -z "$EXTERNAL_VB" ]] && { stale vboard || stale idp; }; then out+=(vboard); fi
+  printf '%s' "${out[*]:-}"
+}
+
+RESTART="" # what up restarts (after the wait)
+restarting() { [[ " $RESTART " == *" $1 "* ]]; }
+
+# ---------- running work: jobs on the worker, busy Claude Code turns ----------
+
+# ts: a Go time (RFC 3339 with fractions and an offset) in epoch seconds; age: seconds since then.
+RUNNING_JQ='
+def ts: if (. // "") == "" or startswith("0001") then null else
+  (capture("^(?<d>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:[0-9]{2})$") // null) as $c
+  | if $c == null then null else ($c.d + "Z" | fromdateiso8601) -
+      (if $c.z == "Z" then 0 else ($c.z[1:3] | tonumber) * 3600 + ($c.z[4:6] | tonumber) * 60
+         | if $c.z[0:1] == "-" then -. else . end end) end end;
+def age: (ts // now) | now - . | floor | if . < 0 then 0 else . end;
+(.[0] // []) as $jobs | (.[1] // []) as $sess
+| ($jobs | map(select(.state == "running" or .state == "queued"))) as $run
+| ($run[] | [.state, .model, (.request.client // "-"), ((.started // .created) | age)] | @tsv),
+  ($sess[] | select(.state == "busy")
+   | select(.driver == "tty" or ($run | any(.model | startswith("claude-code/")) | not))
+   | ["turn", (.model | if startswith("claude-code/") then . else "claude-code/" + . end),
+      (if .driver == "tty" then "terminal session" else "Claude Code session" end), (.lastUsed | age)] | @tsv)'
+
+# running_work prints one line per running or queued job and busy Claude Code turn: state, model, client, seconds
+# (tab-separated). Nothing when nothing runs, when the server does not run or no worker is connected.
+running_work() {
+  if [[ -n "${LOCAL_FAKE_BUSY:-}" ]]; then
+    local el=$(( $(date +%s) - ${FAKE_T0:-$(date +%s)} ))
+    (( el >= LOCAL_FAKE_BUSY )) || printf 'running\tfake-model\tvboard: fake (LOCAL_FAKE_BUSY)\t%s\n' "$el"
+  fi
+  [[ -s "$STATE/device-token" ]] || return 0
+  curl -fsS -m 2 -o /dev/null "$AIC_URL/healthz" 2>/dev/null || return 0
+  { aic GET /api/jobs -m 5 2>/dev/null || printf '[]'; printf '\n'
+    aic GET /api/agents/sessions -m 5 2>/dev/null || printf '[]'; } | jq -rs "$RUNNING_JQ" 2>/dev/null || true
+}
+
+dur() { # seconds → 0:42, 12:05, 1:02:05
+  local s="$1"
+  if (( s >= 3600 )); then printf '%d:%02d:%02d' $((s / 3600)) $((s % 3600 / 60)) $((s % 60)); else printf '%d:%02d' $((s / 60)) $((s % 60)); fi
+}
+
+work_summary() { # running_work's lines → "2 running (longest 3:12: qwen… for vboard: …)"
+  local n longest m c s
+  n="$(grep -c . <<<"$1")"
+  longest="$(sort -t $'\t' -k4,4nr <<<"$1" | head -n1)"
+  IFS=$'\t' read -r _ m c s <<<"$longest"
+  printf '%s running (longest %s: %s for %s)' "$n" "$(dur "$s")" "$m" "$c"
+}
+
+print_work() {
+  local st m c s
+  while IFS=$'\t' read -r st m c s; do
+    printf '  %-8s %-28s %-36s %s\n' "$st" "$m" "$c" "$(dur "$s")"
+  done <<<"$1"
+}
+
+# wait_idle waits until no work runs before "what" (e.g. "restarting server worker"): at once when nothing runs or
+# FORCE=1; polls every LOCAL_POLL (2) s up to WAIT_JOBS (600) s. 1 when the work still runs then. Ctrl-C exits (130)
+# before anything was restarted or stopped.
+wait_idle() {
+  local what="$1" retry="$2" work
+  if [[ "${FORCE:-0}" == 1 ]]; then say "  FORCE=1: $what without checking for running work"; return 0; fi
+  FAKE_T0="${FAKE_T0:-$(date +%s)}"
+  work="$(running_work)"
+  [[ -n "$work" ]] || return 0
+  local limit="${WAIT_JOBS:-600}" poll="${LOCAL_POLL:-2}" t0 el n=0 tty=0
+  [[ -t 1 ]] && tty=1
+  step "work is running: waiting before $what"
+  print_work "$work"
+  say "  Ctrl-C aborts (nothing is restarted or stopped); FORCE=1 $retry does it now and ends the work"
+  trap 'printf "\n"; say "aborted: nothing was restarted or stopped"; exit 130' INT
+  t0=$(date +%s)
+  while :; do
+    el=$(( $(date +%s) - t0 ))
+    if (( el >= limit )); then
+      (( tty )) && printf '\n'
+      trap - INT
+      say "still running after $(dur "$el"): $(work_summary "$work")"
+      say "nothing was restarted or stopped. Wait and run it again, WAIT_JOBS=<seconds> to wait longer, or"
+      say "FORCE=1 $retry to do it now (ends the running work)."
+      return 1
+    fi
+    if (( tty )); then
+      printf '\r\033[K  waiting %s (up to %s): %s' "$(dur "$el")" "$(dur "$limit")" "$(work_summary "$work")"
+    elif (( n % 15 == 0 )); then
+      say "  waiting $(dur "$el") (up to $(dur "$limit")): $(work_summary "$work")"
+    fi
+    n=$((n + 1))
+    sleep "$poll"
+    work="$(running_work)"
+    if [[ -z "$work" ]]; then
+      (( tty )) && printf '\n'
+      trap - INT
+      say "  done after $(dur $(( $(date +%s) - t0 ))): nothing runs any more"
+      return 0
+    fi
+  done
+}
+
 # ---------- up ----------
 
 build_aic() {
@@ -107,7 +242,7 @@ build_aic() {
   step "building ai-connector $v (make build server)"
   make -C "$REPO" build server >"$LOGS/build-aic.log" 2>&1 || { tail -30 "$LOGS/build-aic.log"; die "build failed (log: $LOGS/build-aic.log)"; }
   printf '%s' "$v" >"$STATE/built-aic"
-  AIC_BUILT=1 # running server and worker are restarted with the new build
+  new_build_id aic "$v" # running server and worker are restarted with the new build (stale)
 }
 
 build_vboard() {
@@ -133,14 +268,11 @@ build_vboard() {
   mkdir -p "$VB_DIR/manual"
   if [[ -f "$VBOARD_SRC/manual/dist/index.html" ]]; then rm -rf "$VB_DIR/manual" && cp -R "$VBOARD_SRC/manual/dist" "$VB_DIR/manual"; fi
   printf '%s' "$v" >"$STATE/built-vboard"
-  VB_BUILT=1
+  new_build_id vboard "$v"
 }
 
-AIC_BUILT=0
-VB_BUILT=0
-
 start_server() {
-  if [[ "$AIC_BUILT" == 1 ]] && pid_of server >/dev/null; then say "  restarting the server (new build)"; stop_one server 10; fi
+  if restarting server; then say "  restarting the server (new build)"; stop_one server 10; fi
   if pid_of server >/dev/null && curl -fsS -o /dev/null "$AIC_URL/healthz" 2>/dev/null; then
     say "  ai-connector server runs ($AIC_URL)"
     return
@@ -168,7 +300,7 @@ sign_in() {
 
 start_worker() {
   mkdir -p "$STATE/worker"
-  if [[ "$AIC_BUILT" == 1 ]] && pid_of worker >/dev/null; then say "  restarting the worker (new build)"; stop_one worker 30; fi
+  if restarting worker; then say "  restarting the worker (new build)"; stop_one worker 30; fi
   if pid_of worker >/dev/null; then
     say "  worker runs"
     return
@@ -200,25 +332,30 @@ start_vboard() {
     say "  vboard: $VB_URL (VBOARD_URL; not started here)"
     return
   fi
-  if [[ "$VB_BUILT" == 1 ]] && pid_of vboard >/dev/null; then say "  restarting vboard (new build)"; fi
-  if [[ "$VB_BUILT" == 0 ]] && pid_of vboard >/dev/null && pid_of idp >/dev/null && curl -fsS -o /dev/null "$VB_URL/healthz" 2>/dev/null; then
+  if restarting vboard; then say "  restarting vboard (new build)"; stop_one vboard 5 >/dev/null; stop_one idp 2 >/dev/null; fi
+  if pid_of vboard >/dev/null && curl -fsS -o /dev/null "$VB_URL/healthz" 2>/dev/null; then
+    pid_of idp >/dev/null || start_idp # the test login alone: a running vboard (and its chats) stays
     say "  vboard runs ($VB_URL)"
     return
   fi
   stop_one vboard 5 >/dev/null; stop_one idp 2 >/dev/null
   port_busy "$VB_PORT" && die "port $VB_PORT is used by another program (VBOARD_PORT=…)"
-  port_busy "$IDP_PORT" && die "port $IDP_PORT is used by another program (VBOARD_IDP_PORT=…)"
   mkdir -p "$VB_DIR/data"
-  local users
-  users="$(jq -cn --arg s "$USER_SUB" --arg n "$USER_FULL" '[{sub:$s, name:$n, email:($s+"@localhost"), groups:["admins"], note:"this Mac", color:"#6E56CF"}]')"
   step "starting vboard on $VB_URL (its test login offers $USER_FULL)"
-  start_bg idp "$VB_BIN test-idp" env TEST_IDP_HOST=127.0.0.1 TEST_IDP_PORT="$IDP_PORT" TEST_IDP_USERS="$users" "$VB_BIN" test-idp
+  start_idp
   start_bg vboard "$VB_BIN" env -u DATABASE_URL -u BLOB_STORE \
     HOST=127.0.0.1 PORT="$VB_PORT" DATA_DIR="$VB_DIR/data" STATIC_DIR="$VB_DIR/web" MANUAL_DIR="$VB_DIR/manual" \
     AUTH_MODE=oidc AUTH_OIDC_ISSUER="$IDP_URL" AUTH_OIDC_CLIENT_ID=vboard AUTH_OIDC_CLIENT_SECRET=local \
     AUTH_OIDC_NAME="Local login" AUTH_ADMIN_GROUPS=admins AUTH_BASE_URL="$VB_URL" LOG_LEVEL=info "$VB_BIN"
-  wait_url "$IDP_URL/.well-known/openid-configuration" 20 || { tail -20 "$LOGS/idp.log"; die "vboard's test login did not come up"; }
   wait_url "$VB_URL/healthz" 60 || { tail -20 "$LOGS/vboard.log"; die "vboard did not come up"; }
+}
+
+start_idp() {
+  port_busy "$IDP_PORT" && die "port $IDP_PORT is used by another program (VBOARD_IDP_PORT=…)"
+  local users
+  users="$(jq -cn --arg s "$USER_SUB" --arg n "$USER_FULL" '[{sub:$s, name:$n, email:($s+"@localhost"), groups:["admins"], note:"this Mac", color:"#6E56CF"}]')"
+  start_bg idp "$VB_BIN test-idp" env TEST_IDP_HOST=127.0.0.1 TEST_IDP_PORT="$IDP_PORT" TEST_IDP_USERS="$users" "$VB_BIN" test-idp
+  wait_url "$IDP_URL/.well-known/openid-configuration" 20 || { tail -20 "$LOGS/idp.log"; die "vboard's test login did not come up"; }
 }
 
 vb() { curl -fsS -H "Authorization: Bearer $(cat "$STATE/vboard-token")" -H 'Content-Type: application/json' "$@"; }
@@ -348,8 +485,17 @@ cmd_up() {
   need jq "brew install jq"; need curl ""; need go "Go"; need pnpm "pnpm"; need openssl ""
   mkdir -p "$STATE" "$LOGS" "$RUN"
   chmod 700 "$STATE"
+  adopt_builds
   build_aic
   [[ -n "$EXTERNAL_VB" ]] || build_vboard
+  # restarted after the builds and only after the work that runs is done (a restart ends a running vboard chat)
+  local stale; stale="$(stale_list)"
+  if [[ -n "$stale" && "${NO_RESTART:-0}" == 1 ]]; then
+    say "  NO_RESTART=1: built, not restarted: ${stale// /, } (an older build runs; make local-up restarts it)"
+  elif [[ -n "$stale" ]]; then
+    wait_idle "restarting ${stale// /, }" "make local-up" || exit 1
+    RESTART="$stale"
+  fi
   start_server
   sign_in
   start_lmstudio
@@ -371,6 +517,9 @@ cmd_up() {
 # ---------- down, status, logs, open ----------
 
 cmd_down() {
+  local n any=0
+  for n in server worker vboard idp; do pid_of "$n" >/dev/null && any=1; done
+  if (( any )); then wait_idle "stopping" "make local-down" || exit 1; fi
   say "stopping the local integration (data stays in $STATE)"
   stop_one worker 30   # it unloads its models and ends its Claude Code sessions first
   stop_one vboard 15
@@ -392,6 +541,9 @@ cmd_status() {
   if curl -fsS -o /dev/null "$AIC_URL/healthz" 2>/dev/null && [[ -s "$STATE/device-token" ]]; then
     say "  server   $AIC_URL ($CONSOLE_URL)"
     aic GET /api/workers 2>/dev/null | jq -r '.[] | "  worker   \(.name)  owner=\(.owner // "-")  connected=\(.connected)"' || true
+    local work; work="$(running_work)"
+    if [[ -n "$work" ]]; then say "  work     $(work_summary "$work")"; print_work "$work" | sed 's/^/         /'
+    else say "  work     nothing running (up restarts and down stops at once)"; fi
     aic GET /api/connectors 2>/dev/null | jq -r '.[] | "  connector \(.name) → \(.url)  state=\(.state)\(if (.error // "") != "" then " (\(.error))" else "" end)  user=\(.user // "-")",
       "            agents: \([.agents[] | .model] | join(", "))",
       "            offered now: \([.advertised[]? | "\(.id) (\(.kind) on \(.worker))"] | join(", "))"' || true
@@ -418,6 +570,8 @@ cmd_open() {
   open "$CONSOLE_URL"
   [[ -s "$STATE/vboard-board" ]] && open "$VB_URL/b/$(cat "$STATE/vboard-board")" || open "$VB_URL"
 }
+
+[[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0 # sourced (deploy/local/local_test.sh): the functions only
 
 case "${1:-}" in
   up) cmd_up ;;
