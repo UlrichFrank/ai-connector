@@ -48,8 +48,10 @@ func usage() {
 	fmt.Fprint(os.Stderr, `mlxlab — local AI models on MLX
 
 usage:
-  mlxlab worker [--hub URL] [--token T]       serve this Mac's models to the hub (see docs/architecture.md)
-  mlxlab serve [--addr 127.0.0.1:8484]        standalone on this Mac only: the web app and the API, no hub
+  mlxlab worker [--hub URL] [--token T] [--config FILE] [--state DIR]
+                                              serve this Mac's models to the hub (see docs/architecture.md)
+  mlxlab serve [--addr 127.0.0.1:8484] [--state DIR]
+                                              standalone on this Mac only: the web app and the API, no hub
   mlxlab [tui] [--server URL]                 the terminal UI, a client of the hub (or of mlxlab serve)
   mlxlab list                                 the models and where they are
   mlxlab run [options] <model> <prompt…>      one job; text goes to stdout, files are listed
@@ -57,6 +59,10 @@ usage:
 
 worker: the hub URL and the token come from the flags, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or worker.json
         (written when --hub and a token (flag or MLXLAB_WORKER_TOKEN) are given). The token is the hub's MLXLAB_WORKER_TOKEN.
+        --config FILE ($MLXLAB_WORKER_CONFIG): another file than <files>/worker.json (a second worker on this Mac).
+state:  --state DIR ($MLXLAB_STATE): this process's jobs (history.json, outputs/), prompts, approvals.json and
+        Claude Code sessions (agents/, agents.json) go to DIR; the models, envs/, lib/, tools/, mcp.json, voices/
+        and styles/ stay shared in <files>. Default: <files> itself.
 
 run options: --size WxH --steps N --seed N --frames N --fps N --q 4|8|-1 --image FILE --temp T --think
              music: <model> "<style>" --lyrics FILE --duration SECONDS --instrumental --bpm N --planner 4b|off
@@ -84,13 +90,17 @@ func run() error {
 	}
 	fs := flag.NewFlagSet("mlxlab "+cmd, flag.ContinueOnError)
 	fs.Usage = usage
-	var addr, hub, token *string
+	var addr, hub, token, cfgFile *string
+	state := new(string)
 	switch cmd {
 	case "serve":
 		addr = fs.String("addr", "127.0.0.1:8484", "where the app listens (this Mac only)")
+		state = fs.String("state", "", "this process's jobs, prompts and sessions (default: the config dir; $MLXLAB_STATE)")
 	case "worker":
 		hub = fs.String("hub", "", "the hub, e.g. https://mlxlab.example.org")
 		token = fs.String("token", "", "the worker token (the hub's MLXLAB_WORKER_TOKEN)")
+		cfgFile = fs.String("config", "", "the file with hub and token (default <config dir>/worker.json; $MLXLAB_WORKER_CONFIG)")
+		state = fs.String("state", "", "this worker's jobs, prompts and sessions (default: the config dir; $MLXLAB_STATE)")
 	}
 	ro := runOptions{}
 	if cmd == "run" {
@@ -104,9 +114,10 @@ func run() error {
 	}
 
 	root := engine.ConfigDir()
+	own := stateDir(*state, os.Getenv, root)
 	switch cmd {
 	case "worker":
-		file := filepath.Join(root, "worker.json")
+		file := workerFile(*cfgFile, os.Getenv, root)
 		cfg, save, err := resolveWorker(*hub, *token, os.Getenv, file)
 		if err != nil {
 			return err
@@ -117,10 +128,10 @@ func run() error {
 			}
 			fmt.Println("mlxlab worker: hub and token kept in", file)
 		}
-		_, mgr := setup(root)
-		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
+		_, mgr := setup(root, own)
+		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
 	case "serve":
-		_, mgr := setup(root)
+		_, mgr := setup(root, own)
 		url, err := serve(mgr, *addr)
 		if err != nil {
 			return err
@@ -137,7 +148,7 @@ func run() error {
 		closeSandboxes()
 		return nil
 	case "list":
-		cat, _ := setup(root)
+		cat, _ := setup(root, own)
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tKIND\tBACKEND\tSIZE\tWHERE")
 		for _, m := range cat.List() {
@@ -156,7 +167,7 @@ func run() error {
 		}
 		return w.Flush()
 	case "run":
-		_, mgr := setup(root)
+		_, mgr := setup(root, own)
 		return ro.run(mgr, fs.Args())
 	case "", "help":
 		usage()
@@ -179,8 +190,9 @@ func helpFlag(args []string) bool {
 // appleSilicon: the MLX chat models and the Python runtimes (mflux, ltx-2-mlx, mlx-audio, …) run here.
 const appleSilicon = runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
 
-// setup builds the catalogue, the backends and the job manager.
-func setup(root string) (*engine.Catalog, *jobs.Manager) {
+// setup builds the catalogue, the backends and the job manager: the models, envs and libraries from root (the
+// config dir, shared), the jobs, prompts, approvals and Claude Code sessions in own (stateDir; root by default).
+func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	srcs, _ := models.Sources(os.Getenv("MLXLAB_MODELS_FROM"), nil)
 	store := &models.Store{Dir: filepath.Join(root, "models"), Sources: srcs}
 	lms, hf := llm.LocalRoots()
@@ -189,14 +201,14 @@ func setup(root string) (*engine.Catalog, *jobs.Manager) {
 	cat := engine.NewCatalog(store, finder)
 	text := &engine.TextBackend{Store: store}
 	// the tools allowed always (approvals.json): the chats ask it, the web API changes it
-	always := approvals.Open(root)
+	always := approvals.Open(own)
 	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
 	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
 	// the embedder and the classifier run everywhere (pure Go); MLX and the Python runtimes need Apple silicon
 	backends := []engine.Backend{text}
 	if appleSilicon {
 		backends = append(backends,
-			&engine.ChatBackend{Finder: finder, Agent: agentConfig(root, text, always)},
+			&engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)},
 			&engine.FluxBackend{Root: root, Store: store},
 			&engine.LTXBackend{Root: root, Store: store},
 			&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
@@ -223,8 +235,8 @@ func setup(root string) (*engine.Catalog, *jobs.Manager) {
 		backends = append(backends, oa)
 	}
 	// Claude Code, when it is installed here (internal/agents): its jobs run beside the queue
-	backends = append(backends, claudeBackend(root, cat))
-	mgr := jobs.New(cat, backends, root)
+	backends = append(backends, claudeBackend(root, own, cat))
+	mgr := jobs.New(cat, backends, own)
 	mgr.Approvals = always
 	return cat, mgr
 }
@@ -241,7 +253,7 @@ func serve(mgr *jobs.Manager, addr string) (string, error) {
 		return "", fmt.Errorf("%s is reachable from other devices, and mlxlab serve has no sign-in: use 127.0.0.1, "+
 			"and mlxlab worker with the hub for other devices (docs/architecture.md)", addr)
 	}
-	h := web.SameOrigin((&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
+	h := web.SameOrigin((&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: engine.ConfigDir(), HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
 	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = srv.Serve(ln) }()
 	return "http://" + ln.Addr().String(), nil

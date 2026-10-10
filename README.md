@@ -237,6 +237,13 @@ no port opens on the Mac and the files stay on it. The hub URL and the worker to
 token is the hub's `MLXLAB_WORKER_TOKEN`. The worker prints its state, reconnects with backoff when the connection
 drops, and stops on a token the hub refuses. While it is offline the hub answers "The Mac is offline".
 
+**A second worker on the same Mac** (e.g. one for a local ai-connector server while another serves the hub on the
+Pi): `--config <file>` (`$MLXLAB_WORKER_CONFIG`) keeps its hub and token in another file than `worker.json`, and
+`--state <dir>` (`$MLXLAB_STATE`) its own jobs (`history.json`, `outputs/`), prompts, `approvals.json` and Claude Code
+sessions (`agents/`, `agents.json`). The models, `envs/`, `lib/`, `tools/`, `mcp.json`, the voices and trained styles
+stay shared in `~/.config/mlxlab` — nothing is downloaded twice. Defaults: `worker.json` and the config dir itself, as
+before.
+
 ## iOS app
 
 `ios/` holds the iPhone/iPad app (SwiftUI, generated with XcodeGen like yacal; see `ios/README.md`). It talks to

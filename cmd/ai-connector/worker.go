@@ -23,6 +23,33 @@ type workerConfig struct {
 	Token string `json:"token"`
 }
 
+// workerFile is the worker's config file (hub and token): --config, else $MLXLAB_WORKER_CONFIG, else
+// <config dir>/worker.json. A second worker on the same Mac (another hub) keeps its own file this way.
+func workerFile(flagFile string, getenv func(string) string, root string) string {
+	if flagFile != "" {
+		return flagFile
+	}
+	if v := getenv("MLXLAB_WORKER_CONFIG"); v != "" {
+		return v
+	}
+	return filepath.Join(root, "worker.json")
+}
+
+// stateDir is where a worker keeps what is its own — the jobs (history.json, outputs/), the prompts, the tools
+// allowed always (approvals.json), the Claude Code sessions (agents/, agents.json): --state, else $MLXLAB_STATE,
+// else the config dir itself. What is shared stays in the config dir: the models, the Python envs, lib/, tools/,
+// mcp.json, the voices and the trained styles. So a second worker on the same Mac (e.g. against a local server
+// while the first serves the Pi's hub) shares the downloads but not the history of the other.
+func stateDir(flagDir string, getenv func(string) string, root string) string {
+	if flagDir != "" {
+		return flagDir
+	}
+	if v := getenv("MLXLAB_STATE"); v != "" {
+		return v
+	}
+	return root
+}
+
 // resolveWorker picks the hub URL and the token, each on its own: the flag, else the environment, else the file.
 // save: the hub came as a flag and the token as a flag or from MLXLAB_WORKER_TOKEN (the command the web UI
 // shows), so the file should remember both for next time.

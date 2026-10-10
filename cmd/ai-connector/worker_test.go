@@ -215,3 +215,41 @@ func TestServeRefusesOtherNetworks(t *testing.T) {
 		t.Errorf("cross-origin write: %s, want 403", resp.Status)
 	}
 }
+
+// A second worker on the same Mac: its own config file and state dir (flag, else env, else the config dir).
+func TestWorkerFileAndState(t *testing.T) {
+	root := "/cfg/mlxlab"
+	if got := workerFile("", env(nil), root); got != filepath.Join(root, "worker.json") {
+		t.Fatalf("default config: %s", got)
+	}
+	if got := workerFile("", env(map[string]string{"MLXLAB_WORKER_CONFIG": "/l/worker.json"}), root); got != "/l/worker.json" {
+		t.Fatalf("env config: %s", got)
+	}
+	if got := workerFile("/f.json", env(map[string]string{"MLXLAB_WORKER_CONFIG": "/l/worker.json"}), root); got != "/f.json" {
+		t.Fatalf("flag config: %s", got)
+	}
+	if got := stateDir("", env(nil), root); got != root {
+		t.Fatalf("default state: %s", got)
+	}
+	if got := stateDir("", env(map[string]string{"MLXLAB_STATE": "/l/state"}), root); got != "/l/state" {
+		t.Fatalf("env state: %s", got)
+	}
+	if got := stateDir("/s", env(map[string]string{"MLXLAB_STATE": "/l/state"}), root); got != "/s" {
+		t.Fatalf("flag state: %s", got)
+	}
+}
+
+// setup with a state dir: the jobs, prompts and sessions are there, the models are looked up in the config dir.
+func TestSetupState(t *testing.T) {
+	root, own := t.TempDir(), t.TempDir()
+	_, mgr := setup(root, own)
+	if mgr.Dir != own || mgr.OutDir() != filepath.Join(own, "outputs") {
+		t.Fatalf("jobs in %s", mgr.Dir)
+	}
+	if claudeAgents == nil || claudeAgents.Root != filepath.Join(own, "agents") || len(claudeAgents.Shared) != 1 || claudeAgents.Shared[0] != root {
+		t.Fatalf("agents: %+v", claudeAgents)
+	}
+	if _, err := os.Stat(filepath.Join(root, "history.json")); err == nil {
+		t.Fatal("history.json written to the config dir")
+	}
+}

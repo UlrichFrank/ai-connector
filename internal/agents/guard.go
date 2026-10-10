@@ -100,17 +100,22 @@ func (m *Manager) denyRules(s *Session) []string {
 			paths = append(paths, p)
 		}
 	}
-	// the config folder around the agents folder: worker.json (the worker token), agents.json, client.json, …
-	if m.Home != "" {
+	// the config folder around the agents folder: worker.json (the worker token), agents.json, client.json, …;
+	// and the shared config folder when this worker's state is elsewhere (each entry: the folders of the session
+	// are left out, their parts are above)
+	for _, dir := range append([]string{m.Home}, m.Shared...) {
+		if dir == "" {
+			continue
+		}
 		known := []string{"worker.json", "client.json", "agents.json", "history.json", "prompts.json", "approvals.json"}
 		seen := map[string]bool{}
-		if es, err := os.ReadDir(m.Home); err == nil {
+		if es, err := os.ReadDir(dir); err == nil {
 			for _, e := range es {
 				known = append(known, e.Name())
 			}
 		}
 		for _, n := range known {
-			p := filepath.Join(m.Home, n)
+			p := filepath.Join(dir, n)
 			if seen[n] || inside(m.Root, p) || inside(p, m.Root) || inside(s.cwd, p) {
 				continue // the agents folder itself (its parts are above)
 			}

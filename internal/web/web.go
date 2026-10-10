@@ -38,10 +38,13 @@ var static embed.FS
 type Server struct {
 	Jobs    *jobs.Manager
 	Prompts *prompts.Library
-	// Voices is the voice library (nil: <Jobs.Dir>/voices, transcribed by the "speech" backend)
+	// Voices is the voice library (nil: <Home>/voices, transcribed by the "speech" backend)
 	Voices *voices.Library
-	// Styles is the library of trained styles (nil: the music backend's, else <Jobs.Dir>/styles)
+	// Styles is the library of trained styles (nil: the music backend's, else <Home>/styles)
 	Styles *styles.Library
+	// Home is the config dir the voices and styles are shared in ("": Jobs.Dir — they differ when the worker
+	// keeps its jobs in a state dir of its own, mlxlab worker --state).
+	Home string
 	// HomeTools lists the home zone's tools now, by MCP server (a server that does not answer has its Error set);
 	// err: the servers cannot be listed at all (mcp.json unreadable). nil: no home tools on this worker.
 	HomeTools func(ctx context.Context) ([]ToolServer, error)
@@ -597,7 +600,7 @@ func (s *Server) voices() *voices.Library {
 	if s.Voices != nil {
 		return s.Voices
 	}
-	lib := voices.Open(filepath.Join(s.Jobs.Dir, "voices"))
+	lib := voices.Open(filepath.Join(s.home(), "voices"))
 	if t, ok := s.Jobs.Backends["speech"].(interface {
 		Transcribe(ctx context.Context, file, language string) (string, error)
 	}); ok {

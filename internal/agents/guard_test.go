@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -195,4 +196,34 @@ func waitUntil(t *testing.T, ok func() bool) {
 		}
 	}
 	t.Fatal("timed out")
+}
+
+// A worker with its own state dir (mlxlab worker --state): its sessions may read neither that dir's files nor the
+// shared config dir's (the other worker's worker.json, history, …) — also when the state dir lies inside it.
+func TestDenySharedConfig(t *testing.T) {
+	for _, nested := range []bool{false, true} {
+		shared := t.TempDir()
+		state := t.TempDir()
+		if nested {
+			state = filepath.Join(shared, "local")
+		}
+		os.MkdirAll(filepath.Join(shared, "models"), 0o755)
+		os.WriteFile(filepath.Join(shared, "worker.json"), []byte(`{"token":"pi-secret"}`), 0o600)
+		os.MkdirAll(filepath.Join(state, "agents", "s1"), 0o755)
+		os.WriteFile(filepath.Join(state, "history.json"), []byte(`[]`), 0o600)
+		m := &Manager{Root: filepath.Join(state, "agents"), Home: state, Shared: []string{shared}}
+		cwd := filepath.Join(state, "agents", "s1")
+		rules := m.denyRules(&Session{cwd: cwd})
+		has := func(p string) bool { return slices.Contains(rules, "Read("+absRule(p)+")") }
+		for _, p := range []string{filepath.Join(shared, "worker.json"), filepath.Join(shared, "models"), filepath.Join(state, "history.json"), filepath.Join(state, "worker.json")} {
+			if !has(p) {
+				t.Errorf("nested=%v: %s not denied: %v", nested, p, rules)
+			}
+		}
+		for _, p := range []string{cwd, state, shared, m.Root} {
+			if has(p) {
+				t.Errorf("nested=%v: %s denied (the session's own folder is in it)", nested, p)
+			}
+		}
+	}
 }

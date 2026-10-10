@@ -18,7 +18,7 @@ import (
 // The styles library (train your own style, docs/architecture.md): styles of the song models trained on the
 // user's own tracks. Their audio (tracks, samples) is served as /files/styles/<id>/….
 
-// styleLib is the music backend's library (one per worker); without a music backend, <Jobs.Dir>/styles.
+// styleLib is the music backend's library (one per worker); without a music backend, <Home>/styles.
 func (s *Server) styleLib() *styles.Library {
 	if s.Styles != nil {
 		return s.Styles
@@ -26,7 +26,15 @@ func (s *Server) styleLib() *styles.Library {
 	if b, ok := s.Jobs.Backends["music"].(interface{ StyleLibrary() *styles.Library }); ok {
 		return b.StyleLibrary()
 	}
-	return styles.Open(filepath.Join(s.Jobs.Dir, "styles"))
+	return styles.Open(filepath.Join(s.home(), "styles"))
+}
+
+// home is the shared config dir (Home, else the jobs' dir).
+func (s *Server) home() string {
+	if s.Home != "" {
+		return s.Home
+	}
+	return s.Jobs.Dir
 }
 
 // styleView is a style as the page sees it: files as /files/ urls, the status from its training job, an estimate

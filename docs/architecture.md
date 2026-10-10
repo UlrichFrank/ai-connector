@@ -51,6 +51,21 @@ environment (`MLXLAB_HUB`, `MLXLAB_WORKER_TOKEN`) or `~/.config/mlxlab/worker.js
 It reconnects with backoff and prints its state; a refused token (revoked) stops it. `mlxlab version` prints the
 build. The TUI is no longer part of the worker.
 
+**Config file and state dir (several workers on one Mac).** `--config <file>` / `MLXLAB_WORKER_CONFIG` names the file
+with hub and token (default `<config dir>/worker.json`). `--state <dir>` / `MLXLAB_STATE` (also for `serve` and `run`)
+is where the process keeps what is its own; the rest of the config dir (`MLXLAB_HOME`, `~/.config/mlxlab`) is shared:
+
+| own (`--state`, default: the config dir) | shared (the config dir) |
+|---|---|
+| `history.json`, `outputs/` (incl. uploads) — the job manager's dir | `models/` (and `verified.json`), `envs/`, `lib/`, `tools/`, `bin/` |
+| `prompts.json`, `approvals.json` | `mcp.json`, `logs/` (the MCP servers' logs) |
+| `agents/` (Claude Code sessions, `resume.json`), `agents.json` | `voices/`, `styles/` (the libraries; `web.Server.Home`) |
+
+A Claude Code session of such a worker may read neither its state dir's files nor the shared config dir's
+(`agents.Manager.Shared`, guarded like `Home`: the other worker's `worker.json` holds its token). Two workers on one
+Mac share the memory: each loads its own copy of a model it runs. The web sandbox's VMs have fixed names: only one of
+the workers should run web-search chats at a time.
+
 ## TUI
 
 `mlxlab tui [--server https://mlxlab.example.org]` — a client of the hub API (`internal/client`). The first time it

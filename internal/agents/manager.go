@@ -132,7 +132,10 @@ type Manager struct {
 	Root string // the sessions' folders: <config>/agents
 	// Home is the config folder around Root (~/.config/mlxlab): sessions may read nothing of it but their own
 	// folder (guard.go). "" in tests.
-	Home    string
+	Home string
+	// Shared are more config folders a session may read nothing of (the config dir when this worker keeps its own
+	// state elsewhere: mlxlab worker --state); guarded like Home.
+	Shared  []string
 	Config  Config
 	Command string   // "claude"
 	Env     []string // added to the environment of claude
