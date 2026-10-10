@@ -694,7 +694,9 @@ func (m *Manager) publish(u Update) {
 
 // makeRoom drops one update from a full subscriber channel: the oldest event (a follower sees the gap in the text by
 // its "at" and takes the text from the job), else the oldest state. Called with m.mu held, so nothing else sends
-// meanwhile; the subscriber may take updates concurrently, which only leaves more room. The order is kept.
+// meanwhile. The subscriber may take updates concurrently: that leaves more room, but then a few of the older updates
+// can reach it out of order (text is placed by its "at"; a job's newer state supersedes an older one) — the update
+// that needed the room is always sent after them.
 func makeRoom(ch chan Update) {
 	var q []Update
 	for len(q) < cap(ch) {
