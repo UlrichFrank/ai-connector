@@ -702,7 +702,7 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 ```
 
 * `id`: the catalogue id (as for chat models, cut to 80 characters); `name`, `worker` as for agents. `kind`:
-  `image` | `video`. The first of each kind is the default.
+  `image` | `video` (| `upscale`, see "Upscaling" below). The first of each kind is the default.
 * `edit` (image): takes reference images (edits, "make this sketch a photo"); a model that only edits has
   `"textToImage": false` and needs at least one. `firstFrame` (video): may start from an image. `audio` (video): the
   video has a soundtrack unless the request says `"audio": false`.
@@ -710,7 +710,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   for images, 1280 for LTX); `default`: what an empty request gets (the catalogue's defaults; a video's `seconds`
   from its default frames: 97 at 24 fps → 4); `maxSeconds` (video: 10).
 * Which models are generators: image models run by mflux (FLUX.2 klein, Qwen-Image; `edit`/`textToImage` from the
-  catalogue's tasks) and the LTX video models; anything else in the setting is not offered.
+  catalogue's tasks), the SeedVR2 upscalers (mflux, task `upscale`: kind `upscale`) and the LTX video models;
+  anything else in the setting is not offered.
 * `nonCommercial`: true when the weights' licence forbids commercial use (vboard may show it or leave the model out);
   always sent.
 * Which ones: the connector's setting `generators` (console → Connectors, `--generators` for `ai-connector vboard`),
@@ -764,9 +765,11 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   * At most one a second (the job is asked every second; only a change is sent); one at least every 60 s as
     keep-alive (the last one again), so vboard's 3-minute idle rule never fires for a long render.
 * The file in pieces (an answer must stay under vboard's 8 MB): `{"type":"generateFile","id","mime","size","seq",
-  "data","last"}` — `mime` `image/png` | `video/mp4`, `size` the whole file's bytes, `seq` 0, 1, … in order, `data`
-  base64 of at most 1 MiB, `last: true` on the final piece. At most **15 MB an image** (vboard's limit for image
-  assets; a 2048² PNG fits) and **200 MB a video** (vboard takes 500 MB); larger → `error` (not re-encoded).
+  "data","last"}` — `mime` `image/png` | `image/jpeg` | `video/mp4`, `size` the whole file's bytes, `seq` 0, 1, …
+  in order, `data` base64 of at most 1 MiB, `last: true` on the final piece. At most **15 MB an image** (vboard's
+  limit for image assets; a 2048² PNG fits) and **200 MB a video** (vboard takes 500 MB). A larger PNG is sent as
+  `image/jpeg` (quality 92; see "Upscaling" below), still too large → `error`; a larger video → `error` (not
+  re-encoded).
 * `{"type":"generateDone","id","width","height","seconds"?,"seed","generator","took"}` after the last piece
   (`width`/`height`, `seed`: as the job made it — the random seed when 0 was asked; `seconds`: a video's length,
   (frames − 1) / fps; `took`: seconds the job ran, to 0.1). vboard turns the placeholder into the item now.
@@ -802,16 +805,24 @@ that has the model and is least busy, so a second Mac keeps the chat warm.
   MCP client of the person (their own Claude Code with vboard's MCP) uses the same — so it works directly or through
   a server, with any chat.
 
-#### Upscaling (planned, contract)
+#### Upscaling (as built)
 
-Not built yet; additive to the generators above. An image on the board made larger and sharper — "make this sharper",
-or "Upscale ×2" on an image — by **SeedVR2** (ByteDance, Apache-2.0; diffusion super-resolution that adds detail
-without repainting the picture), which the pinned mflux (0.20.0, `mflux-upscale-seedvr2`) already runs.
+Additive to the generators above (the connector: `internal/hub/vboard_upscale.go`, the JPEG fallback in
+`vboard_generate.go`'s `sendFile`; the worker: `internal/engine/upscale.go` and the mflux worker script; tested in
+`vboard_upscale_test.go` and `engine/upscale_test.go`). An image on the board made larger and sharper — "make this
+sharper", or "Upscale ×2" on an image — by **SeedVR2** (ByteDance, Apache-2.0; diffusion super-resolution that adds
+detail without repainting the picture), which the pinned mflux (0.20.0, `mflux-upscale-seedvr2`) already runs.
 
 * **Worker:** two catalogue models, `seedvr2-3b` (the default: faster, smaller) and `seedvr2-7b` (better, larger),
-  kind `image` with `Tasks: ["upscale"]`, backend mflux (same Python environment as FLUX; only the weights are
-  downloaded — through "setting up models" below like any other). The job takes one image (`images`) and a scale;
-  no prompt. Large outputs use mflux's VAE tiling so a 4096² result does not need the memory of a 4096² decode.
+  kind `image` with `Tasks: ["upscale"]`, backend mflux (same Python environment as FLUX and the same long-lived
+  worker script, which keeps one model loaded; only the weights are downloaded — through "setting up models" below
+  like any other). Weights: `numz/SeedVR2_comfyUI` at a pinned revision, only the fp16 transformer of the size and
+  the shared VAE (`seedvr2_ema_3b_fp16.safetensors` + `ema_vae_fp16.safetensors`: 7.3 GB; the 7B: 17.0 GB), both
+  in one folder. The job (`POST /api/jobs`) is `{"model":"seedvr2-3b","images":["/files/…"],"scale":2,"seed"?}`:
+  one image, `scale` 2 to 4 (0 → 2), no prompt; bf16 unless `quantize` says otherwise; one step. mflux takes the
+  shorter side's new length: the worker script reads the image's size (EXIF orientation applied) and picks it as
+  below; the job's `stats` have the `width`/`height` it made. mflux's SeedVR2 tiles the VAE (encode and decode in
+  512 px tiles) by default, so a 4096² result does not need the memory of a 4096² decode (no flag needed).
 * **Advertised** like the other generators, with its own kind (vboards that do not know it drop it):
 
   ```json
@@ -819,16 +830,26 @@ without repainting the picture), which the pinned mflux (0.20.0, `mflux-upscale-
    "scales": [2, 4], "max": 4096, "nonCommercial": false}
   ```
 
-  `scales`: the factors it takes; `max`: the longest side of the result. The first `upscale` generator is the default.
-  `"*"` in the connector's `generators` includes them; `ai-connector vboard` offers them by default like the others.
-* **Request:** `generate` with `{"kind":"upscale","generator"?,"images":[exactly one],"scale":2}` — `prompt` is not
-  needed (ignored). The result is `scale` × the source's size, cut so the longer side is at most `max` (aspect kept);
-  `scale` not in `scales` → the nearest one below. A source larger than `max` / 2 → `error` "already as large as …
-  can make it". The first `generateStatus` carries the result's `width`/`height` as for the others.
+  `scales`: the factors it takes; `max`: the longest side of the result. No `multiple`, `default`, `edit`. The first
+  `upscale` generator is the default. `"*"` in the connector's `generators` includes them; `ai-connector vboard`
+  offers them by default like the others.
+* **Request:** `generate` with `{"kind":"upscale","generator"?,"images":[exactly one],"scale":2,"seed"?}` —
+  `prompt` is not needed (ignored; `steps`, `width`, `height` too). `scale` not in `scales` → the nearest one below
+  (3 → 2, 8 → 4); 0 or below the smallest → the smallest (2). The image as for the others (png/jpeg/webp, at most
+  8 MB); its size is read from its header. A source whose longer side is more than `max` / 2 → `error` "the image
+  (W×H) is already as large as … can make it"; no image or more than one → `error`. The result is `scale` × the
+  source's size, cut so the longer side is at most `max` (aspect kept), worked out as mflux does: the shorter side
+  becomes `scale` × as long (when cut: shorter × `max` / longer, rounded down), the longer one in proportion, both
+  rounded down to even — so a cut result may be a pixel or two under `max` (1366×768 ×4 → 4094×2302; 1920×1080 ×4
+  → 4096×2304). The first `generateStatus` carries that `width`/`height` as for the others. (A JPEG with an EXIF
+  rotation is read as stored: its first status may have the sides swapped; `generateDone` has what was made.)
 * **The file:** an image result larger than vboard's 15 MB as PNG (a 4096² PNG is 30–50 MB) is sent as
   **`image/jpeg`** (quality 92) instead — for every kind, not only upscales: `generateFile`'s `mime` may now be
-  `image/png` | `image/jpeg` | `video/mp4`. Still too large as JPEG → `error`. (vboards that took only `image/png`:
-  they get JPEG only from an upscale, which they never ask for.)
+  `image/png` | `image/jpeg` | `video/mp4`. Still too large as JPEG → `error` "the image (as JPEG) is … MB, more
+  than vboard takes"; a PNG that does not decode → `error`. The connector decodes and re-encodes it (Go's
+  image/jpeg; up to 256 MB of PNG is read). (vboards that took only `image/png`: they get JPEG only from an upscale,
+  which they never ask for — a FLUX or Qwen-Image picture of at most 2048² stays well under 15 MB as PNG; only pure
+  noise would not.)
 * Progress, `generateDone`, cancel, errors, handover: as for images.
 
 **vboard's side (for reference; vboard decides the details)**
@@ -925,7 +946,8 @@ model, which may not exist yet.
   models, e.g. Ollama's, are listed as `here`); `worker` says which computer, also standalone (one entry per model and
   worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when unknown) and
   `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein 4B Apache-2.0,
-  9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License"). `url`: the Hugging Face page.
+  9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers Apache-2.0 — listed as
+  `image` models). `url`: the Hugging Face page.
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
   accepted on `url`), `token` (no token is set, or Hugging Face does not take it: 4), `unknown` (no answer). Asked of
   Hugging Face per repository (`GET https://huggingface.co/api/models/<repo>/auth-check` with the token: 200
