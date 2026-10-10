@@ -33,6 +33,20 @@ func fakeOllama(t *testing.T, gotChat *map[string]any) *httptest.Server {
 	mux.HandleFunc("POST /v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(gotChat)
 		w.Header().Set("Content-Type", "text/event-stream")
+		if (*gotChat)["tools"] != nil { // the caller's tools: two calls, each in pieces (as Ollama and vLLM stream them)
+			for _, d := range []string{
+				`{"choices":[{"delta":{"content":"Let me check."}}]}`,
+				`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"get_weather","arguments":""}}]}}]}`,
+				`{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"city\":"}}]}}]}`,
+				`{"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_b","type":"function","function":{"name":"get_time","arguments":"{}"}}]}}]}`,
+				`{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"Berlin\"}"}}]},"finish_reason":"tool_calls"}]}`,
+				`{"choices":[],"usage":{"prompt_tokens":30,"completion_tokens":9}}`,
+				`[DONE]`,
+			} {
+				fmt.Fprintf(w, "data: %s\n\n", d)
+			}
+			return
+		}
 		for _, d := range []string{
 			`{"choices":[{"delta":{"reasoning":"Let me think."}}]}`,
 			`{"choices":[{"delta":{"content":"Hello"}}]}`,
@@ -190,5 +204,56 @@ func TestParseRuntimes(t *testing.T) {
 	rts, _ := ParseRuntimes("cloud=https://example.com/v1#sk-1")
 	if rts[0].Key != "sk-1" {
 		t.Errorf("key = %q", rts[0].Key)
+	}
+}
+
+// The caller's tools go to the runtime as OpenAI tools; the streamed calls come back put together in result.toolCalls.
+func TestOpenAIBackendClientTools(t *testing.T) {
+	var gotChat map[string]any
+	srv := fakeOllama(t, &gotChat)
+	b := &OpenAIBackend{Catalog: &Catalog{}, Runtimes: []Runtime{{Name: "ollama", URL: srv.URL + "/v1"}}}
+	b.Discover(context.Background())
+	chat := b.Catalog.Find("ollama/qwen3:8b")
+	tools := []llm.Tool{
+		{Name: "get_weather", Description: "the weather of a city", Parameters: json.RawMessage(`{"type":"object","properties":{"city":{"type":"string"}}}`)},
+		{Name: "get_time"},
+	}
+	msgs := []llm.Message{
+		{Role: "user", Content: "weather?"},
+		{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "call_0", Name: "get_time", Arguments: "{}"}}},
+		{Role: "tool", Content: "12:00", ToolCallID: "call_0"},
+	}
+	var text strings.Builder
+	var result map[string]any
+	err := b.Run(context.Background(), chat, Request{Messages: msgs, Tools: tools}, "", func(e Event) {
+		switch e.Type {
+		case "text":
+			text.WriteString(e.Text)
+		case "result":
+			result = e.Data
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent, _ := json.Marshal(gotChat["tools"])
+	if string(sent) != `[{"function":{"description":"the weather of a city","name":"get_weather","parameters":{"properties":{"city":{"type":"string"}},"type":"object"}},"type":"function"},`+
+		`{"function":{"description":"","name":"get_time","parameters":{"properties":{},"type":"object"}},"type":"function"}]` {
+		t.Errorf("tools sent %s", sent)
+	}
+	hist, _ := json.Marshal(gotChat["messages"])
+	if !strings.Contains(string(hist), `"tool_calls":[{"function":{"arguments":"{}","name":"get_time"},"id":"call_0","type":"function"}]`) ||
+		!strings.Contains(string(hist), `"tool_call_id":"call_0"`) {
+		t.Errorf("history sent %s", hist)
+	}
+	if text.String() != "Let me check." {
+		t.Errorf("text %q", text.String())
+	}
+	got, _ := json.Marshal(result)
+	if string(got) != `{"toolCalls":[{"arguments":"{\"city\":\"Berlin\"}","id":"call_a","name":"get_weather"},{"arguments":"{}","id":"call_b","name":"get_time"}]}` {
+		t.Errorf("result %s", got)
+	}
+	if err := b.Run(context.Background(), chat, Request{Messages: msgs, Tools: tools, Zone: "web"}, "", func(Event) {}); err == nil {
+		t.Error("a zone with the caller's tools")
 	}
 }

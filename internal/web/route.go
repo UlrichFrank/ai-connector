@@ -206,7 +206,8 @@ func mapJSON(b []byte, f func(any) any) ([]byte, bool) {
 func (s *Server) routed(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rid := r.Header.Get(RouteHeader)
-		if !ValidRoute(rid) {
+		// the direct path has no job ids or files to map, and its texts and vectors are the caller's: as they are
+		if !ValidRoute(rid) || strings.HasPrefix(r.URL.Path, "/api/direct/") {
 			next.ServeHTTP(w, r)
 			return
 		}

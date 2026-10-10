@@ -105,6 +105,20 @@ func TestZoneKeptAcrossTurns(t *testing.T) {
 	if _, err := m.Submit(engine.Request{Model: "img-b", Zone: "web", Prompt: "x"}); err == nil {
 		t.Fatal("zone on an image")
 	}
+	// an application's own conversation (no zone, no parent) may carry tool turns: nothing runs tools in it
+	tools := []llm.Tool{{Name: "lookup"}}
+	if j, err := m.Submit(engine.Request{Model: "chat-a", Messages: next, Tools: tools}); err != nil {
+		t.Fatal(err)
+	} else {
+		wait(t, m, j.ID)
+	}
+	// the caller's tools: not with a zone, not for an image
+	if _, err := m.Submit(engine.Request{Model: "chat-a", Zone: "web", Messages: []llm.Message{{Role: "user", Content: "x"}}, Tools: tools}); err == nil {
+		t.Fatal("a zone with the caller's tools")
+	}
+	if _, err := m.Submit(engine.Request{Model: "img-b", Prompt: "x", Tools: tools}); err == nil {
+		t.Fatal("tools on an image")
+	}
 
 	// the follow-up without a zone takes the parent's; the web chat refuses the home tool
 	second := turn(t, m, engine.Request{Model: "chat-a", Parent: first.ID, Messages: next})

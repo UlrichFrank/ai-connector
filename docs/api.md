@@ -21,7 +21,7 @@ Stored like worker tokens: `<data>/clients.json`, SHA-256 hashes only; the token
 
 | | |
 |---|---|
-| `GET /api/clients` | `[{"id","name","created","lastSeen"}]` (`lastSeen`: last use, written at most once a minute) |
+| `GET /api/clients` | `[{"id","name","created","lastSeen"}]` (`lastSeen`: last use, written at most once a minute; absent until the first use) |
 | `POST /api/clients` | `{"name":"docscanner"}` → `{"client":{…},"token":"aic_<43 base64url chars>"}`; blank name → 400 `{"error":"name"}` |
 | `DELETE /api/clients/{id}` | revokes it (204; unknown id 404) |
 
@@ -35,10 +35,16 @@ also found by a unique prefix of its id, and by the last path segment of a Huggi
 Errors are OpenAI-shaped: `{"error":{"message","type","code"}}` — 400 `invalid_request_error`; 401
 `invalid_api_key`; 404 `model_not_found` (no connected worker lists the model); 503 `no_worker` (no worker
 connected, or none that has the model is online); 409 `no_worker` (none has the memory); 502 `worker_error`.
+As implemented: `type` is `invalid_request_error` for 400/401/404 and `server_error` for 409/502/503; `code` is the
+name above (`invalid_api_key`, `model_not_found`, `no_worker`, `worker_error`; `unknown_url` for a path that is no
+endpoint) and `null` for a plain 400. A model of another kind (an embedder for a chat) is a 400.
+
+Limits: a request body of at most 32 MB; at most 2048 inputs per embedding call (OpenAI and TEI); no cap on
+`max_tokens` beyond the worker's (when unset: 4096, thinking 32768 on the MLX chat models; a runtime's own default for `ollama/…` and the like).
 
 ### `GET /v1/models`
 
-`{"object":"list","data":[{"id","object":"model","created":0,"owned_by":"ai-connector","kind":"chat|embed|classify","workers":["Mac Studio",…]}]}` — the chat, embed and classify models of the connected workers.
+`{"object":"list","data":[{"id","object":"model","created":0,"owned_by":"ai-connector","kind":"chat|embed|classify","workers":["Mac Studio",…]}]}` — the chat, embed and classify models of the connected workers (an empty list while none is connected).
 
 ### `POST /v1/embeddings`
 
@@ -63,12 +69,32 @@ model may call the given tools; the calls are returned, never run (`finish_reaso
 * `stream:true` → SSE `data: {"id","object":"chat.completion.chunk","created","model","choices":[{"index":0,"delta":{…},"finish_reason":null}]}` … — the first delta has `role:"assistant"`; thinking comes as `delta.reasoning_content`, the answer as `delta.content`, tool calls in the last chunk as `delta.tool_calls` (with `index`); a final chunk with `finish_reason` and `usage`; then `data: [DONE]`. While the job waits in the queue or loads its model, `: ping` comments keep the stream open. A failure after the stream started is sent as `data: {"error":{…}}` before `[DONE]`.
 * The client going away cancels the job.
 
+Details of the implementation:
+
+* `model` in the answers is the resolved catalogue id (`qwen3.6` → `qwen3.6-35b-a3b`), never the caller's alias
+  (the same for `/v1/embeddings`).
+* A streamed answer opens at once: the SSE headers and a first `: ping` go out before the job is submitted, then a
+  `: ping` every 5 s while it waits or runs. A failure from then on (also the submission's: a worker that refuses
+  the job) is the same `{"error":{"message","type","code"}}` object as a `data:` line, then `data: [DONE]`.
+* `finish_reason` is `length` when the answer used its whole token limit (`max_completion_tokens`, else
+  `max_tokens`, else the worker's default).
+* `role:"developer"` is taken as `system`; text parts of a content array are joined with a newline. `"think"` may
+  also be Ollama's level string (`"low"` … : on). `tool_choice:"none"` drops the tools; other `tool_choice`
+  values are not enforced (the model chooses).
+* A non-streamed answer with tool calls has `content: null` when the model wrote nothing besides the calls.
+* The streamed text comes from the workers' event stream; the job as the worker has it at the end is
+  authoritative (what the stream missed at the end is sent from it).
+* A chat job without `zone` and `parent` may carry the caller's own tool turns in its history (assistant
+  `tool_calls`, `tool` results): nothing runs tools in such a chat and a follow-up of it can never take a zone, so
+  the zone rule ("tool results only from the chat that made them") still holds for zone chats.
+
 ## Endpoints vboard's sidecar settings point at (client token)
 
 ### TEI — `POST /embed` (vboard `EMBED_URL`)
 
 Request `{"inputs": "text" | ["text", …], "normalize"?: true, "truncate"?: true}` → `[[float, …], …]` with
-`MLXLAB_EMBED_MODEL` (default `qwen3-embedding-0.6b`). Errors: TEI-style `{"error":"…","error_type":"…"}` with the
+`MLXLAB_EMBED_MODEL` (default `qwen3-embedding-0.6b`). `normalize` and `truncate` are accepted and ignored: the
+vectors are always normalised, the embedder truncates long texts itself. Errors: TEI-style `{"error":"…","error_type":"…"}` with the
 status codes above.
 
 ### Laya — `POST /v1/systemone` (vboard `CLASSIFIER_URL`)
@@ -76,7 +102,10 @@ status codes above.
 Request `{"state":{…},"model"?: "typed-decisions","questions":{"<qid>":{"type":"choice","instructions":"…","criteria":{"<label>":"<description>",…}}}}`
 → `{"answers":{"<qid>":{"choice":"<label>","probabilities":{"<label>":p,…},"answer_confidence":p}}}`.
 The state is serialised the way Python's `json.dumps(state, ensure_ascii=False)` does (`internal/pyjson`), as
-vboard-ai does; criteria keep their order. Model default `MLXLAB_CLASSIFY_MODEL`, else `laya-typed-decisions`.
+vboard-ai does; criteria keep their order (a label sent twice keeps its first place and its last description, as a
+Python dict). `type` must be `choice` (or absent); a criterion's description is a text or `null`. Each question is
+one classify call on the same worker. Errors are OpenAI-shaped (the endpoint is under `/v1/`). Model default
+`MLXLAB_CLASSIFY_MODEL`, else `laya-typed-decisions`.
 
 ## Native jobs API (client or device token)
 
@@ -99,7 +128,10 @@ Embedding and classifying are quick and run beside the queue (a video rendering 
 * `POST /api/direct/classify` `{"model","states":[…],"instructions","options":[{"label","description"}]}` →
   `{"model","answers":[{"choice","probabilities":{…},"confidence"}]}`
 
-Unknown model 404 `{"error":"model"}`, a model of another kind 400, a failure 500 `{"error":"run","message"}`.
+Unknown model 404 `{"error":"model"}`, a model of another kind 400, a failure 500 `{"error":"run","message"}`;
+a bad body 400 `{"error":"request"}` (at most 4096 texts or states per call). The worker L2-normalises the vectors
+(a runtime's embeddings need not be), and its route mapping (job ids, `/files/` urls) is not applied to this path:
+the texts are the caller's.
 The server picks a worker that lists the model, preferring one that has it loaded.
 
 ## Connectors (phase 4; device sign-in required)

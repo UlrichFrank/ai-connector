@@ -119,6 +119,14 @@ type chunk struct {
 			Content          string `json:"content"`
 			ReasoningContent string `json:"reasoning_content"`
 			Reasoning        string `json:"reasoning"`
+			ToolCalls        []struct {
+				Index    int    `json:"index"`
+				ID       string `json:"id"`
+				Function struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
 		} `json:"delta"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
@@ -134,6 +142,9 @@ type chunk struct {
 func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit) error {
 	if len(r.Messages) == 0 {
 		return fmt.Errorf("no messages")
+	}
+	if r.Zone != "" && len(r.Tools) > 0 {
+		return errClientTools
 	}
 	if r.Zone != "" {
 		return fmt.Errorf("a %s chat (tools) runs on the built-in chat models only (MLX on a Mac); %s answers without tools", r.Zone, m.Name)
@@ -159,6 +170,17 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 	if r.MaxTokens > 0 {
 		body["max_tokens"] = r.MaxTokens
 	}
+	if len(r.Tools) > 0 {
+		tools := make([]map[string]any, len(r.Tools))
+		for i, t := range r.Tools {
+			params := t.Parameters
+			if len(bytes.TrimSpace(params)) == 0 {
+				params = json.RawMessage(`{"type":"object","properties":{}}`)
+			}
+			tools[i] = map[string]any{"type": "function", "function": map[string]any{"name": t.Name, "description": t.Description, "parameters": params}}
+		}
+		body["tools"] = tools
+	}
 	emit.Status("asking " + m.served.Name + " …")
 	start := time.Now()
 	resp, err := b.post(ctx, m.served.Runtime, "/chat/completions", body)
@@ -170,6 +192,7 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 	var first time.Duration
 	thinking := false
 	tokens, promptTokens := 0, 0
+	var calls []llm.ToolCall // the caller's tools: streamed in pieces, put together by index
 	sc := bufio.NewScanner(resp.Body)
 	sc.Buffer(make([]byte, 64<<10), 8<<20)
 	for sc.Scan() {
@@ -192,6 +215,20 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 			promptTokens, tokens = c.Usage.PromptTokens, c.Usage.CompletionTokens
 		}
 		for _, ch := range c.Choices {
+			for _, tc := range ch.Delta.ToolCalls {
+				if tc.Index < 0 || tc.Index > 255 {
+					continue
+				}
+				for len(calls) <= tc.Index {
+					calls = append(calls, llm.ToolCall{})
+				}
+				call := &calls[tc.Index]
+				if tc.ID != "" {
+					call.ID = tc.ID
+				}
+				call.Name += tc.Function.Name
+				call.Arguments += tc.Function.Arguments
+			}
 			think := ch.Delta.ReasoningContent + ch.Delta.Reasoning
 			if think == "" && ch.Delta.Content == "" {
 				continue
@@ -229,6 +266,22 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 	}
 	emit(Event{Type: "stats", Data: st})
 	emit.Log(fmt.Sprintf("%s: %d prompt tokens, %d tokens in %.1f s", m.served.Name, promptTokens, tokens, total.Seconds()))
+	if len(r.Tools) > 0 {
+		var made []llm.ToolCall
+		for i, c := range calls {
+			if c.Name == "" {
+				continue
+			}
+			if c.ID == "" {
+				c.ID = fmt.Sprintf("call_%d", i)
+			}
+			if strings.TrimSpace(c.Arguments) == "" {
+				c.Arguments = "{}"
+			}
+			made = append(made, c)
+		}
+		emit(toolCallsResult(made))
+	}
 	return nil
 }
 
@@ -236,6 +289,9 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 
 // Embed returns one vector per text.
 func (b *OpenAIBackend) Embed(ctx context.Context, m *Model, texts []string) ([][]float32, error) {
+	if m.served == nil || m.Kind != Embed {
+		return nil, fmt.Errorf("%s: not an embedding model of a local runtime", m.ID)
+	}
 	resp, err := b.post(ctx, m.served.Runtime, "/embeddings", map[string]any{"model": m.served.Model, "input": texts})
 	if err != nil {
 		return nil, err

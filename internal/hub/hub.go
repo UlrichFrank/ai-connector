@@ -32,16 +32,22 @@ type Config struct {
 	Data        string // directory for devices.json and workers.json
 	Addr        string // listen address
 	Tools       string // directory with mlxlab/<GOOS-GOARCH>, the worker programs served at /tools/mlxlab/
+	// the client APIs' default models (docs/api.md): MLXLAB_EMBED_MODEL, MLXLAB_CLASSIFY_MODEL
+	EmbedModel    string
+	ClassifyModel string
 }
 
-// FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR and MLXLAB_TOOLS.
+// FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL and
+// MLXLAB_CLASSIFY_MODEL.
 func FromEnv() Config {
 	c := Config{
-		Password:    os.Getenv("MLXLAB_PASSWORD"),
-		WorkerToken: os.Getenv("MLXLAB_WORKER_TOKEN"),
-		Data:        os.Getenv("MLXLAB_DATA"),
-		Addr:        os.Getenv("MLXLAB_ADDR"),
-		Tools:       os.Getenv("MLXLAB_TOOLS"),
+		Password:      os.Getenv("MLXLAB_PASSWORD"),
+		WorkerToken:   os.Getenv("MLXLAB_WORKER_TOKEN"),
+		Data:          os.Getenv("MLXLAB_DATA"),
+		Addr:          os.Getenv("MLXLAB_ADDR"),
+		Tools:         os.Getenv("MLXLAB_TOOLS"),
+		EmbedModel:    os.Getenv("MLXLAB_EMBED_MODEL"),
+		ClassifyModel: os.Getenv("MLXLAB_CLASSIFY_MODEL"),
 	}
 	if c.Data == "" {
 		c.Data = "/data"
@@ -61,6 +67,7 @@ type Server struct {
 	tunnel  *tunnel.Hub
 	devices *devices
 	workers *workers
+	clients *clients
 	invites *invites
 	logins  *limiter
 	fleet   *fleet
@@ -84,6 +91,12 @@ func New(cfg Config) (*Server, error) {
 	if cfg.Tools == "" {
 		cfg.Tools = "/tools"
 	}
+	if cfg.EmbedModel == "" {
+		cfg.EmbedModel = defaultEmbedModel
+	}
+	if cfg.ClassifyModel == "" {
+		cfg.ClassifyModel = defaultClassifyModel
+	}
 	d, err := openDevices(cfg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("devices: %w", err)
@@ -91,6 +104,10 @@ func New(cfg Config) (*Server, error) {
 	ws, err := openWorkers(cfg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("workers: %w", err)
+	}
+	cs, err := openClients(cfg.Data)
+	if err != nil {
+		return nil, fmt.Errorf("clients: %w", err)
 	}
 	check := func(token string) (string, string, bool) {
 		wk, ok := ws.lookup(token)
@@ -101,6 +118,7 @@ func New(cfg Config) (*Server, error) {
 		tunnel:    &tunnel.Hub{Check: check, Token: cfg.WorkerToken},
 		devices:   d,
 		workers:   ws,
+		clients:   cs,
 		invites:   newInvites(),
 		logins:    newLimiter(10, time.Minute),
 		ui:        webui.Handler(),
@@ -135,10 +153,14 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("PUT /api/workers/{id}/primary", s.setPrimary)
 	auth.HandleFunc("DELETE /api/workers/{id}/primary", s.setPrimary)
 	auth.HandleFunc("GET /api/worker/events", s.workerEvents)
+	auth.HandleFunc("GET /api/clients", s.listClients)
+	auth.HandleFunc("POST /api/clients", s.addClient)
+	auth.HandleFunc("DELETE /api/clients/{id}", s.revokeClient)
 	auth.Handle("/api/", s.proxy)
 	auth.Handle("/files/", s.proxy)
 	mux.Handle("/api/", s.requireDevice(auth))
 	mux.Handle("/files/", s.requireDevice(auth))
+	s.clientAPI(mux) // /v1/*, /embed: a client token or a device token (api.go)
 
 	mux.Handle("/", s.ui)
 	return mux
@@ -188,6 +210,12 @@ func (s *Server) requireDevice(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := tokenOf(r)
 		dev, ok := s.devices.lookup(token)
+		if !ok && clientMay(r) { // an application's token reaches the native jobs API, nothing else here
+			if c, ok := s.clients.lookup(bearer(r)); ok {
+				next.ServeHTTP(w, withClient(r, c))
+				return
+			}
+		}
 		if !ok {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "signin"})
 			return

@@ -32,6 +32,36 @@ A worker offers only what it can run, and the server routes a job only to a work
 Linux worker needs glibc (it loads OpenBLAS at run time; Ubuntu, Debian, Fedora — not Alpine/musl). Windows workers
 build and pass vet but have not run on Windows yet.
 
+### Using it from other apps
+
+An application gets its own token: `POST /api/clients {"name":"docscanner"}` while signed in (the console will have
+a page for it) answers `{"client":{…},"token":"aic_…"}`, shown once. With it the server speaks the OpenAI API
+(`/v1/models`, `/v1/embeddings`, `/v1/chat/completions`), TEI's `POST /embed` and Laya's `POST /v1/systemone`, and
+the native jobs API; chats become jobs in a worker's queue, embedding and classifying run beside it. Model names
+are the catalogue ids (`GET /v1/models`); a Hugging Face name like `Qwen/Qwen3-Embedding-0.6B` works too. The whole
+contract: [docs/api.md](docs/api.md).
+
+```bash
+curl https://ai.example.org/v1/chat/completions -H "Authorization: Bearer $AIC_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"model":"qwen3.6-35b-a3b","messages":[{"role":"user","content":"Explain MoE in two sentences."}]}'
+curl https://ai.example.org/v1/embeddings -H "Authorization: Bearer $AIC_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"model":"qwen3-embedding-0.6b","input":["a red fox","a brown dog"]}'
+```
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(base_url="https://ai.example.org/v1", api_key=os.environ["AIC_TOKEN"])
+vecs = client.embeddings.create(model="Qwen/Qwen3-Embedding-0.6B", input=["a red fox", "a brown dog"])
+for chunk in client.chat.completions.create(model="qwen3.6-35b-a3b", stream=True,
+                                            messages=[{"role": "user", "content": "Hello"}]):
+    print(chunk.choices[0].delta.content or "", end="")
+```
+
+Thinking is off unless asked for (`reasoning_effort` other than `"none"`); the thought then streams as
+`reasoning_content`. `MLXLAB_EMBED_MODEL` and `MLXLAB_CLASSIFY_MODEL` set the server's default models.
+
 ---
 
 # mlxlab — local AI models on a Mac

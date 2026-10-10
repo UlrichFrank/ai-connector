@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -90,6 +91,9 @@ func (b *ChatBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	if len(r.Messages) == 0 {
 		return fmt.Errorf("no messages")
 	}
+	if r.Zone != "" && len(r.Tools) > 0 {
+		return errClientTools
+	}
 	if r.Zone != "" && b.Agent == nil {
 		return fmt.Errorf("a %s chat is not available on this Mac yet", r.Zone)
 	}
@@ -98,6 +102,9 @@ func (b *ChatBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	}
 	if r.Zone != "" {
 		return b.runAgent(ctx, r, outDir, emit)
+	}
+	if len(r.Tools) > 0 {
+		return b.runRound(ctx, r, emit)
 	}
 	prompt := llm.Render(b.eng.Format, withNow(r.Messages, time.Now()), nil, r.Think)
 	if r.Think {
@@ -125,6 +132,33 @@ func (b *ChatBackend) runAgent(ctx context.Context, r Request, outDir string, em
 		b.stats(g.sum, g.opts, emit)
 	}
 	return err
+}
+
+var errClientTools = errors.New("a chat has either a zone (tools on the worker) or the caller's tools, not both")
+
+// runRound answers with the caller's tools (Request.Tools): one round, the calls returned in result.toolCalls.
+func (b *ChatBackend) runRound(ctx context.Context, r Request, emit Emit) error {
+	g := &engineGen{eng: b.eng, opts: chatOptions(b.eng.Defaults(), r)}
+	emit.Status("answering …")
+	_, calls, err := agent.Round(ctx, g, withNow(r.Messages, time.Now()), r.Tools, r.Think,
+		func(ev agent.Event) { emit(Event{Type: ev.Type, Text: ev.Text, File: ev.File, Data: ev.Data}) })
+	if g.rounds > 0 {
+		b.stats(g.sum, g.opts, emit)
+	}
+	if err != nil {
+		return err
+	}
+	emit(toolCallsResult(calls))
+	return nil
+}
+
+// toolCallsResult is the result of a chat with the caller's tools: the calls the model made (none: it answered).
+func toolCallsResult(calls []llm.ToolCall) Event {
+	out := make([]map[string]any, len(calls))
+	for i, c := range calls {
+		out[i] = map[string]any{"id": c.ID, "name": c.Name, "arguments": c.Arguments}
+	}
+	return Event{Type: "result", Data: map[string]any{"toolCalls": out}}
 }
 
 // complete asks the loaded model one question without thinking (the guard's judge: a label at once when screening,

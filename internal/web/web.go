@@ -303,6 +303,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/styles/{id}/tracks/{track}", s.deleteTrack)
 	mux.HandleFunc("POST /api/styles/{id}/train", s.trainStyle)
 	mux.HandleFunc("GET /api/info", s.info)
+	// embedding and classifying for the server's client APIs, beside the queue (direct.go)
+	mux.HandleFunc("POST /api/direct/embed", s.directEmbed)
+	mux.HandleFunc("POST /api/direct/classify", s.directClassify)
 	return s.routed(mux)
 }
 
