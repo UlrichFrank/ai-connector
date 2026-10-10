@@ -77,6 +77,10 @@ this order:
    it out. LM Studio ignores "thinking off", so this agent always thinks first;
 3. `claude-code/opus`, `claude-code/sonnet` and `claude-code/haiku`, when `claude` is installed — they work on the board themselves
    through vboard's MCP, and read images too.
+4. **generators** for pictures and videos on the board ("make an image of …" in the chat): `flux2-klein-4b`,
+   `ltx-2.5-q4`, then every other image and video model on this Mac's disk (`*`) — only those on disk are offered.
+   `LOCAL_GENERATORS=…` (comma list) for others, `LOCAL_GENERATORS=none` for none. A picture or video unloads the
+   built-in chat model first (one large model at a time); LM Studio's Qwen stays loaded.
 
 ## Using it
 

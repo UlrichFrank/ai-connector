@@ -469,8 +469,13 @@ connector() {
   [[ -n "$model" ]] || say "  no local chat model on this Mac: the connector offers the server's default (LOCAL_CHAT_MODEL=… ALLOW_DOWNLOAD=1 to pick one)"
   if [[ -z "$model" ]]; then agents='[]'; fi # the first agent must be a model
   cid="$(aic GET /api/connectors | jq -r --arg u "$VB_URL" '[.[] | select(.url == $u)][0].id // empty')"
+  # image and video models for the board (those on disk; the first of each kind is vboard's default):
+  # LOCAL_GENERATORS=none for none
+  local gens="${LOCAL_GENERATORS:-flux2-klein-4b,ltx-2.5-q4,*}"
+  [[ "$gens" == none ]] && gens=""
+  gens="$(jq -cn --arg g "$gens" '$g | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))')"
   body="$(jq -n --arg n "$CONNECTOR_NAME" --arg u "$VB_URL" --arg t "$(cat "$STATE/vboard-token")" --argjson a "$agents" \
-    '{name:$n, url:$u, token:$t, agents:$a, enabled:true}')"
+    --argjson g "$gens" '{name:$n, url:$u, token:$t, agents:$a, generators:$g, enabled:true}')"
   if [[ -n "$cid" ]]; then
     step "updating the vboard connector (agents: $(jq -r 'map(.model) | join(", ")' <<<"$agents"))"
     aic PATCH "/api/connectors/$cid" -d "$body" -o /dev/null
@@ -563,6 +568,7 @@ cmd_status() {
   fi
   # the advertised agents and whether they take images
   aic GET /api/connectors 2>/dev/null | jq -r '.[] | "            images: \([.advertised[]? | select(.images == true) | .id] | join(", "))"' 2>/dev/null || true
+  aic GET /api/connectors 2>/dev/null | jq -r '.[] | "            generators: \(.generators // [] | join(", "))"' 2>/dev/null || true
 }
 
 cmd_logs() {
