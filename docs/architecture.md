@@ -22,6 +22,7 @@
 
 | | |
 |---|---|
+| `GET /healthz` (no auth) | `200 ok` (text/plain) while the server serves HTTP; no state, no worker needed (Kubernetes probes, see docs/deploy.md) |
 | `GET /api/info` (no auth) | `{"app":"mlxlab","role":"hub","name":"mlxlab","signedIn":bool,"user":"…","owner":bool,"canInvite":bool,"worker":{"connected":bool,"id":"…","name":"…","since":"RFC3339"},"workers":[…]}` (`worker`: the primary Mac, see "Several Macs"; `workers`: the connected ones as in `GET /api/workers`) |
 | `POST /api/login` (no auth) | body `{"password":"…","device":"Philipp's iPhone","user":"Philipp"}` (or `"invite"` instead of `"password"`, see below) → `{"token":"…","device":{…}}`; also sets cookie `mlxlab_session` (HttpOnly, Secure when TLS, SameSite=Lax, 1 year). Wrong password: 401 (and a short delay). |
 | `POST /api/logout` | revokes the token used (cookie cleared) |
@@ -32,7 +33,7 @@
 | `GET /api/worker/connect` | the worker's tunnel (`Authorization: Bearer <worker token>`), see `internal/tunnel` |
 | `GET /api/worker/events` | SSE: `data: {"connected":bool,"id":"…","name":"…","since":"…","workers":[…]}` at once and on every change (the old fields: the primary) |
 
-**Auth**: every request except `/api/info`, `/api/login`, the worker tunnel, `/tools/mlxlab/…` (a worker token
+**Auth**: every request except `/healthz`, `/api/info`, `/api/login`, the worker tunnel, `/tools/mlxlab/…` (a worker token
 or a device token, see below) and the static UI needs a device
 token: `Authorization: Bearer <token>`, the `mlxlab_session` cookie, or `?token=<token>` (for players and
 `EventSource` that cannot set headers). Without one: `401 {"error":"signin"}`. Tokens are random 32 bytes
