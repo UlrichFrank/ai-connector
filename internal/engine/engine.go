@@ -49,6 +49,12 @@ type Request struct {
 	// Zone: what the chat's tools may touch ("" no tools, "home", "web", "files"; see internal/agent). A follow-up
 	// (Parent) keeps its parent's zone: the job manager derives it and refuses another.
 	Zone string `json:"zone,omitempty"`
+	// Tools: functions of the caller (an application, through the server's OpenAI API) the model may call. One
+	// round: the job ends with the model's calls in result.toolCalls ([{"id","name","arguments"}]); they are never
+	// run here. Not with a Zone (the zones' tools run on the worker).
+	Tools []llm.Tool `json:"tools,omitempty"`
+	// Client is the application that submitted the job (the server sets it from the client token's name).
+	Client string `json:"client,omitempty"`
 
 	// embed: the texts are compared with each other
 	Texts []string `json:"texts,omitempty"`
@@ -118,6 +124,24 @@ type Request struct {
 type Option struct {
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
+}
+
+// Answer is the classifier's answer about one text.
+type Answer struct {
+	Choice        string             `json:"choice"`
+	Probabilities map[string]float64 `json:"probabilities"`
+	Confidence    float64            `json:"confidence"`
+}
+
+// Embedder is a backend that embeds texts directly, beside the job queue (the server's embeddings API: quick calls
+// that must not wait behind a video): one vector per text, in their order.
+type Embedder interface {
+	Embed(ctx context.Context, m *Model, texts []string) ([][]float32, error)
+}
+
+// Classifier is a backend that answers a choice question directly, beside the job queue.
+type Classifier interface {
+	Classify(ctx context.Context, m *Model, states []string, instructions string, options []Option) ([]Answer, error)
 }
 
 // Event is something a running job reports.

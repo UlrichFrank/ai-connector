@@ -534,3 +534,39 @@ func TestAlwaysAllowNotForWebOrFiles(t *testing.T) {
 		}
 	}
 }
+
+// Round: the calls of the caller's tools come back unrun; the text streams without the call markup.
+func TestRoundClientTools(t *testing.T) {
+	g := &gen{format: "json", outputs: []string{
+		"Let me look.</think>\n\nChecking.\n<tool_call>\n{\"name\": \"lookup\", \"arguments\": {\"q\": \"x\"}}\n</tool_call>",
+	}}
+	tools := []llm.Tool{{Name: "lookup", Description: "looks up", Parameters: schema}}
+	var text strings.Builder
+	content, calls, err := Round(context.Background(), g, user("find x"), tools, true, func(e Event) {
+		if e.Type == "text" {
+			text.WriteString(e.Text)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 1 || calls[0].Name != "lookup" || compactArgs(calls[0].Arguments) != `{"q":"x"}` || !strings.HasPrefix(calls[0].ID, "call_") {
+		t.Fatalf("calls %+v", calls)
+	}
+	if got := text.String(); got != "<think>Let me look.</think>\n\nChecking.\n" {
+		t.Errorf("streamed %q", got)
+	}
+	if content != "<think>\nLet me look.</think>\n\nChecking." {
+		t.Errorf("content %q", content)
+	}
+	if !strings.Contains(g.prompts[0], `"name": "lookup"`) {
+		t.Errorf("the tools are not in the prompt:\n%s", g.prompts[0])
+	}
+
+	// no call: the answer alone
+	g = &gen{format: "xml", outputs: []string{"Just text."}}
+	content, calls, err = Round(context.Background(), g, user("hi"), tools, false, func(Event) {})
+	if err != nil || len(calls) != 0 || content != "Just text." {
+		t.Fatalf("%q %v %v", content, calls, err)
+	}
+}

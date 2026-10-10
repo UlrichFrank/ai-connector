@@ -289,6 +289,36 @@ func Run(ctx context.Context, gen Generator, cfg Config, req Request, emit Emit)
 	return msgs, nil
 }
 
+// Round generates one answer that may call the caller's own tools, and returns the calls instead of running them
+// (the OpenAI API's client tools: the application runs them and sends the results with its next request). The text
+// streams as in Run, without the call markup; content is what the model wrote before its calls (with think, the
+// thought too, opened by "<think>\n" as in Run's history).
+func Round(ctx context.Context, gen Generator, msgs []llm.Message, tools []llm.Tool, think bool, emit Emit) (content string, calls []llm.ToolCall, err error) {
+	prompt := llm.Render(gen.Format(), msgs, tools, think)
+	if think {
+		emit(Event{Type: "text", Text: "<think>"}) // the prompt opened the thought
+	}
+	f := &textFilter{think: think, emit: emit}
+	var out strings.Builder
+	err = gen.Generate(ctx, prompt, func(s string) { out.WriteString(s); f.write(s) })
+	f.flush()
+	content, bodies := splitCalls(out.String(), think)
+	if think {
+		content = "<think>\n" + content
+	}
+	if err != nil {
+		return content, nil, err
+	}
+	for _, b := range bodies {
+		name, args, ok := llm.ParseToolCall(b, tools)
+		if !ok {
+			continue // cut off or unreadable: the application could not run it either
+		}
+		calls = append(calls, llm.ToolCall{ID: newID(), Name: name, Arguments: args})
+	}
+	return content, calls, nil
+}
+
 // run is the state of one Run.
 type run struct {
 	ctx      context.Context

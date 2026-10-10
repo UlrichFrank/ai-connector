@@ -205,6 +205,18 @@ func (m *Manager) checkZone(kind engine.Kind, r *engine.Request) error {
 		if r.Zone != "" {
 			return errors.New("a zone is for chats only")
 		}
+		if len(r.Tools) > 0 {
+			return errors.New("tools are for chats only")
+		}
+		return nil
+	}
+	if len(r.Tools) > 0 && r.Zone != "" {
+		return errors.New("a chat has either a zone (tools on the worker) or the caller's tools, not both")
+	}
+	if r.Zone == "" && r.Parent == "" {
+		// an application's conversation (the OpenAI API): its history may carry its own tools' calls and results.
+		// Nothing runs tools in a chat without a zone, and a follow-up of it can never take one (FollowUp), so no
+		// tool result reaches a zone this way.
 		return nil
 	}
 	var parent *agent.Parent
