@@ -89,7 +89,13 @@ anyone running vboard-ai. Three ways:
    ai-connector vboard https://vboard.example.com --token vbp_…            # the token: vboard → "Set up AI" → "Create token"
    ai-connector vboard --agents qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus   # what the chat panel offers
    ai-connector vboard                                                      # later: the same connection again
+   ai-connector vboard https://vboard.example.com --token vbp_… --install  # start it at login (--uninstall)
    ```
+
+   On its first start it connects at once and downloads only the embedder and the classifier; vboard proposes the
+   chat model (by this computer's memory) and anything else, and nothing large is downloaded without a click there.
+   Claude Code (Sonnet, Opus) is offered by itself when it is installed and logged in here. A Hugging Face token for
+   gated models is pasted on a local page vboard links to (it never goes through vboard).
 
    The server runs inside this process on a loopback port only, this computer is its one worker, and its one vboard
    connector dials vboard — the same connector, routing and Claude Code agents as with a server (`--board ID` for
@@ -223,7 +229,7 @@ the licence on their model page, then log in with `uvx hf auth login` or `export
   cgo). The embedder and the classifier run in Go too. All of this comes from vboard-ai (`internal/mlx`, `llm`,
   `qwen3`, `laya`, `tensor`, `tokenizer`, `models`).
 - **In Python, managed by mlxlab:** FLUX.2, Qwen-Image and LTX-2.5 run in Python MLX ports. On first use mlxlab creates their
-  environments with `uv` (`~/.config/mlxlab/envs/`, pinned versions; needs `brew install uv`).
+  environments with `uv` (`~/.config/mlxlab/envs/`, pinned versions; without `uv` on the PATH, Astral's standalone `uv` is fetched into `~/.config/mlxlab/bin`).
   - mflux runs as a worker that stays alive, so the model stays loaded between images.
   - ltx-2-mlx runs as one process per video, since it loads its stages one after another anyway. It needs `ffmpeg`.
 - **Memory:** jobs run one at a time, and only one large model (chat, image or video) stays loaded. Starting a job of

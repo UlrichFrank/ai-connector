@@ -160,7 +160,7 @@ func vboardCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	s.EnableSetupPage("http://" + l.Addr().String()) // the Hugging Face token, on this computer only
+	setupPage := s.EnableSetupPage("http://" + l.Addr().String()) // the Hugging Face token, on this computer only
 	workerToken, err := s.LocalWorker(host, standaloneOwner)
 	if err != nil {
 		return fmt.Errorf("this computer as worker: %w", err)
@@ -196,7 +196,7 @@ func vboardCommand(args []string) error {
 		}
 	}
 	startFirstModels(dl, llm.MemBytes())
-	fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\n", set.URL, connName, filepath.Join(dir, "settings.json"))
+	fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\nsetup page (Hugging Face token): %s\n", set.URL, connName, filepath.Join(dir, "settings.json"), setupPage)
 	werr := worker(mgr, workerConfig{Hub: "http://" + l.Addr().String(), Token: workerToken}, host,
 		(&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents,
 			Downloads: dl}).Handler())
