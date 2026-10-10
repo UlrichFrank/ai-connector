@@ -308,7 +308,7 @@ id is kept per conversation (`<config>/agents/resume.json`): a closed, stopped o
 conversation restarts its process (resumed).
 
 * **json** (default; for the APIs) — `claude -p --input-format stream-json --output-format stream-json --verbose
-  --include-partial-messages --restricted --tools <built-in tools of the allow-list> --model <m> --strict-mcp-config
+  --include-partial-messages --restricted --tools <built-in tools of the allow-list>[,ToolSearch] --model <m> --strict-mcp-config
   --mcp-config <file> --allowedTools <list> --disallowedTools <deny rules> --permission-prompts none
   [--append-system-prompt …] [--resume <id>]` (see "Security" below), kept running. A turn is a line
   `{"type":"user","message":{"role":"user","content":"…"}}` on its stdin; the answer is read from stdout
@@ -329,6 +329,26 @@ conversation restarts its process (resumed).
   streaming; no usage or cost. Cancel sends Esc. Claude Code asks whether to trust a new folder (default "No"): for
   the session's own folder the worker answers "Yes" (`autoTrust`, default true; Claude Code records that in its own
   config like any trust answer).
+
+**Tool search (deferred MCP tool definitions).** Claude Code can leave the definitions of MCP tools out of its
+requests and load one when the model needs it (its `ToolSearch` tool; the model sees only the tool names). Claude
+Code 2.1.288 does this by default with Anthropic's API (`ENABLE_TOOL_SEARCH` unset; `false` turns it off, `auto` /
+`auto:N` defers only when the definitions exceed N % of the context; a non-Anthropic `ANTHROPIC_BASE_URL` turns it off
+unless it is set) — but **only while `ToolSearch` is one of the session's tools**, and `--tools` (which the worker
+passes with `--restricted`) leaves out every tool it does not name. So a session with MCP servers gets
+`ToolSearch` added to `--tools` (it needs no allow rule; the deferred tools are still `mcp__<name>__…`, allowed by
+`mcp__<name>`, and the deny rules apply to them as before). Haiku 4.5, Sonnet and Opus support it. Measured with
+Claude Code 2.1.288 and a local MCP server serving 64 tools with 134 KB of definitions (vboard's size), the first
+request of a new session (input + cache write + cache read tokens):
+
+| model | `--tools` without `ToolSearch` (before) | with `ToolSearch` (now) |
+|---|---|---|
+| `claude-code/haiku` (Haiku 4.5) | 47 313 | 7 657 |
+| `claude-code/sonnet` | 55 519 | 6 189 |
+
+Calling a deferred tool costs one extra round in the turn (`ToolSearch` `select:mcp__vboard__<tool>`, ~0.9k tokens,
+then the call); checked with both models. A worker that sets `ENABLE_TOOL_SEARCH=false` in its environment (or talks
+to a proxy) gets the old behaviour.
 
 Each session works in **its own folder** `<config>/agents/<session id>/` (the same id for the same owner and key,
 so `--resume` finds the conversation, which Claude Code keeps per folder); its control files (`mcp.json`,
@@ -365,9 +385,11 @@ Code's credentials and ssh keys would then leak to everyone who sees the board, 
   (the tty hooks) and `hooks.jsonl`.
 * **Confined file tools.** Claude Code runs `--restricted` (when its `--help` lists it): the file tools stay in
   the working folder, command-running tools and WebFetch exist only when `--tools` names them, the user's own
-  settings files are ignored. `--tools` names only the built-in tools of the allow-list (a person's own tty
-  session: `default`, the person answers the prompts). The default allow-list reads only `./**`.
-* **Explicit deny rules** (`--disallowedTools`, `Read(…)` and `Edit(…)`; deny beats allow): the control tree
+  settings files are ignored. `--tools` names only the built-in tools of the allow-list, plus `ToolSearch` with MCP
+  servers (a person's own tty session: `default`, the person answers the prompts). The default allow-list reads only
+  `./**`. Checked with Claude Code 2.1.288 (haiku): a session asked to `Grep` a folder outside its own is refused
+  ("… is outside …; --restricted confines the file tools to the working directory").
+* **Explicit deny rules** (`--disallowedTools`, `Read(…)`, `Edit(…)`, `Glob(…)` and `Grep(…)`; deny beats allow): the control tree
   `<agents>/.ctl/**`, `<agents>/resume.json`, the other sessions' folders, every other entry of the config folder
   (`worker.json` with the worker token, `agents.json`, `client.json`, `history.json`, `outputs/`, `models/`, …),
   `~/.config/mlxlab/**` when the session is not inside it, `~/.claude*` (credentials, settings, transcripts),
@@ -380,7 +402,7 @@ Code's credentials and ssh keys would then leak to everyone who sees the board, 
 WebFetch): an injection can make it post what it can read — its own folder and the conversation — to the board
 or to a URL. An allow-list that adds `Bash` or `Edit` widens this a lot (a shell reads the environment and any
 file): add them only for conversations whose content you trust. Claude Code applies `Read` rules to Glob and Grep
-as best effort; `--restricted` is the main guard for them.
+as best effort only, hence the explicit `Glob(…)`/`Grep(…)` deny rules; `--restricted` is the main guard for them.
 
 ### Ownership (everyone uses their own Claude subscription)
 

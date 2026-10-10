@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -58,6 +59,21 @@ func mcpConfig(servers []MCPServer) (cfg map[string]any, env, allowed []string) 
 		allowed = append(allowed, "mcp__"+name)
 	}
 	return map[string]any{"mcpServers": mcp}, env, allowed
+}
+
+// ToolSearch is Claude Code's tool that loads deferred tool definitions when they are needed. MCP tools are deferred
+// only while it is available, so with --tools it must be named (measured with Claude Code 2.1.288, docs/api.md
+// "Agents (Claude Code)", Tool search).
+const ToolSearch = "ToolSearch"
+
+// sessionTools is --tools of a json or tty session: the built-in tools of the allow-list, and ToolSearch when the
+// session has MCP servers (their definitions are then loaded on demand instead of sent with every request).
+func sessionTools(allowed []string, mcp bool) []string {
+	names := builtinTools(allowed)
+	if mcp && len(names) > 0 && !slices.Contains(names, ToolSearch) {
+		names = append(names, ToolSearch)
+	}
+	return names
 }
 
 // builtinTools are the built-in tools an allow-list names (Read for "Read(./**)"; not the MCP tools), for --tools.
@@ -125,7 +141,8 @@ func (m *Manager) denyRules(s *Session) []string {
 	}
 	var rules []string
 	add := func(r string) {
-		rules = append(rules, "Read("+r+")", "Edit("+r+")")
+		// Claude Code applies Read rules to Glob and Grep as best effort only: they are denied by name too
+		rules = append(rules, "Read("+r+")", "Edit("+r+")", "Glob("+r+")", "Grep("+r+")")
 	}
 	for _, p := range paths {
 		add(absRule(p))

@@ -95,7 +95,8 @@ func TestSessionGuard(t *testing.T) {
 	if _, ok := s.flag("--restricted"); !ok {
 		t.Fatalf("not --restricted: %v", s.Args)
 	}
-	if tools, _ := s.flag("--tools"); tools != "Read,Glob,Grep,WebSearch,WebFetch,TodoWrite" {
+	// ToolSearch: the MCP tools' definitions are deferred (loaded when needed), not sent with every request
+	if tools, _ := s.flag("--tools"); tools != "Read,Glob,Grep,WebSearch,WebFetch,TodoWrite,ToolSearch" {
 		t.Fatalf("--tools %q", tools)
 	}
 	allowed, _ := s.flag("--allowedTools")
@@ -109,6 +110,8 @@ func TestSessionGuard(t *testing.T) {
 		"Read(" + absRule(filepath.Join(m.Home, "worker.json")) + ")", "Read(" + absRule(filepath.Join(m.Home, "agents.json")) + ")",
 		"Read(" + absRule(filepath.Join(m.Home, "outputs")) + "/**)", "Read(" + absRule(filepath.Join(m.Root, "resume.json")) + ")",
 		"Read(~/.claude*)", "Read(~/.claude*/**)", "Read(~/.ssh/**)", "Read(~/.config/mlxlab/**)", "Read(//proc/**)",
+		"Grep(" + absRule(filepath.Join(m.Root, ".ctl")) + "/**)", "Glob(" + absRule(filepath.Join(m.Home, "worker.json")) + ")",
+		"Grep(~/.claude*/**)", "Glob(~/.ssh/**)",
 	} {
 		if !strings.Contains(","+deny+",", ","+want+",") {
 			t.Errorf("--disallowedTools lacks %s: %s", want, deny)
@@ -120,12 +123,15 @@ func TestSessionGuard(t *testing.T) {
 		t.Fatalf("its own folder is denied: %s", deny)
 	}
 
-	// a second session denies the first one's folder
+	// a second session denies the first one's folder; without MCP servers there is nothing to defer
 	res2, err := m.Turn(context.Background(), Options{Key: "board-10", Owner: "alice"}, "hi", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	all = startsOf(t, argsLog)
+	if tools, _ := all[len(all)-1].flag("--tools"); tools != "Read,Glob,Grep,WebSearch,WebFetch,TodoWrite" {
+		t.Fatalf("--tools without MCP %q", tools)
+	}
 	deny2, _ := all[len(all)-1].flag("--disallowedTools")
 	if !strings.Contains(deny2, "Read("+own+"/**)") || strings.Contains(deny2, absRule(filepath.Join(m.Root, res2.Session))+"/**)") {
 		t.Fatalf("second session's deny rules: %s", deny2)
