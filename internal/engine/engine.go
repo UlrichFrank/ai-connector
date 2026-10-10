@@ -72,7 +72,8 @@ type Request struct {
 	Seed     int64    `json:"seed,omitempty"` // 0: random
 	Guidance float64  `json:"guidance,omitempty"`
 	Quantize int      `json:"quantize,omitempty"` // image: 0 = the model's default, -1 = none (bf16)
-	Images   []string `json:"images,omitempty"`   // image: references to edit; video: the first frame
+	Images   []string `json:"images,omitempty"`   // image: references to edit (an upscale: the one image); video: the first frame
+	Scale    int      `json:"scale,omitempty"`    // image upscale (SeedVR2): 2 to 4 times the image's size (0: 2)
 	Frames   int      `json:"frames,omitempty"`   // video: 8k+1 (0: LTX-2.5 predicts the length)
 	FPS      int      `json:"fps,omitempty"`
 	LowRAM   bool     `json:"lowRam,omitempty"`

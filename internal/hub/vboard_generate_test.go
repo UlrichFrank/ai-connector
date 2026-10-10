@@ -34,6 +34,7 @@ type vbGenerator struct {
 	Multiple, Max          int
 	MaxSeconds             int
 	Default                struct{ Width, Height, FPS, Seconds int }
+	Scales                 [2]int
 	NonCommercial          bool
 }
 
@@ -148,6 +149,7 @@ func nextGenerators(t *testing.T, b *fakeBridge) []vbGenerator {
 type fakeGen struct {
 	name, ext string
 	size      int
+	data      []byte // the file instead of size bytes (a real PNG)
 
 	mu     sync.Mutex
 	got    []engine.Request
@@ -203,7 +205,13 @@ func (b *fakeGen) Run(ctx context.Context, m *engine.Model, r engine.Request, ou
 		seed = 42
 	}
 	out := filepath.Join(outDir, fmt.Sprintf("gen-%d%s", time.Now().UnixNano(), b.ext))
-	if err := os.WriteFile(out, genBytes(b.size), 0o644); err != nil {
+	data := genBytes(b.size)
+	b.mu.Lock()
+	if b.data != nil {
+		data = b.data
+	}
+	b.mu.Unlock()
+	if err := os.WriteFile(out, data, 0o644); err != nil {
 		return err
 	}
 	stats := map[string]any{"seed": seed, "width": r.Width, "height": r.Height}
@@ -277,6 +285,10 @@ func startGenMac(t *testing.T, base, token string) *genMac {
 		{ID: "flux2-klein-9b", Name: "FLUX.2 [klein] 9B", Kind: engine.Image, Backend: "mflux", Size: gib, Defaults: img},
 		{ID: "qwen-image-2512", Name: "Qwen-Image 2512", Kind: engine.Image, Backend: "mflux", Size: gib, Here: true, Defaults: img,
 			Tasks: []string{"generate"}, NonCommercial: true},
+		{ID: "seedvr2-3b", Name: "SeedVR2 3B", Kind: engine.Image, Backend: "mflux", Size: gib, Here: true,
+			Defaults: engine.Request{Scale: 2}, Tasks: []string{engine.TaskUpscale}},
+		{ID: "seedvr2-7b", Name: "SeedVR2 7B", Kind: engine.Image, Backend: "mflux", Size: gib,
+			Defaults: engine.Request{Scale: 2}, Tasks: []string{engine.TaskUpscale}},
 		{ID: "qwen-image-edit-2511", Name: "Qwen-Image-Edit 2511", Kind: engine.Image, Backend: "mflux", Size: gib, Here: true,
 			Defaults: img, Tasks: []string{"edit"}},
 		{ID: "ltx-2.5-q4", Name: "LTX-2.5 (q4)", Kind: engine.Video, Backend: "ltx", Size: gib, Here: true,
@@ -365,12 +377,12 @@ func TestVboardGenerators(t *testing.T) {
 	all := nextGenerators(t, b2)
 	ids := map[string]bool{}
 	for _, g := range all {
-		if ids[g.ID] || (g.Kind != "image" && g.Kind != "video") {
+		if ids[g.ID] || (g.Kind != "image" && g.Kind != "video" && g.Kind != "upscale") {
 			t.Fatalf("\"*\": %+v", all)
 		}
 		ids[g.ID] = true
 	}
-	if len(all) < 3 || all[0].ID != "ltx-2.5-q4" || !ids["flux2-klein-4b"] || ids["flux2-klein-9b"] {
+	if len(all) < 3 || all[0].ID != "ltx-2.5-q4" || !ids["flux2-klein-4b"] || ids["flux2-klein-9b"] || !ids["seedvr2-3b"] || ids["seedvr2-7b"] {
 		t.Fatalf("\"*\": %+v (want LTX first, then the others on disk)", all)
 	}
 	// off again: an empty list

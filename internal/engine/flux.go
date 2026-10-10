@@ -17,8 +17,8 @@ import (
 // MfluxEnv is the pinned mflux runtime.
 var MfluxEnv = pyenv.Env{Name: "mflux", Python: "3.12", Packages: []string{"mflux==0.20.0"}}
 
-// FluxBackend runs FLUX.2 klein and Qwen-Image through mflux in a Python worker that stays alive between jobs (the model stays
-// loaded: the next image starts at once).
+// FluxBackend runs FLUX.2 klein, Qwen-Image and the SeedVR2 upscaler through mflux in a Python worker that stays alive
+// between jobs (the model stays loaded: the next image starts at once).
 type FluxBackend struct {
 	Root  string // ~/.config/mlxlab
 	Store *models.Store
@@ -45,6 +45,9 @@ func (b *FluxBackend) Unload() {
 func (b *FluxBackend) Run(ctx context.Context, m *Model, r Request, outDir string, emit Emit) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if slices.Contains(m.Tasks, TaskUpscale) {
+		return b.upscale(ctx, m, r, outDir, emit)
+	}
 	if r.Prompt == "" {
 		return errors.New("no prompt")
 	}
