@@ -1,4 +1,4 @@
-import { Bot, Loader2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, Loader2, MoreHorizontal, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { api, errorText, isNotAvailable } from "@/api/client";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createBody, defaultName, emptyForm, formOf, patchBody, stateLabel, validate, type ConnectorForm } from "@/lib/connectors";
+import { addAgent, agentKind, createBody, defaultName, emptyForm, formOf, maxAgents, moveAgent, patchBody, removeAgent, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
 import { useLive } from "@/store/live";
 
 /** How often the list is read when the event stream is not there. */
@@ -200,6 +200,7 @@ function ConnectorCard({ c, onEdit, onChanged, onDeleted }: { c: Connector; onEd
               </span>
             )}
           </div>
+          <AgentsLine c={c} />
           {c.state === "error" && c.error && c.enabled && <div className="mt-2 rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">{c.error}</div>}
           {c.state === "connecting" && c.error && c.enabled && <div className="mt-2 text-xs text-muted-foreground">{c.error}</div>}
         </div>
@@ -239,6 +240,30 @@ function ConnectorCard({ c, onEdit, onChanged, onDeleted }: { c: Connector; onEd
   );
 }
 
+/** The chat agents: what vboard was told of (with where each runs), and the chosen ones not offered now. */
+function AgentsLine({ c }: { c: Connector }) {
+  const adv = c.advertised ?? [];
+  const missing = (c.agents ?? []).filter((a) => !adv.some((x) => x.id === a.id));
+  if (!adv.length && !missing.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs" aria-label="Chat agents">
+      <span className="text-muted-foreground">chat:</span>
+      {adv.map((a, i) => (
+        <span key={a.id} className="flex items-center gap-1 rounded-md border px-1.5 py-0.5" data-advertised={a.id} title={`${a.model}${a.worker ? ` on ${a.worker}` : ""}${i === 0 ? " · the default" : ""}`}>
+          <Dot tone="ok" /> {a.name}
+          <KindBadge kind={a.kind} />
+          {a.worker && <span className="text-muted-foreground">· {a.worker}</span>}
+        </span>
+      ))}
+      {missing.map((a) => (
+        <span key={a.id} className="flex items-center gap-1 rounded-md border border-dashed px-1.5 py-0.5 text-muted-foreground" title="No connected worker runs it now (Claude Code: your own worker)">
+          <Dot tone="off" /> {a.name || a.model} · not offered now
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Radix Select has no empty value: this one stands for "the server's default". */
 const DEFAULT = "__default";
 
@@ -267,6 +292,77 @@ function ModelSelect({ id, label, kind, value, onChange, models }: { id: string;
   );
 }
 
+/** A model's kind as a small badge: a chat model (vboard's tools) or an agent (works on the board through MCP). */
+function KindBadge({ kind }: { kind: "model" | "agent" }) {
+  return (
+    <span className={`rounded px-1.5 text-[11px] ${kind === "agent" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`} title={kind === "agent" ? "An agent: it changes the board itself through vboard's MCP" : "A chat model: it answers with vboard's tools"}>
+      {kind}
+    </span>
+  );
+}
+
+/** The agents vboard's chat offers, in order: chosen from the chat models (Claude Code ones are agents). */
+function AgentsEditor({ value, onChange, models, error }: { value: AgentRow[]; onChange: (v: AgentRow[]) => void; models: Model[]; error?: string }) {
+  const chat = models.filter((m) => m.kind === "chat" && !value.some((a) => a.model === m.id));
+  const nameOf = (id: string) => models.find((m) => m.id === id)?.name ?? id;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Chat agents</Label>
+      <p className="text-xs text-muted-foreground">
+        What people pick from in vboard's chat panel. Claude Code runs as an agent on your own worker and changes the board through vboard's MCP. Without a list: the chat model above alone.
+      </p>
+      {value.length > 0 && (
+        <ol className="flex flex-col gap-1.5">
+          {value.map((a, i) => (
+            <li key={a.id + i} className="flex items-center gap-2 rounded-md border px-2 py-1.5" data-agent={a.id}>
+              <span className="w-4 text-right text-xs text-muted-foreground">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <code className="truncate font-mono text-xs">{a.model}</code>
+                  <KindBadge kind={agentKind(a.model)} />
+                  {i === 0 && <span className="text-[11px] text-muted-foreground">default — must be a model</span>}
+                </div>
+                <Input
+                  className="mt-1 h-7 text-xs"
+                  value={a.name}
+                  placeholder={nameOf(a.model)}
+                  maxLength={80}
+                  aria-label={`Name of ${a.model}`}
+                  onChange={(e) => onChange(value.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))}
+                />
+              </div>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label="Move up" disabled={i === 0} onClick={() => onChange(moveAgent(value, i, -1))}>
+                <ArrowUp />
+              </Button>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label="Move down" disabled={i === value.length - 1} onClick={() => onChange(moveAgent(value, i, 1))}>
+                <ArrowDown />
+              </Button>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${a.model}`} onClick={() => onChange(removeAgent(value, i))}>
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ol>
+      )}
+      {value.length < maxAgents && (
+        <Select value="" onValueChange={(m) => onChange(addAgent(value, m))}>
+          <SelectTrigger className="w-full" aria-label="Add an agent">
+            <SelectValue placeholder={chat.length ? "Add a chat model or agent…" : "No other chat model is offered now"} />
+          </SelectTrigger>
+          <SelectContent>
+            {chat.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.id} {agentKind(m.id) === "agent" ? "(agent)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector | "new" | null; onOpenChange: (o: boolean) => void; onSaved: (c: Connector) => void }) {
   const models = useLive((s) => s.models);
   const editing = target && target !== "new" ? target : null;
@@ -276,7 +372,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
 
-  const set = (k: keyof ConnectorForm) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: Exclude<keyof ConnectorForm, "agents">) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -300,7 +396,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
     }
   };
 
-  const field = (k: keyof ConnectorForm, label: string, props: React.ComponentProps<typeof Input> = {}, hint?: string) => (
+  const field = (k: Exclude<keyof ConnectorForm, "agents">, label: string, props: React.ComponentProps<typeof Input> = {}, hint?: string) => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={`connector-${k}`}>{label}</Label>
       <Input id={`connector-${k}`} value={form[k]} onChange={(e) => set(k)(e.target.value)} aria-invalid={!!errors[k] || undefined} {...props} />
@@ -331,6 +427,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
               <ModelSelect id="connector-embed" label="Embed" kind="embed" value={form.embed} onChange={set("embed")} models={models} />
               <ModelSelect id="connector-chat" label="Chat" kind="chat" value={form.chat} onChange={set("chat")} models={models} />
             </div>
+            <AgentsEditor value={form.agents} onChange={(agents) => setForm((f) => ({ ...f, agents }))} models={models} error={errors.agents} />
             {failure && <p className="text-sm text-destructive">{failure}</p>}
           </div>
           <DialogFooter>

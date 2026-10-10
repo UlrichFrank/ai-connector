@@ -173,6 +173,26 @@ export interface ConnectorModels {
   chat?: string;
 }
 
+/** One of the AIs a connector offers vboard's chat (the first is the default and must be a model). */
+export interface ConnectorAgent {
+  /** Stable (vboard remembers the pick by it); derived from the model when blank. */
+  id: string;
+  model: string;
+  /** "" = the model's name. */
+  name?: string;
+  /** Set by the server: claude-code/* is an agent (it works on the board through vboard's MCP). */
+  kind?: "model" | "agent";
+}
+
+/** An agent as the connector offers it to vboard now. */
+export interface AdvertisedAgent {
+  id: string;
+  name: string;
+  kind: "model" | "agent";
+  worker?: string;
+  model: string;
+}
+
 /** An outbound connection to an application (GET /api/connectors; never the token). */
 export interface Connector {
   id: string;
@@ -190,6 +210,10 @@ export interface Connector {
   user?: string;
   /** "" = the server's default model. */
   models?: ConnectorModels;
+  /** The chosen agents in their order ([] = the default: the chat model alone). */
+  agents?: ConnectorAgent[];
+  /** What vboard was told of (while connected). */
+  advertised?: AdvertisedAgent[];
   /** The user of the device that made it. */
   owner?: string;
   created?: string;
@@ -203,6 +227,7 @@ export interface ConnectorInput {
   board?: string;
   enabled?: boolean;
   models?: ConnectorModels;
+  agents?: ConnectorAgent[];
 }
 
 export interface ErrorBody {
