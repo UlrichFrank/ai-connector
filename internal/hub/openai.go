@@ -20,6 +20,10 @@ import (
 // chatPoll: how often a waiting chat asks the worker for its job (in case the end was missed) and pings the client.
 var chatPoll = 5 * time.Second
 
+// feedSettle: how long a chat whose job ended (as its poll found) waits for the job's last events, which the feed
+// brings a little later.
+var feedSettle = time.Second
+
 type chatRequest struct {
 	Model               string          `json:"model"`
 	Messages            []chatMessage   `json:"messages"`
@@ -413,7 +417,8 @@ func (c *chatRun) run(ctx context.Context, feed *jobFeed, job map[string]any, h 
 
 // follow waits for the job's end, passing its text on as it streams (onText), calling tick at once with the state
 // the job started in, on every change of its state and every chatPoll, and onEvent (if any) with its other events.
-// It returns the job as the worker has it then.
+// It returns the job as the worker has it then. When a poll finds the job ended first, the events still on their way
+// (up to its end in the feed, at most feedSettle) are passed on before.
 //
 // The text is passed on only where it belongs: a text event says where its piece starts in the job's text ("at",
 // jobs.Update.At), so a piece that is already passed on is not passed again, and a gap (a piece the feed never got:
@@ -481,7 +486,24 @@ func (c *chatRun) follow(ctx context.Context, feed *jobFeed, state string, onTex
 			j, err := c.get(ctx)
 			switch {
 			case err == nil && finished(j.State):
-				return j, nil
+				// the job ended before the feed said so: its last events (the tool calls, the end) may still be on
+				// the way; they are passed on first
+				end := time.NewTimer(feedSettle)
+				defer end.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return nil, ctx.Err()
+					case <-end.C:
+						return j, nil
+					case <-feed.ready:
+						for _, data := range feed.take() {
+							if handle(data) {
+								return j, nil
+							}
+						}
+					}
+				}
 			case err == nil:
 				misses = 0
 				state = j.State
