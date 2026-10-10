@@ -88,31 +88,51 @@ func (c *chatRequest) maxTokens() int {
 	return max(c.MaxTokens, 0)
 }
 
-// messageText is a message's content: a text, or text parts joined (other parts are refused).
-func messageText(raw json.RawMessage) (string, error) {
+// messageContent is a message's content: a text, or its parts — text parts joined, and image_url parts (data: URLs)
+// as images, each named in the text by its tag where its part was ("[image-1]", numbered in the message). Other
+// parts are refused.
+func messageContent(raw json.RawMessage) (string, []chatImage, error) {
 	raw = bytes.TrimSpace(raw)
 	if len(raw) == 0 || string(raw) == "null" {
-		return "", nil
+		return "", nil, nil
 	}
 	var s string
 	if json.Unmarshal(raw, &s) == nil {
-		return s, nil
+		return s, nil, nil
 	}
 	var parts []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+		Type     string          `json:"type"`
+		Text     string          `json:"text"`
+		ImageURL json.RawMessage `json:"image_url"`
 	}
 	if err := json.Unmarshal(raw, &parts); err != nil {
-		return "", fmt.Errorf("content is a text or a list of parts")
+		return "", nil, fmt.Errorf("content is a text or a list of parts")
 	}
 	var texts []string
+	var images []chatImage
 	for _, p := range parts {
-		if p.Type != "text" {
-			return "", fmt.Errorf("content parts of type %q are not taken (text only)", p.Type)
+		switch p.Type {
+		case "text":
+			texts = append(texts, p.Text)
+		case "image_url":
+			// {"url": "data:…"} (or the URL itself, as some clients send it)
+			var u struct {
+				URL string `json:"url"`
+			}
+			if json.Unmarshal(p.ImageURL, &u) != nil {
+				_ = json.Unmarshal(p.ImageURL, &u.URL)
+			}
+			im, err := dataURLImage(u.URL, fmt.Sprintf("image-%d", len(images)+1))
+			if err != nil {
+				return "", nil, err
+			}
+			images = append(images, im)
+			texts = append(texts, "["+im.ID+"]")
+		default:
+			return "", nil, fmt.Errorf("content parts of type %q are not taken (text and image_url)", p.Type)
 		}
-		texts = append(texts, p.Text)
 	}
-	return strings.Join(texts, "\n"), nil
+	return strings.Join(texts, "\n"), images, nil
 }
 
 // job is the chat job of the request (an engine.Request as JSON; the hub does not import the engine).
@@ -121,6 +141,7 @@ func (c *chatRequest) job(model string) (map[string]any, *apiError) {
 		return nil, badRequest("messages are missing")
 	}
 	msgs := make([]map[string]any, len(c.Messages))
+	nImages := 0
 	for i, m := range c.Messages {
 		role := m.Role
 		if role == "developer" { // the newer name of the system message
@@ -131,11 +152,20 @@ func (c *chatRequest) job(model string) (map[string]any, *apiError) {
 		default:
 			return nil, badRequest("messages[%d]: unknown role %q", i, m.Role)
 		}
-		text, err := messageText(m.Content)
+		text, images, err := messageContent(m.Content)
 		if err != nil {
 			return nil, badRequest("messages[%d]: %v", i, err)
 		}
 		out := map[string]any{"role": role, "content": text}
+		if len(images) > 0 {
+			if role != "user" {
+				return nil, badRequest("messages[%d]: images go with user messages", i)
+			}
+			if nImages += len(images); nImages > maxImages {
+				return nil, badRequest("at most %d images a request", maxImages)
+			}
+			out["images"] = jobImages(images)
+		}
 		if role == "tool" {
 			out["toolCallId"] = m.ToolCallID
 		}
@@ -255,12 +285,13 @@ func (j *chatJob) failure() *apiError {
 
 // chatRun is one chat completion: its job on a worker.
 type chatRun struct {
-	s     *Server
-	n     *node
-	id    string // the job's id (with the worker's route)
-	model string
-	owner string // whose job it is: set on a claude-code model's job (run), "" for the others
-	since int64
+	s      *Server
+	n      *node
+	id     string // the job's id (with the worker's route)
+	model  string
+	images bool   // the model takes images
+	owner  string // whose job it is: set on a claude-code model's job (run), "" for the others
+	since  int64
 }
 
 // start submits the job to the worker: its id and state ("queued", "running" …).
@@ -507,7 +538,7 @@ func (s *Server) placeChat(ctx context.Context, name string, who chatFor) (*chat
 		if e != nil {
 			return nil, e
 		}
-		return &chatRun{s: s, n: n, model: m.ID, since: time.Now().Unix()}, nil
+		return &chatRun{s: s, n: n, model: m.ID, images: m.Images, since: time.Now().Unix()}, nil
 	}
 	model := strings.ToLower(strings.TrimSpace(name))
 	if fm, ok := findModel(fleetModels(routed), name); ok {
@@ -521,7 +552,7 @@ func (s *Server) placeChat(ctx context.Context, name string, who chatFor) (*chat
 		}
 		return nil, &apiError{no.status, code, no.message}
 	}
-	return &chatRun{s: s, n: n, model: model, owner: who.user, since: time.Now().Unix()}, nil
+	return &chatRun{s: s, n: n, model: model, owner: who.user, images: true /* Claude Code takes images */, since: time.Now().Unix()}, nil
 }
 
 // v1Chat: POST /v1/chat/completions.
@@ -545,6 +576,10 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	job, _ := req.job(run.model)
+	if !run.images && jobHasImages(job) {
+		badRequest("%s does not take images", run.model).openAI(w)
+		return
+	}
 	if c, ok := clientOf(r); ok {
 		job["client"] = c.Name
 	}

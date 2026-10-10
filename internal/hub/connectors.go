@@ -47,6 +47,7 @@ type AdvertisedAgent struct {
 	Kind   string `json:"kind"`
 	Worker string `json:"worker,omitempty"` // where it would run (a guess, for vboard's panel)
 	Model  string `json:"model"`            // the catalogue id it runs on
+	Images bool   `json:"images,omitempty"` // its model takes images (pasted into vboard's chat)
 }
 
 // Connector is a connector as the API shows it: its settings (never the token) and its live state.

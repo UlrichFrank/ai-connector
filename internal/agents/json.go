@@ -126,8 +126,13 @@ func (d *jsonDriver) send(v any) error {
 }
 
 func (d *jsonDriver) turn(ctx context.Context, text string, emit func(Event)) (Result, error) {
+	return d.turnContent(ctx, text, emit)
+}
+
+// turnContent runs a turn whose user message has this content: a text, or content blocks (images.go).
+func (d *jsonDriver) turnContent(ctx context.Context, content any, emit func(Event)) (Result, error) {
 	start := time.Now()
-	if err := d.send(map[string]any{"type": "user", "message": map[string]any{"role": "user", "content": text}}); err != nil {
+	if err := d.send(map[string]any{"type": "user", "message": map[string]any{"role": "user", "content": content}}); err != nil {
 		return Result{}, d.ended(err)
 	}
 	t := &turnState{emit: emit, start: start, streamed: map[string]bool{}, tools: map[string]string{}}

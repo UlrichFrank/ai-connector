@@ -160,7 +160,7 @@ func TestVboardAgentsAdvertised(t *testing.T) {
 		got = connectorOf(t, base, alice, c.ID)
 		return len(got.Advertised) == 3
 	})
-	if got.Advertised[1] != (AdvertisedAgent{ID: "claude-code-haiku", Name: "Claude", Kind: "agent", Worker: "Alice's Mac", Model: "claude-code/haiku"}) {
+	if got.Advertised[1] != (AdvertisedAgent{ID: "claude-code-haiku", Name: "Claude", Kind: "agent", Worker: "Alice's Mac", Model: "claude-code/haiku", Images: true}) {
 		t.Fatalf("advertised %+v", got.Advertised)
 	}
 	if _, dials := v.count(); dials != 1 {

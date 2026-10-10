@@ -49,12 +49,12 @@ Before a 404 `model_not_found` the server asks the connected workers for their m
 at most 2 s, and asks at most once in 2 s) and tries again — a model pulled into Ollama a moment ago works at once
 instead of after the next scan (every 30 s).
 
-Limits: a request body of at most 32 MB; at most 2048 inputs per embedding call (OpenAI and TEI); no cap on
+Limits: a request body of at most 64 MB (a chat's images come with it); at most 2048 inputs per embedding call (OpenAI and TEI); no cap on
 `max_tokens` beyond the worker's (when unset: 4096, thinking 32768 on the MLX chat models; a runtime's own default for `ollama/…` and the like).
 
 ### `GET /v1/models`
 
-`{"object":"list","data":[{"id","object":"model","created":0,"owned_by":"ai-connector","kind":"chat|embed|classify","workers":["Mac Studio",…]}]}` — the chat, embed and classify models of the connected workers (an empty list while none is connected).
+`{"object":"list","data":[{"id","object":"model","created":0,"owned_by":"ai-connector","kind":"chat|embed|classify","workers":["Mac Studio",…],"images"?: true|false}]}` — the chat, embed and classify models of the connected workers (an empty list while none is connected). `images` (chat models only): the model takes images with the messages ("Images in chats" below).
 
 ### `POST /v1/embeddings`
 
@@ -67,7 +67,7 @@ Runs on the worker's **direct path** (below): not queued behind long jobs, not i
 ### `POST /v1/chat/completions`
 
 Request (OpenAI): `model` (required), `messages` (`system|user|assistant|tool`; `content` a string or an array of
-`{"type":"text","text"}` parts — image parts → 400), `stream`, `temperature`, `top_p`, `presence_penalty`,
+`{"type":"text","text"}` and `{"type":"image_url","image_url":{"url":"data:…"}}` parts — "Images in chats" below), `stream`, `temperature`, `top_p`, `presence_penalty`,
 `max_tokens` / `max_completion_tokens`, `tools` (`[{"type":"function","function":{"name","description","parameters"}}]`),
 assistant `tool_calls`, tool `tool_call_id`. Thinking is off unless asked: `reasoning_effort` other than `"none"`,
 or `"think": true`, or `"chat_template_kwargs":{"enable_thinking":true}`. Other fields are ignored.
@@ -104,6 +104,41 @@ Details of the implementation:
   `tool_calls`, `tool` results): nothing runs tools in such a chat and a follow-up of it can never take a zone, so
   the zone rule ("tool results only from the chat that made them") still holds for zone chats.
 
+### Images in chats
+
+A user message may carry images (screenshots pasted into vboard's chat, `image_url` parts of the OpenAI API). The
+message's text names each by a **tag** where it belongs — `[image-1]`, `[image-2]` … — and the models see the image
+there, the tag kept in the text so the answer can refer to it.
+
+* **Which models.** A chat model says so with `images: true` in the catalogue (`GET /api/models`, `GET /v1/models`,
+  `engine.Model.Images`): the Claude Code models (`claude-code/*`); runtime models when the runtime says they see —
+  LM Studio's `/api/v0/models` type `"vlm"` (or a `"vision"` capability; LM Studio 0.4 lists the Qwen3.5/3.6 MLX
+  checkpoints with their vision tower so, e.g. `lmstudio/qwen/qwen3.6-27b`, `lmstudio/qwen3.6-35b-a3b`), Ollama's
+  `/api/show` capability `"vision"`. Not the built-in MLX chat models (their decoder drops the vision tower), not
+  llama.cpp/vLLM models (they do not say), not embed/classify models.
+* **`/v1/chat/completions`**: `image_url` parts with **data URLs** (`data:image/png|jpeg|webp|gif;base64,…`; the
+  URL may also be the part's `image_url` string itself) become the message's images, numbered per message
+  (`image-1` …); the text parts and the tags are joined with newlines in the parts' order (`[{"text":"what colour
+  is"},{"image_url":…}]` → `"what colour is\n[image-1]"`). At most **5 MB** an image (decoded) and **8** a request,
+  user messages only. http(s) URLs → 400 "image URLs are not supported" (nothing is fetched); another type, bad
+  base64, too many or too large → 400; images to a model without `images` → 400 `invalid_request_error` "<model>
+  does not take images".
+* **Chat jobs** (`POST /api/jobs`, `engine.Request.messages[]`): `"images":[{"id":"image-1","mime":"image/png",
+  "data":"<base64>"}]` next to `role`/`content` (`llm.Message.Images`). The worker refuses images for a model without
+  the capability (400) and checks them as above. **The history keeps no image bytes:** on submit the worker writes
+  them to `<outputs>/chat-images/<job id>/<message index>-<id>.<ext>` and the job's request keeps references
+  `{"id","mime","file"}`; a job as the APIs show it has `file` as a `/files/chat-images/…` url (with the worker's
+  route through the server, like every file url), and a request may send such a reference back (a retry) instead of
+  `data` — only a file of that folder. The backend gets the bytes read back; a result's `messages` keep references
+  only. Deleting a job with its files removes its images unless another job (a retry) still uses them.
+* **Runtimes** (`ollama/…`, `lmstudio/…`): the message goes as OpenAI content parts, text and `{"type":"image_url",
+  "image_url":{"url":"data:…"}}` interleaved where the tags are (an image whose tag the text lacks follows at the
+  end). Checked end to end with LM Studio and `qwen/qwen3.6-27b` (MLX, 4-bit): a 64×64 red PNG, "What colour is
+  [image-1]?" → "Red" (`MLXLAB_IMAGES_LIVE=lmstudio/qwen/qwen3.6-27b go test ./internal/engine -run
+  TestRuntimeImagesLive`).
+* **Claude Code**: see "Agents (Claude Code)", Images.
+* **vboard**: the connector advertises `images` per agent and passes them on ("How the vboard connector works").
+
 ## Endpoints vboard's sidecar settings point at (client token)
 
 ### TEI — `POST /embed` (vboard `EMBED_URL`)
@@ -135,6 +170,7 @@ The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `
   the job ends with the model's calls in `result.toolCalls` (`[{"id","name","arguments":"<JSON string>"}]`),
   never run. Not with `zone` (the zones' tools run on the worker).
 * `client`: set by the server from the client token's name (a value sent by the caller is replaced).
+* `messages[].images`: a user message's images ("Images in chats" above; references only in the history).
 
 ## Worker: direct path (through the tunnel; the server calls it)
 
@@ -229,13 +265,15 @@ settings at once.
    (`token.boardScope`, `token.scope`) and 404 (`board.notFound`) are final; 503 (`server.draining`), other statuses
    and network errors are retried after 1 s, 2 s, 4 s … at most 60 s (back to 1 s after a connection that worked).
 3. `{"type":"hello","name","device":"ai-connector","model","embed","chat","instance","handover":true,
-   "agents":[{"id","name","kind","worker"}]}` — the models the connected workers offer **now** (catalogue ids, cut to
+   "agents":[{"id","name","kind","worker","images"?: true}],"images"?: true}` — the models the connected workers offer **now** (catalogue ids, cut to
    vboard's 60/80/80 characters; `""` = cannot), the instance `aic_…` one per runner, and the agents offered now
    (`advertised` above; ids, names and workers cut to 80 characters). The first agent is the default and is a model:
    when the first chosen one is not offered now, the first offered model moves to the front (with none, the agents
    alone: then `chat` is `""` and an older vboard does not chat). `chat` is the default's model, for vboards before
    agents. While no connected worker offers anything, the connector does not dial (`connecting`, "No connected worker
-   offers …"); when that happens on an open connection it closes it.
+   offers …"); when that happens on an open connection it closes it. `images: true` on an agent: its model takes
+   images (the catalogue's `images`; Claude Code always); `hello.images: true`: the default (the first agent, a
+   model) takes them, for a vboard that reads only hello's top-level fields. Absent = no images.
 4. vboard answers `{"type":"welcome","id","board","user"}` → `connected`.
 5. Requests are answered in goroutines while one loop keeps reading (vboard pings every 30 s):
    * `classify` → the worker direct path (`/api/direct/classify`, a worker that lists the model, preferring one that
@@ -255,6 +293,13 @@ settings at once.
      "arguments"}]}` (`toolCalls` always a list, `arguments` a JSON string, `"{}"` when empty). Every 60 s without
      anything else sent, a keep-alive (the same status again, `thinking:true` again, or an empty `text`; vboard gives up
      after 3 minutes of silence). `chatCancel` cancels the job; nothing more is sent for it.
+   * **Images**: a user message of a `chat` may carry `"images":[{"id":"image-1","mime":"image/webp","data":"<base64>"}]`
+     next to `content` (which has the `[image-1]` tags). For an agent that advertised `images` they go into the job
+     (checked: png/jpeg/webp/gif, at most 5 MB each and 8 a request; a bad one → `error`): a model gets them as
+     content parts, Claude Code as image blocks where the tags are. For any other agent they are **never** sent:
+     the tags become "(image omitted)" and the images are dropped. (vboard sends images only to agents that
+     advertised them, on the newest user message and at most the 2 most recent earlier image messages; older ones
+     arrive as "(image N from earlier)" text.)
    * Failures → `{"type":"error","id","message"}` (at most 300 characters); an unknown request type with an id too.
      A request for something the connector cannot do now (no worker offers the model) is such an error.
    * An answer larger than vboard reads (8 MB) is replaced by an error for its id.
@@ -279,6 +324,7 @@ that commit's `bridge.go` / `chat.go` do:
 | `f914d44` (2026-09-27) | + chat/chatCancel → chatDelta/chatDone, hello.chat | ✓ chat with tools, thinking, cancel; a status-only `chatDelta` is an empty text there (not shown, it restarts the idle timer) |
 | `175647c` → main | + hello.instance/handover, `reconnect`, `chatDelta.status` | ✓ status shown, handover keeps the running chat; hello.agents and `{type:"agents"}` ignored, requests without `agent` → the default model |
 | `ai-agents` (`e5a7292c`, 2026-10-10) | + hello.agents, `{type:"agents"}`, chat `agent` / `context` | ✓ the agents listed and updated, models by `agent`, agents through MCP (below) |
+| images in chats | + `agents[].images`, `hello.images`, chat `messages[].images` | ✓ advertised per agent, images to the agents that take them, "(image omitted)" for the others; older vboards ignore the fields and send no images |
 
 ## Console UI and host names (phase 6)
 
@@ -317,6 +363,18 @@ Events of the job: `text` (the answer, streamed as Claude Code writes it with th
 command, URL …>","result":"<shortened>","zone":""}`), and `stats`: `{"session","driver","claudeSession","seconds",
 "turns"}` plus, with the json driver, `{"promptTokens","tokens","cacheReadTokens","costUSD","firstTokenSeconds"}`
 (`costUSD` is this turn's; Claude Code reports the session's total, the worker takes the difference).
+
+**Images** (`messages[].images`, "Images in chats"): Claude Code models take them. With the **json** driver the
+turn's user message is sent as content blocks — text, and `{"type":"image","source":{"type":"base64","media_type",
+"data"}}` right after each image's tag (`"what colour is [image-1]"`, the image, `"?"`; the tag stays in the text).
+Checked with the real Claude Code 2.1.288: stream-json input takes image blocks (a 32×32 red PNG, haiku → "Red.";
+`AGENTS_IMAGES_LIVE=1 go test ./internal/agents -run TestImagesLive`, one haiku turn). The **tty** driver can only
+type: it writes the images into the session's folder, `<session>/attachments/image-1.png` (a name already there from
+an earlier turn gets `image-1-2.png` …), and types the tag with the file's relative path: `what colour is [image-1:
+attachments/image-1.png]?` — inside the folder the session may read (`Read(./**)`; no deny rule covers it). A
+session's own history has the earlier turns' images, so a turn sends only the newest user message's; the transcript
+of a session new on the worker (or a one-off) carries every message's images, an earlier message's renamed where
+its id repeats (`[image-1]` of message 1 → `[m1-image-1]`).
 
 Claude Code jobs **do not wait in the GPU queue**: a backend that implements `engine.Parallel` (`Parallel() bool`)
 runs its jobs at once beside the queue (`jobs.Manager.Beside`), several at a time; they are still in the history,

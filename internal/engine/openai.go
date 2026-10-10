@@ -90,7 +90,7 @@ func (b *OpenAIBackend) Run(ctx context.Context, m *Model, r Request, _ string, 
 
 type oaMessage struct {
 	Role       string       `json:"role"`
-	Content    string       `json:"content"`
+	Content    any          `json:"content"` // a text, or parts (text and image_url) when the message has images
 	ToolCalls  []oaToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string       `json:"tool_call_id,omitempty"`
 }
@@ -108,6 +108,9 @@ func toOpenAI(msgs []llm.Message) []oaMessage {
 	out := make([]oaMessage, len(msgs))
 	for i, m := range msgs {
 		o := oaMessage{Role: m.Role, Content: m.Content, ToolCallID: m.ToolCallID}
+		if len(m.Images) > 0 {
+			o.Content = openAIParts(m)
+		}
 		for _, c := range m.ToolCalls {
 			tc := oaToolCall{ID: c.ID, Type: "function"}
 			tc.Function.Name, tc.Function.Arguments = c.Name, c.Arguments
@@ -116,6 +119,20 @@ func toOpenAI(msgs []llm.Message) []oaMessage {
 		out[i] = o
 	}
 	return out
+}
+
+// openAIParts is a message with images as OpenAI's content parts: text and image_url (a data: URL) interleaved at
+// the images' tags (llm.Parts).
+func openAIParts(m llm.Message) []map[string]any {
+	var parts []map[string]any
+	for _, p := range llm.Parts(m.Content, m.Images) {
+		if p.Image != nil {
+			parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]string{"url": p.Image.DataURL()}})
+		} else {
+			parts = append(parts, map[string]any{"type": "text", "text": p.Text})
+		}
+	}
+	return parts
 }
 
 // chunk is one streamed piece of /chat/completions. The thinking comes as reasoning_content (llama.cpp, vLLM,
@@ -155,6 +172,9 @@ func (b *OpenAIBackend) chat(ctx context.Context, m *Model, r Request, emit Emit
 	}
 	if r.Zone != "" {
 		return fmt.Errorf("a %s chat (tools) runs on the built-in chat models only (MLX on a Mac); %s answers without tools", r.Zone, m.Name)
+	}
+	if llm.HasImages(r.Messages) && !m.Images {
+		return fmt.Errorf("%s does not take images", m.Name)
 	}
 	body := map[string]any{
 		"model": m.served.Model, "messages": toOpenAI(withNow(r.Messages, time.Now())), "stream": true,

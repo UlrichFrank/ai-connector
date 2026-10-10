@@ -12,6 +12,7 @@ package fakeclaude
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -77,7 +78,7 @@ func fakeClaude(args []string) int {
 	lines := make(chan map[string]any, 100)
 	go func() {
 		sc := bufio.NewScanner(os.Stdin)
-		sc.Buffer(make([]byte, 1<<20), 1<<20)
+		sc.Buffer(make([]byte, 1<<20), 64<<20)
 		for sc.Scan() {
 			var v map[string]any
 			if json.Unmarshal(sc.Bytes(), &v) == nil {
@@ -110,7 +111,7 @@ func fakeClaude(args []string) int {
 			continue
 		}
 		turns++
-		text, _ := v["message"].(map[string]any)["content"].(string)
+		text := userText(v["message"].(map[string]any)["content"])
 		send(map[string]any{"type": "system", "subtype": "init", "cwd": mustWd(), "model": opt["--model"]})
 		send(map[string]any{"type": "system", "subtype": "status", "status": "requesting"})
 		answer := ""
@@ -163,6 +164,32 @@ func fakeClaude(args []string) int {
 			"usage": map[string]any{"input_tokens": 10, "output_tokens": 5, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 7}})
 	}
 	return 0
+}
+
+// userText is a user message's content as text: a string, or its blocks — text as it is, an image as
+// <image media_type bytes> (so a test sees where each image went).
+func userText(c any) string {
+	switch x := c.(type) {
+	case string:
+		return x
+	case []any:
+		var b strings.Builder
+		for _, p := range x {
+			blk, _ := p.(map[string]any)
+			switch blk["type"] {
+			case "text":
+				s, _ := blk["text"].(string)
+				b.WriteString(s)
+			case "image":
+				src, _ := blk["source"].(map[string]any)
+				data, _ := src["data"].(string)
+				raw, _ := base64.StdEncoding.DecodeString(data)
+				fmt.Fprintf(&b, "<image %v %d>", src["media_type"], len(raw))
+			}
+		}
+		return b.String()
+	}
+	return ""
 }
 
 func mustWd() string {

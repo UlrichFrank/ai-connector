@@ -160,7 +160,7 @@ func (s *Server) submitClaude(w http.ResponseWriter, r *http.Request, nodes []*n
 
 // submitOffline: POST /api/jobs while no worker is connected — a claude-code job says whose worker it waits for.
 func (s *Server) submitOffline(w http.ResponseWriter, r *http.Request) {
-	body, _ := io.ReadAll(io.LimitReader(r.Body, 32<<20))
+	body, _ := io.ReadAll(io.LimitReader(r.Body, maxAPIBody))
 	var req struct {
 		Model string `json:"model"`
 	}

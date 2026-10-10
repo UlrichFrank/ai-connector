@@ -180,6 +180,9 @@ func (m *Manager) Submit(r engine.Request) (*Job, error) {
 	}
 	r.Model = md.ID
 	r.Folder = CleanFolder(r.Folder)
+	if err := m.checkImages(md, &r); err != nil {
+		return nil, err
+	}
 	m.mu.Lock()
 	if err := m.checkZone(md.Kind, &r); err != nil {
 		m.mu.Unlock()
@@ -191,7 +194,14 @@ func (m *Manager) Submit(r engine.Request) (*Job, error) {
 		}
 	}
 	m.seq++
-	j := &Job{ID: time.Now().Format("150405") + "-" + strconv.Itoa(m.seq), Model: md.ID, Name: md.Name, Kind: md.Kind,
+	id := time.Now().Format("150405") + "-" + strconv.Itoa(m.seq)
+	m.mu.Unlock()
+	// the images go into files (not the history) before the job exists
+	if err := m.storeImages(id, &r); err != nil {
+		return nil, err
+	}
+	m.mu.Lock()
+	j := &Job{ID: id, Model: md.ID, Name: md.Name, Kind: md.Kind,
 		Request: r, State: Queued, Created: time.Now(), Status: "queued"}
 	m.jobs = append(m.jobs, j)
 	snap := j.clone()
@@ -572,6 +582,7 @@ func (m *Manager) DeleteWithFiles(id string) error {
 	for _, f := range j.Files {
 		files = append(files, f, strings.TrimSuffix(f, filepath.Ext(f))+".abc")
 	}
+	files = append(files, imageFiles(j.Request)...)
 	if j.Preview != "" {
 		files = append(files, j.Preview)
 	}
@@ -586,6 +597,9 @@ func (m *Manager) DeleteWithFiles(id string) error {
 		}
 		used[o.Cover], used[o.Request.Source], used[o.Preview] = true, true, true
 		for _, f := range o.Request.Images {
+			used[f] = true
+		}
+		for _, f := range imageFiles(o.Request) { // a retried chat's images
 			used[f] = true
 		}
 		if c, _ := o.Stats["clipsDir"].(string); c != "" && c == clips {
@@ -752,7 +766,11 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 					err = fmt.Errorf("panic: %v", r)
 				}
 			}()
-			return b.Run(ctx, md, j.Request, m.OutDir(), func(ev engine.Event) { m.event(j, ev) })
+			req, err := withImageData(j.Request)
+			if err != nil {
+				return err
+			}
+			return b.Run(ctx, md, req, m.OutDir(), func(ev engine.Event) { m.event(j, ev) })
 		}()
 		canceled := ctx.Err() != nil
 		cancel()
@@ -826,6 +844,9 @@ func (m *Manager) event(j *Job, ev engine.Event) {
 			j.Stats[k] = v
 		}
 	case "result":
+		if msgs, ok := ev.Data["messages"].([]llm.Message); ok && llm.HasImages(msgs) {
+			ev.Data = mapWith(ev.Data, "messages", withoutImageData(msgs)) // the history keeps references only
+		}
 		j.Result = ev.Data
 	case "tool":
 		id, _ := ev.Data["id"].(string)

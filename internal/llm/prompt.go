@@ -14,6 +14,9 @@ type Message struct {
 	Content    string
 	ToolCalls  []ToolCall
 	ToolCallID string
+	// Images: images of a user message, named in Content by their tags ("[image-1]"; image.go). Only models with
+	// the capability get them (engine.Model.Images).
+	Images []Image `json:"images,omitempty"`
 }
 
 // ToolCall is a call of the model; Arguments is a JSON object.

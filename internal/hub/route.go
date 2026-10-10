@@ -788,7 +788,7 @@ func choose(nodes []*node, prim *node, m catalogModel, known bool, holds map[*no
 // submit: POST /api/jobs — to the Mac it belongs on (see choose), with the files it names copied there when they
 // are on another Mac.
 func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, prim *node) {
-	body, err := io.ReadAll(io.LimitReader(r.Body, 32<<20))
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxAPIBody)) // a chat's images come with it
 	var req map[string]json.RawMessage
 	if err == nil {
 		err = json.Unmarshal(body, &req)

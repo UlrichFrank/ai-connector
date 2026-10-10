@@ -35,6 +35,9 @@ type Model struct {
 	// Styles: a song model that can learn a style from the user's tracks (a LoRA, see styles.go); its requests
 	// take a style.
 	Styles bool `json:"styles,omitempty"`
+	// Images: a chat model that takes images with the messages (llm.Message.Images): Claude Code, and the models a
+	// local runtime says can see (LM Studio type "vlm", Ollama capability "vision"). The built-in MLX chat cannot.
+	Images bool `json:"images,omitempty"`
 	// Defaults are the request fields the UIs start with.
 	Defaults Request `json:"defaults"`
 	// Sampling: a chat model's settings with thinking on and off (generation_config.json and Qwen's

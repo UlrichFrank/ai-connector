@@ -73,7 +73,13 @@ func (c bridgeCaps) empty() bool {
 
 // sameHello: the hello's top-level fields are the same (vboards before agents learn only these, and only from hello).
 func (c bridgeCaps) sameHello(o bridgeCaps) bool {
-	return c.classify == o.classify && c.embed == o.embed && c.chat == o.chat
+	return c.classify == o.classify && c.embed == o.embed && c.chat == o.chat && c.images() == o.images()
+}
+
+// images: the default (the first agent, a model) takes images (hello.images: for a vboard that does not read the
+// agents' own flag).
+func (c bridgeCaps) images() bool {
+	return len(c.agents) > 0 && c.agents[0].Kind == kindModel && c.agents[0].Images
 }
 
 func (c bridgeCaps) String() string {
@@ -97,13 +103,17 @@ func agentIDs(as []AdvertisedAgent) string {
 	return strings.Join(ids, " ")
 }
 
-// wireAgents is the agents list as vboard reads it (hello.agents, {type:"agents"}): id, name, kind, worker.
-func wireAgents(as []AdvertisedAgent) []map[string]string {
-	out := make([]map[string]string, len(as))
+// wireAgents is the agents list as vboard reads it (hello.agents, {type:"agents"}): id, name, kind, worker, and
+// images: true when it takes images (absent: it does not).
+func wireAgents(as []AdvertisedAgent) []map[string]any {
+	out := make([]map[string]any, len(as))
 	for i, a := range as {
-		out[i] = map[string]string{"id": a.ID, "name": a.Name, "kind": a.Kind}
+		out[i] = map[string]any{"id": a.ID, "name": a.Name, "kind": a.Kind}
 		if a.Worker != "" {
 			out[i]["worker"] = a.Worker
+		}
+		if a.Images {
+			out[i]["images"] = true
 		}
 	}
 	return out
@@ -190,8 +200,9 @@ func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConne
 	if name == "" {
 		name = fm.ID
 	}
+	images := fm.Images || fm.Backend == "claude-code" || strings.HasPrefix(fm.ID, claudePrefix)
 	return AdvertisedAgent{ID: trimRunes(a.ID, agentChars), Name: trimRunes(name, agentChars), Kind: kind,
-		Worker: trimRunes(n.name, agentChars), Model: fm.ID}, true
+		Worker: trimRunes(n.name, agentChars), Model: fm.ID, Images: images}, true
 }
 
 // ---------- errors ----------
@@ -519,9 +530,13 @@ func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeC
 	ws.SetReadLimit(bridgeInbound)
 	// the caps are vboard's (bridge.go trimTo); instance + handover: this bridge understands {reconnect}; agents: what
 	// a vboard that knows them lets the person pick (older ones ignore the field)
-	hello, _ := json.Marshal(map[string]any{"type": "hello", "name": trimRunes(conf.Name, 80), "device": bridgeDevice,
+	h0 := map[string]any{"type": "hello", "name": trimRunes(conf.Name, 80), "device": bridgeDevice,
 		"model": trimRunes(caps.classify, 60), "embed": trimRunes(caps.embed, 80), "chat": trimRunes(caps.chat, 80),
-		"instance": r.instance, "handover": true, "agents": wireAgents(caps.agents)})
+		"instance": r.instance, "handover": true, "agents": wireAgents(caps.agents)}
+	if caps.images() {
+		h0["images"] = true // the default model takes images
+	}
+	hello, _ := json.Marshal(h0)
 	if err := ws.Write(ctx, websocket.MessageText, hello); err != nil {
 		ws.CloseNow()
 		return nil, err
@@ -661,6 +676,37 @@ type bridgeChatMsg struct {
 	Content    string           `json:"content"`
 	ToolCalls  []bridgeToolCall `json:"toolCalls"`
 	ToolCallID string           `json:"toolCallId"`
+	// Images of a user message, named in Content by their tags ("[image-1]"); only sent to agents that advertised
+	// images (images.go)
+	Images []chatImage `json:"images"`
+}
+
+// withImages is the request as the agent gets it: the user messages' images checked (at most maxImages), or — for
+// an agent whose model does not take images — their tags replaced by "(image omitted)" and the images left out.
+func withImages(m *bridgeMsg, allowed bool) (*bridgeMsg, error) {
+	c := *m
+	c.Messages = make([]bridgeChatMsg, len(m.Messages))
+	n := 0
+	for i, x := range m.Messages {
+		if len(x.Images) > 0 {
+			if !allowed || x.Role != "user" {
+				x.Content = omitImageTags(x.Content, x.Images)
+				x.Images = nil
+			} else {
+				x.Images = append([]chatImage(nil), x.Images...)
+				for k := range x.Images {
+					if err := x.Images[k].check(); err != nil {
+						return nil, fmt.Errorf("messages[%d]: %v", i, err)
+					}
+				}
+				if n += len(x.Images); n > maxImages {
+					return nil, fmt.Errorf("at most %d images a request", maxImages)
+				}
+			}
+		}
+		c.Messages[i] = x
+	}
+	return &c, nil
 }
 
 type bridgeToolCall struct {
@@ -1054,6 +1100,9 @@ func bridgeChatJob(m *bridgeMsg) (map[string]any, error) {
 		if x.Role == "tool" {
 			out["toolCallId"] = x.ToolCallID
 		}
+		if x.Role == "user" && len(x.Images) > 0 {
+			out["images"] = jobImages(x.Images)
+		}
 		if x.Role == "assistant" && len(x.ToolCalls) > 0 {
 			calls := make([]map[string]string, len(x.ToolCalls))
 			for j, tc := range x.ToolCalls {
@@ -1121,8 +1170,12 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		return
 	}
 	asAgent := a.Kind == kindAgent || m.Context != nil
+	m, err := withImages(m, a.Images) // never images to an agent that cannot take them
+	if err != nil {
+		fail(err.Error())
+		return
+	}
 	var job map[string]any
-	var err error
 	if asAgent {
 		job, err = agentJob(c.conf, m, r.m.conversations.seen)
 	} else {
@@ -1285,7 +1338,11 @@ func agentJob(conf storedConnector, m *bridgeMsg, seen func(key string) bool) (m
 				first = x.Content
 			}
 			lastUser = len(msgs)
-			msgs = append(msgs, map[string]any{"role": "user", "content": x.Content})
+			um := map[string]any{"role": "user", "content": x.Content}
+			if len(x.Images) > 0 {
+				um["images"] = jobImages(x.Images)
+			}
+			msgs = append(msgs, um)
 		case "assistant":
 			answered = true
 			msgs = append(msgs, map[string]any{"role": "assistant", "content": x.Content})

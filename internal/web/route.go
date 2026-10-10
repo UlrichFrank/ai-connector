@@ -264,7 +264,7 @@ func (s *Server) routed(next http.Handler) http.Handler {
 		r.URL.Path, r.URL.RawPath = rt.inPath(r.URL.Path), ""
 		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead &&
 			!strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/") {
-			b, err := io.ReadAll(io.LimitReader(r.Body, 32<<20))
+			b, err := io.ReadAll(io.LimitReader(r.Body, 64<<20)) // a chat's images come with it
 			r.Body.Close()
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
