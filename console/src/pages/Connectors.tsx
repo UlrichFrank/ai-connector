@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { createBody, emptyForm, formOf, patchBody, stateLabel, validate, type ConnectorForm } from "@/lib/connectors";
+import { createBody, defaultName, emptyForm, formOf, patchBody, stateLabel, validate, type ConnectorForm } from "@/lib/connectors";
 import { useLive } from "@/store/live";
 
 /** How often the list is read when the event stream is not there. */
@@ -179,6 +179,7 @@ function ConnectorCard({ c, onEdit, onChanged, onDeleted }: { c: Connector; onEd
             </a>
             {c.board && <span> · board {c.board}</span>}
             {c.user && <span> · as {c.user}</span>}
+            {c.owner && <span> · added by {c.owner}</span>}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             <span className="flex items-center gap-1.5">
@@ -200,6 +201,7 @@ function ConnectorCard({ c, onEdit, onChanged, onDeleted }: { c: Connector; onEd
             )}
           </div>
           {c.state === "error" && c.error && c.enabled && <div className="mt-2 rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">{c.error}</div>}
+          {c.state === "connecting" && c.error && c.enabled && <div className="mt-2 text-xs text-muted-foreground">{c.error}</div>}
         </div>
         <Switch checked={c.enabled} disabled={busy} onCheckedChange={(v) => void toggle(v)} aria-label={c.enabled ? `Disable ${c.name}` : `Enable ${c.name}`} />
         <DropdownMenu>
@@ -315,7 +317,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
             <DialogDescription>The server dials vboard's classifier bridge with the token and answers as vboard's local AI.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            {field("name", "Name", { placeholder: "vboard", autoFocus: true, maxLength: 80 })}
+            {field("name", "Name", { placeholder: defaultName, autoFocus: true, maxLength: 80 }, "vboard shows it as the local AI's name; blank: “ai-connector”.")}
             {field("url", "vboard address", { placeholder: "https://vboard.example.com", inputMode: "url", autoComplete: "off" })}
             {field(
               "token",

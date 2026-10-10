@@ -180,11 +180,17 @@ export interface Connector {
   board?: string;
   enabled: boolean;
   state: ConnectorState;
+  /** Why it is in state error; while connecting, why it waits or retries ("" none). */
   error?: string;
+  /** Connected since (RFC 3339; absent while not connected). */
   since?: string;
   /** Who the token belongs to, as the application says. */
   user?: string;
+  /** "" = the server's default model. */
   models?: ConnectorModels;
+  /** The user of the device that made it. */
+  owner?: string;
+  created?: string;
 }
 
 export interface ConnectorInput {
