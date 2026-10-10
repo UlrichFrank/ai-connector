@@ -1,0 +1,135 @@
+name: Binaries
+
+# The programs for every platform a worker runs on: ai-connector (the worker, also serve/TUI/run) and
+# ai-connector-server, both with the two web apps embedded, cross-compiled without cgo (on a Mac MLX is reached through
+# purego and the embedded mlx-c dylib). Each push to main and a manual run leave them as workflow artifacts; a tag v*
+# also makes a GitHub release with the archives and their SHA-256 sums:
+#   git tag v0.1.0 && git push origin v0.1.0
+# The server image is built by server-image.yml on server-v* tags.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binaries-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  web:
+    name: web apps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0 # as in the Dockerfile
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            web/pnpm-lock.yaml
+            console/pnpm-lock.yaml
+
+      - name: Build web/ and console/
+        # into internal/webui/dist and internal/consoleui/dist, which both binaries embed
+        run: make web console
+
+      - name: Keep the builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: |
+            internal/webui/dist
+            internal/consoleui/dist
+          include-hidden-files: true
+          retention-days: 1
+
+  build:
+    name: ${{ matrix.goos }}-${{ matrix.goarch }}
+    needs: web
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: darwin, goarch: arm64 }
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # git describe for the version
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: The web apps
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: internal
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          version="$(git describe --tags --always --dirty)"
+          ext=""; [ "$GOOS" = windows ] && ext=".exe"
+          dir="ai-connector-${version}-${GOOS}-${GOARCH}"
+          mkdir -p "dist/$dir"
+          for cmd in ai-connector ai-connector-server; do
+            go build -trimpath -ldflags "-s -w -X main.version=${version}" -o "dist/$dir/${cmd}${ext}" "./cmd/${cmd}"
+          done
+          cp LICENSE README.md "dist/$dir/"
+          cd dist
+          if [ "$GOOS" = windows ]; then zip -qr "$dir.zip" "$dir"; else tar -czf "$dir.tar.gz" "$dir"; fi
+          rm -r "$dir"
+          ls -l
+
+      - name: Keep the archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-connector-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: The archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ai-connector-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum ai-connector-* > SHA256SUMS && cat SHA256SUMS
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
