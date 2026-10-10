@@ -53,6 +53,8 @@ type Server struct {
 	Version string
 	// Agents are the Claude Code sessions (agents.go; nil: none on this worker).
 	Agents *agents.Manager
+	// Downloads fetch models on request (downloads.go; nil: not on this worker).
+	Downloads *engine.Downloads
 }
 
 // ToolServer is one MCP server of the home zone and its tools.
@@ -314,6 +316,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/direct/embed", s.directEmbed)
 	mux.HandleFunc("POST /api/direct/classify", s.directClassify)
 	s.agentRoutes(mux)
+	s.downloadRoutes(mux)
 	return s.routed(mux)
 }
 
