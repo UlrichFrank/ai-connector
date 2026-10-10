@@ -29,8 +29,9 @@ type Model struct {
 	Licence       string `json:"licence,omitempty"`
 	NonCommercial bool   `json:"nonCommercial,omitempty"`
 	// Tasks are the studio tasks a song model can do besides making a new song (cover, repaint, extend, lego, extract);
-	// an image model with tasks does only those: "generate" (text to image, no reference images) or "edit" (needs
-	// reference images). An image model without tasks does both (FLUX.2 klein).
+	// an image model with tasks does only those: "generate" (text to image, no reference images), "edit" (needs
+	// reference images) or "upscale" (one image made larger, no prompt: SeedVR2). An image model without tasks does
+	// the first two (FLUX.2 klein).
 	Tasks []string `json:"tasks,omitempty"`
 	// Styles: a song model that can learn a style from the user's tracks (a LoRA, see styles.go); its requests
 	// take a style.
@@ -169,7 +170,7 @@ func (c *Catalog) OfKind(k Kind) []*Model {
 const gb = int64(1) << 30
 
 // NewCatalog builds the catalogue: the vboard models (chat, embedder, classifier), local MLX chat models (LM
-// Studio, the Hugging Face cache), FLUX.2 klein, Qwen-Image and LTX-2.5.
+// Studio, the Hugging Face cache), FLUX.2 klein, Qwen-Image, the SeedVR2 upscalers and LTX-2.5.
 func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	_, hub := llm.LocalRoots()
 	c := &Catalog{HFHub: hub}
@@ -255,6 +256,11 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	// the text encoder in bf16 (~16 GB) and quantises only the transformer and the VAE.
 	for _, q := range qwenImages {
 		add(q.model(store, hub))
+	}
+
+	// SeedVR2 through mflux: upscales an image (upscale.go)
+	for _, m := range seedvr2Catalog(store, hub) {
+		add(m)
 	}
 
 	// LTX-2.5 through ltx-2-mlx: the distilled pipeline, and the HQ pipeline of the dev transformer (ltxModels)

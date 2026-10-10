@@ -1,9 +1,11 @@
-# mlxlab's mflux worker (FLUX.2 klein, Qwen-Image): keeps one mflux model loaded and answers requests.
+# mlxlab's mflux worker (FLUX.2 klein, Qwen-Image, SeedVR2): keeps one mflux model loaded and answers requests.
 #
 # Protocol: one JSON request per line on stdin; events as JSON lines on file descriptor 3 (stdout and stderr stay
 # free for the libraries' own output, which mlxlab shows as log lines).
 #   request: {"model": "flux2-klein-4b" | "qwen-image" | "qwen-image-edit" | "qwen-image-2.1", "path": "/dir", "quantize": 8, "prompt": "…", "width": 1024, "height": 1024, "steps": 4,
 #             "seed": 1, "guidance": 1.0, "images": ["ref.png"], "negativePrompt": "…", "output": "/path/out.png"}
+#   upscale: {"model": "seedvr2-3b" | "seedvr2-7b", "upscale": true, "path": "/dir", "quantize": 0, "image": "in.png",
+#             "scale": 2, "maxSide": 4096, "seed": 1, "output": "/path/out.png"}
 #   events:  {"type": "status"|"progress"|"result"|"error", …}
 import json
 import os
@@ -69,9 +71,29 @@ def model_class(name, edit):
     return Flux2KleinEdit if edit else Flux2Klein
 
 
+def seedvr2(name):
+    # SeedVR2's 3B and 7B: the same class, the config says which transformer (and which weights file)
+    from mflux.models.seedvr2 import SeedVR2
+
+    config = ModelConfig.seedvr2_7b() if name == "seedvr2-7b" else ModelConfig.seedvr2_3b()
+    return lambda model_config, **kw: SeedVR2(model_config=config, **kw)
+
+
+def upscale_resolution(path, scale, max_side):
+    # the shorter side's new length (mflux's resolution): scale times as long, less when the longer side would pass
+    # max_side (as engine.UpscaleSize works it out); the size as mflux sees it (EXIF orientation applied)
+    from mflux.utils.exif_orientation import open_oriented
+
+    w, h = open_oriented(path).size
+    short, long = min(w, h), max(w, h)
+    if long * scale > max_side:
+        return short * max_side // long
+    return short * scale
+
+
 def model_for(req):
     edit = bool(req.get("images"))
-    cls = model_class(req["model"], edit)
+    cls = seedvr2(req["model"]) if req.get("upscale") else model_class(req["model"], edit)
     key = (req["model"], req.get("path"), req.get("quantize"), edit)
     if loaded["key"] != key:
         loaded["key"], loaded["model"] = None, None
@@ -79,7 +101,8 @@ def model_for(req):
         q = req.get("quantize")
         emit(type="status", text=f"loading {req['model']} ({'bf16' if not q else str(q) + '-bit'}) …")
         t0 = time.time()
-        model = cls(model_config=ModelConfig.from_name(req["model"]), model_path=req.get("path"), quantize=q or None)
+        config = None if req.get("upscale") else ModelConfig.from_name(req["model"])
+        model = cls(model_config=config, model_path=req.get("path"), quantize=q or None)
         model.callbacks.register(Progress())
         loaded["key"], loaded["model"] = key, model
         emit(type="log", text=f"loaded {req['model']} in {time.time() - t0:.1f} s")
@@ -96,6 +119,17 @@ for line in sys.stdin:
         model = model_for(req)
         mx.reset_peak_memory()
         t0 = time.time()
+        if req.get("upscale"):
+            # one step; mflux tiles the VAE (512 px tiles) on its own, so a large result fits in memory
+            image = model.generate_image(
+                seed=int(req["seed"]),
+                image_path=req["image"],
+                resolution=upscale_resolution(req["image"], int(req["scale"]), int(req["maxSide"])),
+                softness=float(req.get("softness") or 0.0),
+            )
+            image.save(path=req["output"], export_json_metadata=False, overwrite=True)
+            emit(type="result", file=req["output"], seconds=time.time() - t0, peakGB=mx.get_peak_memory() / 2**30)
+            continue
         args = dict(
             seed=int(req["seed"]),
             prompt=req["prompt"],
