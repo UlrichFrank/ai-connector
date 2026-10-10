@@ -89,6 +89,14 @@ Build and develop: `make console` (pnpm, into `internal/consoleui/dist`; `make b
 `make console-dev` (Vite on http://localhost:5173/console/, proxying `/api`, `/files` and `/v1` to `MLXLAB_URL`,
 default `http://127.0.0.1:8484`), `cd console && pnpm test` (the pure logic: install commands, snippets, specs).
 
+### Deploying
+
+The server ships as the image `pharndt/ai-connector-server` (linux/arm64 + amd64; `make image`, released by CI on
+`server-v*` tags) with the Helm chart [`deploy/helm/ai-connector`](deploy/helm/ai-connector): one replica, a PVC for
+`/data`, an Ingress for the console host and the app host, probes on `GET /healthz`. On the Raspberry Pi it runs as
+its own release next to the mlxlab hub (`make deploy`). First install, values, upgrading, workers and backups:
+[docs/deploy.md](docs/deploy.md).
+
 ---
 
 # mlxlab — local AI models on a Mac

@@ -1,0 +1,6 @@
+# values for `make chart-lint` and CI (helm lint / helm template): the password is required
+secrets:
+  MLXLAB_PASSWORD: "lint-only"
+  MLXLAB_WORKER_TOKEN: "lint-only"
+models:
+  embed: qwen3-embedding-0.6b

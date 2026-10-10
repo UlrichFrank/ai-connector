@@ -1,0 +1,11 @@
+apiVersion: v2
+name: ai-connector
+description: >-
+  ai-connector's server (pharndt/ai-connector-server): the console, mlxlab's web app, sign-in, the client APIs
+  and the tunnel the workers dial. One instance (the tunnel and the JSON stores in /data are single-instance).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/philipparndt/ai-connector
+sources:
+  - https://github.com/philipparndt/ai-connector

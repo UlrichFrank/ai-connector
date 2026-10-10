@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-connector.fullname" . }}
+  labels:
+    {{- include "ai-connector.labels" . | nindent 4 }}
+spec:
+  # One server: the worker tunnel, the sessions and the JSON stores in /data live in this process. Recreate, not
+  # RollingUpdate: two servers would split the workers, and the ReadWriteOnce PVC would hold the new pod up.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "ai-connector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if not .Values.existingSecret }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ai-connector.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: server
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: MLXLAB_DATA
+              value: /data
+            - name: MLXLAB_ADDR
+              value: {{ printf ":%v" .Values.service.port | quote }}
+            {{- with .Values.hosts.console }}
+            - name: MLXLAB_CONSOLE_HOSTS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.models.embed }}
+            - name: MLXLAB_EMBED_MODEL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.models.classify }}
+            - name: MLXLAB_CLASSIFY_MODEL
+              value: {{ . | quote }}
+            {{- end }}
+            - name: MLXLAB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-connector.secretName" . }}
+                  key: MLXLAB_PASSWORD
+            - name: MLXLAB_WORKER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-connector.secretName" . }}
+                  key: MLXLAB_WORKER_TOKEN
+                  optional: true
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | toString | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            # the root filesystem is read-only; scratch space for Go (multipart temp files)
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-data" (include "ai-connector.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

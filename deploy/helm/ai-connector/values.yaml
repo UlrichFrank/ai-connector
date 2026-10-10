@@ -1,0 +1,119 @@
+# Default values for ai-connector's server. See docs/deploy.md for an install on the Raspberry Pi (k0s).
+
+image:
+  repository: pharndt/ai-connector-server
+  # Never when the image is imported into the node's containerd (make deploy), else IfNotPresent/Always
+  pullPolicy: IfNotPresent
+  # defaults to the chart's appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# The two host names of the ingress. Both serve both web apps at their paths; on `console` GET / redirects to
+# /console/ (MLXLAB_CONSOLE_HOSTS). `app` is mlxlab's web app, TUI and iOS app; leave it empty for the console only.
+hosts:
+  console: ai.example.org
+  app: mlxlab.example.org
+
+# the client APIs' default models (docs/api.md); empty = the server's defaults
+models:
+  embed: ""     # MLXLAB_EMBED_MODEL, e.g. qwen3-embedding-0.6b
+  classify: ""  # MLXLAB_CLASSIFY_MODEL
+
+# more plain environment (MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_CONSOLE_HOSTS and the models are set by the chart)
+env:
+  # a soft limit below the memory limit: the GC works harder before the kernel OOM-kills the pod
+  GOMEMLIMIT: "300MiB"
+  # TZ: "Europe/Berlin"
+
+# The secrets, in the same shape as mlxlab's values/secrets.yaml (sops / helm-secrets):
+#   MLXLAB_PASSWORD      the sign-in password (console, web app, iOS app, TUI) — required
+#   MLXLAB_WORKER_TOKEN  the legacy shared worker token — optional (workers get their own tokens in the console)
+# Or name an existing Secret with these keys in existingSecret (then nothing here is rendered).
+secrets:
+  MLXLAB_PASSWORD: ""
+  MLXLAB_WORKER_TOKEN: ""
+existingSecret: ""
+
+podAnnotations: {}
+  # reloader.stakater.com/auto: "true"   # restart on a change of an existingSecret
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# the server writes only /data (the PVC) and /tmp (an emptyDir: Go's multipart temp files)
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Traefik needs no annotations: it does not buffer unless a buffering middleware is attached, has no request body
+# limit, flushes text/event-stream (/api/events, /api/worker/events, streamed chats) at once and passes WebSocket
+# upgrades (/api/worker/connect) through. The one limit is the entryPoint's respondingTimeouts.readTimeout
+# (60s by default in traefik v3), which is cluster-wide: see docs/deploy.md.
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt
+    # traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  pathType: Prefix
+  tls:
+    enabled: true
+    # a Secret with a certificate for both hosts (e.g. a reflected wildcard, or one cert-manager creates from the
+    # cluster-issuer annotation); empty = <fullname>-tls
+    secretName: ""
+
+# devices.json, workers.json, clients.json, connectors.json, …: small JSON stores
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: ""
+  # use a PVC that already exists instead of creating one
+  existingClaim: ""
+
+# Guaranteed QoS (request == limit) sized for a Raspberry Pi: the server copies uploads and media through the
+# worker tunnel (yamux buffers up to 4 MiB per stream) and reads request bodies of up to 32 MiB into memory.
+resources:
+  requests:
+    cpu: 250m
+    memory: 384Mi
+  limits:
+    cpu: 250m
+    memory: 384Mi
+
+# GET /healthz: no auth, no state, answers whether or not a worker is connected
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

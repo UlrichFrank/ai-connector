@@ -1,0 +1,14 @@
+ai-connector's server ({{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}) in namespace {{ .Release.Namespace }}.
+{{- if .Values.ingress.enabled }}
+{{- with .Values.hosts.console }}
+
+  Console:          https://{{ . }}/   (redirects to /console/)
+{{- end }}
+{{- with .Values.hosts.app }}
+  mlxlab's web app: https://{{ . }}/
+{{- end }}
+{{- end }}
+
+Check:     kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "ai-connector.fullname" . }}
+Health:    curl https://{{ .Values.hosts.console }}/healthz   → ok
+Workers:   console → Workers → Connect a worker (one paste per machine)

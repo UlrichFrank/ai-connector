@@ -36,6 +36,17 @@ test:
 vet:
 	go vet ./...
 
+# what CI checks (.github/workflows/ci.yml): gofmt, vet for every platform a binary ships for, the tests
+VET_PLATFORMS ?= darwin/arm64 linux/amd64 linux/arm64 windows/amd64
+.PHONY: fmt-check vet-all check
+fmt-check:
+	@out=$$(gofmt -l cmd internal); if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
+
+vet-all:
+	@for p in $(VET_PLATFORMS); do echo "go vet $$p"; GOOS=$${p%/*} GOARCH=$${p#*/} go vet ./... || exit 1; done
+
+check: fmt-check vet-all test chart-lint
+
 # this machine as a worker of the server (server URL and token: flags, env or ~/.config/mlxlab/worker.json)
 worker: build
 	bin/ai-connector worker
@@ -44,12 +55,88 @@ worker: build
 serve: build
 	bin/ai-connector serve
 
-.PHONY: image
+# ---------- the server image, the Helm chart, the deploy to the Raspberry Pi (docs/deploy.md) ----------
+.PHONY: image image-multiarch base-images chart-lint deploy deploy-image deploy-status deploy-guard
 
-# the server's container image (Dockerfile) for the Raspberry Pi, loaded into the local Docker as
-# pharndt/ai-connector-server:dev; releases are built and pushed by .github/workflows/server-image.yml on tags server-v*
-image:
-	docker buildx build --platform linux/arm64 -t pharndt/ai-connector-server:dev -f Dockerfile --load .
+DOCKER      ?= docker --context rancher-desktop
+IMAGE       ?= pharndt/ai-connector-server
+IMAGE_TAG   ?= dev
+PLATFORMS   ?= linux/arm64,linux/amd64
+CHART       := deploy/helm/ai-connector
+DISTROLESS  := gcr.io/distroless/static-debian12:nonroot
+BASE_IMAGES := node:24-alpine golang:1.27-alpine $(DISTROLESS)
+
+# the server's image (Dockerfile) for the Raspberry Pi: linux/arm64, into the local Docker as $(IMAGE):$(IMAGE_TAG).
+# Releases are built and pushed by .github/workflows/server-image.yml on tags server-v*.
+image: base-images
+	$(DOCKER) build --pull=false --platform linux/arm64 --build-arg VERSION=$(VERSION) -t $(IMAGE):$(IMAGE_TAG) -f Dockerfile .
+
+# both platforms of the release (what CI builds), with buildx; nothing is pushed or loaded unless
+# MULTIARCH_OUTPUT says so (e.g. MULTIARCH_OUTPUT=--push, or --output type=oci,dest=bin/server.oci.tar).
+# Needs a builder that reaches the registries for the amd64 base image (CI does; Rancher Desktop's VM may not).
+MULTIARCH_OUTPUT ?= --output type=cacheonly
+image-multiarch:
+	$(DOCKER) buildx build --platform $(PLATFORMS) --build-arg VERSION=$(VERSION) -t $(IMAGE):$(IMAGE_TAG) -f Dockerfile $(MULTIARCH_OUTPUT) .
+
+# Rancher Desktop's VM may not reach the registries (gcr.io, at times Docker Hub); Apple's container CLI on the Mac
+# does: a missing arm64 base image is pulled there and loaded into Docker
+base-images:
+	@for img in $(BASE_IMAGES); do \
+		$(DOCKER) image inspect $$img >/dev/null 2>&1 || $(DOCKER) pull --platform linux/arm64 $$img || \
+		(container image pull --platform linux/arm64 $$img && \
+		 container image save --platform linux/arm64 -o /tmp/ai-connector-base.tar $$img && \
+		 $(DOCKER) load -i /tmp/ai-connector-base.tar && rm -f /tmp/ai-connector-base.tar) || exit 1; \
+	done
+
+# the Helm chart (deploy/helm/ai-connector), with ci/lint-values.yaml for the required password
+chart-lint:
+	helm lint --strict $(CHART) -f $(CHART)/ci/lint-values.yaml
+	helm template ai-connector $(CHART) -n ai-connector -f $(CHART)/ci/lint-values.yaml >/dev/null
+
+# ---- deploy to the Raspberry Pi (k0s), without a registry ----
+# Run by hand only (docs/deploy.md). The image is built here for linux/arm64, streamed over ssh into the Pi's
+# containerd, and the in-repo chart is upgraded with that tag (pullPolicy Never) and the values from the gitops
+# repo. Its own release and namespace (ai-connector): it never touches the mlxlab release (namespace mlxlab).
+# The gitops kubeconfig is used explicitly, whatever kubectl's current context is.
+PI            ?= user@pi.lan
+GITOPS        ?= <gitops checkout>
+AIC_RELEASE   ?= ai-connector
+AIC_NAMESPACE ?= ai-connector
+# values.yaml (hosts, models, storage …) and secrets.yaml (sops; helm-secrets) of this release in the gitops repo
+AIC_VALUES    ?= $(GITOPS)/cluster/charts/apps/ai-connector/values
+AIC_SECRETS   ?= $(AIC_VALUES)/secrets.yaml
+# the console host name (hosts.console), checked after the deploy
+AIC_URL       ?= https://ai.example.org
+KUBE          ?= KUBECONFIG=$(GITOPS)/kubeconfig
+# the commit, plus -dirty-<time> with local changes (a new tag each time, so the pod restarts)
+DEPLOY_TAG    := $(shell git rev-parse --short HEAD 2>/dev/null)$(shell git diff --quiet HEAD -- . 2>/dev/null || echo -dirty-$$(date +%s))
+# helm-secrets decrypts secrets.yaml when there is one; without it the values must name an existingSecret
+HELM_UPGRADE   = $(if $(wildcard $(AIC_SECRETS)),helm secrets upgrade,helm upgrade)
+SECRETS_VALUES = $(if $(wildcard $(AIC_SECRETS)),-f $(AIC_SECRETS))
+
+deploy: deploy-guard deploy-image
+	$(KUBE) $(HELM_UPGRADE) --install -n $(AIC_NAMESPACE) --create-namespace $(AIC_RELEASE) $(CHART) \
+		-f $(AIC_VALUES)/values.yaml $(SECRETS_VALUES) \
+		--set image.repository=$(IMAGE) --set image.tag=$(DEPLOY_TAG) --set image.pullPolicy=Never \
+		--wait --timeout 3m
+	$(KUBE) kubectl -n $(AIC_NAMESPACE) rollout status deploy/$(AIC_RELEASE) --timeout=120s
+	@# older ai-connector images on the Pi go (the running pod uses the new one now); mlxlab's are not matched
+	ssh $(PI) 'sudo k0s ctr -n k8s.io images ls -q | grep "$(IMAGE):" | grep -v ":$(DEPLOY_TAG)$$" | xargs -r sudo k0s ctr -n k8s.io images rm' >/dev/null || true
+	@curl -fsS --retry 15 --retry-all-errors --retry-delay 2 $(AIC_URL)/healthz && echo && echo "deployed $(IMAGE):$(DEPLOY_TAG) to $(AIC_URL)"
+
+deploy-image: deploy-guard base-images
+	$(DOCKER) build --pull=false --platform linux/arm64 --build-arg VERSION=$(DEPLOY_TAG) -t $(IMAGE):$(DEPLOY_TAG) -f Dockerfile .
+	$(DOCKER) save $(IMAGE):$(DEPLOY_TAG) | ssh $(PI) 'sudo k0s ctr -n k8s.io images import --platform linux/arm64 -'
+
+deploy-status:
+	$(KUBE) kubectl -n $(AIC_NAMESPACE) get pods,ingress,pvc
+	@curl -fsS $(AIC_URL)/healthz; echo
+
+# the running mlxlab hub has the release and namespace "mlxlab" and the image pharndt/mlxlab-hub: never these
+deploy-guard:
+	@case "$(AIC_RELEASE) $(AIC_NAMESPACE) $(IMAGE)" in *mlxlab*) \
+		echo "refusing: release/namespace/image ($(AIC_RELEASE) $(AIC_NAMESPACE) $(IMAGE)) names mlxlab's hub" >&2; exit 1;; esac
+	@test -f $(AIC_VALUES)/values.yaml || { echo "no $(AIC_VALUES)/values.yaml (see docs/deploy.md)" >&2; exit 1; }
 
 .PHONY: sandbox-files-image sandbox-files-test sandbox-files-try
 

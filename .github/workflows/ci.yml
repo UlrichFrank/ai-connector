@@ -1,0 +1,89 @@
+name: CI
+
+# On every push and pull request: Go (gofmt, vet for the four platforms a binary ships for, tests), the two web apps
+# (web/: mlxlab's app, console/: the console — tests and production builds) and the Helm chart. The image itself is
+# built by server-image.yml on server-v* tags. `make check` runs the Go and chart parts locally.
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        run: make fmt-check
+
+      - name: go vet (darwin/arm64, linux/amd64, linux/arm64, windows/amd64)
+        run: make vet-all
+
+      - name: go test
+        # the hub's routing tests run a real worker handler, which reports this machine's RAM: pretend a 64 GB Mac
+        # so models fit regardless of the runner
+        env:
+          MLXLAB_FAKE_RAM_GB: "64"
+        run: go test ./...
+
+  web:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, console]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0  # as in the Dockerfile
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.app }}/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        # tsc -b and vite build into ../internal/{webui,consoleui}/dist
+        run: pnpm build
+
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: helm lint and template
+        run: make chart-lint

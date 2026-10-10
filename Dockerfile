@@ -5,7 +5,8 @@
 # (cmd/ai-connector for macOS, Linux and Windows) of the same build, served at /tools/mlxlab/<platform> for
 # "Connect a worker".
 #
-#   docker buildx build --platform linux/arm64 -t pharndt/ai-connector-server:dev -f Dockerfile --load .   (make image)
+#   make image              linux/arm64 into the local Docker (pharndt/ai-connector-server:dev)
+#   make image-multiarch    linux/arm64 + linux/amd64 with buildx, as CI builds it (nothing pushed)
 #
 # The build stages run on the build machine's platform and cross-compile (CGO_ENABLED=0), so an arm64 image
 # builds natively fast on a Mac or an amd64 CI runner without emulation; the runtime stage has no RUN steps.
@@ -72,7 +73,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # ---- runtime ----
 # distroless static: CA certificates, tzdata, /etc/passwd with nonroot (65532), no shell.
-# There is no curl/wget for a Docker HEALTHCHECK; Kubernetes probes GET /api/info (no auth) instead.
+# There is no curl/wget for a Docker HEALTHCHECK; Kubernetes probes GET /healthz (no auth) instead
+# (deploy/helm/ai-connector). The server writes only /data and /tmp, so the root filesystem can be read-only.
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=hub /out/ai-connector-server /usr/local/bin/ai-connector-server
 # the worker programs, readable by anyone (root-owned, 0755), served by the server at /tools/mlxlab/<platform>

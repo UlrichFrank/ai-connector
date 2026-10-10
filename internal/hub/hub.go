@@ -141,6 +141,7 @@ func (s *Server) Tunnel() *tunnel.Hub { return s.tunnel }
 // Handler routes: the hub's own endpoints, the worker tunnel, the proxy to the worker and the static UI.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", healthz) // liveness/readiness for Kubernetes probes, no auth
 	mux.HandleFunc("GET /api/info", s.info)
 	mux.HandleFunc("POST /api/login", s.login)
 	mux.Handle("GET "+tunnel.Path, s.tunnel)               // checks the worker token itself
@@ -195,6 +196,13 @@ func (s *Server) Run(ctx context.Context) error {
 	sctx, scancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer scancel()
 	return srv.Shutdown(sctx)
+}
+
+// healthz answers 200 "ok" while the process serves HTTP: no auth, no state, no worker needed (probes).
+func healthz(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write([]byte("ok"))
 }
 
 // ---------- auth ----------
