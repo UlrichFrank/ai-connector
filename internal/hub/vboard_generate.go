@@ -24,6 +24,7 @@ import (
 // {generate}; the connector runs an image or video job on a worker that has the model, says how it goes
 // ({generateStatus}), sends the file in pieces ({generateFile}) and ends with {generateDone}. {generateCancel}
 // cancels the job. The generation is a request of its own, not part of a chat turn: it runs as long as it takes.
+// Upscales (SeedVR2) are generators of their own kind: vboard_upscale.go.
 
 // Limits (docs/api.md).
 const (
@@ -32,7 +33,6 @@ const (
 	genImageBytes     = 8 << 20   // a reference image (decoded)
 	genMaxImages      = 4         // reference images a request
 	genPieceBytes     = 1 << 20   // the file's bytes in one {generateFile}
-	genMaxImageFile   = 15 << 20  // vboard keeps image assets of at most 15 MB
 	genMaxVideoFile   = 200 << 20 // and videos of at most 500 MB; the connector sends at most 200
 	genFailedPolls    = 3         // the worker did not answer this often in a row: the job is lost
 	genMaxFPS         = 60
@@ -41,10 +41,19 @@ const (
 	genVideoMultiple  = 64 // LTX's two-stage pipeline (engine/ltx.go)
 	genVideoMax       = 1280
 	genVideoMaxSecond = 10
+	genUpscaleMax     = 4096      // SeedVR2 (engine.UpscaleMax): the longest side of the result
+	genImageRead      = 256 << 20 // an image result read to make it a JPEG (a 4096² PNG is 30–50 MB)
+	genJPEGQuality    = 92
 )
+
+// genUpscaleScales are the factors an upscaler takes (a request's scale goes down to the nearest).
+var genUpscaleScales = []int{2, 4}
 
 // genPoll is how often a generation's job is asked for (its status goes to vboard at most this often).
 var genPoll = time.Second
+
+// genMaxImageFile: vboard keeps image assets of at most 15 MB (a larger PNG goes as a JPEG).
+var genMaxImageFile int64 = 15 << 20
 
 // genTypes are the reference images a generator takes.
 var genTypes = map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
@@ -59,11 +68,13 @@ type advertisedGenerator struct {
 	Multiple, Max                        int // sides are rounded down to Multiple; the longer side is at most Max
 	Width, Height, FPS, Seconds          int // the defaults
 	MaxSeconds                           int
+	Scales                               []int // upscale: the factors it takes
 	NonCommercial                        bool
 }
 
 // generatorOf is what a catalogue model can do on the board (false: it is no image or video model the connector
-// knows how to ask): FLUX and Qwen-Image (mflux) for images, LTX for videos.
+// knows how to ask): FLUX and Qwen-Image (mflux) for images, SeedVR2 (mflux, task "upscale") for upscales, LTX for
+// videos.
 func generatorOf(m catalogModel) (advertisedGenerator, bool) {
 	d := modelDefaults{}
 	if m.Defaults != nil {
@@ -71,6 +82,8 @@ func generatorOf(m catalogModel) (advertisedGenerator, bool) {
 	}
 	g := advertisedGenerator{Kind: m.Kind, NonCommercial: m.NonCommercial}
 	switch {
+	case m.Kind == "image" && m.Backend == "mflux" && slices.Contains(m.Tasks, "upscale"):
+		g.Kind, g.Scales, g.Max = "upscale", genUpscaleScales, genUpscaleMax
 	case m.Kind == "image" && m.Backend == "mflux":
 		// a model with tasks does only those (Qwen-Image: text to image, Qwen-Image-Edit: editing); FLUX does both
 		g.Edit = len(m.Tasks) == 0 || slices.Contains(m.Tasks, "edit")
@@ -165,6 +178,11 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 func wireGenerators(gs []advertisedGenerator) []map[string]any {
 	out := make([]map[string]any, len(gs))
 	for i, g := range gs {
+		if g.Kind == "upscale" {
+			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "scales": g.Scales,
+				"max": g.Max, "nonCommercial": g.NonCommercial}
+			continue
+		}
 		w := map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "multiple": g.Multiple,
 			"max": g.Max, "nonCommercial": g.NonCommercial}
 		def := map[string]any{"width": g.Width, "height": g.Height}
@@ -264,6 +282,7 @@ type genRequest struct {
 	Seconds   float64     `json:"seconds"`
 	FPS       int         `json:"fps"`
 	Audio     *bool       `json:"audio"`
+	Scale     int         `json:"scale"` // upscale
 	Images    []chatImage `json:"images"`
 	Context   *struct {
 		BoardID       string `json:"boardId"`
@@ -276,6 +295,7 @@ type genRequest struct {
 // genPlan is what will be made: the size after rounding (a video's frames and fps) and the images' bytes.
 type genPlan struct {
 	width, height, frames, fps int
+	scale                      int // upscale
 	images                     [][]byte
 	exts                       []string
 }
@@ -284,6 +304,9 @@ type genPlan struct {
 // (0: the default; the longer side cut to max keeping the aspect ratio, both rounded down to the multiple), a
 // video's frames (seconds × fps + 1 rounded down to 8k+1, as LTX takes them), and the reference images.
 func planGenerate(g advertisedGenerator, q *genRequest) (genPlan, error) {
+	if g.Kind == "upscale" {
+		return planUpscale(g, q)
+	}
 	var p genPlan
 	q.Prompt = strings.TrimSpace(q.Prompt)
 	switch {
@@ -441,10 +464,14 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 	}
 	job := map[string]any{"model": g.Model, "prompt": q.Prompt, "width": plan.width, "height": plan.height,
 		"client": "vboard: " + c.conf.Name}
+	if g.Kind == "upscale" {
+		// one image and the factor: the worker works out the size itself (as planUpscale did)
+		job = map[string]any{"model": g.Model, "scale": plan.scale, "client": "vboard: " + c.conf.Name}
+	}
 	if q.Seed > 0 {
 		job["seed"] = q.Seed
 	}
-	if q.Steps > 0 {
+	if q.Steps > 0 && g.Kind != "upscale" { // SeedVR2 takes one step
 		job["steps"] = q.Steps
 	}
 	if g.Kind == "video" {
@@ -612,7 +639,7 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 			file, mime = f, "video/mp4"
 		}
 	}
-	limit, what := int64(genMaxImageFile), "image"
+	limit, what := genMaxImageFile, "image"
 	if mime == "video/mp4" {
 		limit, what = genMaxVideoFile, "video"
 	}
@@ -632,13 +659,28 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 	}
 	size := res.ContentLength
 	body := io.Reader(res.Body)
-	if size < 0 { // not said: read it whole (up to the limit) to know
-		b, err := io.ReadAll(io.LimitReader(res.Body, limit+1))
+	read := limit // not said: read it whole (up to the limit) to know; an image larger than vboard takes as well
+	if mime == "image/png" {
+		read = genImageRead
+	}
+	if size < 0 || size > limit && size <= read {
+		b, err := io.ReadAll(io.LimitReader(res.Body, read+1))
 		if err != nil {
 			fail(fmt.Sprintf("the file from %s: %v", n.name, err))
 			return false
 		}
 		size, body = int64(len(b)), bytes.NewReader(b)
+		// a PNG larger than vboard takes (a 4096² upscale) goes as a JPEG of quality 92
+		if mime == "image/png" && size > limit && size <= read {
+			jb, err := asJPEG(b)
+			if err != nil {
+				fail(fmt.Sprintf("the image is %.1f MB, more than vboard takes (%d MB), and could not be made a JPEG: %v",
+					float64(size)/(1<<20), limit>>20, err))
+				return false
+			}
+			r.logf("generate %s: the PNG is %.1f MB, sent as a JPEG of %.1f MB", id, float64(size)/(1<<20), float64(len(jb))/(1<<20))
+			mime, size, body, what = "image/jpeg", int64(len(jb)), bytes.NewReader(jb), "image (as JPEG)"
+		}
 	}
 	if size > limit {
 		fail(fmt.Sprintf("the %s is %.1f MB, more than vboard takes (%d MB)", what, float64(size)/(1<<20), limit>>20))
