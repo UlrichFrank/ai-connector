@@ -365,6 +365,32 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 	}
 }
 
+// placeChat picks the worker for a chat model. A claude-code model goes the way POST /api/jobs sends it
+// (agents.go): only to a worker of the person the request acts for (the client token's owner, or the signed-in
+// device's user), who is then the job's owner.
+func (s *Server) placeChat(r *http.Request, name string) (*node, catalogModel, string, *apiError) {
+	routed, _ := s.fleet.pick(r.Context())
+	if !isClaude(routed, name) {
+		n, m, e := s.place(r.Context(), name, "chat")
+		return n, m, "", e
+	}
+	m := catalogModel{ID: strings.ToLower(strings.TrimSpace(name)), Kind: "chat", Backend: "claude-code"}
+	if fm, ok := findModel(fleetModels(routed), name); ok {
+		m = fm.catalogModel
+	}
+	me := userOf(r)
+	_, client := clientOf(r)
+	n, no := s.claudeNode(me, routed, "", client)
+	if no != nil {
+		code := strings.ReplaceAll(no.name, "-", "_") // no-worker → no_worker, as the other refusals here
+		if no.name == "offline" {
+			code = "no_worker"
+		}
+		return nil, m, "", &apiError{no.status, code, no.message}
+	}
+	return n, m, me, nil
+}
+
 // v1Chat: POST /v1/chat/completions.
 func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 	var req chatRequest
@@ -380,7 +406,7 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		e.openAI(w)
 		return
 	}
-	n, m, e := s.place(r.Context(), req.Model, "chat")
+	n, m, owner, e := s.placeChat(r, req.Model)
 	if e != nil {
 		e.openAI(w)
 		return
@@ -388,6 +414,9 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 	job, _ := req.job(m.ID)
 	if c, ok := clientOf(r); ok {
 		job["client"] = c.Name
+	}
+	if owner != "" {
+		job["owner"] = owner
 	}
 	events, stop := s.fleet.subscribe() // before the job exists: none of its events is missed
 	defer stop()

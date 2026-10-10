@@ -246,3 +246,131 @@ func TestClaudeSessionsThroughHub(t *testing.T) {
 		t.Fatalf("after stop %v", list)
 	}
 }
+
+// startClaudeChatMac is a worker with a Claude Code model run by fakeChat (it keeps the requests it ran).
+func startClaudeChatMac(t *testing.T, base, token string) (*fakeChat, func()) {
+	t.Helper()
+	cat := &engine.Catalog{Models: []*engine.Model{
+		{ID: "claude-code/sonnet", Name: "Claude Code · Sonnet", Kind: engine.Chat, Backend: "fakechat", Here: true},
+	}}
+	dir := t.TempDir()
+	chat := &fakeChat{}
+	mgr := jobs.New(cat, []engine.Backend{chat}, dir)
+	api := (&web.Server{Jobs: mgr, Prompts: prompts.Open(dir), Version: "test"}).Handler()
+	stop, _ := connectWorkerWith(t, base, token, api)
+	t.Cleanup(func() {
+		stop()
+		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline) && !mgr.Settled(); time.Sleep(5 * time.Millisecond) {
+		}
+	})
+	return chat, stop
+}
+
+// A client token acts for the person who made it: its claude-code jobs (native and OpenAI API) run only on that
+// person's workers, with them as the owner.
+func TestClaudeClientOwner(t *testing.T) {
+	dir := t.TempDir()
+	s, srv := newHub(t, dir)
+	base := srv.URL
+	alice := signInAs(t, base, "Alice's laptop", "Alice")
+	bob := signInAs(t, base, "Bob's phone", "Bob")
+	carol := signInAs(t, base, "Carol's phone", "Carol")
+	aliceID, aliceTok := enroll(t, base, alice, "Alice's Mac")
+	bobID, bobTok := enroll(t, base, bob, "Bob's Mac")
+
+	aliceCl, aliceApp := makeClient(t, base, alice, "alice-app")
+	_, carolApp := makeClient(t, base, carol, "carol-app")
+	if aliceCl.Owner != "Alice" {
+		t.Fatalf("client owner %+v", aliceCl)
+	}
+	var listed []Client
+	decode(t, do(t, "GET", base+"/api/clients", alice, nil), &listed)
+	if len(listed) != 2 || listed[0].Owner != "Alice" || listed[1].Owner != "Carol" {
+		t.Fatalf("GET /api/clients %+v", listed)
+	}
+	// a token from before owners (clients.json without "owner")
+	oldApp, _, err := s.clients.add("old-app", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	chatBody := `{"model":"claude-code/sonnet","messages":[{"role":"user","content":"hi"}]}`
+	// alice's worker is offline: 503 in both APIs (never bob's worker)
+	if code, b := post(t, base+"/v1/chat/completions", aliceApp, chatBody); code != 503 {
+		t.Fatalf("offline v1: %d %s", code, b)
+	}
+	aliceChat, stopAlice := startClaudeChatMac(t, base, aliceTok)
+	bobChat, _ := startClaudeChatMac(t, base, bobTok)
+	var ws map[string]workerItem
+	waitFor(t, "both known", func() bool {
+		ws = workerItems(t, base, alice)
+		return ws[aliceID].Specs != nil && ws[bobID].Specs != nil
+	})
+	aliceRoute := ws[aliceID].Route
+
+	// /v1/models lists the claude-code models like any other chat model
+	var models struct {
+		Data []struct {
+			ID, Kind string
+		}
+	}
+	decode(t, do(t, "GET", base+"/v1/models", aliceApp, nil), &models)
+	found := false
+	for _, m := range models.Data {
+		found = found || m.ID == "claude-code/sonnet" && m.Kind == "chat"
+	}
+	if !found {
+		t.Fatalf("/v1/models %+v", models)
+	}
+
+	for i := 0; i < 3; i++ {
+		// native jobs API: the owner comes from the token, a caller's is dropped
+		code, j, e := submitJob(t, base, aliceApp, `{"model":"claude-code/sonnet","messages":[{"role":"user","content":"hi"}],"owner":"Bob"}`)
+		if code != 200 || !strings.HasPrefix(j.ID, aliceRoute+".") || j.Request["owner"] != "Alice" || j.Request["client"] != "alice-app" {
+			t.Fatalf("native %d: %d %+v %v", i, code, j, e)
+		}
+		// OpenAI API
+		code, b := post(t, base+"/v1/chat/completions", aliceApp, chatBody)
+		if code != 200 || !strings.Contains(string(b), "Hello!") || !strings.Contains(string(b), `"id":"`+aliceRoute+".") {
+			t.Fatalf("v1 %d: %d %s", i, code, b)
+		}
+		if got := aliceChat.last(); got.Owner != "Alice" || got.Client != "alice-app" {
+			t.Fatalf("v1 job %d: owner %q client %q", i, got.Owner, got.Client)
+		}
+	}
+	bobChat.mu.Lock()
+	if len(bobChat.got) != 0 {
+		t.Fatalf("bob's worker ran %d of alice's jobs", len(bobChat.got))
+	}
+	bobChat.mu.Unlock()
+	// streamed, too
+	if code, b := post(t, base+"/v1/chat/completions", aliceApp, `{"model":"claude-code/sonnet","stream":true,"messages":[{"role":"user","content":"hi"}]}`); code != 200 || !strings.Contains(string(b), "[DONE]") || strings.Contains(string(b), `"error"`) {
+		t.Fatalf("stream: %d %s", code, b)
+	}
+
+	// a person without a worker: 409; a token without an owner: 403 (both APIs)
+	if code, b := post(t, base+"/v1/chat/completions", carolApp, chatBody); code != 409 {
+		t.Fatalf("carol v1: %d %s", code, b)
+	} else if _, c := openAIError(t, b); c != "no_worker" {
+		t.Fatalf("carol v1 code %q", c)
+	}
+	if code, _, e := submitJob(t, base, carolApp, chatBody); code != 409 || e["error"] != "no-worker" {
+		t.Fatalf("carol native: %d %v", code, e)
+	}
+	if code, b := post(t, base+"/v1/chat/completions", oldApp, chatBody); code != 403 {
+		t.Fatalf("ownerless v1: %d %s", code, b)
+	}
+	if code, _, e := submitJob(t, base, oldApp, chatBody); code != 403 || e["error"] != "forbidden" {
+		t.Fatalf("ownerless native: %d %v", code, e)
+	}
+
+	// alice's worker goes away: 503, not bob's
+	stopAlice()
+	waitFor(t, "alice's worker gone", func() bool { return !workerItems(t, base, alice)[aliceID].Connected })
+	if code, b := post(t, base+"/v1/chat/completions", aliceApp, chatBody); code != 503 {
+		t.Fatalf("alice offline v1: %d %s", code, b)
+	}
+	if code, _, e := submitJob(t, base, aliceApp, chatBody); code != 503 {
+		t.Fatalf("alice offline native: %d %v", code, e)
+	}
+}

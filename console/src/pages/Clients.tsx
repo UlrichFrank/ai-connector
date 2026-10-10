@@ -52,6 +52,7 @@ export function ClientsPage() {
             <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">Name</th>
+                <th className="px-3 py-2 font-medium max-sm:hidden">Owner</th>
                 <th className="px-3 py-2 font-medium max-sm:hidden">Created</th>
                 <th className="px-3 py-2 font-medium">Last used</th>
                 <th className="w-0 px-2 py-2" />
@@ -98,6 +99,7 @@ function ClientRow({ c, onRevoked }: { c: Client; onRevoked: () => void }) {
   return (
     <tr className="border-t" data-client={c.id}>
       <td className="px-3 py-2 font-medium">{c.name}</td>
+      <td className="px-3 py-2 text-muted-foreground max-sm:hidden">{c.owner || "—"}</td>
       <td className="px-3 py-2 text-muted-foreground max-sm:hidden">
         <Ago iso={c.created} />
       </td>

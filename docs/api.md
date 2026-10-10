@@ -21,9 +21,14 @@ Stored like worker tokens: `<data>/clients.json`, SHA-256 hashes only; the token
 
 | | |
 |---|---|
-| `GET /api/clients` | `[{"id","name","created","lastSeen"}]` (`lastSeen`: last use, written at most once a minute; absent until the first use) |
+| `GET /api/clients` | `[{"id","name","created","lastSeen","owner"}]` (`lastSeen`: last use, written at most once a minute; absent until the first use; `owner`: below) |
 | `POST /api/clients` | `{"name":"docscanner"}` → `{"client":{…},"token":"aic_<43 base64url chars>"}`; blank name → 400 `{"error":"name"}` |
 | `DELETE /api/clients/{id}` | revokes it (204; unknown id 404) |
+
+A client token has an **owner**: the user (`Device.user`) of the device that made it. The application acts for that
+person where it matters — its `claude-code/*` jobs run only on their workers, with their subscription ("Agents
+(Claude Code)", Ownership). Tokens from before owners have none (their Claude Code jobs are refused with 403; make
+a new token).
 
 ## OpenAI-compatible API (client or device token)
 
@@ -174,7 +179,7 @@ job of such a model is **one turn** in a Claude Code session. `engine.Request` f
 | `session` | the conversation key (e.g. `vboard:<board>:<user>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
 | `driver` | `json` (default) or `tty` (below) |
 | `mcp` | `[{"name","url","type"?: "http"\|"sse","headers"?: {…}}]` — the MCP servers the session may use (only these: `--strict-mcp-config`); their tools are allowed as `mcp__<name>` |
-| `owner` | **set by the server** from the signed-in device's user (a caller's value is dropped); later a connector or client sets its own owner |
+| `owner` | **set by the server** (a caller's value is dropped): the signed-in device's user, or the client token's owner |
 
 With a `session`, only the last user message is sent: the session keeps its own history. `system` messages become
 `--append-system-prompt` when the session starts. `zone` is refused (Claude Code has its own tools).
@@ -253,6 +258,11 @@ Claude Code runs with the subscription logged in on the worker, so it runs only 
   `{"error":"offline","message":"<user>'s Claude Code worker is offline"}`; the user owns no worker → **409**
   `{"error":"no-worker","message":"<user> has no worker with Claude Code: …"}`; all their workers are connected but
   none has Claude Code → 409 too. A device without a user name → 403. Other models route as before.
+* With a **client token** the person is the token's owner, and the same rules hold for `POST /api/jobs` and for
+  `POST /v1/chat/completions` (OpenAI-shaped errors there: 403, 409 `no_worker`, 503 `no_worker`); a token without
+  an owner → 403. `GET /v1/models` lists the `claude-code/*` models like any chat model (with the workers that
+  offer them, whoever owns them). A request's `tools` are not passed on to Claude Code: it has its own tools and
+  answers in text.
 
 ### Endpoints
 

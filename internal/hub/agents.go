@@ -53,33 +53,51 @@ func listsClaude(n *node) bool {
 	return false
 }
 
-// claudeWorker picks the worker for a claude-code job of the signed-in person: one of their connected workers that
-// offers Claude Code (pin: that one). nil: the answer is written (not theirs, offline, none).
-func (s *Server) claudeWorker(w http.ResponseWriter, r *http.Request, nodes []*node, pin string) *node {
-	me := deviceOf(r).User
+// userOf is the person a request acts for: the signed-in device's user, or the owner of the client token (the user
+// of the device that made it; "" for tokens from before owners).
+func userOf(r *http.Request) string {
+	if c, ok := clientOf(r); ok {
+		return c.Owner
+	}
+	return deviceOf(r).User
+}
+
+// claudeRefusal is why a claude-code job has no worker: an HTTP status, an error name ("forbidden", "no-worker",
+// "offline") and a message for the person.
+type claudeRefusal struct {
+	status        int
+	name, message string
+}
+
+// claudeNode picks the worker for a claude-code job of a person (me): one of their connected workers that offers
+// Claude Code (pin: that one). A nil node comes with the refusal.
+func (s *Server) claudeNode(me string, nodes []*node, pin string, client bool) (*node, *claudeRefusal) {
 	if me == "" {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden",
-			"message": "Claude Code runs on your own worker: sign in with your user name"})
-		return nil
+		msg := "Claude Code runs on your own worker: sign in with your user name"
+		if client {
+			msg = "Claude Code runs on the worker of the client token's owner, and this token has none: make a new one in the console"
+		}
+		return nil, &claudeRefusal{http.StatusForbidden, "forbidden", msg}
 	}
 	if pin != "" {
 		if !s.owns(me, pin) {
-			writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden", "message": "Claude Code runs only on your own workers"})
-			return nil
+			return nil, &claudeRefusal{http.StatusForbidden, "forbidden", "Claude Code runs only on your own workers"}
 		}
 		n := s.fleet.node(pin)
 		if n == nil || !n.isRouted() {
 			name, _ := s.findWorker(pin)
-			offlineMac(w, name)
-			return nil
+			if name == "" {
+				name = "The Mac"
+			}
+			return nil, &claudeRefusal{http.StatusServiceUnavailable, "offline", name + " is offline"}
 		}
-		return n
+		return n, nil
 	}
 	var mine []*node
 	for _, n := range nodes {
 		if s.owns(me, n.id) {
 			if listsClaude(n) {
-				return n // the longest connected first
+				return n, nil // the longest connected first
 			}
 			mine = append(mine, n)
 		}
@@ -92,15 +110,24 @@ func (s *Server) claudeWorker(w http.ResponseWriter, r *http.Request, nodes []*n
 	}
 	switch {
 	case owned == 0:
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "no-worker",
-			"message": me + " has no worker with Claude Code: connect a computer of yours where Claude Code is installed and logged in"})
+		return nil, &claudeRefusal{http.StatusConflict, "no-worker",
+			me + " has no worker with Claude Code: connect a computer of yours where Claude Code is installed and logged in"}
 	case len(mine) == owned:
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "no-worker",
-			"message": "None of " + me + "'s workers has Claude Code: install it there and log in with your subscription"})
+		return nil, &claudeRefusal{http.StatusConflict, "no-worker",
+			"None of " + me + "'s workers has Claude Code: install it there and log in with your subscription"}
 	default:
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "offline", "message": me + "'s Claude Code worker is offline"})
+		return nil, &claudeRefusal{http.StatusServiceUnavailable, "offline", me + "'s Claude Code worker is offline"}
 	}
-	return nil
+}
+
+// claudeWorker is claudeNode for the person of the request, writing the refusal (nil node) as the mlxlab API does.
+func (s *Server) claudeWorker(w http.ResponseWriter, r *http.Request, nodes []*node, pin string) *node {
+	_, client := clientOf(r)
+	n, no := s.claudeNode(userOf(r), nodes, pin, client)
+	if no != nil {
+		writeJSON(w, no.status, map[string]string{"error": no.name, "message": no.message})
+	}
+	return n
 }
 
 // submitClaude: POST /api/jobs of a claude-code model, to the person's own worker, with the owner set.
@@ -109,7 +136,7 @@ func (s *Server) submitClaude(w http.ResponseWriter, r *http.Request, nodes []*n
 	if to == nil {
 		return
 	}
-	req["owner"], _ = json.Marshal(deviceOf(r).User)
+	req["owner"], _ = json.Marshal(userOf(r))
 	out, _ := json.Marshal(req)
 	s.forwardBody(w, r, to, out)
 }

@@ -22,6 +22,9 @@ type Client struct {
 	Name     string    `json:"name"`
 	Created  time.Time `json:"created"`
 	LastSeen time.Time `json:"lastSeen,omitzero"`
+	// Owner is the person (the user of the device that made it) the application acts for: its claude-code jobs run
+	// on their workers with their subscription (agents.go). "" for tokens from before owners.
+	Owner string `json:"owner,omitempty"`
 }
 
 // clientPrefix starts every client token, so one is told from a device token at a glance (and in logs).
@@ -64,9 +67,10 @@ func openClients(dir string) (*clients, error) {
 }
 
 // add makes a client and returns its token (only the caller ever sees it).
-func (cs *clients) add(name string) (string, Client, error) {
+func (cs *clients) add(name, owner string) (string, Client, error) {
 	token := clientPrefix + randomString(32)
-	s := &storedClient{Client: Client{ID: randomString(9), Name: name, Created: time.Now().UTC().Truncate(time.Second)}, Hash: hashToken(token)}
+	s := &storedClient{Client: Client{ID: randomString(9), Name: name, Created: time.Now().UTC().Truncate(time.Second), Owner: owner},
+		Hash: hashToken(token)}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	cs.byHash[s.Hash] = s
@@ -208,12 +212,12 @@ func (s *Server) addClient(w http.ResponseWriter, r *http.Request) {
 	if len(name) > 100 {
 		name = name[:100]
 	}
-	token, c, err := s.clients.add(name)
+	token, c, err := s.clients.add(name, deviceOf(r).User)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal", "message": err.Error()})
 		return
 	}
-	log.Printf("client made: %q (%s) by %q", c.Name, c.ID, deviceOf(r).Name)
+	log.Printf("client made: %q (%s) by %q, owner %q", c.Name, c.ID, deviceOf(r).Name, c.Owner)
 	writeJSON(w, http.StatusOK, map[string]any{"client": c, "token": token})
 }
 

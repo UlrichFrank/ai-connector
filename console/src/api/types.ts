@@ -156,6 +156,8 @@ export interface Client {
   name: string;
   created: string;
   lastSeen?: string;
+  /** The person it acts for (who made it): its Claude Code jobs run on their workers. Absent on older tokens. */
+  owner?: string;
 }
 
 export interface ClientCreated {
