@@ -1096,6 +1096,9 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 				if state == "queued" {
 					st = "Waiting for " + n.name + " (queued)"
 				}
+				if len(used) > 0 { // an agent's tool call says more than "running": kept, repeated only to keep vboard waiting
+					st = status
+				}
 				if st != status || quiet {
 					status = st
 					send(map[string]any{"type": "chatDelta", "status": trimRunes(st, bridgeErrorChars)})
