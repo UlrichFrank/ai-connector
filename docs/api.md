@@ -966,8 +966,9 @@ WAVE_FORMAT_EXTENSIBLE; vboard's backend has no decoder for AAC; uploads get the
 
 **Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song
 unloads the built-in chat model first. Kokoro is small (2–3 GB peak) but runs in the speech worker, which is one
-large runtime. **Downloading** a music, sound or speech model from vboard is not part of this (the setup lists
-chat, embed, classify, image and video models): they are offered once they are on a worker's disk.
+large runtime. Music, sound and speech models are **downloaded from vboard** like the others ("setting up models from
+vboard" below: kinds `music`, `sound`, `speech`); they are offered as generators once they are on a worker's disk —
+with `generators` `["*"]` (`ai-connector vboard`'s default) right after `downloadDone`, by `{type:"generators"}`.
 
 **vboard's side (for reference; vboard decides the details)**
 
@@ -1015,7 +1016,8 @@ model, which may not exist yet.
   on disk (the Hugging Face cache counts); `embed`/`model` arrive by handover when they are ready (the standalone
   worker tells its hub at once; with a server the connector notices a finished download on its next check, ≤ 30 s).
 * **Proposes, never downloads, the big ones:** the chat model by the worker's memory (≥ 64 GB: `qwen3.6-35b-a3b`;
-  ≥ 32 GB: `qwen3.5-9b`; less: `qwen3.5-4b`) — marked `recommended` in the model list (3); vboard asks.
+  ≥ 32 GB: `qwen3.5-9b`; less: `qwen3.5-4b`), and one model per generator kind (music by memory, sound, speech, image,
+  the upscaler, video) — marked `recommended` in the model list (3); vboard asks.
 * **Claude Code by itself:** when `--agents` was never given (or cleared with `--agents=`) and `claude` is installed
   and logged in for the agents (`claude auth status`, as `ai-connector agents status` sees it; checked at start),
   the agents are `[{"id":"default","model":""}, claude-code/sonnet, claude-code/opus]`: the chat model (`--chat`, else
@@ -1035,7 +1037,7 @@ model, which may not exist yet.
   are (`PATH`, `MLXLAB_HOME`, `XDG_CONFIG_HOME`, `MLXLAB_STATE`, `MLXLAB_MODELS_FROM`, `MLXLAB_RUNTIMES`, `HF_HOME`,
   `HF_HUB_CACHE`, `HF_TOKEN_PATH`, `CLAUDE_CONFIG_DIR`) is kept in the plist/unit (not on Windows).
   `ai-connector vboard --uninstall` stops and removes it.
-* **Python for the generators** (mflux, ltx-2-mlx need `uv`): when `uv` is not on the `PATH` the worker fetches
+* **Python for the generators** (mflux, ltx-2-mlx, the music, sound and speech runtimes need `uv`): when `uv` is not on the `PATH` the worker fetches
   Astral's standalone `uv` (pinned 0.13.0, checked against the release's `sha256.sum`) into `<files>/bin` itself
   (state `preparing` below) instead of asking for Homebrew; `internal/pyenv/uv.go`.
 
@@ -1071,25 +1073,35 @@ model, which may not exist yet.
  "fits": true, "recommended": false, "worker": "Mac Studio"}
 ```
 
-* `kind`: chat | embed | classify | image | video (Claude Code is not in this list: it is an agent, offered when
-  installed). All catalogue models of these kinds for the owner's worker(s), downloaded or not (a local runtime's
-  models, e.g. Ollama's, are listed as `here`); `worker` says which computer, also standalone (one entry per model and
-  worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when unknown) and
-  `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein 4B Apache-2.0,
-  9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers Apache-2.0 — listed as
-  `image` models). `url`: the Hugging Face page. `tasks` (absent when the model has none): what an image model does
-  — `["upscale"]` for the SeedVR2 upscalers (so vboard tells an upscaler from a picture model before it is a
-  generator), `["generate"]` / `["edit"]` for a model that does only that (Qwen-Image, Qwen-Image-Edit).
+* `kind`: chat | embed | classify | image | video | music | sound | speech (Claude Code is not in this list: it is an
+  agent, offered when installed). All catalogue models of these kinds for the owner's worker(s), downloaded or not (a
+  local runtime's models, e.g. Ollama's, are listed as `here`); `worker` says which computer, also standalone (one
+  entry per model and worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when
+  unknown) and `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein
+  4B Apache-2.0, 9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers
+  Apache-2.0 — listed as `image` models; ACE-Step MIT, Stable Audio 3 "Stability AI Community License", YuE2 and
+  LeVo 2 non-commercial, MOSS-SoundEffect and Kokoro Apache-2.0, Higgs and Voxtral non-commercial). `url`: the
+  Hugging Face page (for a model of several repositories its own, the first). `tasks` (absent when the model has
+  none): what the model does — for an image model `["upscale"]` for the SeedVR2 upscalers (so vboard tells an
+  upscaler from a picture model before it is a generator), `["generate"]` / `["edit"]` for a model that does only
+  that (Qwen-Image, Qwen-Image-Edit); a song model's studio tasks (`cover`, `repaint`, …); a speech model's
+  (`presets`, `clone`, `instruct`, …, and `["transcribe"]` for Qwen3-ASR, the transcriber, which is no generator).
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
   accepted on `url`), `token` (no token is set, or Hugging Face does not take it: 4), `unknown` (no answer). Asked of
   Hugging Face per repository (`GET https://huggingface.co/api/models/<repo>/auth-check` with the token: 200
   granted, 401 token, 403 needed), remembered 5 minutes, asked again by every download. `fits`: the model fits the
   worker's memory — a chat model leaves room for the classifier, the embedder and its cache (weights < 70 % of the
   memory); an image or video model only has to fit alone, since the queue unloads the chat model before it (see
-  "Memory" in the generators section) — and, when it is not here, its disk (`size` + 512 MB free).
-  `recommended`: the one to propose first for its kind, at most one per kind (on the owner's worker with the most
-  memory), and only when it fits: chat by memory (1 above), embed `qwen3-embedding-0.6b`, classify
-  `laya-typed-decisions`, image `flux2-klein-4b`, video `ltx-2.5-q4`.
+  "Memory" in the generators section); a music, sound or speech model wants twice its weights (its runtime's peak)
+  — and, when it is not here, its disk (`size` + 512 MB free).
+  `recommended`: the one to propose first for its **role**, at most one per role (on the owner's worker with the most
+  memory), and only when it fits. The role is the `kind`, except for a model whose `tasks` hold a task of its own:
+  `image` + `["upscale"]` is the role `image/upscale` and `speech` + `["transcribe"]` is `speech/transcribe` — so an
+  upscaler is recommended beside the image generator, not instead of it (vboard tells them apart by `tasks`, as for
+  generators). Per role: chat by memory (1 above), embed `qwen3-embedding-0.6b`, classify `laya-typed-decisions`,
+  image `flux2-klein-4b`, image/upscale `seedvr2-3b`, video `ltx-2.5-q4`, music `ace-step-1.5-turbo` (songs with
+  vocals, 10 GB) on a worker with ≥ 32 GB of memory, else `stable-audio-3-small` (instrumentals only, 1.8 GB), sound
+  `moss-soundeffect`, speech `kokoro-82m` (no German: Qwen3-TTS is the one for that); speech/transcribe none.
 * vboard asks for it when it needs to decide (a card is about to be shown, the settings open), not on every turn.
 
 **4. Downloading** — `{"type":"download","id","model","worker"?}`
@@ -1097,12 +1109,26 @@ model, which may not exist yet.
 * Who asks: `context.userId` (vboard sends `context` as with chats), else a top-level `userId`; neither → `needs`
   `owner` (5).
 * Answers: `{"type":"downloadStatus","id","model","state","worker","bytes"?,"total"?,"eta"?}` with `state` `queued` →
-  `downloading` (bytes of total: what was missing when it started) → `verifying` → `preparing` (the Python
-  environment of mflux/LTX on first use, `uv` fetched if missing) — the first at once, then at most one a second when
+  `downloading` (bytes of total: what was missing when it started) → `verifying` → `preparing` (the runtime of the
+  model's backend when it is not made yet, `uv` fetched if missing) — the first at once, then at most one a second when
   something changed, at least every 60 s (`worker`: where it runs); then `{"type":"downloadDone","id","model"}` (also
   at once when the model is already there). The model is then offered: the connector has asked the worker for its
   models before it sends `downloadDone`, and sends `agents` / `generators` / a handover as usual, so vboard needs no
-  extra step.
+  extra step (a music, sound or speech model or an upscaler with `generators` `["*"]`: `{type:"generators"}` on the
+  open connection).
+* What a download makes, so that the first job fetches nothing: the files of every repository the model needs, then
+  in `preparing` its backend's Python environment (pinned, as the first job would make it) — FLUX, Qwen-Image and the
+  SeedVR2 upscalers: mflux; LTX-2.5: ltx-2-mlx; music: the runtime of the model (ACE-Step 1.5, Stable Audio 3,
+  MiniMax Music 3, HeartMuLa, YuE2, LeVo 2); sound: mlx-speech; speech: mlx-audio with Kokoro's G2P (misaki with
+  spaCy's English model pinned, espeak-ng inside the espeakng-loader wheel — nothing to install on the system) —
+  and the runtime's step of its own: **Stable Audio 3** fetches its MLX code (github, pinned commit) once,
+  **LeVo 2** builds LeVo2.cpp with Metal once (needs `cmake` and the Xcode command line tools: without them the
+  download fails with that message; the weights stay, a later download only builds). A speech model gets all its
+  parts (Qwen3-TTS 1.7B: CustomVoice, Base and VoiceDesign, 4 GB each — the job would fetch Base and VoiceDesign
+  only when first cloning or designing). Not part of a download: ACE-Step's larger planner (`planner: "4b"`, 7.8 GB,
+  fetched by the first job that asks for it) and Qwen3-ASR (its own model, `speech/transcribe`; cloning a voice from a
+  sample transcribes it). A model already on disk is `done` at once without `preparing` (its runtime is made by the
+  first job, as before).
 * An unknown model, a worker that went away mid-download ("… the download goes on when it is back — ask again"), a
   failed download → `{"type":"error","id","message"}`; a download canceled elsewhere → `error`.
 * **Something only the person can do** → instead of `downloadDone`: `{"type":"needs","id","model","need","url"?,
@@ -1145,7 +1171,8 @@ characters) and writes it to `$HF_TOKEN_PATH`, else `$HF_HOME/token`, else `~/.c
 
 * A card in the chat panel when something is missing, e.g. no chat model ("Your Mac is connected. Download Qwen3.6
   35B (20 GB, ~10 min)? [Download]"), or a tool that needs a model that is not there: `generate_image` with no image
-  generator returns `{"needs":"download","kind":"image"}`; vboard shows the recommended one's card (size, licence,
+  generator returns `{"needs":"download","kind":"image"}` (likewise for music, sound and speech; an upscale with no
+  upscaler: the role `image/upscale`); vboard shows the recommended one's card (size, licence,
   time), and after `downloadDone` continues the request (the placeholder waits as `state:"downloading"`).
 * Cards for `needs`: the licence link and "Done, try again"; "Connect Hugging Face" → `setupUrl`; "Ask <owner>"
   for others.

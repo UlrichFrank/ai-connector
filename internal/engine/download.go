@@ -21,8 +21,10 @@ import (
 
 // Downloads fetch catalogue models when asked (vboard's Download, the vboard connector's first start), one at a time,
 // beside the job queue: a download does not stop a chat. The files go where a job would fetch them on first use (the
-// store; a stopped download resumes where it stopped), then the Python runtime of mflux/LTX is made (preparing). A
-// download runs on its own: whoever started it only asks for its state, and asking again joins it.
+// store; a stopped download resumes where it stopped), then the Python runtime of the model's backend is made, and
+// what the runtime builds or fetches once (LeVo2.cpp, Stable Audio 3's code) — preparing. After that the first job
+// starts without fetching anything. A download runs on its own: whoever started it only asks for its state, and
+// asking again joins it.
 
 // Download states.
 const (
@@ -82,6 +84,9 @@ type Downloads struct {
 	Free func() int64
 	// Fetch replaces the network (tests): it reports the bytes as they come and returns when the files are there.
 	Fetch func(ctx context.Context, m *Model, report func(done, total int64)) error
+	// Prepare replaces making the runtime (tests): env is the Python runtime's name ("" none), build whether the
+	// runtime has a step of its own. nil with Fetch set: nothing is prepared.
+	Prepare func(ctx context.Context, m *Model, env string, build bool) error
 	// Changed is told the new state of a download (nil: nobody); a download's progress tells it often.
 	Changed func(DownloadState)
 
@@ -126,6 +131,8 @@ func repoOf(m *Model) string {
 		return m.chat.Repo
 	case m.pinned != nil:
 		return m.pinned.Repo
+	case len(m.repos) > 0: // music, sound, speech: the first (the model's own)
+		return m.repos[0].repo
 	}
 	return ""
 }
@@ -133,15 +140,22 @@ func repoOf(m *Model) string {
 // SetRepo names the Hugging Face repository of a model made outside NewCatalog (tests).
 func (m *Model) SetRepo(repo, rev string) { m.repo, m.rev = repo, rev }
 
-// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video) whose files this worker can
-// fetch (not Claude Code, not a local runtime's).
+// setupKind: the setup offers models of this kind.
+func setupKind(k Kind) bool {
+	switch k {
+	case Chat, Embed, Classify, Image, Video, Music, Sound, Speech:
+		return true
+	}
+	return false
+}
+
+// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video, music, sound, speech) whose
+// files this worker can fetch (not Claude Code, not a local runtime's).
 func Downloadable(m *Model) bool {
-	switch m.Kind {
-	case Chat, Embed, Classify, Image, Video:
-	default:
+	if !setupKind(m.Kind) {
 		return false
 	}
-	return m.chat != nil || m.pinned != nil || m.repo != ""
+	return m.chat != nil || m.pinned != nil || m.repo != "" || len(m.repos) > 0
 }
 
 // licences of the catalogue models that do not state theirs (the pickers show it).
@@ -149,10 +163,19 @@ var licences = map[string]struct {
 	name          string
 	nonCommercial bool
 }{
-	"qwen3-embedding-0.6b": {"Apache-2.0", false},
-	"flux2-klein-4b":       {"Apache-2.0", false},
-	"flux2-klein-base-4b":  {"Apache-2.0", false},
-	"flux2-klein-9b":       {"FLUX Non-Commercial License", true},
+	"qwen3-embedding-0.6b":         {"Apache-2.0", false},
+	"flux2-klein-4b":               {"Apache-2.0", false},
+	"flux2-klein-base-4b":          {"Apache-2.0", false},
+	"flux2-klein-9b":               {"FLUX Non-Commercial License", true},
+	"ace-step-1.5-turbo":           {"MIT", false},
+	"ace-step-1.5-xl-turbo":        {"MIT", false},
+	"ace-step-1.5-base":            {"MIT", false},
+	"ace-step-1.5-xl-base":         {"MIT", false},
+	"ace-step-1.5-xl-turbo-techno": {"MIT (the LoRA states no licence)", false},
+	"heartmula-3b":                 {"Apache-2.0", false},
+	"yue2-3b":                      {"CC BY-NC 4.0", true},
+	"levo2-large":                  {"research use only", true},
+	"levo2-medium":                 {"research use only", true},
 }
 
 func licenceOf(m *Model) (string, bool) {
@@ -183,26 +206,56 @@ func RecommendedChat(mem int64) string {
 	return llm.Qwen35_4B.Short
 }
 
-// recommendedOf is the model to propose first of each kind on a machine with mem bytes.
-func recommendedOf(kind Kind, mem int64) string {
-	switch kind {
-	case Chat:
+// RecommendedMusic is the song model to propose for a machine with mem bytes of memory: ACE-Step 1.5 turbo (songs
+// with vocals, about 10 GB) from 32 GB, else Stable Audio 3 Small (instrumentals, 1.8 GB).
+func RecommendedMusic(mem int64) string {
+	if mem >= 32*gb {
+		return "ace-step-1.5-turbo"
+	}
+	return "stable-audio-3-small"
+}
+
+// SetupRole is what a model is recommended among: its kind, or kind/task for a model that does only a task of its
+// own (an upscaler: "image/upscale"; the transcriber: "speech/transcribe") — so it does not compete with the kind's
+// generators.
+func SetupRole(kind Kind, tasks []string) string {
+	for _, t := range tasks {
+		if t == TaskUpscale || t == "transcribe" {
+			return string(kind) + "/" + t
+		}
+	}
+	return string(kind)
+}
+
+// recommendedOf is the model to propose first of each role (SetupRole) on a machine with mem bytes ("" none).
+func recommendedOf(role string, mem int64) string {
+	switch role {
+	case string(Chat):
 		return RecommendedChat(mem)
-	case Embed:
+	case string(Embed):
 		return "qwen3-embedding-0.6b"
-	case Classify:
+	case string(Classify):
 		return "laya-typed-decisions"
-	case Image:
+	case string(Image):
 		return "flux2-klein-4b"
-	case Video:
+	case string(Image) + "/" + TaskUpscale:
+		return "seedvr2-3b"
+	case string(Video):
 		return "ltx-2.5-q4"
+	case string(Music):
+		return RecommendedMusic(mem)
+	case string(Sound):
+		return "moss-soundeffect"
+	case string(Speech):
+		return "kokoro-82m"
 	}
 	return ""
 }
 
 // FitsMemory: the model runs on a machine with mem bytes (0: unknown, yes). A chat model leaves room for the
 // classifier, the embedder and its cache (llm.Chat.Fits); an image or video model only has to fit alone (the
-// queue unloads a chat model before it when both do not fit).
+// queue unloads a chat model before it when both do not fit); a music, sound or speech model wants twice its
+// weights (its runtime's peak: ACE-Step turbo 10 GB of weights on 32 GB, MOSS 6.7 GB on 16 GB).
 func FitsMemory(m *Model, mem int64) bool {
 	if mem <= 0 {
 		return true
@@ -215,6 +268,8 @@ func FitsMemory(m *Model, mem int64) bool {
 		return m.Size*100/70 < mem
 	case Image, Video:
 		return m.Size < mem
+	case Music, Sound, Speech:
+		return m.Size*2 < mem
 	}
 	return m.Size*4 < mem
 }
@@ -234,7 +289,8 @@ type SetupModel struct {
 	URL           string `json:"url,omitempty"`
 	Fits          bool   `json:"fits"`
 	Recommended   bool   `json:"recommended"`
-	// Tasks: what an image model does (Model.Tasks: "upscale" for SeedVR2, "generate"/"edit"); absent: the usual
+	// Tasks: what the model does (Model.Tasks: "upscale" for SeedVR2, "generate"/"edit"; a song or speech model's);
+	// absent: the usual. Recommended is per kind, and per kind/task for an upscaler (SetupRole).
 	Tasks []string `json:"tasks,omitempty"`
 }
 
@@ -265,19 +321,17 @@ func (d *Downloads) Models(ctx context.Context, mem int64, withAccess bool) []Se
 	var gated []int
 	d.mu.Lock() // a download marks its model here under it
 	for _, m := range d.Catalog.List() {
-		switch m.Kind {
-		case Chat, Embed, Classify, Image, Video:
-		default:
+		if !setupKind(m.Kind) || m.Backend == BackendClaudeCode { // Claude Code: an agent, offered when installed
 			continue
 		}
-		if m.Backend == BackendClaudeCode { // an agent, offered when installed
+		if !m.Here && !Downloadable(m) { // a local runtime's, not here: nothing to offer
 			continue
 		}
 		lic, nc := licenceOf(m)
 		fits := FitsMemory(m, mem) && (m.Here || m.Size+diskMargin <= free)
 		sm := SetupModel{ID: m.ID, Name: m.Name, Kind: m.Kind, About: m.About, Here: m.Here, Size: m.Size, Licence: lic,
 			NonCommercial: nc, Gated: m.Gated, URL: RepoURL(m), Fits: fits,
-			Recommended: fits && m.ID == recommendedOf(m.Kind, mem), Tasks: m.Tasks}
+			Recommended: fits && m.ID == recommendedOf(SetupRole(m.Kind, m.Tasks), mem), Tasks: m.Tasks}
 		if m.Gated {
 			sm.Access = "unknown"
 			gated = append(gated, len(out))
@@ -518,8 +572,7 @@ func (d *Downloads) run(r *download) {
 			return
 		}
 	}
-	var hm models.Model
-	var env *pyenv.Env
+	var files []models.Model
 	missing := int64(0)
 	if d.Fetch != nil {
 		if !m.Here {
@@ -527,11 +580,13 @@ func (d *Downloads) run(r *download) {
 		}
 	} else {
 		var err error
-		if hm, env, err = d.plan(ctx, m); err != nil {
+		if files, err = d.plan(ctx, m); err != nil {
 			fail(err)
 			return
 		}
-		missing = d.Store.Missing(hm)
+		for _, hm := range files {
+			missing += d.Store.Missing(hm)
+		}
 	}
 	if free := d.FreeBytes(); missing+diskMargin > free {
 		fail(&needError{NeedSpace, "", fmt.Sprintf("%s needs %s on disk, %s are free", m.Name, models.Human(missing+diskMargin), models.Human(free))})
@@ -580,34 +635,38 @@ func (d *Downloads) run(r *download) {
 			done = now
 			mu.Unlock()
 		}
-		if _, err := s.Ensure(ctx, hm); err != nil {
-			if errors.Is(err, models.ErrGated) || strings.Contains(err.Error(), "HTTP 401") || strings.Contains(err.Error(), "HTTP 403") {
-				err = d.gated(ctx, m)
+		for _, hm := range files {
+			if _, err := s.Ensure(ctx, hm); err != nil {
+				if errors.Is(err, models.ErrGated) || strings.Contains(err.Error(), "HTTP 401") || strings.Contains(err.Error(), "HTTP 403") {
+					err = d.gated(ctx, m)
+				}
+				fail(err)
+				return
 			}
-			fail(err)
-			return
 		}
 	}
 	d.set(r, func(st *DownloadState) { st.State, st.Bytes, st.ETA = DownloadVerifying, st.Total, 0 })
-	if d.Fetch == nil {
-		if n := d.Store.Missing(hm); n > 0 {
-			fail(fmt.Errorf("%s: %s did not arrive complete", m.Name, models.Human(n)))
-			return
-		}
+	var short int64
+	for _, hm := range files {
+		short += d.Store.Missing(hm)
 	}
-	if env != nil && !env.Ready(d.Root) {
-		d.set(r, func(st *DownloadState) { st.State = DownloadPreparing })
-		if err := env.Ensure(ctx, d.Root, func(string) {}); err != nil {
-			fail(fmt.Errorf("the %s runtime: %w", env.Name, err))
-			return
-		}
+	if short > 0 {
+		fail(fmt.Errorf("%s: %s did not arrive complete", m.Name, models.Human(short)))
+		return
+	}
+	if err := d.prepare(ctx, r, m); err != nil {
+		fail(err)
+		return
 	}
 	where := m.Where
-	if d.Fetch == nil {
-		where = d.Store.Path(hm)
-		if m.repo != "" {
-			where = filepath.Join(d.Store.Dir, filepath.FromSlash(hm.Repo), hm.Rev)
-		}
+	switch {
+	case d.Fetch != nil:
+	case len(m.repos) > 0: // music, sound, speech: their repositories in the store (as the catalogue says)
+		where = d.Store.Dir
+	case m.repo != "":
+		where = filepath.Join(d.Store.Dir, filepath.FromSlash(files[0].Repo), files[0].Rev)
+	default:
+		where = d.Store.Path(files[0])
 	}
 	d.set(r, func(st *DownloadState) {
 		m.Here, m.Where = true, where // under the lock Models reads it with
@@ -623,34 +682,96 @@ func (d *Downloads) gated(ctx context.Context, m *Model) error {
 	return &needError{NeedLicence, RepoURL(m), m.Name + ": accept its licence on " + RepoURL(m) + ", then try again"}
 }
 
-// plan is what a download of m fetches: the files (as the backend's first job would), and the Python runtime it
-// needs (nil: none).
-func (d *Downloads) plan(ctx context.Context, m *Model) (models.Model, *pyenv.Env, error) {
+// prepare makes the model's runtime (preparing): its Python environment, then its step of its own (building
+// LeVo2.cpp, fetching Stable Audio 3's code) — what the first job would do otherwise.
+func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
+	if d.Fetch != nil && d.Prepare == nil {
+		return nil
+	}
+	env, build := runtimeOf(m)
+	if env == nil && build == nil || d.Prepare == nil && build == nil && env.Ready(d.Root) {
+		return nil
+	}
+	d.set(r, func(st *DownloadState) { st.State = DownloadPreparing })
+	if d.Prepare != nil {
+		name := ""
+		if env != nil {
+			name = env.Name
+		}
+		return d.Prepare(ctx, m, name, build != nil)
+	}
+	if env != nil {
+		if err := env.Ensure(ctx, d.Root, func(string) {}); err != nil {
+			return fmt.Errorf("the %s runtime: %w", env.Name, err)
+		}
+	}
+	if build != nil {
+		if _, err := build(ctx, d.Root, func(Event) {}); err != nil {
+			return fmt.Errorf("the %s runtime: %w", m.runtime, err)
+		}
+	}
+	return nil
+}
+
+// runtimeOf is the Python runtime a model's backend runs in (nil: none, the Go engine) and the runtime's step of its
+// own (nil: none).
+func runtimeOf(m *Model) (*pyenv.Env, func(ctx context.Context, root string, emit Emit) ([]string, error)) {
+	switch m.Backend {
+	case "mflux": // FLUX, Qwen-Image, SeedVR2
+		return &MfluxEnv, nil
+	case "ltx":
+		return &LTXEnv, nil
+	case "music":
+		if rt := MusicRuntimes()[m.runtime]; rt != nil {
+			return &rt.env, rt.build
+		}
+	case "sound":
+		return &soundEnv, nil
+	case "speech": // with Kokoro's G2P (misaki, spaCy's English model, espeak-ng inside its wheel)
+		return &SpeechEnv, nil
+	}
+	return nil, nil
+}
+
+// plan is what a download of m fetches: the files of each repository, as the backend's first job would. A speech
+// model gets all its parts (Qwen3-TTS: CustomVoice, Base and VoiceDesign), not only the one it counts as here with.
+func (d *Downloads) plan(ctx context.Context, m *Model) ([]models.Model, error) {
 	switch {
 	case m.chat != nil:
-		return m.chat.Model, nil, nil
+		return []models.Model{m.chat.Model}, nil
 	case m.pinned != nil:
-		return *m.pinned, nil, nil
+		return []models.Model{*m.pinned}, nil
 	case m.Backend == "mflux":
-		// the files FluxBackend.Run loads
+		// the files FluxBackend.Run (and upscale) loads
 		files := m.files
 		if len(files) == 0 {
 			files = []string{"text_encoder/", "tokenizer/", "transformer/", "vae/", "scheduler/", "model_index.json"}
 		}
 		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, func(p string) bool { return models.Matches(p, files...) })
 		if err != nil {
-			return hm, nil, d.hubErr(ctx, m, err)
+			return nil, d.hubErr(ctx, m, err)
 		}
-		return hm, &MfluxEnv, nil
+		return []models.Model{hm}, nil
 	case m.Backend == "ltx":
 		// the files LTXBackend.download fetches
 		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, func(p string) bool { return !models.Matches(p, m.ignore...) })
 		if err != nil {
-			return hm, nil, d.hubErr(ctx, m, err)
+			return nil, d.hubErr(ctx, m, err)
 		}
-		return hm, &LTXEnv, nil
+		return []models.Model{hm}, nil
+	case len(m.repos) > 0 && (m.Backend == "music" || m.Backend == "sound" || m.Backend == "speech"):
+		// every repository the backend's Run fetches (MusicBackend.Run, SoundBackend.files, SpeechBackend.speak)
+		var out []models.Model
+		for _, hr := range m.repos {
+			hm, err := d.Store.FromHub(ctx, m.Name, hr.repo, hr.rev, hr.keep())
+			if err != nil {
+				return nil, d.hubErr(ctx, m, err)
+			}
+			out = append(out, hm)
+		}
+		return out, nil
 	}
-	return models.Model{}, nil, fmt.Errorf("%s is not downloaded through the setup", m.ID)
+	return nil, fmt.Errorf("%s is not downloaded through the setup", m.ID)
 }
 
 func (d *Downloads) hubErr(ctx context.Context, m *Model, err error) error {
