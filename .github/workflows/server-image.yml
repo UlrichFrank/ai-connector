@@ -2,7 +2,10 @@ name: Server image
 
 # The server's image pharndt/ai-connector-server (Dockerfile), pushed to Docker Hub on a version tag:
 #   git tag server-v0.1.0 && git push origin server-v0.1.0   →   pharndt/ai-connector-server:0.1.0 and :latest
-# The Go and web stages cross-compile on the runner (--platform=$BUILDPLATFORM), so no QEMU is needed.
+# The Go and web stages cross-compile on the runner (--platform=$BUILDPLATFORM), so no QEMU is needed. Both web apps
+# (web/ and console/) are built inside the Dockerfile (pnpm install --frozen-lockfile && pnpm build) and embedded,
+# and the worker programs for the four platforms are built into /tools; `make image-multiarch` is the same locally.
+# The chart (deploy/helm/ai-connector) is checked by ci.yml; its appVersion is the tag's version to deploy.
 on:
   push:
     tags: ["server-v*"]
