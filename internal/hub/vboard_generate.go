@@ -663,11 +663,15 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 	if mime == "image/png" {
 		read = genImageRead
 	}
-	if size < 0 || size > limit && size <= read {
+	// a PNG is always read whole: its metadata goes (pngWithoutMeta), whatever its size
+	if size < 0 || size > limit && size <= read || mime == "image/png" && size <= read {
 		b, err := io.ReadAll(io.LimitReader(res.Body, read+1))
 		if err != nil {
 			fail(fmt.Sprintf("the file from %s: %v", n.name, err))
 			return false
+		}
+		if mime == "image/png" {
+			b = pngWithoutMeta(b)
 		}
 		size, body = int64(len(b)), bytes.NewReader(b)
 		// a PNG larger than vboard takes (a 4096² upscale) goes as a JPEG of quality 92
