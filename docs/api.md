@@ -760,3 +760,100 @@ server the job goes to the worker that has the model and is least busy, so a sec
 * Which bridge: the one that serves the board (a board token's connection, else the person's), as for chat. An
   MCP client of the person (their own Claude Code with vboard's MCP) uses the same — so it works directly or through
   a server, with any chat.
+
+### vboard: setting up models from vboard (planned, contract)
+
+Not built yet; builds on the generators section above. **Goal:** the user runs one command from vboard's "Set up AI";
+from then on everything that is missing is asked for **in vboard**, with a click, and nothing large happens
+without one. The questions come from **vboard's UI** (cards in the chat panel), driven by the bridge — not from a
+model, which may not exist yet.
+
+**1. `ai-connector vboard` on its first start** (what vboard's dialog may rely on)
+
+* **Connects at once**, even with no model on disk: it dials as soon as its worker is connected, with
+  `chat`/`model`/`embed` `""` while those are missing, and `setup` (2) in the hello. (With a server: a connector
+  still waits while **no worker** is connected — the 503 rule; a connected worker with no models is enough.)
+* **Small required models without asking:** the embedder and the classifier (≈ 1 GB together) are downloaded in
+  the background on the first start; `embed`/`model` arrive by handover when they are ready.
+* **Proposes, never downloads, the big ones:** the chat model by the Mac's memory (≥ 64 GB: Qwen3.6 35B-A3B; ≥ 32 GB:
+  a mid-size one; less: Qwen3.5 4B) — marked `recommended` in the model list (3); vboard asks.
+* **Claude Code by itself:** when `claude` is installed and logged in, `claude-code/sonnet` and `claude-code/opus`
+  are offered without `--agents` (until `--agents` says otherwise). With no chat model yet, the first agent may be
+  Claude Code (`kind:"agent"`; the "first is a model" rule is relaxed only while there is no chat model at all).
+* **Starts at login** (`--install`, which vboard's command passes: a launchd agent on macOS, a scheduled task on
+  Windows, a systemd user unit on Linux; `ai-connector vboard --uninstall` removes it).
+* **Python for the generators** (mflux, ltx-2-mlx need `uv`): when `uv` is missing the worker fetches Astral's
+  standalone `uv` into `<files>/bin` itself (state `preparing` below) instead of asking for Homebrew.
+
+**2. The hello's `setup`**
+
+```json
+"setup": {"downloads": true, "owner": "u_…", "setupUrl": "http://127.0.0.1:53412/setup?code=…",
+          "huggingFace": {"token": false}, "memory": 68719476736, "free": 412316860416}
+```
+
+* `downloads`: this connector takes `models`/`download` requests (absent: an older connector — vboard shows no
+  cards). `owner`: the vboard user id of the connector's token (from `/api/v1/me`); only that person may download
+  (5).
+* `setupUrl`: a page for what must not go through vboard (4). Standalone: the hub's loopback address with a code
+  made per process (only a browser on this Mac reaches it; the code keeps other web pages out). With a server: the
+  console's Models page when the server knows its public address, else absent.
+* `huggingFace.token`: whether a Hugging Face token is set on the worker(s) (never the token). `memory`, `free`:
+  bytes of RAM and of free disk where the models go (standalone; with a server, per worker in 3).
+* `{"type":"setup","setup":{…}}` replaces it on the open connection when it changes (a token was set, disk filled).
+
+**3. The model list** — `{"type":"models","id"}` → `{"type":"models","id","models":[…]}`
+
+```json
+{"id": "flux2-klein-9b", "name": "FLUX.2 [klein] 9B", "kind": "image", "about": "…",
+ "here": false, "size": 35000000000, "licence": "FLUX non-commercial", "nonCommercial": true,
+ "gated": true, "access": "needed", "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9B",
+ "fits": true, "recommended": false, "worker": "Mac Studio"}
+```
+
+* `kind`: chat | embed | classify | image | video (Claude Code is not in this list: it is an agent, offered when
+  installed). All catalogue models of these kinds for the owner's worker(s), downloaded or not; with a server
+  `worker` says which Mac (one entry per model and worker that could take it).
+* `gated` + `access`: `granted` (the token can fetch it), `needed` (the licence must be accepted on `url`), `token`
+  (no token is set: 4), `unknown` (no network). `fits`: the model fits this Mac's memory (with room for the chat
+  model when both should stay loaded) and its disk. `recommended`: the one to propose first for its kind (at most one
+  per kind).
+* vboard asks for it when it needs to decide (a card is about to be shown, the settings open), not on every turn.
+
+**4. Downloading** — `{"type":"download","id","model","worker"?}`
+
+* Answers: `{"type":"downloadStatus","id","model","state","bytes"?,"total"?,"eta"?}` with `state` `queued` →
+  `downloading` (bytes of total) → `verifying` → `preparing` (the Python environment of mflux/LTX on first use, `uv`
+  fetched if missing) — at most one a second, at least every 60 s; then `{"type":"downloadDone","id","model"}`. The
+  model is then offered: the connector sends `agents` / `generators` / a handover as usual, so vboard needs no
+  extra step.
+* **Something only the person can do** → instead of `downloadDone`: `{"type":"needs","id","model","need","url"?,
+  "message"}` (a final answer, like `error`):
+  * `licence`: accept the licence on `url` (Hugging Face has no API for that). vboard shows the link and a
+    "Done, try again" button; the connector checks access again on the next `download`.
+  * `token`: no Hugging Face token. vboard links to `setupUrl` → the page takes the token **on this Mac** and stores it
+    where `hf auth login` does (`~/.cache/huggingface/token`), so the token never passes vboard. Then `setup`
+    changes (`huggingFace.token: true`) and vboard may retry by itself.
+  * `space`: not enough disk (`message` says how much is needed and free). `memory`: the model does not fit this
+    Mac (`fits:false` — vboard should not have offered it; refused, not downloaded).
+  * `owner`: the request is not from the connector's owner (5).
+* `{"type":"downloadCancel","id"}` stops it (the partial files stay, a later download resumes). A download runs on,
+  independent of the connection: after a handover or reconnect vboard sends `download` again and gets the running
+  one's status (same `model` → same download).
+* Downloads are one at a time per worker, beside the job queue (a download does not stop a chat).
+
+**5. Who may download.** Only the connector's owner (`setup.owner`, the token's user): someone else's request (a
+board token's connection serving a whole board) → `needs` `owner` with "Ask <owner name> to download …". With a
+server, downloads go only to the **owner's** workers (`worker` absent → the owner's worker where it fits best);
+nobody fills another person's disk. The model may **propose** (a card), only a click starts it.
+
+**vboard's side (for reference; vboard decides the details)**
+
+* A card in the chat panel when something is missing, e.g. no chat model ("Your Mac is connected. Download Qwen3.6
+  35B (20 GB, ~10 min)? [Download]"), or a tool that needs a model that is not there: `generate_image` with no image
+  generator returns `{"needs":"download","kind":"image"}`; vboard shows the recommended one's card (size, licence,
+  time), and after `downloadDone` continues the request (the placeholder waits as `state:"downloading"`).
+* Cards for `needs`: the licence link and "Done, try again"; "Connect Hugging Face" → `setupUrl`; "Ask <owner>"
+  for others.
+* While nothing can chat yet (no chat model, no Claude Code), the panel shows the setup card instead of the input.
+* A settings view listing the models (3) with Download / size / licence, for those who want to choose.
