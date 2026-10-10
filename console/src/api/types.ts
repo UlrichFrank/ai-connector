@@ -216,6 +216,8 @@ export interface Connector {
   agents?: ConnectorAgent[];
   /** What vboard was told of (while connected). */
   advertised?: AdvertisedAgent[];
+  /** The image and video models offered to vboard's board, in order (catalogue ids; [] = none). */
+  generators?: string[];
   /** The user of the device that made it. */
   owner?: string;
   created?: string;
@@ -230,6 +232,7 @@ export interface ConnectorInput {
   enabled?: boolean;
   models?: ConnectorModels;
   agents?: ConnectorAgent[];
+  generators?: string[];
 }
 
 export interface ErrorBody {

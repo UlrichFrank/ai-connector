@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Connector } from "../api/types.ts";
-import { addAgent, agentId, agentKind, agentsProblem, createBody, emptyForm, formOf, moveAgent, normalizeUrl, patchBody, removeAgent, stateLabel, validate } from "./connectors.ts";
+import { addAgent, addGenerator, agentId, agentKind, agentsProblem, createBody, emptyForm, formOf, moveAgent, moveGenerator, normalizeUrl, patchBody, removeAgent, removeGenerator, stateLabel, validate } from "./connectors.ts";
 
 const connector: Connector = { id: "c1", kind: "vboard", name: "vboard", url: "https://vboard.example.com", board: "b_1", enabled: true, state: "connected", models: { chat: "qwen" } };
 
@@ -110,6 +110,22 @@ test("an agent's effort: kept through an edit, sent for Claude Code agents only"
   });
   f.agents[1] = { ...f.agents[1], effort: "" }; // back to the worker's default
   assert.deepEqual(patchBody(withEffort, f).agents?.[1], { id: "op", model: "claude-code/opus", name: "" });
+});
+
+test("generators: added once, moved, removed; sent when chosen or changed, [] turns them off", () => {
+  let g = addGenerator(addGenerator([], "flux2-klein-4b"), "ltx-2.5-q4");
+  assert.deepEqual(addGenerator(g, "ltx-2.5-q4"), g);
+  g = moveGenerator(g, 1, -1);
+  assert.deepEqual(g, ["ltx-2.5-q4", "flux2-klein-4b"]);
+  assert.deepEqual(moveGenerator(g, 0, -1), g);
+  assert.deepEqual(removeGenerator(g, 0), ["flux2-klein-4b"]);
+  assert.deepEqual(createBody({ ...emptyForm, url: "b", token: "vbp_", generators: g }).generators, g);
+  assert.equal(createBody({ ...emptyForm, url: "b", token: "vbp_" }).generators, undefined);
+  const withGenerators: Connector = { ...connector, generators: ["flux2-klein-4b"] };
+  assert.deepEqual(formOf(withGenerators).generators, ["flux2-klein-4b"]);
+  assert.deepEqual(patchBody(withGenerators, formOf(withGenerators)), {});
+  assert.deepEqual(patchBody(withGenerators, { ...formOf(withGenerators), generators: [] }), { generators: [] });
+  assert.deepEqual(patchBody(connector, { ...formOf(connector), generators: ["ltx-2.5-q4"] }), { generators: ["ltx-2.5-q4"] });
 });
 
 test("stateLabel", () => {

@@ -24,9 +24,11 @@ export interface ConnectorForm {
   chat: string;
   /** The agents vboard's chat offers, in order ([] = the chat model alone). */
   agents: AgentRow[];
+  /** The image and video models vboard may make pictures and videos on the board with, in order ([] = none). */
+  generators: string[];
 }
 
-export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "", agents: [] };
+export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "", agents: [], generators: [] };
 
 export function formOf(c: Connector): ConnectorForm {
   return {
@@ -38,6 +40,7 @@ export function formOf(c: Connector): ConnectorForm {
     embed: c.models?.embed ?? "",
     chat: c.models?.chat ?? "",
     agents: (c.agents ?? []).map(rowOf),
+    generators: [...(c.generators ?? [])],
   };
 }
 
@@ -109,6 +112,30 @@ const agentsBody = (list: AgentRow[]): ConnectorAgent[] =>
     ...(a.effort && agentKind(a.model) === "agent" ? { effort: a.effort } : {}),
   }));
 
+// ---------- generators ----------
+
+/** At most this many. */
+export const maxGenerators = 20;
+
+/** The list with the model added at the end (nothing when it is there already). */
+export function addGenerator(list: string[], model: string): string[] {
+  if (!model || list.includes(model) || list.length >= maxGenerators) return list;
+  return [...list, model];
+}
+
+/** The list with entry i moved by d (-1 up, +1 down). */
+export function moveGenerator(list: string[], i: number, d: number): string[] {
+  const j = i + d;
+  if (i < 0 || i >= list.length || j < 0 || j >= list.length) return list;
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
+export function removeGenerator(list: string[], i: number): string[] {
+  return list.filter((_, k) => k !== i);
+}
+
 /** "vboard.example.com/" → "https://vboard.example.com"; keeps an explicit http:// (a LAN vboard). */
 export function normalizeUrl(u: string): string {
   let s = u.trim();
@@ -161,6 +188,7 @@ export function createBody(f: ConnectorForm): ConnectorInput {
   const m = models(f);
   if (Object.keys(m).length) body.models = m;
   if (f.agents.length) body.agents = agentsBody(f.agents);
+  if (f.generators.length) body.generators = [...f.generators];
   return body;
 }
 
@@ -180,6 +208,7 @@ export function patchBody(c: Connector, f: ConnectorForm): ConnectorInput {
   const agents = agentsBody(f.agents);
   const was = agentsBody((c.agents ?? []).map(rowOf));
   if (JSON.stringify(agents) !== JSON.stringify(was)) p.agents = agents; // [] = back to the default
+  if (JSON.stringify(f.generators) !== JSON.stringify(c.generators ?? [])) p.generators = [...f.generators]; // [] = none
   return p;
 }
 
