@@ -1141,8 +1141,8 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	n := run.n
 	job["model"] = run.model
 	job["client"] = "vboard: " + c.conf.Name
-	events, unsubscribe := r.s.fleet.subscribe() // before the job exists: none of its events is missed
-	defer unsubscribe()
+	feed := r.s.fleet.followJob() // before the job exists: none of its events is missed
+	defer feed.close()
 	var content strings.Builder
 	thinking, said, status := false, false, ""
 	sp := &thinkSplit{emit: func(thought bool, s string) {
@@ -1205,7 +1205,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 			send(map[string]any{"type": "chatDelta", "status": line})
 		}
 	}
-	j, e := run.run(ctx, events, job, hooks)
+	j, e := run.run(ctx, feed, job, hooks)
 	if e != nil {
 		fail(e.message)
 		return

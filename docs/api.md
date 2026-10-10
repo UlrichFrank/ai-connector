@@ -88,7 +88,13 @@ Details of the implementation:
   values are not enforced (the model chooses).
 * A non-streamed answer with tool calls has `content: null` when the model wrote nothing besides the calls.
 * The streamed text comes from the workers' event stream; the job as the worker has it at the end is
-  authoritative (what the stream missed at the end is sent from it).
+  authoritative (what the stream missed at the end is sent from it). A chat (here and in the connectors) follows
+  its job through a feed of its own (`fleet.followJob`): it keeps every event of that job however slowly the client
+  reads — the shared event stream drops for slow subscribers, a job's feed does not (it holds only that job's
+  events). Each `text` event says where its piece starts in the job's text (`"at"`: bytes before it, `jobs.Update.At`):
+  a piece seen again is not repeated, and a gap (a piece the worker's own stream dropped) is filled from the job's
+  text before what follows — or, when the job cannot be asked then, nothing more streams and the end sends the rest.
+  A gap can no longer join the answer wrongly. (Workers before `at`: the pieces as they come, as before.)
 * A chat job without `zone` and `parent` may carry the caller's own tool turns in its history (assistant
   `tool_calls`, `tool` results): nothing runs tools in such a chat and a follow-up of it can never take a zone, so
   the zone rule ("tool results only from the chat that made them") still holds for zone chats.
@@ -232,7 +238,8 @@ settings at once.
    * `chat` of a model → a chat job in a worker's queue (`"client":"vboard: <connector name>"`, thinking off as vboard-ai's
      built-in model, vboard's messages with their tool turns and vboard's tools; the calls are returned, never run).
      While the job waits or its model starts: `{"type":"chatDelta","id","status":"Waiting for Mac Studio (queued)"}`
-     / `"Running on Mac Studio (<model>)"`; a thought (`<think>`) → one `{"thinking":true}` (the thought itself is
+     / `"Running on Mac Studio (<model>)"` — the first at once when the job is placed, `Running on …` as soon as it
+     starts (then again only as a keep-alive); a thought (`<think>`) → one `{"thinking":true}` (the thought itself is
      not sent); the answer → `{"text"}` deltas; then `{"type":"chatDone","id","content","toolCalls":[{"id","name",
      "arguments"}]}` (`toolCalls` always a list, `arguments` a JSON string, `"{}"` when empty). Every 60 s without
      anything else sent, a keep-alive (the same status again, `thinking:true` again, or an empty `text`; vboard gives up
