@@ -35,6 +35,8 @@ type vboardSettings struct {
 	Name   string `json:"name,omitempty"`
 	Chat   string `json:"chat,omitempty"`
 	Agents string `json:"agents,omitempty"`
+	// Generators: the image and video models offered to the board (comma list; "" none)
+	Generators string `json:"generators,omitempty"`
 }
 
 // standaloneOwner owns the worker and the connector of the standalone hub: Claude Code runs on its owner's workers.
@@ -44,7 +46,7 @@ const vboardUsage = `ai-connector vboard — vboard's local AI on this computer,
 
 usage:
   ai-connector vboard [<vboard address>] [--token T] [--board ID] [--name NAME] [--chat MODEL] [--agents LIST]
-                      [--console 127.0.0.1:8485] [--state DIR]
+                      [--generators LIST] [--console 127.0.0.1:8485] [--state DIR]
 
   <vboard address>  e.g. https://vboard.example.com (or --url, $VBOARD_URL)
   --token T         a vboard token: "Set up AI" → "Create token" ($VBOARD_TOKEN)
@@ -54,10 +56,13 @@ usage:
   --agents LIST     what vboard's chat panel offers, in order, comma-separated — the first must be a chat model,
                     e.g. "qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus" (Claude Code: installed and logged in
                     here). Default: the chat model alone. With only claude-code/… models the --chat model goes first.
+  --generators LIST image and video models vboard may make pictures and videos on the board with, in order,
+                    comma-separated, e.g. "flux2-klein-4b,ltx-2.5-q4" (only those on this computer's disk are
+                    offered). Default: none.
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/vboard/worker, apart from a plain worker's)
 
-An empty flag (--board=, --name=, --chat=, --agents=) goes back to the default.
+An empty flag (--board=, --name=, --chat=, --agents=, --generators=) goes back to the default.
 The settings are kept in <files>/vboard/settings.json: ` + "`ai-connector vboard`" + ` alone starts the same connection again.
 `
 
@@ -70,6 +75,7 @@ func vboardCommand(args []string) error {
 	name := fs.String("name", "", "the name vboard shows")
 	chat := fs.String("chat", "", "the chat model")
 	agentList := fs.String("agents", "", "the AIs vboard offers, in order")
+	generators := fs.String("generators", "", "the image and video models vboard offers, in order")
 	console := fs.String("console", "", "serve the console here")
 	state := fs.String("state", "", "this process's jobs and sessions")
 	// the address may come first (as with vboard-ai): flags after it still count
@@ -93,7 +99,7 @@ func vboardCommand(args []string) error {
 	}
 	given := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
-	set, err := resolveVboard(vboardSettings{URL: *url, Token: *token, Board: *board, Name: *name, Chat: *chat, Agents: *agentList}, given, os.Getenv, filepath.Join(dir, "settings.json"))
+	set, err := resolveVboard(vboardSettings{URL: *url, Token: *token, Board: *board, Name: *name, Chat: *chat, Agents: *agentList, Generators: *generators}, given, os.Getenv, filepath.Join(dir, "settings.json"))
 	if err != nil {
 		return err
 	}
@@ -129,7 +135,7 @@ func vboardCommand(args []string) error {
 		return fmt.Errorf("this computer as worker: %w", err)
 	}
 	if _, err := s.EnsureConnector(hub.ConnectorSettings{Name: connName, URL: set.URL, Token: set.Token, Board: set.Board,
-		Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Owner: standaloneOwner}); err != nil {
+		Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Generators: splitList(set.Generators), Owner: standaloneOwner}); err != nil {
 		if f := hub.ConnectorErrorField(err); f != "" {
 			return fmt.Errorf("%s: %w", f, err)
 		}
@@ -183,12 +189,13 @@ func resolveVboard(flags vboardSettings, given map[string]bool, getenv func(stri
 		return saved
 	}
 	out := vboardSettings{
-		URL:    pick("url", flags.URL, "VBOARD_URL", saved.URL),
-		Token:  pick("token", flags.Token, "VBOARD_TOKEN", saved.Token),
-		Board:  pick("board", flags.Board, "VBOARD_BOARD", saved.Board),
-		Name:   pick("name", flags.Name, "", saved.Name),
-		Chat:   pick("chat", flags.Chat, "", saved.Chat),
-		Agents: pick("agents", flags.Agents, "", saved.Agents),
+		URL:        pick("url", flags.URL, "VBOARD_URL", saved.URL),
+		Token:      pick("token", flags.Token, "VBOARD_TOKEN", saved.Token),
+		Board:      pick("board", flags.Board, "VBOARD_BOARD", saved.Board),
+		Name:       pick("name", flags.Name, "", saved.Name),
+		Chat:       pick("chat", flags.Chat, "", saved.Chat),
+		Agents:     pick("agents", flags.Agents, "", saved.Agents),
+		Generators: pick("generators", flags.Generators, "", saved.Generators),
 	}
 	if out.URL == "" {
 		return out, errors.New("no vboard address: ai-connector vboard https://vboard.example.com --token … (see --help)")
@@ -223,6 +230,17 @@ func vboardAgents(list, chat string) ([]hub.ConnectorAgent, error) {
 		out = append([]hub.ConnectorAgent{{Model: chat}}, out...)
 	}
 	return out, nil
+}
+
+// splitList is a comma list's entries (blanks dropped).
+func splitList(list string) []string {
+	var out []string
+	for _, part := range strings.Split(list, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 // logConnector prints the connector's state when it changes: connecting, connected (as whom, offering what), errors.
