@@ -229,6 +229,10 @@ func TestVboardSetupDownloads(t *testing.T) {
 		byID["qwen3-embedding-0.6b"]["recommended"] != true {
 		t.Fatalf("recommended %v", list.Models)
 	}
+	// the upscaler is recommended among the upscalers (image/upscale), not against the image generators
+	if byID["seedvr2-3b"]["recommended"] != true {
+		t.Fatalf("upscaler recommended %v", byID["seedvr2-3b"])
+	}
 	// an upscaler says so (tasks), the others have none
 	if tk, _ := byID["seedvr2-3b"]["tasks"].([]any); len(tk) != 1 || tk[0] != "upscale" || byID["flux2-klein-9b"]["tasks"] != nil {
 		t.Fatalf("tasks %v", list.Models)
@@ -505,5 +509,65 @@ func TestVboardSetupOldVboard(t *testing.T) {
 	b2 := v.next(t)
 	if b2.hello.Model != "laya-typed-decisions" {
 		t.Fatalf("hello after the download %+v", b2.hello)
+	}
+}
+
+// A speech model downloaded from vboard (with generators "*", as `ai-connector vboard` sets it) is offered as a
+// generator at once: {type:"generators"} on the open connection after downloadDone. The list has music, sound and
+// speech models with a recommendation per kind.
+func TestVboardSetupAudioGenerator(t *testing.T) {
+	fastBridges(t)
+	fastGenerate(t)
+	poll := bridgeDownloadPoll
+	bridgeDownloadPoll = 50 * time.Millisecond
+	t.Cleanup(func() { bridgeDownloadPoll = poll })
+	setupWorld(t)
+	_, base, device := vbHub(t)
+	_, wtok := enroll(t, base, device, "Mac")
+	kokoro := &engine.Model{ID: "kokoro-82m", Name: "Kokoro 82M", Kind: engine.Speech, Backend: "speech", Size: gib / 2, Audio: kokoroCaps,
+		Tasks: []string{"presets", "speed", "language"}}
+	qwen := &engine.Model{ID: "qwen3-tts-1.7b", Name: "Qwen3-TTS 1.7B", Kind: engine.Speech, Backend: "speech", Size: 12 * gib, Audio: qwenCaps}
+	asr := &engine.Model{ID: "qwen3-asr", Name: "Qwen3-ASR", Kind: engine.Speech, Backend: "speech", Size: 2 * gib, Tasks: []string{"transcribe"}}
+	song := &engine.Model{ID: "ace-step-1.5-turbo", Name: "ACE-Step 1.5 turbo", Kind: engine.Music, Backend: "music", Size: 10 * gib,
+		Defaults: engine.Request{Duration: 60}, Audio: &engine.AudioCaps{MaxSeconds: 600, Lyrics: true, Instrumental: true, BPM: true}}
+	sound := &engine.Model{ID: "moss-soundeffect", Name: "MOSS-SoundEffect", Kind: engine.Sound, Backend: "sound", Size: 7 * gib,
+		Defaults: engine.Request{Duration: 8}, Audio: &engine.AudioCaps{MaxSeconds: 30}}
+	for _, m := range []*engine.Model{kokoro, qwen, asr, song, sound} {
+		m.SetRepo("org/"+m.ID, "rev")
+	}
+	mac := startSetupMac(t, base, wtok, kokoro, qwen, asr, song, sound)
+	v := newFakeVboard(t, stageGenerators)
+	addConnector(t, base, device, `{"url":"`+v.srv.URL+`","token":"vbp_secret","generators":["*"]}`)
+	b := v.next(t)
+	if gs := b.helloGenerators(); len(gs) != 0 {
+		t.Fatalf("generators before the download %+v", gs)
+	}
+
+	b.send(t, `{"type":"models","id":"d_1"}`)
+	rec := map[string]bool{}
+	for _, e := range b.nextSetup(t, "d_1").Models {
+		if e["recommended"] == true {
+			rec[e["id"].(string)] = true
+		}
+	}
+	if !rec["kokoro-82m"] || rec["qwen3-tts-1.7b"] || rec["qwen3-asr"] || !rec["ace-step-1.5-turbo"] || !rec["moss-soundeffect"] {
+		t.Fatalf("recommended %v", rec)
+	}
+
+	b.send(t, `{"type":"download","id":"d_2","model":"kokoro-82m","context":{"userId":"u_1"}}`)
+	mac.release <- struct{}{}
+	m := b.nextSetup(t, "d_2")
+	for m.Type == "downloadStatus" {
+		m = b.nextSetup(t, "d_2")
+	}
+	if m.Type != "downloadDone" || m.Model != "kokoro-82m" {
+		t.Fatalf("done %+v", m)
+	}
+	gs := nextGenerators(t, b)
+	if len(gs) != 1 || gs[0].ID != "kokoro-82m" || gs[0].Kind != "speech" || gs[0].Worker != "Mac" {
+		t.Fatalf("generators after the download %+v", gs)
+	}
+	if _, dials := v.count(); dials != 1 {
+		t.Fatalf("%d connections: a generator must not force a handover", dials)
 	}
 }

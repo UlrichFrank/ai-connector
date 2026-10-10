@@ -328,14 +328,25 @@ func (r *vboardRun) setupRequest(ctx context.Context, c *bridgeConn, work *runni
 	}
 }
 
+// setupRole is what a model is recommended among (engine.SetupRole): its kind, or kind/task for an upscaler
+// ("image/upscale") and the transcriber ("speech/transcribe"), which do not compete with the kind's generators.
+func setupRole(kind string, tasks []string) string {
+	for _, t := range tasks {
+		if t == "upscale" || t == "transcribe" {
+			return kind + "/" + t
+		}
+	}
+	return kind
+}
+
 // modelList is the model list of the owner's workers: one entry per model and worker, at most one recommended per
-// kind (on the worker with the most memory).
+// role (setupRole; on the worker with the most memory).
 func (r *vboardRun) modelList(ctx context.Context, conf storedConnector) []map[string]any {
 	nodes := r.s.ownerNodes(ctx, conf)
 	setups := r.s.workerSetups(ctx, nodes, true)
 	out := []map[string]any{}
-	best := map[string]int{}      // kind → entry recommended
-	bestMem := map[string]int64{} // kind → its worker's memory
+	best := map[string]int{}      // role → entry recommended
+	bestMem := map[string]int64{} // role → its worker's memory
 	for i, ws := range setups {
 		if ws == nil {
 			continue
@@ -350,12 +361,12 @@ func (r *vboardRun) modelList(ctx context.Context, conf storedConnector) []map[s
 			if len(m.Tasks) > 0 { // an upscaler (["upscale"]) is told apart before it is a generator
 				e["tasks"] = m.Tasks
 			}
-			if m.Recommended {
-				if j, ok := best[m.Kind]; !ok || ws.Memory > bestMem[m.Kind] {
+			if role := setupRole(m.Kind, m.Tasks); m.Recommended {
+				if j, ok := best[role]; !ok || ws.Memory > bestMem[role] {
 					if ok {
 						out[j]["recommended"] = false
 					}
-					best[m.Kind], bestMem[m.Kind] = len(out), ws.Memory
+					best[role], bestMem[role] = len(out), ws.Memory
 					e["recommended"] = true
 				}
 			}
