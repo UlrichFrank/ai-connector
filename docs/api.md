@@ -188,15 +188,23 @@ A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"cl
 * `state`: `connecting` (with `error` saying why it waits or retries: no worker offers a model, a lost connection
   "… (retrying in 4s)"), `connected` (`since`: RFC 3339, `user`: who the token belongs to, from vboard's
   `/api/v1/me` and `welcome`), `error` (`error`: why; it stays stopped until the connector is edited — any PATCH
-  dials again), `disabled`.
+  dials again), `disabled`. An edit of a connected connector does not cancel its running requests (below).
 * Unknown kind → 400 `{"error":"kind"}`; a bad body → 400 `{"error":"bad request"}`. Client tokens (`aic_…`) get 401.
 
 Stored in `<data>/connectors.json` (mode 0600; the token in clear, the server needs it to dial).
 
 ### How the vboard connector works (as built)
 
-One goroutine per enabled connector, started with the server and on create/enable/edit, stopped on
-disable/delete/shutdown (the requests running on it are canceled; a chat's job is canceled on its worker).
+One goroutine per enabled connector, started with the server and on create/enable (and on any edit of a connector
+in state `error`), stopped on disable/delete/shutdown (the requests running on it are canceled; a chat's job is
+canceled on its worker). **Other edits never cancel what runs** (`PATCH`, `internal/hub/connector_edit_test.go`):
+the running connector takes the new settings — `agents` and `models` are offered on the open connection as in 6
+and 7 below (`{"type":"agents"}`, or a handover when the hello's models change); a new `url`, `token`, `board` or
+`name` (vboard learns the name only from the URL and hello) gets a new connection by the handover of 6: new requests
+go there, the old connection is closed once its running requests are answered. When vboard refuses the new
+connection for good (a wrong token, 401/403/404), the connector stops with that error (state `error`) after the old
+connection's requests are answered; while it is not connected (waiting, retrying), the next attempt uses the new
+settings at once.
 
 1. `GET <url>/api/v1/me` with the token (as vboard-ai does): 401 stops the connector (state `error`); a network
    error, 429 or 5xx is retried; other answers are left to the bridge.
@@ -232,13 +240,14 @@ disable/delete/shutdown (the requests running on it are canceled; a chat's job i
    * Failures → `{"type":"error","id","message"}` (at most 300 characters); an unknown request type with an id too.
      A request for something the connector cannot do now (no worker offers the model) is such an error.
    * An answer larger than vboard reads (8 MB) is replaced by an error for its id.
-6. `{"type":"reconnect"}` (a vboard replica drains), and a change of the hello's models (classify, embed or the
-   default chat model; checked on every fleet change and every 30 s — older vboards learn them only from hello): a new
+6. `{"type":"reconnect"}` (a vboard replica drains), an edit of `url`, `token`, `board` or `name`, and a change of
+   the hello's models (classify, embed or the default chat model; checked on every fleet change, every edit and every
+   30 s — older vboards learn them only from hello): a new
    connection with a fresh hello (agents included) and the same `instance` is opened (retried 1 s … 10 s); new
    requests are answered there, the old connection is closed normally (1000 "handed over") once what runs on it is
    answered (and at least 2 s after the handover).
 7. When only the agents change (a worker with one of them connects or goes, the owner's Claude Code worker comes
-   online): `{"type":"agents","agents":[…]}` on the open connection — no new connection (vboard replaces its list;
+   online, the connector's `agents` are edited): `{"type":"agents","agents":[…]}` on the open connection — no new connection (vboard replaces its list;
    older vboards drop the message, it has no id).
 
 **Compatibility.** What the connector sends is understood by every vboard since the bridge exists; tested against a

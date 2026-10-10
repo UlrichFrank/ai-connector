@@ -103,6 +103,7 @@ type connectorEntry struct {
 	status connectorStatus
 	gen    int // the runner's generation: reports of a runner that was stopped are dropped
 	cancel context.CancelFunc
+	run    *vboardRun // the runner (nil while disabled)
 }
 
 // connectors keeps the connectors and runs them.
@@ -161,13 +162,15 @@ func (m *connectors) startAll() {
 	}
 }
 
-// startLocked (re)starts a connector's runner after its settings changed: the old runner is stopped (it ends in the
-// background: its requests are canceled), a new one starts when the connector is enabled.
+// startLocked (re)starts a connector's runner — on start, create, enable/disable, and an edit of a connector that
+// stopped on an error: the old runner is stopped (it ends in the background: its requests are canceled), a new one
+// starts when the connector is enabled. Other edits go to the running runner (reconfigure), which keeps its requests.
 func (m *connectors) startLocked(e *connectorEntry) {
 	if e.cancel != nil {
 		e.cancel()
 		e.cancel = nil
 	}
+	e.run = nil
 	e.gen++
 	if !e.conf.Enabled || m.closed {
 		e.status = connectorStatus{State: "disabled"}
@@ -176,7 +179,8 @@ func (m *connectors) startLocked(e *connectorEntry) {
 	e.status = connectorStatus{State: "connecting"}
 	ctx, cancel := context.WithCancel(context.Background())
 	e.cancel = cancel
-	r := &vboardRun{m: m, s: m.s, conf: e.conf, gen: e.gen, instance: "aic_" + randomString(12)}
+	r := newVboardRun(m, e.conf, e.gen)
+	e.run = r
 	m.wg.Add(1)
 	go func() {
 		defer m.wg.Done()
@@ -567,9 +571,19 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 		writeConnectorError(w, err)
 		return
 	}
-	// changed settings: dial again with them (a connector that stopped on an error tries again on any edit)
-	if !reflect.DeepEqual(c, before) || e.status.State == "error" {
-		m.startLocked(e)
+	// Enabling, disabling and any edit of a connector that stopped on an error (re)start the runner. Every other
+	// change goes to the running runner, which never cancels what runs on it: agents and models are offered on the
+	// open connection ({type:"agents"}, or a handover when the hello's models change); a new address, token, board
+	// or name gets a new connection by a handover (make-before-break: the old connection is closed once the requests
+	// running on it are answered).
+	changed := !reflect.DeepEqual(c, before)
+	switch {
+	case e.status.State == "error" || c.Enabled != before.Enabled || e.run == nil:
+		if changed || e.status.State == "error" {
+			m.startLocked(e)
+		}
+	case changed:
+		e.run.reconfigure(c)
 	}
 	v := e.view()
 	m.mu.Unlock()
