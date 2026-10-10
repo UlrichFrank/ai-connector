@@ -676,7 +676,7 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 "generators": [
   {"id": "flux2-klein-4b", "name": "FLUX.2 [klein] 4B", "kind": "image", "worker": "Mac Studio",
    "edit": true, "multiple": 16, "default": {"width": 1024, "height": 1024}, "max": 2048},
-  {"id": "ltx-2.5-distilled-q4", "name": "LTX-2.5 (distilled)", "kind": "video", "worker": "Mac Studio",
+  {"id": "ltx-2.5-q4", "name": "LTX-2.5 (distilled)", "kind": "video", "worker": "Mac Studio",
    "firstFrame": true, "audio": true, "multiple": 64, "default": {"width": 704, "height": 448, "fps": 24, "seconds": 4},
    "max": 1280, "maxSeconds": 10, "nonCommercial": false}
 ]
