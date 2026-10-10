@@ -2,6 +2,7 @@ package hub
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -138,7 +139,11 @@ func TestChatRunStalledFollower(t *testing.T) {
 		fmt.Fprintf(&long, "w%d ", i)
 	}
 	want := long.String()
-	ctx := t.Context()
+	// the end must come by the event stream: the poll (a minute) is far later than this deadline, so a lost end
+	// fails here, soon, instead of being found by the poll
+	const within = 30 * time.Second
+	ctx, cancel := context.WithTimeout(t.Context(), within)
+	defer cancel()
 	run, e := s.placeChat(ctx, "qwen3.6", chatFor{user: "Philipp", via: viaDevice})
 	if e != nil {
 		t.Fatal(e.message)
@@ -149,7 +154,6 @@ func TestChatRunStalledFollower(t *testing.T) {
 	defer stop()
 	var got strings.Builder
 	first := true
-	start := time.Now()
 	j, e := run.run(ctx, feed, map[string]any{"model": run.model, "messages": []map[string]string{{"role": "user", "content": "say:" + want}}},
 		chatHooks{text: func(s string) {
 			if first {
@@ -158,14 +162,14 @@ func TestChatRunStalledFollower(t *testing.T) {
 			}
 			got.WriteString(s)
 		}})
+	if e != nil && ctx.Err() != nil {
+		t.Fatalf("no end by the event stream within %s (passed on %d of %d bytes): the job's end was lost", within, got.Len(), len(want))
+	}
 	if e != nil {
 		t.Fatal(e.message)
 	}
 	if j.Text != want || got.String() != want {
 		t.Fatalf("job %d bytes, passed on %d of %d (first difference at %d)", len(j.Text), got.Len(), len(want), firstDiff(got.String(), want))
-	}
-	if time.Since(start) > chatPoll/2 { // the end came by the event stream, not by the poll
-		t.Fatalf("took %s: events were lost", time.Since(start))
 	}
 	if len(slow) != cap(slow) {
 		t.Fatalf("the broadcast subscriber kept all (%d): the test did not stall long enough", len(slow))

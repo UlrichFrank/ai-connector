@@ -84,18 +84,28 @@ func (t *stdioTransport) read(stdout io.Reader, log io.Writer) {
 	close(t.done)
 }
 
+// exitWait: how long a failed write waits for the server's exit, to report that (and its status) instead.
+const exitWait = 2 * time.Second
+
 func (t *stdioTransport) write(m *message) error {
 	b, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 	t.wmu.Lock()
-	defer t.wmu.Unlock()
 	_, err = t.stdin.Write(append(b, '\n'))
-	if err != nil {
+	t.wmu.Unlock()
+	if err == nil {
+		return nil
+	}
+	// a broken pipe: the server is gone or going (one that exits at once may be gone before the first write, or
+	// only after it); either way the error is the same: that it exited, and how
+	select {
+	case <-t.done:
+		return t.mux.failure()
+	case <-time.After(exitWait):
 		return fmt.Errorf("%w: %v", errClosed, err)
 	}
-	return nil
 }
 
 func (t *stdioTransport) request(ctx context.Context, m *message) (*message, error) {
