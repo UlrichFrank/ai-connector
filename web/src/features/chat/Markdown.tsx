@@ -8,16 +8,19 @@ export const Markdown = memo(function Markdown({
   text,
   streaming,
   thought,
+  route,
   className,
 }: {
   text: string;
   streaming?: boolean;
   /** The model's thinking: quiet and smaller, any HTML in it shown as text. */
   thought?: boolean;
+  /** The route of the answer's job through the hub (lib/files.ts): its /files/ links point at that Mac. */
+  route?: string;
   className?: string;
 }) {
   const deferred = useDeferredValue(text);
-  const html = useMemo(() => renderMarkdown(deferred, streaming, thought), [deferred, streaming, thought]);
+  const html = useMemo(() => renderMarkdown(deferred, streaming, thought, route), [deferred, streaming, thought, route]);
   return <div className={cn("md", thought && "md-thought", streaming && "md-streaming", className)} onClick={copyCode} dangerouslySetInnerHTML={{ __html: html }} />;
 });
 

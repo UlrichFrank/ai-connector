@@ -16,21 +16,60 @@ import (
 	"github.com/philipparndt/ai-connector/internal/jobs"
 )
 
+// Only file urls get the route: the fields that hold them and strings that are a /files/ url as a whole; free text
+// (a chat's answer, its messages, a text event, logs) stays as written, even when it mentions /files/ paths.
 func TestRouteText(t *testing.T) {
 	rt := &route{rid: "m1"}
-	for in, want := range map[string]string{
-		"/files/a.png": "/files/m1/a.png",
-		"see [x](/files/tools/r.pdf) and /files/b": "see [x](/files/m1/tools/r.pdf) and /files/m1/b",
-		"/Users/me/files/c":                        "/Users/me/files/c",
-		`<img src="/files/d.png">`:                 `<img src="/files/m1/d.png">`,
-		"nothing":                                  "nothing",
+	in := `{"id":"j1","state":"done","kind":"chat","request":{"images":["/files/uploads/a.png"],"audio":"/files/b.wav",` +
+		`"source":"/files/song one.wav","prompt":"draw /files/x","messages":[{"Role":"user","Content":"/files/x.png"}]},` +
+		`"files":["/files/out.png"],"preview":"/files/p.mp4","cover":"/files/c.png","text":"see [x](/files/tools/r.pdf) and /files/b",` +
+		`"logs":["/files/l"],"result":{"file":"/files/r.wav","messages":[{"Content":"/files/m"}],"other":"/files/o","note":"at /files/n"},` +
+		`"tools":[{"files":["/files/t.pdf"],"result":"saved /files/t.pdf","arguments":{"path":"/files/arg"}}],` +
+		`"event":{"type":"text","text":"/files/e"},"fileEvent":{"type":"file","file":"/files/f.png"},"path":"/Users/me/files/c"}`
+	b, ok := mapJSON([]byte(in), rt.out)
+	if !ok {
+		t.Fatal("not JSON")
+	}
+	var got map[string]any
+	json.Unmarshal(b, &got)
+	req := got["request"].(map[string]any)
+	res := got["result"].(map[string]any)
+	tool := got["tools"].([]any)[0].(map[string]any)
+	for what, pair := range map[string][2]any{
+		"images":       {req["images"].([]any)[0], "/files/m1/uploads/a.png"},
+		"audio":        {req["audio"], "/files/m1/b.wav"},
+		"source":       {req["source"], "/files/m1/song one.wav"},
+		"prompt":       {req["prompt"], "draw /files/x"},
+		"message":      {req["messages"].([]any)[0].(map[string]any)["Content"], "/files/x.png"},
+		"files":        {got["files"].([]any)[0], "/files/m1/out.png"},
+		"preview":      {got["preview"], "/files/m1/p.mp4"},
+		"cover":        {got["cover"], "/files/m1/c.png"},
+		"text":         {got["text"], "see [x](/files/tools/r.pdf) and /files/b"},
+		"logs":         {got["logs"].([]any)[0], "/files/l"},
+		"result file":  {res["file"], "/files/m1/r.wav"},
+		"result msg":   {res["messages"].([]any)[0].(map[string]any)["Content"], "/files/m"},
+		"result url":   {res["other"], "/files/m1/o"},
+		"result note":  {res["note"], "at /files/n"},
+		"tool files":   {tool["files"].([]any)[0], "/files/m1/t.pdf"},
+		"tool result":  {tool["result"], "saved /files/t.pdf"},
+		"tool args":    {tool["arguments"].(map[string]any)["path"], "/files/arg"},
+		"text event":   {got["event"].(map[string]any)["text"], "/files/e"},
+		"file event":   {got["fileEvent"].(map[string]any)["file"], "/files/m1/f.png"},
+		"another path": {got["path"], "/Users/me/files/c"},
+		"job id":       {got["id"], "m1.j1"},
 	} {
-		if got := rt.outText(in); got != want {
-			t.Errorf("out %q = %q, want %q", in, got, want)
+		if pair[0] != pair[1] {
+			t.Errorf("%s: %v, want %v", what, pair[0], pair[1])
 		}
-		if back := rt.inText(want); back != in {
-			t.Errorf("in %q = %q, want %q", want, back, in)
-		}
+	}
+	// and back: what comes in with the route loses it, text stays
+	back, _ := mapJSON([]byte(`{"images":["/files/m1/a.png"],"audio":"/files/m1/b.wav","parent":"m1.j1",`+
+		`"messages":[{"Role":"assistant","Content":"see /files/m1/x"}]}`), rt.in)
+	var bm map[string]any
+	json.Unmarshal(back, &bm)
+	if bm["images"].([]any)[0] != "/files/a.png" || bm["audio"] != "/files/b.wav" || bm["parent"] != "j1" ||
+		bm["messages"].([]any)[0].(map[string]any)["Content"] != "see /files/m1/x" {
+		t.Errorf("in %s", back)
 	}
 	if rt.inPath("/api/jobs/m1.abc/cancel") != "/api/jobs/abc/cancel" || rt.inPath("/files/m1/x/y.png") != "/files/x/y.png" ||
 		rt.inPath("/api/jobs/abc") != "/api/jobs/abc" || rt.inPath("/files/m2/x") != "/files/m2/x" {

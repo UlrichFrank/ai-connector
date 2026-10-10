@@ -208,11 +208,15 @@ As built:
   hub sends `X-Mlxlab-Route: <rid>`, `X-Mlxlab-Worker-Id` and `X-Mlxlab-Worker-Name` (URL-encoded) on every request
   to a worker that understands routes (a client's own such headers are dropped).
 * **Worker side** (`internal/web/route.go`, one layer around every handler): the path (`/api/jobs/<rid>.<id>/…`,
-  `/files/<rid>/…`) and a JSON body (`/files/<rid>/` urls in any string, `parent`/`coverFor` ids) lose the prefix;
+  `/files/<rid>/…`) and a JSON body (`/files/<rid>/` file urls, `parent`/`coverFor` ids) lose the prefix;
   a JSON answer and every `data:` line of an event stream get it: a job's `id`, `request.parent`,
-  `request.coverFor`, an update's `jobId`, and every `/files/` url in any string (tool files, `result`, markdown in
-  chat text — where `/files/` starts the string or follows a space, quote or bracket), plus `"worker":{"id","name"}`
-  on every job. `/api/info` adds `"routes":true` (the capability), `specs` (sysctl `machdep.cpu.brand_string` and
+  `request.coverFor`, an update's `jobId`, and the **file urls** — the strings of fields that hold them (`files`,
+  `file` (a `file` event), `preview`, `cover`, `images`, `image`, `audio`, `source`, `url`, `sample`, `video`,
+  `poster`; also in lists, e.g. a tool's `files`) and any other string that is a `/files/` url as a whole — plus
+  `"worker":{"id","name"}` on every job. **Free text is never rewritten**: `text` (a chat's answer, `text` events),
+  messages' `content`, `prompt`, `logs`, `status`, `error`, a tool's `arguments`, `summary` and the like, and
+  everything inside them, stay as written — a chat answer that mentions `/files/x` reaches an OpenAI client as
+  `/files/x`. mlxlab's web app adds the job's route to `/files/` links in an answer itself (`web/src/lib/files.ts`). `/api/info` adds `"routes":true` (the capability), `specs` (sysctl `machdep.cpu.brand_string` and
   `hw.memsize`, `ioreg` `gpu-core-count`, `sw_vers`; asked once) and `state` (`running` with the prefix).
   `MLXLAB_FAKE_RAM_GB` / `MLXLAB_FAKE_CHIP` pretend other specs, for trying the routing on one Mac.
 * **An older worker** (no `"routes":true`, or no `/api/info`): alone it gets everything unchanged, as before; next to
