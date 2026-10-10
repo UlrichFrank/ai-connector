@@ -128,6 +128,7 @@ type fakeBridge struct {
 	rawErr  string               // the last chat error as sent (before vboard cuts it)
 	agents  []vbAgent            // ai-agents: hello.agents
 	updates chan []vbAgent       // ai-agents: {type:"agents"} as they come
+	setups  chan []byte          // setup: {setup}, {models}, {downloadStatus}, … (vboard_setup_test.go)
 	n       int
 	nmu     sync.Mutex
 }
@@ -217,6 +218,7 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	b.updates = make(chan []vbAgent, 16)
+	b.setups = make(chan []byte, 256)
 	if err != nil || typ != "hello" {
 		c.Close(websocket.StatusPolicyViolation, "hello expected")
 		return
@@ -262,6 +264,10 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 			Agents  []json.RawMessage `json:"agents"`
 		}
 		if json.Unmarshal(raw, &m) != nil {
+			continue
+		}
+		if v.stage >= stageHead && setupAnswer(m.Type, m.ID, b) {
+			b.setups <- raw
 			continue
 		}
 		if v.stage >= stageAgents && m.Type == "agents" {
@@ -554,10 +560,10 @@ type vbMac struct {
 func startVboardMac(t *testing.T, base, token string, kinds ...string) *vbMac {
 	t.Helper()
 	all := map[string]*engine.Model{
-		"chat":     {ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: gib},
-		"embed":    {ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib},
-		"classify": {ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib},
-		"vision":   {ID: "lmstudio/qwen3.6-27b", Name: "Qwen3.6 27B · lmstudio", Kind: engine.Chat, Backend: "vbchat", Size: gib, Images: true},
+		"chat":     {ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: gib, Here: true},
+		"embed":    {ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib, Here: true},
+		"classify": {ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib, Here: true},
+		"vision":   {ID: "lmstudio/qwen3.6-27b", Name: "Qwen3.6 27B · lmstudio", Kind: engine.Chat, Backend: "vbchat", Size: gib, Here: true, Images: true},
 	}
 	cat := &engine.Catalog{}
 	for _, k := range kinds {

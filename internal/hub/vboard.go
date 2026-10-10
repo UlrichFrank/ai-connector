@@ -127,7 +127,7 @@ func (s *Server) connectorCaps(ctx context.Context, conf storedConnector) bridge
 	routed, _ := s.fleet.pick(ctx)
 	models := fleetModels(routed)
 	find := func(name, kind string) string {
-		if m, ok := findModel(models, name); ok && m.Kind == kind {
+		if m, ok := findModel(models, name); ok && m.Kind == kind && hereOn(m) {
 			return m.ID
 		}
 		return ""
@@ -164,10 +164,13 @@ func (s *Server) connectorCaps(ctx context.Context, conf storedConnector) bridge
 func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConnector, a ConnectorAgent) (AdvertisedAgent, bool) {
 	var fm fleetModel
 	ok := false
+	if a.Model == "" {
+		a.Model = conf.Models.Chat // a chosen list's first may leave it to the connector's chat model
+	}
 	if a.Model == "" { // the default chat model
 		for _, m := range models {
 			// not Claude Code: it uses its owner's subscription, so a connector uses it only when chosen
-			if m.Kind == "chat" && m.Backend != "claude-code" && !strings.HasPrefix(m.ID, claudePrefix) {
+			if m.Kind == "chat" && m.Backend != "claude-code" && !strings.HasPrefix(m.ID, claudePrefix) && hereOn(m) {
 				fm, ok = m, true
 				break
 			}
@@ -175,7 +178,7 @@ func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConne
 	} else {
 		fm, ok = findModel(models, a.Model)
 	}
-	if !ok || fm.Kind != "chat" {
+	if !ok || fm.Kind != "chat" || !hereOn(fm) {
 		return AdvertisedAgent{}, false
 	}
 	kind := a.Kind
@@ -203,6 +206,17 @@ func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConne
 	images := fm.Images || fm.Backend == "claude-code" || strings.HasPrefix(fm.ID, claudePrefix)
 	return AdvertisedAgent{ID: trimRunes(a.ID, agentChars), Name: trimRunes(name, agentChars), Kind: kind,
 		Worker: trimRunes(n.name, agentChars), Model: fm.ID, Images: images}, true
+}
+
+// hereOn: a connected worker has the model's files. Only such a model is offered to vboard: nothing large is
+// downloaded for a board without the owner's click (vboard_setup.go).
+func hereOn(fm fleetModel) bool {
+	for _, n := range fm.workers {
+		if nodeHas(n, fm.ID) {
+			return true
+		}
+	}
+	return false
 }
 
 // ---------- errors ----------
@@ -262,7 +276,8 @@ type vboardRun struct {
 	s        *Server
 	id       string // the connector's
 	gen      int
-	instance string // hello.instance: the old and the new connection of a handover share it
+	instance string  // hello.instance: the old and the new connection of a handover share it
+	vb       vbOwner // the vboard user of the token (/api/v1/me): setup.owner (vboard_setup.go)
 
 	cmu     sync.Mutex
 	conf    storedConnector // the settings now (an edit replaces them: reconfigure)
@@ -407,7 +422,7 @@ func (r *vboardRun) waitCaps(ctx context.Context) (bridgeCaps, bool) {
 		if ctx.Err() != nil {
 			return caps, false
 		}
-		if !caps.empty() {
+		if !caps.empty() || r.s.ownerConnected(ctx, r.config()) { // with nothing yet, the setup asks for a model
 			return caps, true
 		}
 		r.connecting(strings.ToUpper(errNothingOffered.Error()[:1]) + errNothingOffered.Error()[1:] + ": waiting for one")
@@ -444,9 +459,10 @@ func (r *vboardRun) me(ctx context.Context, conf storedConnector) (string, error
 		return "", nil // the bridge's own answer decides
 	}
 	var me struct {
-		User struct{ Name string } `json:"user"`
+		User struct{ ID, Name string } `json:"user"`
 	}
 	_ = json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(&me)
+	r.vb.set(me.User.ID, me.User.Name)
 	return me.User.Name, nil
 }
 
@@ -480,8 +496,9 @@ type bridgeConn struct {
 	user string          // welcome.user
 	conf storedConnector // the settings it was dialled with (its requests are answered with them)
 
-	cmu  sync.Mutex
-	caps bridgeCaps // what its hello said, with the agents as last sent
+	cmu   sync.Mutex
+	caps  bridgeCaps // what its hello said, with the agents as last sent
+	setup *setupConn // the setup as last sent, the downloads followed (vboard_setup.go)
 
 	wmu sync.Mutex
 }
@@ -536,6 +553,8 @@ func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeC
 	if caps.images() {
 		h0["images"] = true // the default model takes images
 	}
+	setup := r.helloSetup(ctx, conf) // models and downloads (vboard_setup.go; older vboards ignore it)
+	h0["setup"] = setup
 	hello, _ := json.Marshal(h0)
 	if err := ws.Write(ctx, websocket.MessageText, hello); err != nil {
 		ws.CloseNow()
@@ -551,7 +570,7 @@ func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeC
 		ws.CloseNow()
 		return nil, fmt.Errorf("unexpected answer from vboard: %.100s", raw)
 	}
-	return &bridgeConn{ws: ws, caps: caps, user: welcome.User, conf: conf}, nil
+	return &bridgeConn{ws: ws, caps: caps, user: welcome.User, conf: conf, setup: &setupConn{key: setupKey(setup)}}, nil
 }
 
 // send writes a message (one at a time). An answer vboard could not read (over its 8 MB) becomes an error for its id.
@@ -786,6 +805,8 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 				continue
 			}
 			switch m.Type {
+			case "models", "download", "downloadCancel": // vboard_setup.go
+				r.setupRequest(cctx, c, work, raw)
 			case "chat":
 				rctx := chats.start(cctx, m.ID)
 				work.add(1)
@@ -876,12 +897,13 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		case <-r.updated: // agents or models edited: offered below
 		case <-tick.C:
 		}
+		r.syncSetup(cctx, c) // {type:"setup"} when it changed (vboard_setup.go)
 		caps := r.s.connectorCaps(cctx, r.config())
 		cur := c.capsNow()
 		if cctx.Err() != nil || caps.sameHello(cur) && reflect.DeepEqual(caps.agents, cur.agents) {
 			continue
 		}
-		if caps.empty() {
+		if caps.empty() && !r.s.ownerConnected(cctx, r.config()) {
 			_ = c.ws.Close(websocket.StatusNormalClosure, "nothing to offer")
 			stop(false)
 			return nil, errNothingOffered
@@ -907,7 +929,7 @@ func (r *vboardRun) handoverDial(ctx context.Context) (*bridgeConn, error) {
 	for {
 		conf := r.config()
 		caps := r.s.connectorCaps(ctx, conf)
-		if ctx.Err() != nil || caps.empty() {
+		if ctx.Err() != nil || caps.empty() && !r.s.ownerConnected(ctx, conf) {
 			return nil, nil
 		}
 		c, err := r.dial(ctx, conf, caps)
