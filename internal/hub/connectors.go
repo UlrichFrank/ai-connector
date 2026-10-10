@@ -118,6 +118,8 @@ type connectors struct {
 	list    []*connectorEntry
 	changed chan struct{}
 	closed  bool
+
+	conversations seenConversations // the agents' conversation keys asked for (vboard.go agentJob)
 }
 
 func openConnectors(s *Server, dir string) (*connectors, error) {

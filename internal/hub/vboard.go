@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/coder/websocket"
 
@@ -651,6 +652,8 @@ type bridgeContext struct {
 		H float64 `json:"h"`
 	} `json:"view"`
 	Resume bool `json:"resume"`
+	// ConversationID: the panel's id of this chat conversation (stable over its turns; vboards before it send none)
+	ConversationID string `json:"conversationId"`
 }
 
 type bridgeChatMsg struct {
@@ -1121,7 +1124,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	var job map[string]any
 	var err error
 	if asAgent {
-		job, err = agentJob(c.conf, m)
+		job, err = agentJob(c.conf, m, r.m.conversations.seen)
 	} else {
 		job, err = bridgeChatJob(m)
 	}
@@ -1256,7 +1259,9 @@ func toolStatus(name string, data map[string]any) string {
 // a session new on the worker gets the history as a transcript first, engine claudePrompt). What the person selected
 // and sees changes from turn to turn, so it is said in front of the message, not in the system prompt (which a
 // running session read when it started).
-func agentJob(conf storedConnector, m *bridgeMsg) (map[string]any, error) {
+//
+// seen says whether a conversation key was asked for before (and remembers it); nil: never.
+func agentJob(conf storedConnector, m *bridgeMsg, seen func(key string) bool) (map[string]any, error) {
 	if len(m.Messages) == 0 {
 		return nil, errors.New("the chat has no messages")
 	}
@@ -1301,26 +1306,96 @@ func agentJob(conf storedConnector, m *bridgeMsg) (map[string]any, error) {
 	if board != "" {
 		mcpURL += "?board=" + url.QueryEscape(board) // vboard's MCP: the tools default to this board
 	}
+	key := agentSession(conf.ID, cx.UserID, board, cx.ConversationID, first)
+	// a new conversation (nothing answered yet; not the "Continue" of a broken-off first answer) starts anew: with
+	// vboard's conversation id only the first time the connector sees that id (the key is the conversation's own:
+	// a retried first question keeps its session); without one (older vboards) even when an earlier conversation
+	// began with the same words
+	fresh := !answered && !cx.Resume
+	if conversationID(cx.ConversationID) != "" && seen != nil && seen(key) {
+		fresh = false
+	}
 	return map[string]any{
 		"messages": all,
 		"think":    false,
-		"session":  agentSession(conf.ID, cx.UserID, board, first),
-		// a new conversation (nothing answered yet; not the "Continue" of a broken-off first answer) starts anew, even
-		// when an earlier one began with the same words
-		"fresh": !answered && !cx.Resume,
+		"session":  key,
+		"fresh":    fresh,
 		"mcp": []map[string]any{{"name": "vboard", "url": mcpURL,
 			"headers": map[string]string{"Authorization": "Bearer " + conf.Token}}},
 	}, nil
 }
 
 // agentSession is the conversation key of an agent's chat: the connector, the person, the board and the
-// conversation — vboard sends the whole conversation (its last 40 messages) every turn but no id for it, so its first
-// message stands for it. Follow-up turns of a conversation land in its warm session; another conversation, board or
-// person gets another one. When vboard's window drops the first message (long chats), the key changes: a new session
-// that gets the remaining history as a transcript.
-func agentSession(connector, user, board, first string) string {
+// conversation — vboard's conversation id (context.conversationId, one per chat conversation of its panel) when it
+// sends one; else (vboards before it) the conversation's first message stands for it: vboard sends the whole
+// conversation (its last 40 messages) every turn. Follow-up turns of a conversation land in its warm session; another
+// conversation, board or person gets another one. Without an id two conversations that open with the same words at
+// the same time share a session, and when vboard's window drops the first message (long chats) the key changes: a
+// new session that gets the remaining history as a transcript.
+func agentSession(connector, user, board, conversation, first string) string {
+	prefix := "vboard:" + connector + ":" + user + ":" + board + ":"
+	if id := conversationID(conversation); id != "" {
+		return prefix + id
+	}
 	h := sha256.Sum256([]byte(first))
-	return "vboard:" + connector + ":" + user + ":" + board + ":" + hex.EncodeToString(h[:6])
+	return prefix + hex.EncodeToString(h[:6])
+}
+
+// conversationID is vboard's conversation id as a key part: as sent when it is short and plain (at most 128
+// printable characters without spaces), else its hash ("c" + 24 hex digits); "" when there is none.
+func conversationID(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ""
+	}
+	plain := len(id) <= 128
+	for _, r := range id {
+		plain = plain && unicode.IsPrint(r) && !unicode.IsSpace(r)
+	}
+	if plain {
+		return id
+	}
+	h := sha256.Sum256([]byte(id))
+	return "c" + hex.EncodeToString(h[:12])
+}
+
+// seenConversations remembers the conversation keys the connectors were asked for (the newest 10000, for a day):
+// a conversation is new (fresh) only the first time.
+type seenConversations struct {
+	mu sync.Mutex
+	m  map[string]time.Time
+}
+
+const (
+	seenMax = 10000
+	seenAge = 24 * time.Hour
+)
+
+// seen says whether key was seen before, and remembers it.
+func (s *seenConversations) seen(key string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now()
+	if s.m == nil {
+		s.m = map[string]time.Time{}
+	}
+	t, ok := s.m[key]
+	ok = ok && now.Sub(t) < seenAge
+	s.m[key] = now
+	if len(s.m) > seenMax {
+		var oldest string
+		for k, t := range s.m {
+			if now.Sub(t) >= seenAge {
+				delete(s.m, k)
+			} else if oldest == "" || t.Before(s.m[oldest]) {
+				oldest = k
+			}
+		}
+		if len(s.m) > seenMax {
+			delete(s.m, oldest)
+		}
+	}
+	return ok
 }
 
 // agentSystem is what the connector adds to vboard's system message for an agent: how it reaches the board.

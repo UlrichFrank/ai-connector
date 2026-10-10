@@ -283,7 +283,7 @@ job of such a model is **one turn** in a Claude Code session. `engine.Request` f
 
 | field | |
 |---|---|
-| `session` | the conversation key (e.g. `vboard:<connector>:<user>:<board>:<hash>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
+| `session` | the conversation key (e.g. `vboard:<connector>:<user>:<board>:<conversationId>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
 | `driver` | `json` (default) or `tty` (below) |
 | `mcp` | `[{"name","url","type"?: "http"\|"sse","headers"?: {…}}]` — the MCP servers the session may use (only these: `--strict-mcp-config`); their tools are allowed as `mcp__<name>` |
 | `owner` | **set by the server** (a caller's value is dropped): the signed-in device's user, or the client token's owner |
@@ -468,8 +468,9 @@ vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local
   too) and the update when only the agents change (Connectors, "How the vboard connector works" 3, 7).
 * vboard's `chat` request may carry `"agent":"<id>"` (absent: the default, as before). For a `kind:"agent"` it has
   no `tools` and a `"context":{"boardId","boardName","userId","userName","role","lang","selection":[…],
-  "view":{x,y,w,h},"resume"}`; the messages are vboard's short system message (who, which board, "use vboard's MCP
-  tools") and the conversation (its last 40 messages).
+  "view":{x,y,w,h},"resume","conversationId"}`; the messages are vboard's short system message (who, which board,
+  "use vboard's MCP tools") and the conversation (its last 40 messages). `conversationId` (newer vboards): a stable
+  id of the chat conversation, made by the panel when it starts one and sent with each of its turns.
 * The connector answers an agent's request with a **Claude Code** job (`placeChat`: only on a connected worker of the
   connector's **owner**, with them as the job's owner; none → `error` "<owner>'s Claude Code worker is offline" or
   "… has no worker with Claude Code"):
@@ -480,12 +481,18 @@ vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local
     prompt also says to pass `boardId`). The token reaches Claude Code only through the environment
     (`${AIC_MCP_0_0}` in `mcp.json`; "Security" above), and the session's allow-list adds `mcp__vboard` (all of
     that server's tools) to the worker's read-mostly list — nothing that edits files or runs commands.
-  * `session`: `vboard:<connector id>:<userId>:<boardId>:<12 hex of SHA-256 of the conversation's first user
-    message>`. vboard sends the whole conversation every turn but no id for it; its first message stands for it, so
-    follow-up turns land in the warm session, while another conversation, board or person gets its own. `fresh` is
-    set when nothing has been answered yet (a new conversation, even one that opens with the same words as an old
-    one; not on `resume`). When vboard's 40-message window drops the first message, the key changes: a new session,
-    which gets the remaining history as a transcript (above).
+  * `session`: `vboard:<connector id>:<userId>:<boardId>:<conversationId>` when vboard sends `conversationId` (as
+    sent when it has at most 128 printable characters without spaces, else `c` + 24 hex of its SHA-256): follow-up
+    turns land in the warm session, while another conversation — also one that opens with the same words at the same
+    time —, board or person gets its own. `fresh` is set only the first time the connector sees that id (the server
+    remembers the ids of the last day, at most 10 000) and nothing has been answered yet, not on `resume`: a first
+    question asked again (its answer failed) stays in its session.
+    **Fallback** (vboards without `conversationId`): `vboard:<connector id>:<userId>:<boardId>:<12 hex of SHA-256 of
+    the conversation's first user message>` — vboard sends the whole conversation every turn, its first message
+    stands for it. `fresh` is set when nothing has been answered yet (a new conversation, even one that opens with
+    the same words as an old one; not on `resume`). Two conversations that open with the same words at the same time
+    share a session there, and when vboard's 40-message window drops the first message the key changes: a new
+    session, which gets the remaining history as a transcript (above).
   * `system`: vboard's system message plus how the board is reached (the MCP server "vboard", the person and role,
     the board and its id to pass as `boardId`, read and change it only with those tools, the answer language from
     `lang`) — read when the session starts. What changes from turn to turn goes in front of the person's message:
