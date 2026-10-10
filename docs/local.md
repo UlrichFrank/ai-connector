@@ -16,6 +16,32 @@ make local-down     # stop what local-up started; the data stays
 another commit or with local changes, the vboard checkout at another commit), restarts what was rebuilt and starts
 what does not run. Tokens, the worker's enrollment, the vboard token and the board are made once and reused.
 
+### Running chats are not cut off
+
+Restarting the server, the worker or vboard ends a chat that is running in vboard ("The connection to vboard was
+lost"; a Claude Code turn can take minutes). So before `local-up` restarts anything — and before `local-down` stops
+anything — it checks for running work: jobs on the worker that run or are queued (`GET /api/jobs`) and Claude Code
+turns that are busy (`GET /api/agents/sessions`). When there is some, it lists it (model, client e.g.
+`vboard: This Mac (local)`, how long) and waits, checking every 2 s with a progress line, until nothing runs; then
+it restarts (or stops).
+
+```bash
+make local-status                            # "work  1 running (longest 2:10: claude-code/sonnet for vboard: …)"
+make local-up                                # builds first, then waits (up to 10 min) and restarts what changed
+WAIT_JOBS=1800 make local-up                 # wait up to 30 min (seconds)
+FORCE=1 make local-up                        # restart now, ending what runs (also FORCE=1 make local-down)
+NO_RESTART=1 make local-up                   # build only: says what runs an older build, restarts nothing
+```
+
+- The builds run first, the wait comes after them; only what was rebuilt is restarted. When nothing would be
+  restarted there is no check at all, and when nothing runs the check is one quick request.
+- Ctrl-C during the wait aborts: nothing was restarted or stopped. When the wait times out it stops the same way
+  and says how to force it.
+- A build that was not restarted (timeout, Ctrl-C, `NO_RESTART=1`) is remembered: the next `local-up` restarts the
+  processes that still run the older build (`<state>/build-*.id` against `<state>/run/<name>.build`).
+- Tests: `deploy/local/local_test.sh` (the check and the wait, with the API faked). `LOCAL_FAKE_BUSY=<seconds>`
+  makes the script see a made-up running job for that long (to try the wait), `LOCAL_POLL` sets the poll interval.
+
 ## What runs
 
 | | address | started as |
@@ -96,5 +122,8 @@ everything again (a checkout with local changes is rebuilt on every `up`).
   `frontend/`, `go build` of the backend); it never runs git commands that change the checkout.
 - vboard's `make dev` instance on :8080 (if one runs) is a different instance with its own data; the local
   integration does not touch it.
-- `local-down` stops the worker first (it unloads its models and closes its Claude Code sessions), then vboard and
+- A second instance (e.g. to try a change of the script) runs next to the first with its own state and ports:
+  `AIC_LOCAL_STATE=/tmp/aic2 AIC_LOCAL_PORT=28484 VBOARD_PORT=28480 VBOARD_IDP_PORT=28482 LMSTUDIO_VISION=0
+  CONNECTOR_NAME=test deploy/local/local.sh up` (its worker has its own state; the model store is shared).
+- `local-down` waits for running work (see above), then stops the worker first (it unloads its models and closes its Claude Code sessions), then vboard and
   the server.
