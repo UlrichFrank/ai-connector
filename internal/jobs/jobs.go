@@ -144,6 +144,7 @@ type Manager struct {
 	saving         sync.Mutex
 	snaps, written int  // history snapshots taken (under mu), the newest written (under saving)
 	busy           bool // the worker is on a job (until it is saved)
+	beside         int  // jobs running beside the queue (until they are saved)
 }
 
 const maxLogs = 400
@@ -156,7 +157,7 @@ func New(cat *engine.Catalog, backends []engine.Backend, dir string) *Manager {
 		m.Backends[b.Name()] = b
 	}
 	for _, j := range m.load() {
-		m.queue <- j
+		m.dispatch(j)
 	}
 	go m.work()
 	return m
@@ -193,7 +194,7 @@ func (m *Manager) Submit(r engine.Request) (*Job, error) {
 	snap := j.clone()
 	m.mu.Unlock()
 	m.publish(Update{JobID: j.ID, Job: snap})
-	m.queue <- j
+	m.dispatch(j)
 	m.save()
 	return snap, nil
 }
@@ -257,7 +258,7 @@ func ResultMessages(j *Job) []llm.Message {
 // Settled says nothing is queued or running and the history on disk is up to date (tests wait for it).
 func (m *Manager) Settled() bool {
 	m.mu.Lock()
-	busy, snaps := m.busy, m.snaps
+	busy, snaps := m.busy || m.beside > 0, m.snaps
 	for _, j := range m.jobs {
 		busy = busy || j.Active()
 	}
@@ -670,14 +671,44 @@ func (m *Manager) Unload() {
 	}
 }
 
-func (m *Manager) work() {
-	for j := range m.queue {
+func (m *Manager) work() { m.loop(m.queue, false) }
+
+// dispatch queues a job, or starts it at once when its backend runs beside the queue (engine.Parallel: an agent
+// that uses no memory here, see internal/agents).
+func (m *Manager) dispatch(j *Job) {
+	if !m.Beside(j) {
+		m.queue <- j
+		return
+	}
+	one := make(chan *Job, 1)
+	one <- j
+	close(one)
+	go m.loop(one, true)
+}
+
+// Beside says the job runs beside the queue, not in it.
+func (m *Manager) Beside(j *Job) bool {
+	md := m.Catalog.Find(j.Model)
+	if md == nil {
+		return false
+	}
+	p, ok := m.Backends[md.Backend].(engine.Parallel)
+	return ok && p.Parallel()
+}
+
+// loop runs the jobs of a queue one after another: the queue's, or one job beside it.
+func (m *Manager) loop(queue <-chan *Job, beside bool) {
+	for j := range queue {
 		m.mu.Lock()
 		if j.State != Queued {
 			m.mu.Unlock()
 			continue
 		}
-		m.busy = true
+		if beside {
+			m.beside++
+		} else {
+			m.busy = true
+		}
 		ctx, cancel := context.WithCancel(context.Background())
 		j.cancel = cancel
 		gate := agent.NewGate()
@@ -736,7 +767,11 @@ func (m *Manager) work() {
 		// history would run again at the next start
 		m.save()
 		m.mu.Lock()
-		m.busy = false
+		if beside {
+			m.beside--
+		} else {
+			m.busy = false
+		}
 		m.mu.Unlock()
 		m.publish(Update{JobID: j.ID, Job: snap})
 		if coverOf != nil {
