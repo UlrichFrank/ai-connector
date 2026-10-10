@@ -381,3 +381,28 @@ func TestOpenTTY(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A conversation Claude Code does not have (resume.json from before the worker's own config folder) is not an error:
+// Claude Code answers the --resume with an error result, and the turn runs again in a new, fresh process.
+func TestResumeGoneStartsAnew(t *testing.T) {
+	m, log := fakeManager(t)
+	m.Env = append(m.Env, "AGENTS_FAKE_RESUME_GONE=gone-1")
+	if err := os.MkdirAll(m.Root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeJSONFile(filepath.Join(m.Root, "resume.json"), map[string]string{sessionID("", "k"): "gone-1"}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := m.Turn(context.Background(), Options{Key: "k", Opening: "history + one"}, "one", nil)
+	if err != nil {
+		t.Fatalf("turn: %v (starts %v)", err, starts(t, log))
+	}
+	// started anew: it got the opening (the history), as a conversation that is new here
+	if res.Text != "echo: history + one" {
+		t.Fatalf("text %q", res.Text)
+	}
+	st := starts(t, log)
+	if len(st) != 2 || !strings.Contains(st[0], "resume=gone-1") || strings.Contains(st[1], "resume=gone-1") {
+		t.Fatalf("starts %v (want a failed resume, then a fresh start)", st)
+	}
+}

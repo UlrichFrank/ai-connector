@@ -519,7 +519,9 @@ func (m *Manager) Turn(ctx context.Context, o Options, text string, emit func(Ev
 	}
 	res, err := s.run(ctx, o, s.input(o, text), emit)
 	if errors.Is(err, errEndedEarly) && m.forget(s.id) {
-		// Claude Code could not resume the conversation (its files are gone): it starts anew
+		// Claude Code could not resume the conversation (its files are gone): it starts anew — in a new process, not
+		// the one that just failed (it may still be ending, and open would hand it out again)
+		m.remove(s, false)
 		o.Fresh = false
 		if s, err = m.open(o, ""); err != nil {
 			return Result{}, err

@@ -112,6 +112,14 @@ func fakeClaude(args []string) int {
 		v["session_id"] = sid
 		out.Encode(v)
 	}
+	// AGENTS_FAKE_RESUME_GONE=<id>: a --resume of that conversation is answered like Claude Code does when it is not
+	// in its config folder — an error result for the first turn, then the process ends
+	if gone := os.Getenv("AGENTS_FAKE_RESUME_GONE"); gone != "" && opt["--resume"] == gone {
+		<-lines
+		send(map[string]any{"type": "result", "subtype": "error_during_execution", "is_error": true,
+			"errors": []any{"No conversation found with session ID: " + gone}})
+		return 1
+	}
 	delta := func(s string) {
 		send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "content_block_delta", "index": 0,
 			"delta": map[string]any{"type": "text_delta", "text": s}}})

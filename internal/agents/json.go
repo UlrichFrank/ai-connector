@@ -26,6 +26,12 @@ var interruptWait = 10 * time.Second
 // errEndedEarly: the process ended before it said anything (a --resume of a conversation that is gone).
 var errEndedEarly = errors.New("claude ended before it answered")
 
+// resumeGone: Claude Code's answer to a --resume of a conversation it does not have (its files are gone, or they are
+// in another config folder — sessions from before the worker's own folder) — an error result, not an early exit.
+func resumeGone(msg string) bool {
+	return strings.Contains(msg, "No conversation found with session ID")
+}
+
 type jsonDriver struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
@@ -161,7 +167,11 @@ func (d *jsonDriver) turnContent(ctx context.Context, content any, emit func(Eve
 					return res, ctx.Err()
 				}
 				if isErr, _ := ev["is_error"].(bool); isErr {
-					return res, fmt.Errorf("claude: %s", resultError(ev))
+					msg := resultError(ev)
+					if resumeGone(msg) { // the conversation is not in this config folder (any more): start anew
+						return res, fmt.Errorf("%w: %s", errEndedEarly, shorten(msg, 600))
+					}
+					return res, fmt.Errorf("claude: %s", msg)
 				}
 				return res, nil
 			}
