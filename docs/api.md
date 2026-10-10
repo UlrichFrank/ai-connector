@@ -150,6 +150,12 @@ a bad body 400 `{"error":"request"}` (at most 4096 texts or states per call). Th
 the texts are the caller's.
 The server picks a worker that lists the model, preferring one that has it loaded.
 
+Nor do they wait behind embed or classify **jobs** of the same models (`engine.TextBackend`, one loaded copy of each
+model): the embedder and the classifier have a lock each (an embedding never waits for a classification), jobs hand
+their texts to the model 128 at a time and let go of it in between, and a direct call waiting for the model goes
+before the job's next part — it waits at most for the part that runs (tested in `internal/engine/textmodels_test.go`).
+The chat guard's classifications (`Choose`) count as direct calls.
+
 ## Connectors (phase 4; device sign-in required)
 
 Outbound connections the server makes to applications that expect a local AI to dial in. Kind `vboard`: the server
