@@ -656,3 +656,107 @@ vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local
   the worker at most every 2 s; the last line is repeated as the keep-alive) —, its text as `text` deltas; then
   `chatDone {content, toolCalls: []}`. `chatCancel` cancels the job, which interrupts the turn; the session stays for
   the next one. The connector agent's `effort` (if set) is the job's `effort` (`--effort`).
+
+### vboard: generating images and videos on the board (planned, contract)
+
+Not built yet; the contract both sides build against. A chat in vboard — the local chat model, Claude Code through
+vboard's MCP, or any MCP client of the person — asks for an image or a video; vboard puts a **placeholder** on the
+board at once and asks its bridge client (this connector, with a server or standalone) to **generate** it; the
+progress fills the placeholder, the file replaces it. Additive like everything before: a vboard that does not know
+`generators` ignores them, and vboard offers the tools only while its bridge advertises a generator.
+
+**Who does what.** vboard owns the tools, the placeholder and the board; the connector owns the models, the queue and
+the files. The generation is **not** part of a chat turn: the tool returns as soon as the placeholder is on the board
+(a video takes minutes; a turn must not wait for it), and the `generate` request lives on its own until it is done,
+failed or canceled. The chat may look at it later (vboard's side, below).
+
+**1. The connector advertises its generators** — `hello` (every connection, so also after a handover) carries
+
+```json
+"generators": [
+  {"id": "flux2-klein-4b", "name": "FLUX.2 [klein] 4B", "kind": "image", "worker": "Mac Studio",
+   "edit": true, "multiple": 16, "default": {"width": 1024, "height": 1024}, "max": 2048},
+  {"id": "ltx-2.5-distilled-q4", "name": "LTX-2.5 (distilled)", "kind": "video", "worker": "Mac Studio",
+   "firstFrame": true, "audio": true, "multiple": 64, "default": {"width": 704, "height": 448, "fps": 24, "seconds": 4},
+   "max": 1280, "maxSeconds": 10, "nonCommercial": false}
+]
+```
+
+* `id`: the catalogue id (as for chat models, cut to 80 characters); `name`, `worker` as for agents. `kind`:
+  `image` | `video`. The first of each kind is the default.
+* `edit` (image): takes reference images (edits, "make this sketch a photo"); a model that only edits has
+  `"textToImage": false` and needs at least one. `firstFrame` (video): may start from an image. `audio` (video): the
+  video has a soundtrack unless the request says `"audio": false`.
+* `multiple`: width and height are rounded down to it (16 for images, 64 for LTX); `max`: the longest side;
+  `default`: what an empty request gets; `maxSeconds` (video).
+* `nonCommercial: true`: the weights' licence forbids commercial use (vboard may show it or leave the model out).
+* Which ones: the connector's setting `generators` (console → Connectors, `--generators` for `ai-connector vboard`),
+  ids in order; **default: none** (opt-in — a video holds a Mac for minutes). Offered only while a connected worker has
+  the model on disk (`here`): nothing is downloaded for a board. Image and video models are **shared** like Qwen (any
+  worker of the fleet, not only the owner's).
+* `{"type":"generators","generators":[…]}` replaces the list on the open connection when only it changes (a worker
+  comes or goes, an edit), like `{"type":"agents"}`.
+
+**2. vboard asks** (request ids as for the other requests; any number may run at once — they queue on the workers)
+
+```json
+{"type": "generate", "id": "g_17", "generator": "flux2-klein-4b",
+ "prompt": "a watercolour of a lighthouse at dusk", "width": 1024, "height": 576,
+ "seed": 0, "steps": 0, "seconds": 0, "fps": 0, "audio": true,
+ "images": [{"id": "image-1", "mime": "image/png", "data": "<base64>"}],
+ "context": {"boardId": "b_…", "userId": "u_…", "userName": "Philipp", "placeholderId": "i_…"}}
+```
+
+* `generator` absent → the default of the kind given as `"kind"` (`image` when neither is there). An id not offered
+  now → `error` "… is not available now".
+* `prompt` required (at most 4000 characters). `width`/`height`: 0 → the default; otherwise rounded down to
+  `multiple`, the longer side cut to `max` keeping the aspect ratio. `seed` 0 = random, `steps` 0 = the model's.
+* video: `seconds` (0 → the default, at most `maxSeconds`) and `fps` (0 → the default) become the frame count
+  (rounded down to 8k+1 for LTX); `audio: false` → no soundtrack.
+* `images`: image: the references (`edit`); video: the first frame (`firstFrame`). png/jpeg/webp, at most 8 MB each,
+  at most 4; vboard sends the asset's bytes (the person picked board items as references). Images to a generator
+  without `edit`/`firstFrame` → `error`.
+* `context`: who and where, for the job's name and logs (`client` "vboard: <connector name>", the job's name the
+  prompt's start); the connector does not act on the board.
+
+**3. The connector answers**
+
+* `{"type":"generateStatus","id","state","worker"?,"position"?,"step"?,"total"?,"eta"?,"width","height","frames"?,"fps"?}`
+  * `state`: `queued` (`position`: jobs before it on that worker) → `loading` (the model is read; first use after
+    a while: tens of seconds) → `running` (`step`/`total` from the job, `eta` seconds when the worker can tell).
+  * `width`/`height`(/`frames`, `fps`): **what will actually be made**, after rounding — in the first status, which is
+    sent at once when the job is placed; vboard fits the placeholder to it.
+  * At most one a second; one at least every 60 s as keep-alive (the last one again), so vboard's 3-minute idle rule
+    never fires for a long render.
+* The file in pieces (an answer must stay under vboard's 8 MB): `{"type":"generateFile","id","mime","size","seq",
+  "data","last"}` — `mime` `image/png` | `video/mp4`, `size` the whole file's bytes, `seq` 0, 1, … in order, `data`
+  base64 of at most 1 MiB, `last: true` on the final piece. At most 200 MB a file (more → `error`).
+* `{"type":"generateDone","id","width","height","seconds"?,"seed","generator","took"}` after the last piece
+  (`seconds`: a video's length, `took`: seconds the job ran). vboard turns the placeholder into the item now.
+* Failures → `{"type":"error","id","message"}` as everywhere (also when the worker goes away mid-job: the job is
+  not moved to another worker; vboard offers Retry).
+* `{"type":"generateCancel","id"}` (the person deleted the placeholder, or pressed Cancel) cancels the job — queued or
+  running; nothing more is sent for it.
+* A handover (6 above) keeps running generations on the old connection until they are done, as for chats. A lost
+  connection loses them: vboard marks their placeholders failed (Retry).
+
+**Memory (connector side).** On one Mac the chat model and a generator may not fit together (Qwen 35B ≈ 20 GB, FLUX.2
+klein 4B ≈ 16 GB, LTX more). The worker's queue already runs one large job at a time; before an image or video job it
+unloads a loaded chat model when the two would not fit (the next chat loads it again, a few seconds from disk). With a
+server the job goes to the worker that has the model and is least busy, so a second Mac keeps the chat warm.
+
+**vboard's side (for reference; vboard decides the details)**
+
+* Tools in the board chat (the lazy tool set) **and** in vboard's MCP: `generate_image {prompt, near?|x?,y?, width?,
+  height?|aspect?, references?: [item ids], generator?}` and `generate_video {…, seconds?, firstFrame?: item id,
+  audio?}`. They need edit rights, create the placeholder and send `generate`; they return
+  `{"placeholderId","width","height","state":"queued"}` at once. `get_generation {placeholderId}` tells the state
+  (or the new item's id when done), so a chat can wait for it or build on the result later. The tool description
+  says the generation is asynchronous and takes seconds (image) to minutes (video).
+* The placeholder is a board item (saved, live for everyone on the board): the final size (from the request,
+  corrected by the first `generateStatus`), an animation, the prompt, the state ("Waiting for Mac Studio (2 ahead)",
+  "Loading FLUX.2 [klein]", "Step 3 of 8 · ~40 s"), Cancel. Done → it becomes the image or video item in the same
+  place and size (the file stored as a board asset); failed → the message with Retry and Delete.
+* Which bridge: the one that serves the board (a board token's connection, else the person's), as for chat. An
+  MCP client of the person (their own Claude Code with vboard's MCP) uses the same — so it works directly or through
+  a server, with any chat.
