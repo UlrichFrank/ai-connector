@@ -166,8 +166,11 @@ A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"cl
 * `board`: optional; with it the AI serves everyone on that board (the token needs "Can edit" there; a board token is
   bound to its board anyway).
 * `models`: catalogue ids or names as in `/v1/*` (`""` = the server's default: `MLXLAB_CLASSIFY_MODEL`,
-  `MLXLAB_EMBED_MODEL`, and for chat the first chat model a connected worker lists). PATCH replaces the fields given.
-* `enabled`: default true. `owner`: the `user` of the device that made it (for routing by person later).
+  `MLXLAB_EMBED_MODEL`, and for chat the first chat model a connected worker lists that is not Claude Code — a
+  `claude-code/*` model is used only when chosen). PATCH replaces the fields given.
+* `enabled`: default true. `owner`: the `user` of the device that made it: a `claude-code/*` chat model of the
+  connector runs on that person's workers with their subscription, and its jobs carry `owner` ("Agents (Claude
+  Code)", Ownership).
 * `state`: `connecting` (with `error` saying why it waits or retries: no worker offers a model, a lost connection
   "… (retrying in 4s)"), `connected` (`since`: RFC 3339, `user`: who the token belongs to, from vboard's
   `/api/v1/me` and `welcome`), `error` (`error`: why; it stays stopped until the connector is edited — any PATCH
@@ -369,6 +372,10 @@ Claude Code runs with the subscription logged in on the worker, so it runs only 
   an owner → 403. `GET /v1/models` lists the `claude-code/*` models like any chat model (with the workers that
   offer them, whoever owns them). A request's `tools` are not passed on to Claude Code: it has its own tools and
   answers in text.
+* A **connector**'s chats are for its `owner` (the user of the device that made it): with a `claude-code/*` chat
+  model they run only on that person's workers and carry `owner`; otherwise vboard gets the error (e.g. "Carol has
+  no worker with Claude Code: …"). The placement is shared with `/v1/chat/completions` (`placeChat` in
+  `internal/hub/openai.go`).
 
 ### Endpoints
 

@@ -62,6 +62,14 @@ func userOf(r *http.Request) string {
 	return deviceOf(r).User
 }
 
+// viaOf says how a request came: a client token or a device.
+func viaOf(r *http.Request) string {
+	if _, ok := clientOf(r); ok {
+		return viaClient
+	}
+	return viaDevice
+}
+
 // claudeRefusal is why a claude-code job has no worker: an HTTP status, an error name ("forbidden", "no-worker",
 // "offline") and a message for the person.
 type claudeRefusal struct {
@@ -69,13 +77,23 @@ type claudeRefusal struct {
 	name, message string
 }
 
-// claudeNode picks the worker for a claude-code job of a person (me): one of their connected workers that offers
-// Claude Code (pin: that one). A nil node comes with the refusal.
-func (s *Server) claudeNode(me string, nodes []*node, pin string, client bool) (*node, *claudeRefusal) {
+// Who a job is for, when the person is not a signed-in device (claudeNode's refusals say so).
+const (
+	viaDevice    = ""
+	viaClient    = "client"
+	viaConnector = "connector"
+)
+
+// claudeNode picks the worker for a claude-code job of a person (me, who came through via): one of their connected
+// workers that offers Claude Code (pin: that one). A nil node comes with the refusal.
+func (s *Server) claudeNode(me string, nodes []*node, pin, via string) (*node, *claudeRefusal) {
 	if me == "" {
 		msg := "Claude Code runs on your own worker: sign in with your user name"
-		if client {
+		switch via {
+		case viaClient:
 			msg = "Claude Code runs on the worker of the client token's owner, and this token has none: make a new one in the console"
+		case viaConnector:
+			msg = "Claude Code runs on the worker of the connector's owner, and this connector has none: add it again in the console"
 		}
 		return nil, &claudeRefusal{http.StatusForbidden, "forbidden", msg}
 	}
@@ -122,8 +140,7 @@ func (s *Server) claudeNode(me string, nodes []*node, pin string, client bool) (
 
 // claudeWorker is claudeNode for the person of the request, writing the refusal (nil node) as the mlxlab API does.
 func (s *Server) claudeWorker(w http.ResponseWriter, r *http.Request, nodes []*node, pin string) *node {
-	_, client := clientOf(r)
-	n, no := s.claudeNode(userOf(r), nodes, pin, client)
+	n, no := s.claudeNode(userOf(r), nodes, pin, viaOf(r))
 	if no != nil {
 		writeJSON(w, no.status, map[string]string{"error": no.name, "message": no.message})
 	}

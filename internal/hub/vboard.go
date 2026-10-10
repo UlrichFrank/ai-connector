@@ -75,7 +75,8 @@ func (c bridgeCaps) String() string {
 }
 
 // connectorCaps resolves a connector's models against what the connected workers list now: the chosen model or the
-// server's default (MLXLAB_CLASSIFY_MODEL, MLXLAB_EMBED_MODEL; chat: the first chat model a worker lists).
+// server's default (MLXLAB_CLASSIFY_MODEL, MLXLAB_EMBED_MODEL; chat: the first chat model a worker lists that is not
+// Claude Code).
 func (s *Server) connectorCaps(ctx context.Context, want ConnectorModels) bridgeCaps {
 	routed, _ := s.fleet.pick(ctx)
 	models := fleetModels(routed)
@@ -96,7 +97,8 @@ func (s *Server) connectorCaps(ctx context.Context, want ConnectorModels) bridge
 		c.chat = find(want.Chat, "chat")
 	} else {
 		for _, m := range models {
-			if m.Kind == "chat" {
+			// not Claude Code: it uses its owner's subscription, so a connector uses it only when chosen
+			if m.Kind == "chat" && m.Backend != "claude-code" && !strings.HasPrefix(m.ID, claudePrefix) {
 				c.chat = m.ID
 				break
 			}
@@ -879,16 +881,17 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		fail(err.Error())
 		return
 	}
-	n, model, e := r.s.place(ctx, c.caps.chat, "chat")
+	// a claude-code model runs on the connector's owner's worker, with them as the job's owner (placeChat)
+	run, e := r.s.placeChat(ctx, c.caps.chat, chatFor{r.conf.Owner, viaConnector})
 	if e != nil {
 		fail(e.message)
 		return
 	}
-	job["model"] = model.ID
+	n := run.n
+	job["model"] = run.model
 	job["client"] = "vboard: " + r.conf.Name
 	events, unsubscribe := r.s.fleet.subscribe() // before the job exists: none of its events is missed
 	defer unsubscribe()
-	run := &chatRun{s: r.s, n: n, model: model.ID, since: time.Now().Unix()}
 	var content strings.Builder
 	thinking, said, status := false, false, ""
 	sp := &thinkSplit{emit: func(thought bool, s string) {
@@ -917,7 +920,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 					send(map[string]any{"type": "chatDelta", "thinking": true})
 				}
 			default:
-				st := "Running on " + n.name + " (" + model.ID + ")"
+				st := "Running on " + n.name + " (" + run.model + ")"
 				if state == "queued" {
 					st = "Waiting for " + n.name + " (queued)"
 				}

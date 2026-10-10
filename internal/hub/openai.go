@@ -259,6 +259,7 @@ type chatRun struct {
 	n     *node
 	id    string // the job's id (with the worker's route)
 	model string
+	owner string // whose job it is: set on a claude-code model's job (run), "" for the others
 	since int64
 }
 
@@ -326,6 +327,10 @@ type chatHooks struct {
 // ctx ends first, the job is canceled (the error returned is then ctx's). events must be subscribed before the call,
 // so that none of the job's events is missed. Shared by /v1/chat/completions and the connectors (vboard.go).
 func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]any, h chatHooks) (*chatJob, *apiError) {
+	delete(job, "owner") // the server says whose a job is (placeChat)
+	if c.owner != "" {
+		job["owner"] = c.owner
+	}
 	id, e := c.s.startChat(ctx, c.n, job)
 	if e != nil {
 		return nil, e
@@ -421,30 +426,35 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 	}
 }
 
-// placeChat picks the worker for a chat model. A claude-code model goes the way POST /api/jobs sends it
-// (agents.go): only to a worker of the person the request acts for (the client token's owner, or the signed-in
-// device's user), who is then the job's owner.
-func (s *Server) placeChat(r *http.Request, name string) (*node, catalogModel, string, *apiError) {
-	routed, _ := s.fleet.pick(r.Context())
+// chatFor is the person a chat is for (a device's user, a client token's or a connector's owner) and how they came
+// (viaDevice, viaClient, viaConnector).
+type chatFor struct{ user, via string }
+
+// placeChat picks the worker for a chat model and makes the run that submits and follows its job; shared by
+// /v1/chat/completions and the connectors. A claude-code model goes the way POST /api/jobs sends it (agents.go):
+// only to a worker of the person it is for, who is then the job's owner (run sets it).
+func (s *Server) placeChat(ctx context.Context, name string, who chatFor) (*chatRun, *apiError) {
+	routed, _ := s.fleet.pick(ctx)
 	if !isClaude(routed, name) {
-		n, m, e := s.place(r.Context(), name, "chat")
-		return n, m, "", e
+		n, m, e := s.place(ctx, name, "chat")
+		if e != nil {
+			return nil, e
+		}
+		return &chatRun{s: s, n: n, model: m.ID, since: time.Now().Unix()}, nil
 	}
-	m := catalogModel{ID: strings.ToLower(strings.TrimSpace(name)), Kind: "chat", Backend: "claude-code"}
+	model := strings.ToLower(strings.TrimSpace(name))
 	if fm, ok := findModel(fleetModels(routed), name); ok {
-		m = fm.catalogModel
+		model = fm.ID
 	}
-	me := userOf(r)
-	_, client := clientOf(r)
-	n, no := s.claudeNode(me, routed, "", client)
+	n, no := s.claudeNode(who.user, routed, "", who.via)
 	if no != nil {
 		code := strings.ReplaceAll(no.name, "-", "_") // no-worker → no_worker, as the other refusals here
 		if no.name == "offline" {
 			code = "no_worker"
 		}
-		return nil, m, "", &apiError{no.status, code, no.message}
+		return nil, &apiError{no.status, code, no.message}
 	}
-	return n, m, me, nil
+	return &chatRun{s: s, n: n, model: model, owner: who.user, since: time.Now().Unix()}, nil
 }
 
 // v1Chat: POST /v1/chat/completions.
@@ -462,21 +472,17 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		e.openAI(w)
 		return
 	}
-	n, m, owner, e := s.placeChat(r, req.Model)
+	run, e := s.placeChat(r.Context(), req.Model, chatFor{userOf(r), viaOf(r)})
 	if e != nil {
 		e.openAI(w)
 		return
 	}
-	job, _ := req.job(m.ID)
+	job, _ := req.job(run.model)
 	if c, ok := clientOf(r); ok {
 		job["client"] = c.Name
 	}
-	if owner != "" {
-		job["owner"] = owner
-	}
 	events, stop := s.fleet.subscribe() // before the job exists: none of its events is missed
 	defer stop()
-	run := &chatRun{s: s, n: n, model: m.ID, since: time.Now().Unix()}
 	if req.Stream {
 		run.stream(w, r, events, job, req.maxTokens())
 		return

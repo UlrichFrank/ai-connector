@@ -504,7 +504,7 @@ func startVboardMac(t *testing.T, base, token string, kinds ...string) *vbMac {
 	dir := t.TempDir()
 	m.mgr = jobs.New(cat, []engine.Backend{m.chat, m.text}, dir)
 	api := (&web.Server{Jobs: m.mgr, Prompts: prompts.Open(dir), Version: "test"}).Handler()
-	stop, _ := connectWorkerWith(t, base, token, api)
+	stop, _ := connectWorkerWith(t, base, token, withRAM(api, 64))
 	m.stop = func() {
 		stop()
 		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline) && !m.mgr.Settled(); time.Sleep(5 * time.Millisecond) {
@@ -994,12 +994,12 @@ func TestConnectorAPI(t *testing.T) {
 	startVboardMac(t, base, wtok, "embed")
 
 	for _, x := range []struct{ body, field string }{
-		{`{"url":"ftp://x","token":"vbp_x"}`, "url"},
-		{`{"url":"","token":"vbp_x"}`, "url"},
+		{`{"url":"ftp://x","token":"vbp_secret"}`, "url"},
+		{`{"url":"","token":"vbp_secret"}`, "url"},
 		{`{"url":"https://v.example","token":""}`, "token"},
 		{`{"url":"https://v.example","token":"vbp_ x"}`, "token"},
-		{`{"kind":"slack","url":"https://v.example","token":"vbp_x"}`, "kind"},
-		{`{"url":"https://v.example","token":"vbp_x","board":"a/b"}`, "board"},
+		{`{"kind":"slack","url":"https://v.example","token":"vbp_secret"}`, "kind"},
+		{`{"url":"https://v.example","token":"vbp_secret","board":"a/b"}`, "board"},
 	} {
 		c, b := post(t, base+"/api/connectors", device, x.body)
 		var e map[string]string
@@ -1009,7 +1009,7 @@ func TestConnectorAPI(t *testing.T) {
 		}
 	}
 	for _, tok := range []string{"", client} { // signed in devices only
-		if c, _ := post(t, base+"/api/connectors", tok, `{"url":"https://v.example","token":"vbp_x"}`); c != 401 {
+		if c, _ := post(t, base+"/api/connectors", tok, `{"url":"https://v.example","token":"vbp_secret"}`); c != 401 {
 			t.Fatalf("token %q: %d", tok, c)
 		}
 		if r := do(t, "GET", base+"/api/connectors", tok, nil); r.StatusCode != 401 {
@@ -1155,4 +1155,76 @@ func patchConnector(t *testing.T, base, device, id, body string) (int, map[strin
 func fmtJSON(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
+}
+
+// A connector chats with Claude Code only when chosen, and then on its owner's worker, with them as the job's owner.
+func TestVboardClaudeOwner(t *testing.T) {
+	fastBridges(t)
+	s, srv := newHub(t, t.TempDir())
+	t.Cleanup(s.Close)
+	base := srv.URL
+	alice := signInAs(t, base, "Alice's laptop", "Alice")
+	bob := signInAs(t, base, "Bob's phone", "Bob")
+	carol := signInAs(t, base, "Carol's phone", "Carol")
+	aliceID, aliceTok := enroll(t, base, alice, "Alice's Mac")
+	bobID, bobTok := enroll(t, base, bob, "Bob's Mac")
+	_, qwenTok := enroll(t, base, bob, "Bob's PC")
+	aliceChat, _ := startClaudeChatMac(t, base, aliceTok)
+	bobChat, _ := startClaudeChatMac(t, base, bobTok)
+	startVboardMac(t, base, qwenTok, "chat")
+	waitFor(t, "the workers known", func() bool {
+		ws := workerItems(t, base, alice)
+		return ws[aliceID].Specs != nil && ws[bobID].Specs != nil
+	})
+
+	// the default chat model is never Claude Code (it would spend someone's subscription unasked)
+	v := newFakeVboard(t, stageHead)
+	addConnector(t, base, bob, `{"name":"Default","url":"`+v.srv.URL+`","token":"vbp_secret"}`)
+	if b := v.next(t); b.hello.Chat != "qwen3.6-35b-a3b" {
+		t.Fatalf("default chat %q", b.hello.Chat)
+	}
+
+	// alice's connector with Claude Code: her worker, her job
+	v = newFakeVboard(t, stageHead)
+	c := addConnector(t, base, alice, `{"name":"Alice AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
+	if c.Owner != "Alice" {
+		t.Fatalf("owner %q", c.Owner)
+	}
+	b := v.next(t)
+	if b.hello.Chat != "claude-code/sonnet" {
+		t.Fatalf("hello %+v", b.hello)
+	}
+	for i := 0; i < 3; i++ {
+		_, ch := b.chat(`[{"role":"user","content":"hi"}]`, "")
+		evs := until(t, ch)
+		if last := evs[len(evs)-1]; last.Type != "done" || last.Content != "Hello!" {
+			t.Fatalf("chat %d: %+v", i, evs)
+		}
+		if got := aliceChat.last(); got.Owner != "Alice" || got.Client != "vboard: Alice AI" {
+			t.Fatalf("chat %d job: owner %q client %q", i, got.Owner, got.Client)
+		}
+	}
+	bobChat.mu.Lock()
+	if len(bobChat.got) != 0 {
+		t.Fatalf("bob's worker ran %d of alice's connector's chats", len(bobChat.got))
+	}
+	bobChat.mu.Unlock()
+
+	// carol has no worker: the chat is an error that says so
+	v = newFakeVboard(t, stageHead)
+	addConnector(t, base, carol, `{"name":"Carol AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
+	b = v.next(t)
+	_, ch := b.chat(`[{"role":"user","content":"hi"}]`, "")
+	if evs := until(t, ch); evs[len(evs)-1].Type != "error" || !strings.Contains(evs[len(evs)-1].Error, "Carol has no worker") {
+		t.Fatalf("carol: %+v", evs)
+	}
+
+	// a plain chat model of a connector carries no owner
+	v = newFakeVboard(t, stageHead)
+	addConnector(t, base, alice, `{"name":"Qwen AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"qwen3.6-35b-a3b"}}`)
+	b = v.next(t)
+	_, ch = b.chat(`[{"role":"user","content":"hi"}]`, "")
+	if evs := until(t, ch); evs[len(evs)-1].Type != "done" {
+		t.Fatalf("qwen: %+v", evs)
+	}
 }
