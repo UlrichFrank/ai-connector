@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { addAgent, agentKind, createBody, defaultName, emptyForm, formOf, maxAgents, moveAgent, patchBody, removeAgent, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
+import { addAgent, agentKind, createBody, defaultName, efforts, emptyForm, formOf, maxAgents, moveAgent, patchBody, removeAgent, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
 import { useLive } from "@/store/live";
 
 /** How often the list is read when the event stream is not there. */
@@ -330,6 +330,24 @@ function AgentsEditor({ value, onChange, models, error }: { value: AgentRow[]; o
                   aria-label={`Name of ${a.model}`}
                   onChange={(e) => onChange(value.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))}
                 />
+                {agentKind(a.model) === "agent" && (
+                  <Select
+                    value={a.effort || "default"}
+                    onValueChange={(e) => onChange(value.map((x, k) => (k === i ? { ...x, effort: e === "default" ? "" : e } : x)))}
+                  >
+                    <SelectTrigger className="mt-1 h-7 w-44 text-xs" aria-label={`Effort of ${a.model}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Effort: the worker's default</SelectItem>
+                      {efforts.map((e) => (
+                        <SelectItem key={e} value={e}>
+                          Effort: {e}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <Button type="button" variant="ghost" size="icon-sm" aria-label="Move up" disabled={i === 0} onClick={() => onChange(moveAgent(value, i, -1))}>
                 <ArrowUp />

@@ -19,6 +19,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -39,7 +40,28 @@ type Config struct {
 	// Folders are the absolute folders (and everything inside them) a person's own tty session may work in
 	// (POST /api/agents/sessions "cwd"), besides the agents folder.
 	Folders []string `json:"folders,omitempty"`
+	// Effort is Claude Code's effort level (--effort: low, medium, high, xhigh, max) for a session whose job names
+	// none ("": Claude Code's own default).
+	Effort string `json:"effort,omitempty"`
+	// ClaudeConfig is where json sessions keep Claude Code's own files (transcripts, and the large tool results
+	// it saves for the model to read): "worker" (the default) is a config folder of the agents' own,
+	// <agents>/.claude-home, which uses the login of the user's Claude Code; "user" is the user's own (~/.claude),
+	// which sessions may not read, so a saved tool result is out of the model's reach (guard.go; docs/api.md,
+	// "Claude Code's own files").
+	ClaudeConfig string `json:"claudeConfig,omitempty"`
 }
+
+// ClaudeConfig values.
+const (
+	ClaudeConfigWorker = "worker"
+	ClaudeConfigUser   = "user"
+)
+
+// Efforts are the effort levels Claude Code accepts (claude --help, 2.1.288: --effort <level>).
+var Efforts = []string{"low", "medium", "high", "xhigh", "max"}
+
+// ValidEffort: "" (the default) or one of Efforts.
+func ValidEffort(e string) bool { return e == "" || slices.Contains(Efforts, e) }
 
 // DefaultAllowedTools: reading and searching the session's own folder, and the web; nothing that changes files or
 // runs commands. Rules with a path ("./**") are relative to the session's folder.
@@ -79,6 +101,12 @@ func (c Config) withDefaults() Config {
 	}
 	if c.MaxSessions <= 0 {
 		c.MaxSessions = DefaultMaxSessions
+	}
+	if !ValidEffort(c.Effort) {
+		c.Effort = ""
+	}
+	if c.ClaudeConfig != ClaudeConfigUser {
+		c.ClaudeConfig = ClaudeConfigWorker
 	}
 	if c.AutoTrust == nil {
 		yes := true

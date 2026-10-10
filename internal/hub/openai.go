@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 )
@@ -186,6 +187,10 @@ func (c *chatRequest) job(model string) (map[string]any, *apiError) {
 		msgs[i] = out
 	}
 	job := map[string]any{"model": model, "messages": msgs, "think": c.thinking()}
+	if e := strings.ToLower(strings.TrimSpace(c.ReasoningEffort)); strings.HasPrefix(strings.ToLower(model), claudePrefix) &&
+		slices.Contains(claudeEfforts, e) {
+		job["effort"] = e // Claude Code's --effort
+	}
 	if string(bytes.TrimSpace(c.ToolChoice)) != `"none"` {
 		var tools []map[string]any
 		for i, t := range c.Tools {

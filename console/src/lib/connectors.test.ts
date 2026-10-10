@@ -89,6 +89,29 @@ test("agents in the bodies: sent when chosen or changed, [] back to the default"
   assert.deepEqual(patchBody(connector, { ...formOf(connector), agents: addAgent([], "qwen") }), { agents: [{ id: "qwen", model: "qwen", name: "" }] });
 });
 
+test("an agent's effort: kept through an edit, sent for Claude Code agents only", () => {
+  const withEffort: Connector = {
+    ...connector,
+    agents: [
+      { id: "q", model: "qwen", name: "", kind: "model" },
+      { id: "op", model: "claude-code/opus", name: "", kind: "agent", effort: "high" },
+    ],
+  };
+  const f = formOf(withEffort);
+  assert.equal(f.agents[1].effort, "high");
+  assert.deepEqual(patchBody(withEffort, f), {}); // nothing changed: the effort is not lost
+  f.agents[1] = { ...f.agents[1], effort: "max" };
+  f.agents[0] = { ...f.agents[0], effort: "low" }; // a model: not sent
+  assert.deepEqual(patchBody(withEffort, f), {
+    agents: [
+      { id: "q", model: "qwen", name: "" },
+      { id: "op", model: "claude-code/opus", name: "", effort: "max" },
+    ],
+  });
+  f.agents[1] = { ...f.agents[1], effort: "" }; // back to the worker's default
+  assert.deepEqual(patchBody(withEffort, f).agents?.[1], { id: "op", model: "claude-code/opus", name: "" });
+});
+
 test("stateLabel", () => {
   assert.equal(stateLabel("connected").tone, "ok");
   assert.equal(stateLabel("connected", false).text, "disabled");

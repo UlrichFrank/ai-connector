@@ -56,6 +56,7 @@ usage:
   mlxlab list                                 the models and where they are
   mlxlab run [options] <model> <prompt…>      one job; text goes to stdout, files are listed
   mlxlab mcp list | call <server__tool> [json] | serve transit the MCP servers of mcp.json and their tools (docs/chat-tools.md)
+  mlxlab agents login | status [--state DIR]  Claude Code's login as this worker's agent sessions use it (docs/api.md)
 
 worker: the hub URL and the token come from the flags, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or worker.json
         (written when --hub and a token (flag or MLXLAB_WORKER_TOKEN) are given). The token is the hub's MLXLAB_WORKER_TOKEN.
@@ -84,6 +85,8 @@ func run() error {
 		return mcpCommand(args)
 	case cmd == "guard":
 		return guardMain(args)
+	case cmd == "agents":
+		return agentsCommand(args)
 	case cmd == "" && !helpFlag(args):
 		// plain mlxlab (and its flags, like --server) is the TUI
 		return tui.Main(args)

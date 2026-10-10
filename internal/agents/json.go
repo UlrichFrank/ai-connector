@@ -227,6 +227,39 @@ type turnState struct {
 	msgID    string
 	streamed map[string]bool   // a message whose text came as deltas (its whole text is not sent again)
 	tools    map[string]string // tool_use id → name
+	writing  map[int]*writingTool
+}
+
+// writingTool is a tool call whose input the model is writing (streamed as input_json_delta).
+type writingTool struct {
+	name  string
+	bytes int       // the input so far
+	said  time.Time // its last status (or its start)
+}
+
+// writingEvery: a tool call's input being written is reported at most this often ("writing create_items … 8 KB").
+var writingEvery = 2 * time.Second
+
+// toolShort is a tool's name in a status line: an MCP tool's own name (mcp__vboard__create_items → create_items).
+func toolShort(name string) string {
+	if rest, ok := strings.CutPrefix(name, "mcp__"); ok {
+		if _, tool, ok := strings.Cut(rest, "__"); ok && tool != "" {
+			return tool
+		}
+	}
+	return name
+}
+
+// sizeText says a size in bytes, KB or MB.
+func sizeText(n int) string {
+	switch {
+	case n < 1024:
+		return fmt.Sprintf("%d bytes", n)
+	case n < 1<<20:
+		return fmt.Sprintf("%d KB", (n+512)>>10)
+	default:
+		return fmt.Sprintf("%.1f MB", float64(n)/(1<<20))
+	}
 }
 
 func (t *turnState) out(s string) {
@@ -282,6 +315,7 @@ func (t *turnState) handle(ev map[string]any) (Result, bool) {
 		switch str(e, "type") {
 		case "message_start":
 			t.msgID = str(obj(e, "message"), "id")
+			t.writing = nil
 		case "content_block_start":
 			cb := obj(e, "content_block")
 			switch str(cb, "type") {
@@ -289,12 +323,28 @@ func (t *turnState) handle(ev map[string]any) (Result, bool) {
 				t.separate()
 			case "tool_use":
 				t.emit(Event{Type: "status", Text: "using " + str(cb, "name") + " …"})
+				if t.writing == nil {
+					t.writing = map[int]*writingTool{}
+				}
+				t.writing[num(e, "index")] = &writingTool{name: str(cb, "name"), said: time.Now()}
 			}
 		case "content_block_delta":
-			if d := obj(e, "delta"); str(d, "type") == "text_delta" {
+			switch d := obj(e, "delta"); str(d, "type") {
+			case "text_delta":
 				t.streamed[t.msgID] = true
 				t.out(str(d, "text"))
+			case "input_json_delta":
+				// the model writes a tool call's input (a large one takes minutes): its size now and then
+				if w := t.writing[num(e, "index")]; w != nil {
+					w.bytes += len(str(d, "partial_json"))
+					if time.Since(w.said) >= writingEvery {
+						w.said = time.Now()
+						t.emit(Event{Type: "status", Text: "writing " + toolShort(w.name) + " … " + sizeText(w.bytes)})
+					}
+				}
 			}
+		case "content_block_stop":
+			delete(t.writing, num(e, "index"))
 		}
 	case "assistant":
 		msg := obj(ev, "message")

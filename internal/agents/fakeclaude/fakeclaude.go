@@ -32,6 +32,25 @@ func Active() bool { return os.Getenv("AGENTS_FAKE") == "1" }
 func Main(args []string) int { return fakeClaude(args) }
 
 func fakeClaude(args []string) int {
+	loggedOut := os.Getenv("AGENTS_FAKE_LOGGED_OUT") == "1"
+	if len(args) >= 2 && args[0] == "auth" && args[1] == "status" {
+		// `claude auth status --json`; AGENTS_FAKE_AUTH_SILENT: an older claude that cannot say
+		if os.Getenv("AGENTS_FAKE_AUTH_SILENT") == "1" {
+			return 2
+		}
+		if log := os.Getenv("AGENTS_FAKE_AUTH_LOG"); log != "" {
+			b, _ := json.Marshal(claudeEnv())
+			f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+			f.Write(append(b, '\n'))
+			f.Close()
+		}
+		b, _ := json.Marshal(map[string]any{"loggedIn": !loggedOut, "authMethod": map[bool]string{true: "none", false: "claude.ai"}[loggedOut]})
+		fmt.Println(string(b))
+		if loggedOut {
+			return 1
+		}
+		return 0
+	}
 	opt := map[string]string{}
 	print := false
 	for i := 0; i < len(args); i++ {
@@ -62,7 +81,8 @@ func fakeClaude(args []string) int {
 				env[k] = v
 			}
 		}
-		b, _ := json.Marshal(map[string]any{"args": args, "mcpRaw": string(raw), "mcpExpanded": os.ExpandEnv(string(raw)), "env": env})
+		b, _ := json.Marshal(map[string]any{"args": args, "mcpRaw": string(raw), "mcpExpanded": os.ExpandEnv(string(raw)), "env": env,
+			"claudeEnv": claudeEnv()})
 		f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		f.Write(append(b, '\n'))
 		f.Close()
@@ -116,8 +136,33 @@ func fakeClaude(args []string) int {
 		send(map[string]any{"type": "system", "subtype": "status", "status": "requesting"})
 		answer := ""
 		switch {
+		case loggedOut: // Claude Code's answer to a turn without a login
+			send(map[string]any{"type": "result", "subtype": "success", "is_error": true, "result": "Not logged in · Please run /login",
+				"num_turns": 1, "total_cost_usd": cost})
+			continue
 		case strings.Contains(text, "die"):
 			return 3
+		case strings.Contains(text, "bigwrite"): // a large tool input, streamed as input_json_delta (AGENTS_FAKE_DELTA_MS apart)
+			pause := 5 * time.Millisecond
+			if ms, err := time.ParseDuration(os.Getenv("AGENTS_FAKE_DELTA_MS") + "ms"); err == nil {
+				pause = ms
+			}
+			send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "message_start", "message": map[string]any{"id": "mw"}}})
+			send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "content_block_start", "index": 0,
+				"content_block": map[string]any{"type": "tool_use", "id": "toolu_w1", "name": "mcp__vboard__create_items", "input": map[string]any{}}}})
+			piece := `{"type":"sticky","data":{"text":"` + strings.Repeat("x", 990) + `"}},`
+			for i := 0; i < 20; i++ {
+				send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "content_block_delta", "index": 0,
+					"delta": map[string]any{"type": "input_json_delta", "partial_json": piece}}})
+				time.Sleep(pause)
+			}
+			send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "content_block_stop", "index": 0}})
+			send(map[string]any{"type": "assistant", "message": map[string]any{"id": "mw", "role": "assistant", "content": []any{
+				map[string]any{"type": "tool_use", "id": "toolu_w1", "name": "mcp__vboard__create_items", "input": map[string]any{"items": []any{}}}}}})
+			send(map[string]any{"type": "user", "message": map[string]any{"role": "user", "content": []any{
+				map[string]any{"type": "tool_result", "tool_use_id": "toolu_w1", "content": `{"batchId":"bt_2"}`}}}})
+			message("mw2", "Added ", "20 items.")
+			answer = "Added 20 items."
 		case strings.Contains(text, "slow"):
 			send(map[string]any{"type": "stream_event", "event": map[string]any{"type": "message_start", "message": map[string]any{"id": "slow"}}})
 			interrupted := false
@@ -190,6 +235,17 @@ func userText(c any) string {
 		return b.String()
 	}
 	return ""
+}
+
+// claudeEnv are Claude Code's variables for its own files as set (an empty value is set; an unset one is missing).
+func claudeEnv() map[string]string {
+	out := map[string]string{}
+	for _, k := range []string{"CLAUDE_CONFIG_DIR", "CLAUDE_SECURESTORAGE_CONFIG_DIR", "CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS"} {
+		if v, ok := os.LookupEnv(k); ok {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 func mustWd() string {

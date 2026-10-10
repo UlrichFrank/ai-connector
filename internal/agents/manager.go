@@ -62,6 +62,8 @@ type Options struct {
 	// Images go with the turn's text, OpeningImages with the Opening (images.go): each where the text names it
 	// ("[image-1]").
 	Images, OpeningImages []Image
+	// Effort is Claude Code's effort level (--effort: one of Efforts; "" the Config's, else Claude Code's default).
+	Effort string
 }
 
 // Event is what happens during a turn.
@@ -154,6 +156,7 @@ type Manager struct {
 	version   string
 	flags     string // claude --help, to see which options this version has
 	probeErr  error
+	logins    map[string]loginState // `claude auth status` per environment (home.go)
 	reapEvery time.Duration
 }
 
@@ -226,6 +229,7 @@ type Session struct {
 	cwd     string   // where Claude Code works
 	ctl     string   // the session's own settings, MCP config and hook log (not inside cwd)
 	env     []string // added to claude's environment: the MCP secrets (guard.go)
+	home    []string // the part of env for Claude Code's own files (home.go): its login is the same for each
 	created time.Time
 	resumed bool // started with --resume: it continues a conversation
 	start   sync.Once
@@ -317,6 +321,9 @@ func (m *Manager) normalize(o Options) Options {
 	if o.Driver == "" {
 		o.Driver = DriverJSON
 	}
+	if o.Effort == "" {
+		o.Effort = m.Config.Effort
+	}
 	return o
 }
 
@@ -328,6 +335,9 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 	if o.Driver != DriverJSON && o.Driver != DriverTTY {
 		return nil, fmt.Errorf("unknown driver %q (json or tty)", o.Driver)
 	}
+	if !ValidEffort(o.Effort) {
+		return nil, fmt.Errorf("unknown effort %q (%s)", o.Effort, strings.Join(Efforts, ", "))
+	}
 	m.mu.Lock()
 	m.init()
 	if id == "" {
@@ -335,7 +345,8 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 	}
 	var stale *Session
 	if s := m.sessions[id]; s != nil {
-		if !o.Fresh && !s.dead() && s.opts.Model == o.Model && s.opts.Driver == o.Driver && sameMCP(s.opts.MCP, o.MCP) {
+		if !o.Fresh && !s.dead() && s.opts.Model == o.Model && s.opts.Driver == o.Driver && s.opts.Effort == o.Effort &&
+			sameMCP(s.opts.MCP, o.MCP) {
 			s.mu.Lock()
 			s.lastUsed = time.Now()
 			s.mu.Unlock()
@@ -343,7 +354,7 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 			<-s.ready
 			return s, s.err
 		}
-		stale = s // another model, driver or MCP servers: a new process continues the conversation (Fresh: not)
+		stale = s // another model, driver, effort or MCP servers: a new process continues the conversation (Fresh: not)
 		delete(m.sessions, id)
 	}
 	if _, ok := m.resume[id]; ok && o.Fresh {
@@ -435,7 +446,18 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 	if err := writeJSONFile(mcpFile, cfg); err != nil { // no secrets: ${AIC_MCP_…} references (guard.go)
 		return nil, err
 	}
-	s.env = env
+	// Claude Code's own files: a json session's in the agents' config folder, with the user's login (home.go)
+	home := m.homeEnv(s.opts.Driver)
+	if len(home) > 0 {
+		if err := os.MkdirAll(m.ClaudeHome(), 0o700); err != nil {
+			return nil, err
+		}
+		_ = os.Chmod(m.ClaudeHome(), 0o700) // the conversations of every session: the worker's user's only
+	}
+	if err := m.loginError(home); err != nil {
+		return nil, err
+	}
+	s.home, s.env = home, append(append([]string(nil), home...), env...)
 	var args []string
 	if m.has("--restricted") {
 		// Claude Code's own confinement: file tools in the working folder, only the built-in tools named
@@ -452,6 +474,9 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 		"--allowedTools", strings.Join(allowed, ","), "--disallowedTools", strings.Join(m.denyRules(s), ","))
 	if s.opts.System != "" {
 		args = append(args, "--append-system-prompt", s.opts.System)
+	}
+	if s.opts.Effort != "" && m.has("--effort") {
+		args = append(args, "--effort", s.opts.Effort)
 	}
 	if resume != "" {
 		args = append(args, "--resume", resume)
@@ -501,8 +526,11 @@ func (m *Manager) Turn(ctx context.Context, o Options, text string, emit func(Ev
 		}
 		res, err = s.run(ctx, o, s.input(o, text), emit)
 	}
+	err = notLoggedIn(err)
 	if o.Key == "" {
 		m.remove(s, true)
+	} else if errors.Is(err, ErrNotLoggedIn) {
+		m.remove(s, false) // after the login a new process (resuming the conversation) has it
 	}
 	return res, err
 }
@@ -542,6 +570,9 @@ func (s *Session) run(ctx context.Context, o Options, text string, emit func(Eve
 	s.mu.Unlock()
 	res, err := turnWith(ctx, drv, text, turnImages(o, text), emit)
 	res.Session, res.Driver = s.id, s.opts.Driver
+	if err == nil {
+		s.m.loggedIn(s.home) // the next session start need not ask
+	}
 	s.mu.Lock()
 	s.busy, s.lastUsed = false, time.Now()
 	s.turns++

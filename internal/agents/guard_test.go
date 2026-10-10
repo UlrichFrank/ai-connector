@@ -20,6 +20,7 @@ type started struct {
 	MCPRaw      string            `json:"mcpRaw"`
 	MCPExpanded string            `json:"mcpExpanded"`
 	Env         map[string]string `json:"env"`
+	ClaudeEnv   map[string]string `json:"claudeEnv"` // CLAUDE_CONFIG_DIR & co. as set
 }
 
 func (s started) flag(name string) (string, bool) {

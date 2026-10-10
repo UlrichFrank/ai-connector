@@ -1178,6 +1178,9 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	var job map[string]any
 	if asAgent {
 		job, err = agentJob(c.conf, m, r.m.conversations.seen)
+		if e := c.conf.effortOf(a.ID); e != "" && err == nil {
+			job["effort"] = e
+		}
 	} else {
 		job, err = bridgeChatJob(m)
 	}
@@ -1212,6 +1215,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	}}
 	toolsSeen := map[string]bool{}
 	var used []string
+	agentSaid := false // an agent's status line stands (a tool call, or one being written): ticks repeat it
 	hooks := chatHooks{
 		text: sp.write,
 		tick: func(state string) {
@@ -1230,7 +1234,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 				if state == "queued" {
 					st = "Waiting for " + n.name + " (queued)"
 				}
-				if len(used) > 0 { // an agent's tool call says more than "running": kept, repeated only to keep vboard waiting
+				if agentSaid { // an agent's tool call says more than "running": kept, repeated only to keep vboard waiting
 					st = status
 				}
 				if st != status || quiet {
@@ -1241,8 +1245,16 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		},
 	}
 	if asAgent {
-		// the agent's tool calls as status lines ("create_items …"), one per call as it starts
+		// the agent's tool calls as status lines ("create_items …"), one per call as it starts; before that, while
+		// the model writes a large call's input, its size now and then ("writing create_items … 8 KB", at most every
+		// 2 s from the worker)
 		hooks.event = func(typ, text string, data map[string]any) {
+			if typ == "status" && strings.HasPrefix(text, "writing ") {
+				line := trimRunes(text, 120)
+				status, agentSaid = line, true
+				send(map[string]any{"type": "chatDelta", "status": line})
+				return
+			}
 			if typ != "tool" {
 				return
 			}
@@ -1254,7 +1266,7 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 			toolsSeen[tid] = true
 			line := toolStatus(name, data)
 			used = append(used, line)
-			status = line
+			status, agentSaid = line, true
 			send(map[string]any{"type": "chatDelta", "status": line})
 		}
 	}
