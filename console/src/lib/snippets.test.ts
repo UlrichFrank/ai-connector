@@ -28,14 +28,20 @@ test("python: base_url ends in /v1, models filled in", () => {
   assert.ok(p.includes('client.embeddings.create(model="qwen3-embedding-0.6b"'));
 });
 
-test("vboard env: the server for TEI and Laya, /v1 for the cloud AI provider", () => {
+test("vboard env: the server for TEI and Laya, /v1 and the key for the cloud AI; provider and model on its admin page", () => {
   const lines = vboardEnv(input).split("\n");
   assert.ok(lines.includes("EMBED_URL=https://ai.example.com"));
   assert.ok(lines.includes("EMBED_TOKEN=aic_abc"));
   assert.ok(lines.includes("CLASSIFIER_URL=https://ai.example.com"));
   assert.ok(lines.includes("CLASSIFIER_TOKEN=aic_abc"));
-  assert.ok(lines.includes("CLOUD_AI_PROVIDER=openai"));
   assert.ok(lines.includes("CLOUD_AI_BASE_URL=https://ai.example.com/v1"));
+  assert.ok(lines.includes("CLOUD_AI_API_KEY=aic_abc"));
+  // vboard reads only these two CLOUD_AI_* variables: the rest is chosen on its admin page
+  const vars = lines.filter((l) => !l.startsWith("#")).map((l) => l.split("=")[0]);
+  assert.deepEqual(vars.filter((v) => v.startsWith("CLOUD_AI_")), ["CLOUD_AI_BASE_URL", "CLOUD_AI_API_KEY"]);
+  const notes = lines.filter((l) => l.startsWith("#")).join("\n");
+  assert.ok(notes.includes('"Cloud AI"') && notes.includes("OpenAI-compatible") && notes.includes("model ollama/qwen3:8b"));
+  assert.ok(notes.includes("claude-code/") && notes.includes("subscription"));
 });
 
 test("docscanner env", () => {

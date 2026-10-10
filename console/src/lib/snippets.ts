@@ -71,7 +71,11 @@ export function pythonOpenAI(i: SnippetInput): string {
   ].join("\n");
 }
 
-/** vboard's sidecar settings: TEI (/embed), Laya (/v1/systemone) and its cloud AI provider (OpenAI-compatible). */
+/**
+ * vboard: its environment reads the embedder (TEI, /embed), the classifier (Laya, /v1/systemone) and the cloud AI's
+ * endpoint and key (CLOUD_AI_BASE_URL, CLOUD_AI_API_KEY). Provider, model and "enabled" are not environment: an
+ * admin picks them on vboard's admin page "Cloud AI" (the comment lines say what to choose).
+ */
 export function vboardEnv(i: SnippetInput): string {
   const { server, token, chat } = fill(i);
   return [
@@ -79,10 +83,12 @@ export function vboardEnv(i: SnippetInput): string {
     `EMBED_TOKEN=${token}`,
     `CLASSIFIER_URL=${server}`,
     `CLASSIFIER_TOKEN=${token}`,
-    `CLOUD_AI_PROVIDER=openai`,
     `CLOUD_AI_BASE_URL=${server}/v1`,
     `CLOUD_AI_API_KEY=${token}`,
-    `CLOUD_AI_MODEL=${chat}`,
+    `# then on vboard's admin page "Cloud AI": provider "OpenAI-compatible",`,
+    `#   base URL ${server}/v1, model ${chat}, enabled`,
+    `# claude-code/sonnet, claude-code/opus, claude-code/haiku: Claude Code on your own workers,`,
+    `#   with your own Claude subscription (the token's owner's workers)`,
   ].join("\n");
 }
 
@@ -97,7 +103,7 @@ export function snippets(i: SnippetInput): Snippet[] {
     { id: "curl-chat", label: "curl · chat", group: "openai", lang: "shell", hint: "POST /v1/chat/completions (add \"stream\": true for SSE)", text: curlChat(i) },
     { id: "curl-embeddings", label: "curl · embeddings", group: "openai", lang: "shell", hint: "POST /v1/embeddings (L2-normalised vectors)", text: curlEmbeddings(i) },
     { id: "python", label: "Python (openai)", group: "openai", lang: "python", hint: "The OpenAI SDK, pointed at this server", text: pythonOpenAI(i) },
-    { id: "vboard", label: "vboard sidecar", group: "apps", lang: "env", hint: "vboard's environment: embedder, classifier and the cloud AI provider", text: vboardEnv(i) },
+    { id: "vboard", label: "vboard sidecar", group: "apps", lang: "env", hint: "vboard's environment (embedder, classifier, cloud AI endpoint and key); provider and model on its admin page", text: vboardEnv(i) },
     { id: "docscanner", label: "docscanner", group: "apps", lang: "env", hint: "docscanner backend's environment", text: docscannerEnv(i) },
   ];
 }
