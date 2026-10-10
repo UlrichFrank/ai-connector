@@ -234,6 +234,8 @@ type SetupModel struct {
 	URL           string `json:"url,omitempty"`
 	Fits          bool   `json:"fits"`
 	Recommended   bool   `json:"recommended"`
+	// Tasks: what an image model does (Model.Tasks: "upscale" for SeedVR2, "generate"/"edit"); absent: the usual
+	Tasks []string `json:"tasks,omitempty"`
 }
 
 // FreeBytes is the free disk where the models go.
@@ -275,7 +277,7 @@ func (d *Downloads) Models(ctx context.Context, mem int64, withAccess bool) []Se
 		fits := FitsMemory(m, mem) && (m.Here || m.Size+diskMargin <= free)
 		sm := SetupModel{ID: m.ID, Name: m.Name, Kind: m.Kind, About: m.About, Here: m.Here, Size: m.Size, Licence: lic,
 			NonCommercial: nc, Gated: m.Gated, URL: RepoURL(m), Fits: fits,
-			Recommended: fits && m.ID == recommendedOf(m.Kind, mem)}
+			Recommended: fits && m.ID == recommendedOf(m.Kind, mem), Tasks: m.Tasks}
 		if m.Gated {
 			sm.Access = "unknown"
 			gated = append(gated, len(out))

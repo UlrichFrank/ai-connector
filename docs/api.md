@@ -1035,7 +1035,9 @@ model, which may not exist yet.
   worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when unknown) and
   `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein 4B Apache-2.0,
   9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers Apache-2.0 — listed as
-  `image` models). `url`: the Hugging Face page.
+  `image` models). `url`: the Hugging Face page. `tasks` (absent when the model has none): what an image model does
+  — `["upscale"]` for the SeedVR2 upscalers (so vboard tells an upscaler from a picture model before it is a
+  generator), `["generate"]` / `["edit"]` for a model that does only that (Qwen-Image, Qwen-Image-Edit).
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
   accepted on `url`), `token` (no token is set, or Hugging Face does not take it: 4), `unknown` (no answer). Asked of
   Hugging Face per repository (`GET https://huggingface.co/api/models/<repo>/auth-check` with the token: 200
