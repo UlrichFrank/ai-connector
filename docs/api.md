@@ -1,4 +1,4 @@
-# ai-connector — API contract (phases 3–6)
+# ai-connector — API contract (phases 3–8)
 
 The contract the server, the workers, the console UI and other apps (vboard, docscanner, scripts) build against.
 `docs/architecture.md` describes the mlxlab-compatible API that already exists (`/api/*`, `/files/*`, devices,
@@ -148,13 +148,14 @@ and chat (with tools) as vboard-ai does, through the workers. vboard is not chan
 | | |
 |---|---|
 | `GET /api/connectors` | `[<connector>]` in the order they were made (never the token) |
-| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?}}` → the connector (201) |
-| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models` → the connector (200) |
+| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?},"agents"?:[{"id"?,"model","name"?}]}` → the connector (201) |
+| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models`, `agents` → the connector (200) |
 | `DELETE /api/connectors/{id}` | 204 (unknown id: 404 `{"error":"not found"}`) |
 | `GET /api/connectors/events` | SSE: `data: [<connector>,…]` (the whole list) at once and on every change; `: ping` every 25 s |
 
-A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"classify","embed","chat"},"owner",
-"created","state":"connecting|connected|error|disabled","error","since"?,"user"}`.
+A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"classify","embed","chat"},
+"agents":[{"id","model","name","kind"}],"owner","created","state":"connecting|connected|error|disabled","error",
+"since"?,"user","advertised":[{"id","name","kind","worker","model"}]}`.
 
 * `name`: also the name vboard shows for the local AI (hello.name and `?name=`); blank → `ai-connector`; at most 80
   characters.
@@ -168,6 +169,19 @@ A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"cl
 * `models`: catalogue ids or names as in `/v1/*` (`""` = the server's default: `MLXLAB_CLASSIFY_MODEL`,
   `MLXLAB_EMBED_MODEL`, and for chat the first chat model a connected worker lists that is not Claude Code — a
   `claude-code/*` model is used only when chosen). PATCH replaces the fields given.
+* `agents` (phase 8b): what people can pick from in the chat panel of a vboard that knows agents, **in order**; `[]`
+  (the default) = the chat model alone (`models.chat` or the server's default, as kind `model` whatever it is — how a
+  connector answered before agents; vboard then lists it with the id `default`). An entry: `model` (catalogue id or
+  name, required), `id` (stable — vboard's panel remembers the pick by it; blank → derived from the model:
+  `claude-code/haiku` → `claude-code-haiku`), `name` (what vboard shows; blank → the model's name), `kind` set by the
+  server: `agent` for `claude-code/*` (it works on the board itself through vboard's MCP, below), else `model`
+  (answered with vboard's tools). Checked: at most 20, ids unique (≤ 80 characters, no spaces), and **the first must
+  be a model** — it is the default, which older vboards, search ("Ask") and requests relayed by older replicas use
+  with vboard's tools; else 400 `{"error":"agents","message"}`. PATCH `agents` replaces the list.
+* `advertised`: the agents vboard was told of on the open connection (empty when not connected): those whose model a
+  connected worker offers now — a `claude-code/*` one only while a worker of the connector's **owner** with Claude
+  Code is connected — with `worker` (where it would run: the owner's worker for Claude Code, else the worker the
+  queue would pick now) and the catalogue `model`.
 * `enabled`: default true. `owner`: the `user` of the device that made it: a `claude-code/*` chat model of the
   connector runs on that person's workers with their subscription, and its jobs carry `owner` ("Agents (Claude
   Code)", Ownership).
@@ -189,10 +203,14 @@ disable/delete/shutdown (the requests running on it are canceled; a chat's job i
 2. `GET ws(s)://…/api/v1/classifier/bridge?board=&name=` with `Authorization: Bearer <token>`. 401, 403
    (`token.boardScope`, `token.scope`) and 404 (`board.notFound`) are final; 503 (`server.draining`), other statuses
    and network errors are retried after 1 s, 2 s, 4 s … at most 60 s (back to 1 s after a connection that worked).
-3. `{"type":"hello","name","device":"ai-connector","model","embed","chat","instance","handover":true}` — the models
-   the connected workers offer **now** (catalogue ids, cut to vboard's 60/80/80 characters; `""` = cannot), the
-   instance `aic_…` one per runner. While no connected worker offers any of the three, the connector does not dial
-   (`connecting`, "No connected worker offers …"); when that happens on an open connection it closes it.
+3. `{"type":"hello","name","device":"ai-connector","model","embed","chat","instance","handover":true,
+   "agents":[{"id","name","kind","worker"}]}` — the models the connected workers offer **now** (catalogue ids, cut to
+   vboard's 60/80/80 characters; `""` = cannot), the instance `aic_…` one per runner, and the agents offered now
+   (`advertised` above; ids, names and workers cut to 80 characters). The first agent is the default and is a model:
+   when the first chosen one is not offered now, the first offered model moves to the front (with none, the agents
+   alone: then `chat` is `""` and an older vboard does not chat). `chat` is the default's model, for vboards before
+   agents. While no connected worker offers anything, the connector does not dial (`connecting`, "No connected worker
+   offers …"); when that happens on an open connection it closes it.
 4. vboard answers `{"type":"welcome","id","board","user"}` → `connected`.
 5. Requests are answered in goroutines while one loop keeps reading (vboard pings every 30 s):
    * `classify` → the worker direct path (`/api/direct/classify`, a worker that lists the model, preferring one that
@@ -200,7 +218,10 @@ disable/delete/shutdown (the requests running on it are canceled; a chat's job i
      in their order (`null` = no description; a structured one becomes compact Python JSON, as vboard-ai does);
      `{"type":"answers","id","answers":[{"choice","probabilities","answer_confidence"}]}`, one per state.
    * `embed` → `/api/direct/embed` in batches of 256 texts; `{"type":"vectors","id","vectors"}`, L2-normalised.
-   * `chat` → a chat job in a worker's queue (`"client":"vboard: <connector name>"`, thinking off as vboard-ai's
+   * `chat` names an agent (`"agent":"<id>"`; absent → the default, the first): an id not offered now → an error
+     ("… is not available now"). An agent of kind `agent` (or a request with `context`) is answered as below
+     ("vboard: agents in the bridge", in "Agents (Claude Code)"); a model as follows.
+   * `chat` of a model → a chat job in a worker's queue (`"client":"vboard: <connector name>"`, thinking off as vboard-ai's
      built-in model, vboard's messages with their tool turns and vboard's tools; the calls are returned, never run).
      While the job waits or its model starts: `{"type":"chatDelta","id","status":"Waiting for Mac Studio (queued)"}`
      / `"Running on Mac Studio (<model>)"`; a thought (`<think>`) → one `{"thinking":true}` (the thought itself is
@@ -211,10 +232,14 @@ disable/delete/shutdown (the requests running on it are canceled; a chat's job i
    * Failures → `{"type":"error","id","message"}` (at most 300 characters); an unknown request type with an id too.
      A request for something the connector cannot do now (no worker offers the model) is such an error.
    * An answer larger than vboard reads (8 MB) is replaced by an error for its id.
-6. `{"type":"reconnect"}` (a vboard replica drains), and a change of what the workers offer (a worker with the chat
-   model connects or goes; checked on every fleet change and every 30 s): a new connection with a fresh hello and
-   the same `instance` is opened (retried 1 s … 10 s); new requests are answered there, the old connection is
-   closed normally (1000 "handed over") once what runs on it is answered (and at least 2 s after the handover).
+6. `{"type":"reconnect"}` (a vboard replica drains), and a change of the hello's models (classify, embed or the
+   default chat model; checked on every fleet change and every 30 s — older vboards learn them only from hello): a new
+   connection with a fresh hello (agents included) and the same `instance` is opened (retried 1 s … 10 s); new
+   requests are answered there, the old connection is closed normally (1000 "handed over") once what runs on it is
+   answered (and at least 2 s after the handover).
+7. When only the agents change (a worker with one of them connects or goes, the owner's Claude Code worker comes
+   online): `{"type":"agents","agents":[…]}` on the open connection — no new connection (vboard replaces its list;
+   older vboards drop the message, it has no id).
 
 **Compatibility.** What the connector sends is understood by every vboard since the bridge exists; tested against a
 fake vboard of each protocol stage (`internal/hub/vboard_test.go`), which reads the hello and the answers the way
@@ -225,7 +250,8 @@ that commit's `bridge.go` / `chat.go` do:
 | `d508560` (2026-09-26) | hello `{type,name,device,model}`, classify → answers/error | ✓ classify (the other hello fields are ignored); it sends classify to any bridge, so without a classify model the connector answers it with an error |
 | `0992b68` | + embed → vectors, hello.embed | ✓ classify, embed |
 | `f914d44` (2026-09-27) | + chat/chatCancel → chatDelta/chatDone, hello.chat | ✓ chat with tools, thinking, cancel; a status-only `chatDelta` is an empty text there (not shown, it restarts the idle timer) |
-| `175647c` → HEAD | + hello.instance/handover, `reconnect`, `chatDelta.status` | ✓ status shown, handover keeps the running chat |
+| `175647c` → main | + hello.instance/handover, `reconnect`, `chatDelta.status` | ✓ status shown, handover keeps the running chat; hello.agents and `{type:"agents"}` ignored, requests without `agent` → the default model |
+| `ai-agents` (`e5a7292c`, 2026-10-10) | + hello.agents, `{type:"agents"}`, chat `agent` / `context` | ✓ the agents listed and updated, models by `agent`, agents through MCP (below) |
 
 ## Console UI and host names (phase 6)
 
@@ -248,12 +274,15 @@ job of such a model is **one turn** in a Claude Code session. `engine.Request` f
 
 | field | |
 |---|---|
-| `session` | the conversation key (e.g. `vboard:<board>:<user>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
+| `session` | the conversation key (e.g. `vboard:<connector>:<user>:<board>:<hash>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
 | `driver` | `json` (default) or `tty` (below) |
 | `mcp` | `[{"name","url","type"?: "http"\|"sse","headers"?: {…}}]` — the MCP servers the session may use (only these: `--strict-mcp-config`); their tools are allowed as `mcp__<name>` |
 | `owner` | **set by the server** (a caller's value is dropped): the signed-in device's user, or the client token's owner |
+| `fresh` | with `session`: start that conversation anew — its running session is closed and nothing is resumed (for keys that can repeat, e.g. a new chat opening with the same question as an old one) |
 
-With a `session`, only the last user message is sent: the session keeps its own history. `system` messages become
+With a `session`, only the last user message is sent: the session keeps its own history — except on the first turn
+of a session that is new on the worker (no turn yet, nothing to `--resume`: another worker had it, its folder is gone,
+`fresh`), which gets the earlier messages as a transcript in front of the last one. `system` messages become
 `--append-system-prompt` when the session starts. `zone` is refused (Claude Code has its own tools).
 
 Events of the job: `text` (the answer, streamed as Claude Code writes it with the json driver), `status`, `tool`
@@ -397,15 +426,43 @@ session) and 12 hex digits. Through the hub they carry the worker's route like j
 worker's route layer adds the prefix to every session object it answers (`id`, plus `worker`) and strips it from
 `/api/agents/sessions/<rid>.<id>` paths; the hub routes by it.
 
-### vboard: agents in the bridge protocol (phase 8b; vboard implements its side)
+### vboard: agents in the bridge (phase 8b, as built)
 
-Additive to vboard's bridge (`/api/v1/classifier/bridge`):
+vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local AIs"); additive to the bridge:
 
-* The client's `hello` may carry `"agents":[{"id","name","kind":"model"|"agent","worker"?}]` — what the user can pick
-  to chat with: plain chat models (`kind:"model"`) and agents like Claude Code (`kind:"agent"`, `worker`: where it
-  runs). When the list changes the client sends `{"type":"agents","agents":[…]}`.
-* vboard's `chat` request may carry `"agent":"<id>"` (absent: the default `hello.chat` model, as before) and, for a
-  `kind:"agent"`, `"context":{"boardId","boardName"}`.
-* An agent answers with `chatDelta` text and `status` lines as it works, then a `chatDone` with its final text and
-  **no `toolCalls`**: it changed the board itself, through **vboard's MCP server** (the connector passes that server
-  in the job's `mcp`, with a token for the board, and uses a session key per board and user).
+* The client's `hello` may carry `"agents":[{"id","name","kind":"model"|"agent","worker"?}]` — what the person can
+  pick to chat with: chat models (`kind:"model"`, today's tool protocol) and agents like Claude Code
+  (`kind:"agent"`, `worker`: where it runs). The first is the default. `{"type":"agents","agents":[…]}` replaces the
+  list at any time. The connector sends the list in every hello (so again on every new connection, a handover's
+  too) and the update when only the agents change (Connectors, "How the vboard connector works" 3, 7).
+* vboard's `chat` request may carry `"agent":"<id>"` (absent: the default, as before). For a `kind:"agent"` it has
+  no `tools` and a `"context":{"boardId","boardName","userId","userName","role","lang","selection":[…],
+  "view":{x,y,w,h},"resume"}`; the messages are vboard's short system message (who, which board, "use vboard's MCP
+  tools") and the conversation (its last 40 messages).
+* The connector answers an agent's request with a **Claude Code** job (`placeChat`: only on a connected worker of the
+  connector's **owner**, with them as the job's owner; none → `error` "<owner>'s Claude Code worker is offline" or
+  "… has no worker with Claude Code"):
+  * `mcp`: `[{"name":"vboard","url":"<connector url>/mcp?board=<boardId>","headers":{"Authorization":"Bearer
+    <connector token>"}}]`. vboard's MCP (`POST /mcp`, streamable HTTP answered as plain JSON) takes the personal or
+    board token as Bearer and acts as its user; `?board=` makes the tools default to that board (a board token's own
+    board wins; for a personal token the board where the person rang the bell would win over it, so the system
+    prompt also says to pass `boardId`). The token reaches Claude Code only through the environment
+    (`${AIC_MCP_0_0}` in `mcp.json`; "Security" above), and the session's allow-list adds `mcp__vboard` (all of
+    that server's tools) to the worker's read-mostly list — nothing that edits files or runs commands.
+  * `session`: `vboard:<connector id>:<userId>:<boardId>:<12 hex of SHA-256 of the conversation's first user
+    message>`. vboard sends the whole conversation every turn but no id for it; its first message stands for it, so
+    follow-up turns land in the warm session, while another conversation, board or person gets its own. `fresh` is
+    set when nothing has been answered yet (a new conversation, even one that opens with the same words as an old
+    one; not on `resume`). When vboard's 40-message window drops the first message, the key changes: a new session,
+    which gets the remaining history as a transcript (above).
+  * `system`: vboard's system message plus how the board is reached (the MCP server "vboard", the person and role,
+    the board and its id to pass as `boardId`, read and change it only with those tools, the answer language from
+    `lang`) — read when the session starts. What changes from turn to turn goes in front of the person's message:
+    `[vboard, now: selected item(s): i_1, i_2 | nothing is selected; the person sees x, y, w × h px; your previous
+    answer to this message broke off …]`.
+  * The turn: only the newest user message (the session has the history; a session new on the worker gets the
+    conversation as a transcript first).
+* While it works: the job's status as for models ("Running on <worker> (claude-code/haiku)"), each tool call as it
+  starts as a `chatDelta` `status` line (`create_items …` — an MCP tool's own name; a built-in tool with its path or
+  query), its text as `text` deltas; then `chatDone {content, toolCalls: []}`. `chatCancel` cancels the job, which
+  interrupts the turn; the session stays for the next one.

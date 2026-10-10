@@ -82,8 +82,12 @@ anyone running vboard-ai. Two ways:
    menu) → *Create token* (a personal token `vbp_…`, or a board token for one board). In the console, *Connectors* →
    *Add vboard*: the vboard address, the token, optionally a board id (then everyone on that board uses it; the token
    needs "Can edit" there) and the models (blank: the server's defaults, `MLXLAB_CLASSIFY_MODEL`,
-   `MLXLAB_EMBED_MODEL`, the first chat model a worker offers that is not Claude Code). A `claude-code/*` chat model
-   runs on the workers of the person who added the connector, with their Claude subscription. The connector shows `connected` with the vboard user
+   `MLXLAB_EMBED_MODEL`, the first chat model a worker offers that is not Claude Code). Under *Chat agents* choose
+   what people can pick from in vboard's chat panel, in order: chat models and **Claude Code** (`claude-code/*`), which
+   works as an agent — it changes the board itself through vboard's MCP server, in a session kept warm per
+   conversation — on the workers of the person who added the connector, with their Claude subscription, and is offered
+   only while such a worker is connected. The first entry is the default and must be a chat model (older vboards and
+   search use it). Without a list: the chat model alone. The connector shows `connected` with the vboard user
    the token belongs to. It tells vboard what the connected workers offer and says it again when that changes; chats
    become jobs in a worker's queue (`client` "vboard: <name>"), classify and embed run beside the queue.
    Or by API: `POST /api/connectors {"url":"https://vboard.example.com","token":"vbp_…"}` (docs/api.md, "Connectors").
@@ -96,7 +100,8 @@ anyone running vboard-ai. Two ways:
 
 Compatibility: the connector speaks the bridge protocol of every vboard since the bridge exists — tested against
 each stage: `d508560` (classify), `0992b68` (+ embed), `f914d44` (+ chat with tools), `175647c` → today (+ handover on
-rolling updates, chat status). vboard is not changed for it.
+rolling updates, chat status), and vboard's `ai-agents` branch (+ several agents per bridge, which the agent list
+needs; older vboards see the default chat model only).
 
 ### Console
 
@@ -115,7 +120,7 @@ The server has two web apps: the **console** of ai-connector under `/console/` (
   in: curl and Python (OpenAI SDK) for `/v1/chat/completions` and `/v1/embeddings`, vboard's sidecar environment,
   docscanner's.
 - **Connectors** — vboard connectors (the server dials vboard's classifier bridge): add, edit, enable/disable,
-  delete, with their live state.
+  delete, with their live state; the chat agents in order, and which of them vboard is offered now.
 
 `MLXLAB_CONSOLE_HOSTS` (comma list of host names, e.g. `ai.example.org`) makes `GET /` on those hosts redirect to
 `/console/` (matched against `X-Forwarded-Host` behind traefik, else `Host`; port and case ignored). Every host
