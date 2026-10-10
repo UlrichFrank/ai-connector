@@ -798,6 +798,11 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, p
 	}
 	pin := str("worker")
 	delete(req, "worker")
+	// the application that submits it: from its token, never the caller's word
+	delete(req, "client")
+	if c, ok := clientOf(r); ok {
+		req["client"], _ = json.Marshal(c.Name)
+	}
 
 	// what it works on decides: a follow-up, a cover for a song, a studio task on a song, a library voice
 	var to *node
