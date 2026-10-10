@@ -52,6 +52,13 @@ type Options struct {
 	System string
 	// Cwd: a person's tty session may work in a folder of theirs ("" the session's own folder).
 	Cwd string
+	// Fresh starts the conversation anew: a running session of the key is closed and nothing is resumed (for a
+	// client whose conversation key can repeat, e.g. a new chat that opens with the same question as an old one).
+	Fresh bool
+	// Opening is sent instead of the turn's text while the conversation is new on this worker (no session of the
+	// key ran a turn, nothing to resume): the earlier messages as a transcript in front of the question, so that a
+	// conversation this worker never saw (or lost) still has its history.
+	Opening string
 }
 
 // Event is what happens during a turn.
@@ -214,6 +221,7 @@ type Session struct {
 	ctl     string   // the session's own settings, MCP config and hook log (not inside cwd)
 	env     []string // added to claude's environment: the MCP secrets (guard.go)
 	created time.Time
+	resumed bool // started with --resume: it continues a conversation
 	start   sync.Once
 	ready   chan struct{} // closed when the process started (or failed to)
 	err     error
@@ -321,7 +329,7 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 	}
 	var stale *Session
 	if s := m.sessions[id]; s != nil {
-		if !s.dead() && s.opts.Model == o.Model && s.opts.Driver == o.Driver && sameMCP(s.opts.MCP, o.MCP) {
+		if !o.Fresh && !s.dead() && s.opts.Model == o.Model && s.opts.Driver == o.Driver && sameMCP(s.opts.MCP, o.MCP) {
 			s.mu.Lock()
 			s.lastUsed = time.Now()
 			s.mu.Unlock()
@@ -329,8 +337,12 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 			<-s.ready
 			return s, s.err
 		}
-		stale = s // another model, driver or MCP servers: a new process continues the conversation
+		stale = s // another model, driver or MCP servers: a new process continues the conversation (Fresh: not)
 		delete(m.sessions, id)
+	}
+	if _, ok := m.resume[id]; ok && o.Fresh {
+		delete(m.resume, id)
+		_ = writeJSONFile(filepath.Join(m.Root, "resume.json"), m.resume)
 	}
 	if stale == nil {
 		if victim, err := m.makeRoomLocked(); err != nil {
@@ -348,6 +360,7 @@ func (m *Manager) open(o Options, id string) (*Session, error) {
 	}
 	m.sessions[id] = s
 	resume := m.resume[id]
+	s.resumed = resume != ""
 	m.mu.Unlock()
 	if stale != nil {
 		stale.turnMu.Lock() // its turn (if any) ends first
@@ -473,18 +486,29 @@ func (m *Manager) Turn(ctx context.Context, o Options, text string, emit func(Ev
 	if err != nil {
 		return Result{}, err
 	}
-	res, err := s.run(ctx, text, emit)
+	res, err := s.run(ctx, s.input(o, text), emit)
 	if errors.Is(err, errEndedEarly) && m.forget(s.id) {
 		// Claude Code could not resume the conversation (its files are gone): it starts anew
+		o.Fresh = false
 		if s, err = m.open(o, ""); err != nil {
 			return Result{}, err
 		}
-		res, err = s.run(ctx, text, emit)
+		res, err = s.run(ctx, s.input(o, text), emit)
 	}
 	if o.Key == "" {
 		m.remove(s, true)
 	}
 	return res, err
+}
+
+// input is what a turn sends: the Opening while the conversation is new here, else the text.
+func (s *Session) input(o Options, text string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if o.Opening != "" && s.turns == 0 && !s.resumed {
+		return o.Opening
+	}
+	return text
 }
 
 // forget drops what a conversation would resume; false: there was nothing.

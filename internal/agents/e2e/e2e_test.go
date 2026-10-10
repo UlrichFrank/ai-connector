@@ -59,15 +59,20 @@ func TestClaudeCodeJobs(t *testing.T) {
 		return engine.Request{Model: "claude-code/sonnet", Session: "board:1", Owner: "alice",
 			Messages: []llm.Message{{Role: "system", Content: "Be brief."}, {Role: "user", Content: "earlier"}, {Role: "assistant", Content: "ok"}, {Role: "user", Content: text}}}
 	}
-	// three turns of one conversation: one process; only the last message is sent (the session has the history)
+	// three turns of one conversation: one process; the first (new on this worker) gets the earlier messages as a
+	// transcript, later ones only the last message (the session has the history)
 	var session string
-	for _, q := range []string{"one", "two", "use a tool"} {
+	for i, q := range []string{"one", "two", "use a tool"} {
 		j, err := mgr.Submit(chat(q))
 		if err != nil {
 			t.Fatal(err)
 		}
 		j = wait(t, mgr, j.ID, jobs.Done)
-		if q != "use a tool" && j.Text != "echo: "+q {
+		if i == 0 {
+			if !strings.HasPrefix(j.Text, "echo: The conversation so far:") || !strings.Contains(j.Text, "User: earlier") || !strings.HasSuffix(j.Text, "one") {
+				t.Fatalf("first turn %q", j.Text)
+			}
+		} else if q != "use a tool" && j.Text != "echo: "+q {
 			t.Fatalf("%q: text %q", q, j.Text)
 		}
 		if s, _ := j.Stats["session"].(string); s == "" || session != "" && s != session {
