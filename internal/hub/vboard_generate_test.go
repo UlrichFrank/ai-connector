@@ -634,3 +634,16 @@ func TestVboardGenerateUnloadsChat(t *testing.T) {
 		t.Fatalf("loaded: chat %q, flux %q", mac.chat.Loaded(), mac.flux.Loaded())
 	}
 }
+
+// Every kind keeps a place within vboard's 20: the first of each kind goes in front, the order within a kind stays.
+func TestKindsFirst(t *testing.T) {
+	var gs []advertisedGenerator
+	for i := range 25 {
+		gs = append(gs, advertisedGenerator{ID: fmt.Sprintf("img-%d", i), Kind: "image"})
+	}
+	gs = append(gs, advertisedGenerator{ID: "moss", Kind: "sound"}, advertisedGenerator{ID: "img-late", Kind: "image"})
+	got := kindsFirst(gs)
+	if len(got) != maxGenerators || got[0].ID != "img-0" || got[1].ID != "moss" || got[2].ID != "img-1" {
+		t.Fatalf("%d: %v %v %v", len(got), got[0].ID, got[1].ID, got[2].ID)
+	}
+}

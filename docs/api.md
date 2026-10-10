@@ -721,6 +721,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   a model downloaded from vboard is offered at once; `--generators=none` for none). Offered only while a connected worker has
   the model on disk (`here`): nothing is downloaded for a board. Image and video models are **shared** like Qwen (any
   worker of the fleet, not only the owner's).
+* At most 20 generators are sent (vboard reads no more): the first of every kind comes first, then the others in
+  order, so a long `"*"` list never leaves a kind out; the order within a kind (its default first) stays.
 * `{"type":"generators","generators":[…]}` replaces the list on the open connection when only it changes (a worker
   comes or goes, an edit), like `{"type":"agents"}` — never a handover. `hello` has no `generators` while none is
   offered (an older vboard sees the hello it knew).

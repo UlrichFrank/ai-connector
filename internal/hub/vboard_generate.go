@@ -183,6 +183,27 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 		g.ID, g.Name, g.Worker, g.Model = trimRunes(fm.ID, agentChars), trimRunes(name, agentChars), trimRunes(n.name, agentChars), fm.ID
 		out = append(out, g)
 	}
+	return kindsFirst(out)
+}
+
+// kindsFirst puts the first generator of every kind in front (in their order), then the others, and keeps at most
+// maxGenerators: vboard reads no more than that, and a long "*" list must not cut a kind off (a Mac with many image
+// and video models and one sound model). The order within a kind — the first is its default — stays.
+func kindsFirst(gs []advertisedGenerator) []advertisedGenerator {
+	var first, rest []advertisedGenerator
+	seen := map[string]bool{}
+	for _, g := range gs {
+		if seen[g.Kind] {
+			rest = append(rest, g)
+			continue
+		}
+		seen[g.Kind] = true
+		first = append(first, g)
+	}
+	out := append(first, rest...)
+	if len(out) > maxGenerators {
+		out = out[:maxGenerators]
+	}
 	return out
 }
 
