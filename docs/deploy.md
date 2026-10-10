@@ -29,10 +29,10 @@ Small JSON files, written atomically (temp file + rename):
 | `workers.json` | enrolled workers (tokens hashed), their route ids and owners (whose Claude Code they run) | every worker is connected again (console → Connect a worker), owners set again |
 | `clients.json` | API clients (`aic_…` tokens hashed) and their owners | every app gets a new token |
 | `primary.json` | the pinned primary worker (only after a pin) | — (falls back to automatic) |
-| `connectors.json` | vboard connectors, **with their vboard tokens in clear** (mode 0600) — written once phase 4 (the vboard connector) is merged | the connectors are added again |
+| `connectors.json` | vboard connectors (address, board, models, owner) **with their vboard tokens in clear** (mode 0600: the server needs them to dial) | the connectors are added again, with new vboard tokens |
 
-These are all the files the server writes there (pending invites live in memory only). Treat a backup like a
-secret once `connectors.json` is in it: it holds tokens that open vboard boards.
+These are all the files the server writes there (pending invites live in memory only). Treat a backup as a
+secret: `connectors.json` holds tokens that open vboard boards.
 
 ## First install on the Pi
 
