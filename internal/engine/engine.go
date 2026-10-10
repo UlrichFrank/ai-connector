@@ -118,6 +118,14 @@ type Request struct {
 	Audio       string `json:"audio,omitempty"`
 	SpeechModel string `json:"speechModel,omitempty"`
 	// sound: Prompt describes the sound, Duration its length.
+
+	// claude-code (Claude Code agents, claudecode.go; docs/api.md "Agents (Claude Code)"): Session is the
+	// conversation key (turns with the same owner and key share one long-running session; "" a one-off), Driver
+	// "json" (default) or "tty", MCP the MCP servers the session may use. Owner is set by the server only.
+	Session string      `json:"session,omitempty"`
+	Driver  string      `json:"driver,omitempty"`
+	MCP     []MCPServer `json:"mcp,omitempty"`
+	Owner   string      `json:"owner,omitempty"`
 }
 
 // Option is one answer of a choice question.

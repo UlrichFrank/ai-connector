@@ -118,7 +118,7 @@ func run() error {
 			fmt.Println("mlxlab worker: hub and token kept in", file)
 		}
 		_, mgr := setup(root)
-		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version}).Handler())
+		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
 	case "serve":
 		_, mgr := setup(root)
 		url, err := serve(mgr, *addr)
@@ -133,6 +133,7 @@ func run() error {
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 		<-sig
 		mgr.Unload()
+		claudeAgents.Close()
 		closeSandboxes()
 		return nil
 	case "list":
@@ -221,6 +222,8 @@ func setup(root string) (*engine.Catalog, *jobs.Manager) {
 		go oa.Watch(context.Background(), 30*time.Second)
 		backends = append(backends, oa)
 	}
+	// Claude Code, when it is installed here (internal/agents): its jobs run beside the queue
+	backends = append(backends, claudeBackend(root, cat))
 	mgr := jobs.New(cat, backends, root)
 	mgr.Approvals = always
 	return cat, mgr
@@ -238,7 +241,7 @@ func serve(mgr *jobs.Manager, addr string) (string, error) {
 		return "", fmt.Errorf("%s is reachable from other devices, and mlxlab serve has no sign-in: use 127.0.0.1, "+
 			"and mlxlab worker with the hub for other devices (docs/architecture.md)", addr)
 	}
-	h := web.SameOrigin((&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version}).Handler())
+	h := web.SameOrigin((&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), HomeTools: homeTools, Version: version, Agents: claudeAgents}).Handler())
 	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = srv.Serve(ln) }()
 	return "http://" + ln.Addr().String(), nil

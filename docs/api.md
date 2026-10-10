@@ -156,3 +156,133 @@ Two web apps from one server: the **console** (ai-connector: overview/queue, wor
 "Connect a worker") under `/console/`, and the mlxlab app at `/` as before. On the host names in
 `MLXLAB_CONSOLE_HOSTS` (comma list, e.g. `ai.example.org`) `/` redirects to `/console/`; every host serves both paths.
 Both sign in through `POST /api/login` and use the same cookie.
+
+## Agents (Claude Code) (phase 8a)
+
+Chat consumers (the OpenAI-compatible API, the vboard connector, the console) can chat with **Claude Code** running
+on a worker, as a long-running agent. Code: `internal/agents` (sessions, drivers), `internal/engine/claudecode.go`
+(the backend), `internal/web/agents.go` (worker API), `internal/hub/agents.go` (ownership, routing, proxy).
+
+### Models and jobs
+
+A worker where `claude --version` works lists `claude-code/sonnet`, `claude-code/opus` and `claude-code/haiku`
+(kind `chat`, backend `claude-code`; asked again every minute, so installing Claude Code needs no restart). A chat
+job of such a model is **one turn** in a Claude Code session. `engine.Request` fields (camelCase):
+
+| field | |
+|---|---|
+| `session` | the conversation key (e.g. `vboard:<board>:<user>`): turns with the same owner and key share one session. Absent: a one-off session, closed (and its folder removed) after the turn; earlier messages are then sent as a transcript in front of the last one |
+| `driver` | `json` (default) or `tty` (below) |
+| `mcp` | `[{"name","url","type"?: "http"\|"sse","headers"?: {…}}]` — the MCP servers the session may use (only these: `--strict-mcp-config`); their tools are allowed as `mcp__<name>` |
+| `owner` | **set by the server** from the signed-in device's user (a caller's value is dropped); later a connector or client sets its own owner |
+
+With a `session`, only the last user message is sent: the session keeps its own history. `system` messages become
+`--append-system-prompt` when the session starts. `zone` is refused (Claude Code has its own tools).
+
+Events of the job: `text` (the answer, streamed as Claude Code writes it with the json driver), `status`, `tool`
+(the job's `tools` list, upserted by id: `{"id","name","state":"running|done|error","arguments":{…},"summary":"<path,
+command, URL …>","result":"<shortened>","zone":""}`), and `stats`: `{"session","driver","claudeSession","seconds",
+"turns"}` plus, with the json driver, `{"promptTokens","tokens","cacheReadTokens","costUSD","firstTokenSeconds"}`
+(`costUSD` is this turn's; Claude Code reports the session's total, the worker takes the difference).
+
+Claude Code jobs **do not wait in the GPU queue**: a backend that implements `engine.Parallel` (`Parallel() bool`)
+runs its jobs at once beside the queue (`jobs.Manager.Beside`), several at a time; they are still in the history,
+cancellable, and not counted in the worker's `state.running/queued`. Cancel interrupts the turn (below); the session
+stays.
+
+### Sessions and drivers
+
+Sessions are **long-running**, one per (owner, conversation key). Measured on the development Mac (sonnet, one session, Claude Code 2.1.288):
+1.7 s to the first text on turn 1 (process start included), 1.2 s on turn 2, 0.7 s on turn 3; a fresh `claude -p`
+per message is ≈ 2 s every time. A session is closed after `idleMinutes` without use (default 30; never while
+someone is attached to its terminal) or when `maxSessions` (default 4) are running and a new one needs room (the one
+idle longest goes; all busy → the job fails with "too many Claude Code sessions are busy"). Claude Code's own session
+id is kept per conversation (`<config>/agents/resume.json`): a closed, stopped or crashed session continues with
+`--resume` on its next turn, also after a worker restart. Changing the model, driver or MCP servers of a
+conversation restarts its process (resumed).
+
+* **json** (default; for the APIs) — `claude -p --input-format stream-json --output-format stream-json --verbose
+  --include-partial-messages --model <m> --strict-mcp-config --mcp-config <file> --allowedTools <list>
+  --permission-prompts none [--append-system-prompt …] [--resume <id>]`, kept running. A turn is a line
+  `{"type":"user","message":{"role":"user","content":"…"}}` on its stdin; the answer is read from stdout
+  (`stream_event` `content_block_delta`/`text_delta` → text; `tool_use` blocks of `assistant` messages and
+  `tool_result` blocks of `user` messages → tools; the `result` line ends the turn with usage and cost). **Cancel**
+  writes the control request `{"type":"control_request","request_id":"…","request":{"subtype":"interrupt"}}`: Claude
+  Code stops the turn, answers `control_response` and a `result` with `subtype:"error_during_execution"`, and the
+  process stays for the next turn (SIGINT if the request cannot be written; the process is killed if the turn has not
+  ended 10 s later — the next turn then resumes the conversation). `--permission-prompts none` (used when `claude
+  --help` lists it): a tool outside the allow-list is refused at once instead of waiting for an answer nobody gives.
+* **tty** — an interactive `claude` in a pseudo terminal (unix: `github.com/creack/pty`; **not on Windows yet**:
+  the job fails with "tty sessions are not supported on Windows yet"), kept running and **attachable from the
+  browser**. API turns are typed into it (a bracketed paste, then Enter); the answer comes from Claude Code's hooks:
+  the session's own `--settings` file has `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse` and `Stop`
+  hooks that append their JSON input to `<config>/agents/.ctl/<id>/hooks.jsonl`, which the worker follows. The
+  `Stop` hook's `last_assistant_message` is the answer (else the transcript's last assistant text); a `Stop` counts
+  only after the `UserPromptSubmit` of this turn's prompt (a person typing meanwhile does not end it). No token
+  streaming; no usage or cost. Cancel sends Esc. Claude Code asks whether to trust a new folder (default "No"): for
+  the session's own folder the worker answers "Yes" (`autoTrust`, default true; Claude Code records that in its own
+  config like any trust answer).
+
+Each session works in **its own folder** `<config>/agents/<session id>/` (the same id for the same owner and key,
+so `--resume` finds the conversation, which Claude Code keeps per folder); its control files (`mcp.json`,
+`settings.json`, `hooks.jsonl`, mode 0600) are in `<config>/agents/.ctl/<session id>/`, outside that folder.
+`<config>` is `~/.config/mlxlab` (`$MLXLAB_HOME`).
+
+### The allow-list: `<config>/agents.json` (per worker)
+
+```json
+{"allowedTools": ["Read", "Glob", "Grep", "LS", "WebSearch", "WebFetch", "TodoWrite"],
+ "model": "sonnet", "idleMinutes": 30, "maxSessions": 4, "autoTrust": true}
+```
+
+All fields optional; the values above are the defaults (read-mostly: nothing that edits files or runs commands).
+`allowedTools` takes Claude Code's rule syntax (`"Bash(git status)"`, `"Edit"`); the `mcp__<name>` of the
+session's own MCP servers are always added. `model` is used when a request names none.
+
+### Ownership (everyone uses their own Claude subscription)
+
+Claude Code runs with the subscription logged in on the worker, so it runs only for the worker's owner:
+
+* `Worker.owner` — the user (`Device.user`) of the device that enrolled it (`POST /api/workers`). The legacy
+  shared-token worker and workers from before have none; an owner device sets it: `PATCH /api/workers/{id}
+  {"owner":"Anna"}` (owner devices only, like `PATCH /api/devices`; 403 otherwise, 404 unknown) → the worker.
+  `GET /api/workers` items carry `owner`.
+* `POST /api/jobs` with a `claude-code/*` model (by id or a prefix a worker resolves) goes **only to a connected
+  worker whose owner is the signed-in user** and that lists the model (`request.worker` may pin one of the user's
+  own workers; someone else's → 403). The server sets `owner`. None connected → **503**
+  `{"error":"offline","message":"<user>'s Claude Code worker is offline"}`; the user owns no worker → **409**
+  `{"error":"no-worker","message":"<user> has no worker with Claude Code: …"}`; all their workers are connected but
+  none has Claude Code → 409 too. A device without a user name → 403. Other models route as before.
+
+### Endpoints
+
+Hub (device sign-in; only the sessions of workers the user owns):
+
+| | |
+|---|---|
+| `GET /api/agents/sessions` | `[{"id":"<rid>.<id>","conversation","model","driver":"json\|tty","state":"starting\|idle\|busy","created","lastUsed","cwd","owner","viewers","turns","claudeSession","worker":{"id","name"}}]` — merged over the user's connected workers |
+| `POST /api/agents/sessions[?worker=<id>]` | `{"model"?: "opus" \| "claude-code/opus","cwd"?: "<absolute folder on the worker>"}` → 201 the session: a **tty** session for a person to use interactively (default: their first connected worker with Claude Code; `owner` is set by the server) |
+| `DELETE /api/agents/sessions/{id}` | stops it (204); the conversation resumes with its next turn |
+| `GET /api/agents/sessions/{id}/tty` | **WebSocket**: binary frames are the terminal's bytes both ways (the viewer first gets the scrollback, ≤ 256 KB), text frames `{"type":"resize","cols","rows"}`; several viewers may attach; closed (1000) when the session ends. A json session → 409 |
+
+Someone else's session → 403; its worker offline → 503. The worker serves the same paths (without ownership: it
+trusts the tunnel); `mlxlab serve` keeps the WebSocket's same-origin check. The hub's reverse proxy passes the
+WebSocket upgrade through the tunnel (tested in `internal/hub/agents_test.go`).
+
+**Session ids** are route-safe: 13 characters, a letter (`s` a conversation, `o` a one-off, `p` a person's tty
+session) and 12 hex digits. Through the hub they carry the worker's route like job ids — `m1.s0a580f134345` — the
+worker's route layer adds the prefix to every session object it answers (`id`, plus `worker`) and strips it from
+`/api/agents/sessions/<rid>.<id>` paths; the hub routes by it.
+
+### vboard: agents in the bridge protocol (phase 8b; vboard implements its side)
+
+Additive to vboard's bridge (`/api/v1/classifier/bridge`):
+
+* The client's `hello` may carry `"agents":[{"id","name","kind":"model"|"agent","worker"?}]` — what the user can pick
+  to chat with: plain chat models (`kind:"model"`) and agents like Claude Code (`kind:"agent"`, `worker`: where it
+  runs). When the list changes the client sends `{"type":"agents","agents":[…]}`.
+* vboard's `chat` request may carry `"agent":"<id>"` (absent: the default `hello.chat` model, as before) and, for a
+  `kind:"agent"`, `"context":{"boardId","boardName"}`.
+* An agent answers with `chatDelta` text and `status` lines as it works, then a `chatDone` with its final text and
+  **no `toolCalls`**: it changed the board itself, through **vboard's MCP server** (the connector passes that server
+  in the job's `mcp`, with a token for the board, and uses a session key per board and user).

@@ -149,6 +149,10 @@ func (s *Server) dispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(routed) == 0 {
+		if r.Method == "POST" && r.URL.Path == "/api/jobs" {
+			s.submitOffline(w, r) // a claude-code job says whose worker it waits for (agents.go)
+			return
+		}
 		offline(w)
 		return
 	}
@@ -168,6 +172,8 @@ func (s *Server) dispatch(w http.ResponseWriter, r *http.Request) {
 		s.toRoute(w, r, jobRoute(id), prim)
 	case strings.HasPrefix(p, "/files/"):
 		s.toRoute(w, r, fileRoute(p), prim)
+	case strings.HasPrefix(p, "/api/agents/"): // Claude Code sessions: the person's own workers (agents.go)
+		s.agentsAPI(w, r, routed)
 	case m == "GET" && p == "/api/voices":
 		s.mergedVoices(w, r, routed, prim)
 	case strings.HasPrefix(p, "/api/voices/"):
@@ -802,6 +808,11 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, p
 	delete(req, "client")
 	if c, ok := clientOf(r); ok {
 		req["client"], _ = json.Marshal(c.Name)
+	}
+	delete(req, "owner") // the server says whose a job is (agents.go)
+	if isClaude(nodes, str("model")) {
+		s.submitClaude(w, r, nodes, req, pin) // only to the person's own worker
+		return
 	}
 
 	// what it works on decides: a follow-up, a cover for a song, a studio task on a song, a library voice

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/philipparndt/ai-connector/internal/agent"
+	"github.com/philipparndt/ai-connector/internal/agents"
 	"github.com/philipparndt/ai-connector/internal/engine"
 	"github.com/philipparndt/ai-connector/internal/jobs"
 	"github.com/philipparndt/ai-connector/internal/prompts"
@@ -46,6 +47,8 @@ type Server struct {
 	HomeTools func(ctx context.Context) ([]ToolServer, error)
 	// Version is mlxlab's build (GET /api/info).
 	Version string
+	// Agents are the Claude Code sessions (agents.go; nil: none on this worker).
+	Agents *agents.Manager
 }
 
 // ToolServer is one MCP server of the home zone and its tools.
@@ -306,6 +309,7 @@ func (s *Server) Handler() http.Handler {
 	// embedding and classifying for the server's client APIs, beside the queue (direct.go)
 	mux.HandleFunc("POST /api/direct/embed", s.directEmbed)
 	mux.HandleFunc("POST /api/direct/classify", s.directClassify)
+	s.agentRoutes(mux)
 	return s.routed(mux)
 }
 
