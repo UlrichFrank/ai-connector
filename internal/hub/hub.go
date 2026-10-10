@@ -67,18 +67,19 @@ func FromEnv() Config {
 
 // Server is the hub.
 type Server struct {
-	cfg     Config
-	tunnel  *tunnel.Hub
-	devices *devices
-	workers *workers
-	clients *clients
-	invites *invites
-	logins  *limiter
-	fleet   *fleet
-	proxy   http.Handler
-	rp      *httputil.ReverseProxy
-	ui      http.Handler
-	console http.Handler
+	cfg        Config
+	tunnel     *tunnel.Hub
+	devices    *devices
+	workers    *workers
+	clients    *clients
+	connectors *connectors // connectors.go, vboard.go
+	invites    *invites
+	logins     *limiter
+	fleet      *fleet
+	proxy      http.Handler
+	rp         *httputil.ReverseProxy
+	ui         http.Handler
+	console    http.Handler
 
 	// failDelay slows down wrong passwords (shorter in tests).
 	failDelay time.Duration
@@ -131,6 +132,10 @@ func New(cfg Config) (*Server, error) {
 		failDelay: time.Second,
 	}
 	s.fleet = newFleet(s.tunnel, ws, cfg.Data)
+	if s.connectors, err = openConnectors(s, cfg.Data); err != nil {
+		return nil, fmt.Errorf("connectors: %w", err)
+	}
+	s.connectors.startAll()
 	s.proxy = s.newProxy()
 	return s, nil
 }
@@ -162,6 +167,7 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("GET /api/clients", s.listClients)
 	auth.HandleFunc("POST /api/clients", s.addClient)
 	auth.HandleFunc("DELETE /api/clients/{id}", s.revokeClient)
+	s.connectorAPI(auth)
 	auth.Handle("/api/", s.proxy)
 	auth.Handle("/files/", s.proxy)
 	mux.Handle("/api/", s.requireDevice(auth))
@@ -191,7 +197,8 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	case <-ctx.Done():
 	}
-	cancel() // ends the event streams, which would otherwise hold Shutdown up
+	cancel()  // ends the event streams, which would otherwise hold Shutdown up
+	s.Close() // the connectors' connections
 	sctx, scancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer scancel()
 	return srv.Shutdown(sctx)
