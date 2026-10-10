@@ -65,10 +65,11 @@ const (
 type bridgeCaps struct {
 	classify, embed, chat string
 	agents                []AdvertisedAgent
+	generators            []advertisedGenerator // image and video models for the board (vboard_generate.go)
 }
 
 func (c bridgeCaps) empty() bool {
-	return c.classify == "" && c.embed == "" && c.chat == "" && len(c.agents) == 0
+	return c.classify == "" && c.embed == "" && c.chat == "" && len(c.agents) == 0 && len(c.generators) == 0
 }
 
 // sameHello: the hello's top-level fields are the same (vboards before agents learn only these, and only from hello).
@@ -157,6 +158,7 @@ func (s *Server) connectorCaps(ctx context.Context, conf storedConnector) bridge
 	if len(c.agents) > 0 && c.agents[0].Kind == kindModel {
 		c.chat = c.agents[0].Model
 	}
+	c.generators = s.generatorCaps(routed, conf)
 	return c
 }
 
@@ -536,6 +538,9 @@ func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeC
 	if caps.images() {
 		h0["images"] = true // the default model takes images
 	}
+	if len(caps.generators) > 0 {
+		h0["generators"] = wireGenerators(caps.generators) // vboards before generators ignore it
+	}
 	hello, _ := json.Marshal(h0)
 	if err := ws.Write(ctx, websocket.MessageText, hello); err != nil {
 		ws.CloseNow()
@@ -794,8 +799,16 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 					defer chats.cancel(m.ID)
 					r.chat(rctx, c, &m)
 				}()
-			case "chatCancel":
+			case "chatCancel", "generateCancel":
 				chats.cancel(m.ID)
+			case "generate": // an image or a video for the board: its own request, as long as it takes
+				rctx := chats.start(cctx, m.ID)
+				work.add(1)
+				go func() {
+					defer work.add(-1)
+					defer chats.cancel(m.ID)
+					r.generate(rctx, c, m.ID, raw)
+				}()
 			default:
 				work.add(1)
 				go func() {
@@ -878,7 +891,8 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		}
 		caps := r.s.connectorCaps(cctx, r.config())
 		cur := c.capsNow()
-		if cctx.Err() != nil || caps.sameHello(cur) && reflect.DeepEqual(caps.agents, cur.agents) {
+		sameGenerators := reflect.DeepEqual(caps.generators, cur.generators)
+		if cctx.Err() != nil || caps.sameHello(cur) && reflect.DeepEqual(caps.agents, cur.agents) && sameGenerators {
 			continue
 		}
 		if caps.empty() {
@@ -889,6 +903,12 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		if !caps.sameHello(cur) {
 			// older vboards learn the models only from hello: a new connection (whose hello has the agents too)
 			handover(fmt.Sprintf("the workers offer %s now (was %s)", caps, cur))
+			continue
+		}
+		if !sameGenerators { // a vboard that knows generators takes the new list on this connection
+			r.offerGenerators(c, caps.generators, cur.generators)
+		}
+		if reflect.DeepEqual(caps.agents, cur.agents) {
 			continue
 		}
 		// only the agents changed: a vboard that knows them takes the new list on this connection (older ones ignore it)

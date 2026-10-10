@@ -238,7 +238,10 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	} {
 		m := &Model{ID: f.id, Name: "FLUX.2 [klein] " + strings.TrimPrefix(f.id, "flux2-klein-"), Kind: Image, Backend: "mflux", About: f.about,
 			Size: f.size, Gated: f.gated, repo: f.repo, rev: f.rev, mflux: f.mflux,
-			Defaults: Request{Width: 1024, Height: 1024, Steps: f.steps, Guidance: f.guidance, Quantize: 8}}
+			Defaults: Request{Width: 1024, Height: 1024, Steps: f.steps, Guidance: f.guidance, Quantize: 8}, Licence: "Apache-2.0"}
+		if f.id == "flux2-klein-9b" {
+			m.Licence, m.NonCommercial = "FLUX Non-Commercial License", true
+		}
 		if d := filepath.Join(store.Dir, filepath.FromSlash(f.repo), f.rev); hasAll(d, "transformer/*.safetensors.sha256", "vae/*.safetensors.sha256", "text_encoder/*.safetensors.sha256") {
 			m.Here, m.Where, m.Size = true, d, dirSize(d)
 		} else if d := hfSnapshot(hub, f.repo, f.rev); d != "" && hasAll(d, "transformer/*.safetensors", "vae/*.safetensors", "text_encoder/*.safetensors") {

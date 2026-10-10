@@ -88,6 +88,7 @@ anyone running vboard-ai. Three ways:
    ```bash
    ai-connector vboard https://vboard.example.com --token vbp_…            # the token: vboard → "Set up AI" → "Create token"
    ai-connector vboard --agents qwen3.6-35b-a3b,claude-code/sonnet,claude-code/opus   # what the chat panel offers
+   ai-connector vboard --generators flux2-klein-4b,ltx-2.5-q4             # pictures and videos on the board (default: none)
    ai-connector vboard                                                      # later: the same connection again
    ```
 

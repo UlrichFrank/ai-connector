@@ -35,10 +35,11 @@ const (
 	stageHead                    // 175647c → main: + hello.instance/handover, {reconnect}, chatDelta.status
 	stageAgents                  // ai-agents (e5a7292c): + hello.agents, {type:"agents"}, chat.agent/context
 	stageImages                  // images in chats: + hello.images, agents[].images, chat messages[].images
+	stageGenerators              // images and videos on the board: + hello.generators, {type:"generators"}, generate…
 )
 
 func (s vbStage) String() string {
-	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "main handover", "ai-agents", "images"}[s]
+	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "main handover", "ai-agents", "images", "generators"}[s]
 }
 
 // vbAgent is an agent entry as the ai-agents stage keeps it (api/bridge.go: id required, trimmed, at most 80
@@ -128,6 +129,8 @@ type fakeBridge struct {
 	rawErr  string               // the last chat error as sent (before vboard cuts it)
 	agents  []vbAgent            // ai-agents: hello.agents
 	updates chan []vbAgent       // ai-agents: {type:"agents"} as they come
+	gens    sync.Map             // generators: id → chan vbGenEv (vboard_generate_test.go)
+	genList chan []vbGenerator   // generators: {type:"generators"} as they come
 	n       int
 	nmu     sync.Mutex
 }
@@ -217,6 +220,7 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	b.updates = make(chan []vbAgent, 16)
+	b.genList = make(chan []vbGenerator, 16)
 	if err != nil || typ != "hello" {
 		c.Close(websocket.StatusPolicyViolation, "hello expected")
 		return
@@ -262,6 +266,9 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 			Agents  []json.RawMessage `json:"agents"`
 		}
 		if json.Unmarshal(raw, &m) != nil {
+			continue
+		}
+		if v.stage >= stageGenerators && b.genMessage(m.Type, m.ID, raw) {
 			continue
 		}
 		if v.stage >= stageAgents && m.Type == "agents" {
@@ -638,7 +645,7 @@ func waitState(t *testing.T, base, device, id, state string) Connector {
 // Every protocol stage: the hello it reads, classify (order, Python JSON, one answer per state), embed, chat (thinking,
 // text, tool calls, the job's client), errors.
 func TestVboardStages(t *testing.T) {
-	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead, stageAgents, stageImages} {
+	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead, stageAgents, stageImages, stageGenerators} {
 		t.Run(stage.String(), func(t *testing.T) {
 			fastBridges(t)
 			_, base, device := vbHub(t)
@@ -756,7 +763,7 @@ func TestVboardChatStatusAndCancel(t *testing.T) {
 	_, base, device := vbHub(t)
 	_, wtok := enroll(t, base, device, "Mac")
 	mac := startVboardMac(t, base, wtok, "chat")
-	for _, stage := range []vbStage{stageChat, stageHead, stageAgents, stageImages} {
+	for _, stage := range []vbStage{stageChat, stageHead, stageAgents, stageImages, stageGenerators} {
 		v := newFakeVboard(t, stage)
 		c := addConnector(t, base, device, `{"name":"Board AI","url":"`+v.srv.URL+`","token":"vbp_secret"}`)
 		b := v.next(t)

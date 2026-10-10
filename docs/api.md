@@ -203,13 +203,13 @@ and chat (with tools) as vboard-ai does, through the workers. vboard is not chan
 | | |
 |---|---|
 | `GET /api/connectors` | `[<connector>]` in the order they were made (never the token) |
-| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?},"agents"?:[{"id"?,"model","name"?,"effort"?}]}` → the connector (201) |
-| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models`, `agents` → the connector (200) |
+| `POST /api/connectors` | `{"kind"?:"vboard","name"?,"url","token","board"?,"enabled"?,"models"?:{"classify"?,"embed"?,"chat"?},"agents"?:[{"id"?,"model","name"?,"effort"?}],"generators"?:["<model id>",…]}` → the connector (201) |
+| `PATCH /api/connectors/{id}` | any of `name`, `url`, `token`, `board`, `enabled`, `models`, `agents`, `generators` → the connector (200) |
 | `DELETE /api/connectors/{id}` | 204 (unknown id: 404 `{"error":"not found"}`) |
 | `GET /api/connectors/events` | SSE: `data: [<connector>,…]` (the whole list) at once and on every change; `: ping` every 25 s |
 
 A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"classify","embed","chat"},
-"agents":[{"id","model","name","kind"}],"owner","created","state":"connecting|connected|error|disabled","error",
+"agents":[{"id","model","name","kind"}],"generators":[…],"owner","created","state":"connecting|connected|error|disabled","error",
 "since"?,"user","advertised":[{"id","name","kind","worker","model"}]}`.
 
 * `name`: also the name vboard shows for the local AI (hello.name and `?name=`); blank → `ai-connector`; at most 80
@@ -235,6 +235,11 @@ A connector: `{"id","kind":"vboard","name","url","board","enabled","models":{"cl
   unique (≤ 80 characters, no spaces), an effort only for an agent and one of the five, and **the first must be a
   model** — it is the default, which older vboards, search ("Ask") and requests relayed by older replicas use with
   vboard's tools; else 400 `{"error":"agents","message"}`. PATCH `agents` replaces the list.
+* `generators`: the image and video models vboard may make pictures and videos on the board with, **in order**
+  (catalogue ids or names; `[]`, the default: none); see "vboard: generating images and videos on the board". Checked:
+  at most 20, unique, no blanks; else 400 `{"error":"generators","message"}`. PATCH replaces the list. Only those a
+  connected worker has on disk are offered, and only image models of mflux (FLUX.2 klein, Qwen-Image) and LTX video
+  models; anything else in the list is not offered.
 * `advertised`: the agents vboard was told of on the open connection (empty when not connected): those whose model a
   connected worker offers now — a `claude-code/*` one only while a worker of the connector's **owner** with Claude
   Code is connected — with `worker` (where it would run: the owner's worker for Claude Code, else the worker the
@@ -255,8 +260,9 @@ Stored in `<data>/connectors.json` (mode 0600; the token in clear, the server ne
 One goroutine per enabled connector, started with the server and on create/enable (and on any edit of a connector
 in state `error`), stopped on disable/delete/shutdown (the requests running on it are canceled; a chat's job is
 canceled on its worker). **Other edits never cancel what runs** (`PATCH`, `internal/hub/connector_edit_test.go`):
-the running connector takes the new settings — `agents` and `models` are offered on the open connection as in 6
-and 7 below (`{"type":"agents"}`, or a handover when the hello's models change); a new `url`, `token`, `board` or
+the running connector takes the new settings — `agents`, `generators` and `models` are offered on the open
+connection as in 6 and 7 below (`{"type":"agents"}`, `{"type":"generators"}`, or a handover when the hello's models
+change); a new `url`, `token`, `board` or
 `name` (vboard learns the name only from the URL and hello) gets a new connection by the handover of 6: new requests
 go there, the old connection is closed once its running requests are answered. When vboard refuses the new
 connection for good (a wrong token, 401/403/404), the connector stops with that error (state `error`) after the old
@@ -269,7 +275,7 @@ settings at once.
    (`token.boardScope`, `token.scope`) and 404 (`board.notFound`) are final; 503 (`server.draining`), other statuses
    and network errors are retried after 1 s, 2 s, 4 s … at most 60 s (back to 1 s after a connection that worked).
 3. `{"type":"hello","name","device":"ai-connector","model","embed","chat","instance","handover":true,
-   "agents":[{"id","name","kind","worker","images"?: true}],"images"?: true}` — the models the connected workers offer **now** (catalogue ids, cut to
+   "agents":[{"id","name","kind","worker","images"?: true}],"images"?: true,"generators"?:[…]}` — the models the connected workers offer **now** (catalogue ids, cut to
    vboard's 60/80/80 characters; `""` = cannot), the instance `aic_…` one per runner, and the agents offered now
    (`advertised` above; ids, names and workers cut to 80 characters). The first agent is the default and is a model:
    when the first chosen one is not offered now, the first offered model moves to the front (with none, the agents
@@ -277,7 +283,8 @@ settings at once.
    agents. While no connected worker offers anything, the connector does not dial (`connecting`, "No connected worker
    offers …"); when that happens on an open connection it closes it. `images: true` on an agent: its model takes
    images (the catalogue's `images`; Claude Code always); `hello.images: true`: the default (the first agent, a
-   model) takes them, for a vboard that reads only hello's top-level fields. Absent = no images.
+   model) takes them, for a vboard that reads only hello's top-level fields. Absent = no images. `generators`: the
+   image and video models offered now (absent when none; "vboard: generating images and videos on the board").
 4. vboard answers `{"type":"welcome","id","board","user"}` → `connected`.
 5. Requests are answered in goroutines while one loop keeps reading (vboard pings every 30 s):
    * `classify` → the worker direct path (`/api/direct/classify`, a worker that lists the model, preferring one that
@@ -304,6 +311,8 @@ settings at once.
      the tags become "(image omitted)" and the images are dropped. (vboard sends images only to agents that
      advertised them, on the newest user message and at most the 2 most recent earlier image messages; older ones
      arrive as "(image N from earlier)" text.)
+   * `generate` → an image or video job (`generateStatus` … `generateFile` pieces … `generateDone`; `generateCancel`
+     cancels it): "vboard: generating images and videos on the board".
    * Failures → `{"type":"error","id","message"}` (at most 300 characters); an unknown request type with an id too.
      A request for something the connector cannot do now (no worker offers the model) is such an error.
    * An answer larger than vboard reads (8 MB) is replaced by an error for its id.
@@ -315,7 +324,8 @@ settings at once.
    answered (and at least 2 s after the handover).
 7. When only the agents change (a worker with one of them connects or goes, the owner's Claude Code worker comes
    online, the connector's `agents` are edited): `{"type":"agents","agents":[…]}` on the open connection — no new connection (vboard replaces its list;
-   older vboards drop the message, it has no id).
+   older vboards drop the message, it has no id). The same for the generators: `{"type":"generators","generators":[…]}`
+   (`[]` when none is offered any more).
 
 **Compatibility.** What the connector sends is understood by every vboard since the bridge exists; tested against a
 fake vboard of each protocol stage (`internal/hub/vboard_test.go`), which reads the hello and the answers the way
@@ -329,6 +339,7 @@ that commit's `bridge.go` / `chat.go` do:
 | `175647c` → main | + hello.instance/handover, `reconnect`, `chatDelta.status` | ✓ status shown, handover keeps the running chat; hello.agents and `{type:"agents"}` ignored, requests without `agent` → the default model |
 | `ai-agents` (`e5a7292c`, 2026-10-10) | + hello.agents, `{type:"agents"}`, chat `agent` / `context` | ✓ the agents listed and updated, models by `agent`, agents through MCP (below) |
 | images in chats | + `agents[].images`, `hello.images`, chat `messages[].images` | ✓ advertised per agent, images to the agents that take them, "(image omitted)" for the others; older vboards ignore the fields and send no images |
+| generators | + `hello.generators`, `{type:"generators"}`, `generate` / `generateCancel` → `generateStatus`, `generateFile`, `generateDone` | ✓ images and videos on the board (`internal/hub/vboard_generate_test.go`); without the setting the hello is as before, older vboards ignore the field and the message |
 
 ## Console UI and host names (phase 6)
 
@@ -657,9 +668,10 @@ vboard's side is on its branch `ai-agents` (`docs/plans/laya.md`, "Several local
   `chatDone {content, toolCalls: []}`. `chatCancel` cancels the job, which interrupts the turn; the session stays for
   the next one. The connector agent's `effort` (if set) is the job's `effort` (`--effort`).
 
-### vboard: generating images and videos on the board (planned, contract)
+### vboard: generating images and videos on the board (as built)
 
-Not built yet; the contract both sides build against. A chat in vboard — the local chat model, Claude Code through
+Built on both sides (the connector: `internal/hub/vboard_generate.go`, tested against the fake vboard's generators
+stage in `vboard_generate_test.go`). A chat in vboard — the local chat model, Claude Code through
 vboard's MCP, or any MCP client of the person — asks for an image or a video; vboard puts a **placeholder** on the
 board at once and asks its bridge client (this connector, with a server or standalone) to **generate** it; the
 progress fills the placeholder, the file replaces it. Additive like everything before: a vboard that does not know
@@ -675,8 +687,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 ```json
 "generators": [
   {"id": "flux2-klein-4b", "name": "FLUX.2 [klein] 4B", "kind": "image", "worker": "Mac Studio",
-   "edit": true, "multiple": 16, "default": {"width": 1024, "height": 1024}, "max": 2048},
-  {"id": "ltx-2.5-q4", "name": "LTX-2.5 (distilled)", "kind": "video", "worker": "Mac Studio",
+   "edit": true, "multiple": 16, "default": {"width": 1024, "height": 1024}, "max": 2048, "nonCommercial": false},
+  {"id": "ltx-2.5-q4", "name": "LTX-2.5 (q4)", "kind": "video", "worker": "Mac Studio",
    "firstFrame": true, "audio": true, "multiple": 64, "default": {"width": 704, "height": 448, "fps": 24, "seconds": 4},
    "max": 1280, "maxSeconds": 10, "nonCommercial": false}
 ]
@@ -687,15 +699,20 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 * `edit` (image): takes reference images (edits, "make this sketch a photo"); a model that only edits has
   `"textToImage": false` and needs at least one. `firstFrame` (video): may start from an image. `audio` (video): the
   video has a soundtrack unless the request says `"audio": false`.
-* `multiple`: width and height are rounded down to it (16 for images, 64 for LTX); `max`: the longest side;
-  `default`: what an empty request gets; `maxSeconds` (video).
-* `nonCommercial: true`: the weights' licence forbids commercial use (vboard may show it or leave the model out).
+* `multiple`: width and height are rounded down to it (16 for images, 64 for LTX); `max`: the longest side (2048
+  for images, 1280 for LTX); `default`: what an empty request gets (the catalogue's defaults; a video's `seconds`
+  from its default frames: 97 at 24 fps → 4); `maxSeconds` (video: 10).
+* Which models are generators: image models run by mflux (FLUX.2 klein, Qwen-Image; `edit`/`textToImage` from the
+  catalogue's tasks) and the LTX video models; anything else in the setting is not offered.
+* `nonCommercial`: true when the weights' licence forbids commercial use (vboard may show it or leave the model out);
+  always sent.
 * Which ones: the connector's setting `generators` (console → Connectors, `--generators` for `ai-connector vboard`),
   ids in order; **default: none** (opt-in — a video holds a Mac for minutes). Offered only while a connected worker has
   the model on disk (`here`): nothing is downloaded for a board. Image and video models are **shared** like Qwen (any
   worker of the fleet, not only the owner's).
 * `{"type":"generators","generators":[…]}` replaces the list on the open connection when only it changes (a worker
-  comes or goes, an edit), like `{"type":"agents"}`.
+  comes or goes, an edit), like `{"type":"agents"}` — never a handover. `hello` has no `generators` while none is
+  offered (an older vboard sees the hello it knew).
 
 **2. vboard asks** (request ids as for the other requests; any number may run at once — they queue on the workers)
 
@@ -707,43 +724,58 @@ failed or canceled. The chat may look at it later (vboard's side, below).
  "context": {"boardId": "b_…", "userId": "u_…", "userName": "Philipp", "placeholderId": "i_…"}}
 ```
 
-* `generator` absent → the default of the kind given as `"kind"` (`image` when neither is there). An id not offered
-  now → `error` "… is not available now".
-* `prompt` required (at most 4000 characters). `width`/`height`: 0 → the default; otherwise rounded down to
-  `multiple`, the longer side cut to `max` keeping the aspect ratio. `seed` 0 = random, `steps` 0 = the model's.
-* video: `seconds` (0 → the default, at most `maxSeconds`) and `fps` (0 → the default) become the frame count
-  (rounded down to 8k+1 for LTX); `audio: false` → no soundtrack.
-* `images`: image: the references (`edit`); video: the first frame (`firstFrame`). png/jpeg/webp, at most 8 MB each,
-  at most 4; vboard sends the asset's bytes (the person picked board items as references). Images to a generator
-  without `edit`/`firstFrame` → `error`.
-* `context`: who and where, for the job's name and logs (`client` "vboard: <connector name>", the job's name the
-  prompt's start); the connector does not act on the board.
+* `generator` absent → the default of the kind given as `"kind"` (`image` when neither is there); vboard sends
+  `kind` with `generator` anyway (a named generator wins). An id not offered now → `error` "… is not available now".
+* `prompt` required (at most 4000 characters; trimmed). `width`/`height`: both 0 → the default; one 0 → from the
+  other with the default's aspect ratio; then the longer side cut to `max` keeping the aspect ratio, both rounded
+  down to `multiple` (at least `multiple`). `seed` 0 = random, `steps` 0 = the model's (LTX's distilled pipeline has
+  its own schedule). Negative numbers → `error`.
+* video: `seconds` (0 → the default, at most `maxSeconds`; fractions allowed) and `fps` (0 → the default, at most 60)
+  become the frame count: seconds × fps + 1, rounded down to 8k+1 (at least 9; 4 s at 24 fps → 97); `audio: false` →
+  no soundtrack.
+* `images`: image: the references (`edit`); video: the first frame (`firstFrame`, one image). png/jpeg/webp, at most
+  8 MB each, at most 4; vboard sends the asset's bytes (the person picked board items as references). Images to a
+  generator without `edit`/`firstFrame`, none to one with `"textToImage": false`, or more than one for a video →
+  `error`. The connector uploads them to the worker that runs the job (its uploads, `POST /api/upload`).
+* `context` (`boardId`, `userId`, `userName`, `placeholderId`): for the logs; the job's `client` is
+  "vboard: <connector name>" (the worker names the job after its model, the prompt is in the job); the connector does
+  not act on the board.
+* The job goes to a connected worker that has the model on disk (and the memory for it), preferring one with it
+  loaded, then an idle one, then the least busy — like a chat model's; with none → `error` "… is not available now".
 
 **3. The connector answers**
 
 * `{"type":"generateStatus","id","state","worker"?,"position"?,"step"?,"total"?,"eta"?,"width","height","frames"?,"fps"?}`
-  * `state`: `queued` (`position`: jobs before it on that worker) → `loading` (the model is read; first use after
-    a while: tens of seconds) → `running` (`step`/`total` from the job, `eta` seconds when the worker can tell).
+  * `state`: `queued` (`position`: jobs before it on that worker — those queued or running when it was placed, less
+    each one that finished since) → `loading` (the job runs but has no steps yet: the model is read; first use after
+    a while: tens of seconds) → `running` (`step`/`total` from the job, `eta` seconds from the pace of the steps so
+    far, once there are two). `worker`: its name.
   * `width`/`height`(/`frames`, `fps`): **what will actually be made**, after rounding — in the first status, which is
     sent at once when the job is placed; vboard fits the placeholder to it.
-  * At most one a second; one at least every 60 s as keep-alive (the last one again), so vboard's 3-minute idle rule
-    never fires for a long render.
+  * At most one a second (the job is asked every second; only a change is sent); one at least every 60 s as
+    keep-alive (the last one again), so vboard's 3-minute idle rule never fires for a long render.
 * The file in pieces (an answer must stay under vboard's 8 MB): `{"type":"generateFile","id","mime","size","seq",
   "data","last"}` — `mime` `image/png` | `video/mp4`, `size` the whole file's bytes, `seq` 0, 1, … in order, `data`
-  base64 of at most 1 MiB, `last: true` on the final piece. At most 200 MB a file (more → `error`).
+  base64 of at most 1 MiB, `last: true` on the final piece. At most **15 MB an image** (vboard's limit for image
+  assets; a 2048² PNG fits) and **200 MB a video** (vboard takes 500 MB); larger → `error` (not re-encoded).
 * `{"type":"generateDone","id","width","height","seconds"?,"seed","generator","took"}` after the last piece
-  (`seconds`: a video's length, `took`: seconds the job ran). vboard turns the placeholder into the item now.
-* Failures → `{"type":"error","id","message"}` as everywhere (also when the worker goes away mid-job: the job is
-  not moved to another worker; vboard offers Retry).
+  (`width`/`height`, `seed`: as the job made it — the random seed when 0 was asked; `seconds`: a video's length,
+  (frames − 1) / fps; `took`: seconds the job ran, to 0.1). vboard turns the placeholder into the item now.
+* Failures → `{"type":"error","id","message"}` as everywhere (also when the worker goes away mid-job — it did not
+  answer three times in a row: the job is not moved to another worker; vboard offers Retry — and when the job is
+  canceled on the worker by someone else).
 * `{"type":"generateCancel","id"}` (the person deleted the placeholder, or pressed Cancel) cancels the job — queued or
   running; nothing more is sent for it.
 * A handover (6 above) keeps running generations on the old connection until they are done, as for chats. A lost
   connection loses them: vboard marks their placeholders failed (Retry).
 
 **Memory (connector side).** On one Mac the chat model and a generator may not fit together (Qwen 35B ≈ 20 GB, FLUX.2
-klein 4B ≈ 16 GB, LTX more). The worker's queue already runs one large job at a time; before an image or video job it
-unloads a loaded chat model when the two would not fit (the next chat loads it again, a few seconds from disk). With a
-server the job goes to the worker that has the model and is least busy, so a second Mac keeps the chat warm.
+klein 4B ≈ 16 GB, LTX more). The worker's queue runs one job at a time and keeps **one large model in memory at a
+time** (`internal/jobs`: before a job of a large runtime — the built-in MLX chat, mflux, LTX, music, speech — every
+other large runtime with a model loaded unloads it). So an image or video job unloads the built-in chat model first —
+always, not only when the two would not fit (simple; the next chat loads it again, a few seconds from disk). Models of
+local runtimes (LM Studio, Ollama) hold their own memory and are not unloaded. With a server the job goes to the worker
+that has the model and is least busy, so a second Mac keeps the chat warm.
 
 **vboard's side (for reference; vboard decides the details)**
 

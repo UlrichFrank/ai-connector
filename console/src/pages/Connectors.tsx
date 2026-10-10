@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { addAgent, agentKind, createBody, defaultName, efforts, emptyForm, formOf, maxAgents, moveAgent, patchBody, removeAgent, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
+import { addAgent, addGenerator, agentKind, createBody, defaultName, efforts, emptyForm, formOf, maxAgents, maxGenerators, moveAgent, moveGenerator, patchBody, removeAgent, removeGenerator, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
 import { useLive } from "@/store/live";
 
 /** How often the list is read when the event stream is not there. */
@@ -201,6 +201,15 @@ function ConnectorCard({ c, onEdit, onChanged, onDeleted }: { c: Connector; onEd
             )}
           </div>
           <AgentsLine c={c} />
+          {(c.generators ?? []).length > 0 && (
+            <div className="mt-1 text-xs text-muted-foreground" aria-label="Generators">
+              board: {(c.generators ?? []).map((g) => (
+                <code key={g} className="mr-2 font-mono">
+                  {g}
+                </code>
+              ))}
+            </div>
+          )}
           {c.state === "error" && c.error && c.enabled && <div className="mt-2 rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">{c.error}</div>}
           {c.state === "connecting" && c.error && c.enabled && <div className="mt-2 text-xs text-muted-foreground">{c.error}</div>}
         </div>
@@ -381,6 +390,67 @@ function AgentsEditor({ value, onChange, models, error }: { value: AgentRow[]; o
   );
 }
 
+/** An image or video model the connector knows how to ask (FLUX and Qwen-Image through mflux, LTX). */
+const isGenerator = (m: Model) => (m.kind === "image" && m.backend === "mflux") || (m.kind === "video" && m.backend === "ltx");
+
+/** On a worker's disk (only those are offered to vboard: nothing is downloaded for a board). */
+const onDisk = (m: Model) => !!m.here || !!m.workers?.some((w) => w.here);
+
+/** The image and video models vboard may make pictures and videos on the board with, in order (the first of each kind is the default). */
+function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChange: (v: string[]) => void; models: Model[] }) {
+  const options = models.filter((m) => isGenerator(m) && !value.includes(m.id));
+  const model = (id: string) => models.find((m) => m.id === id);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Images and videos on the board</Label>
+      <p className="text-xs text-muted-foreground">
+        The models vboard may make pictures and videos with (the first of each kind is the default). Offered only while a connected worker has the model on disk. Without a list: none — a video holds a Mac for minutes.
+      </p>
+      {value.length > 0 && (
+        <ol className="flex flex-col gap-1.5">
+          {value.map((id, i) => {
+            const m = model(id);
+            return (
+              <li key={id} className="flex items-center gap-2 rounded-md border px-2 py-1.5" data-generator={id}>
+                <span className="w-4 text-right text-xs text-muted-foreground">{i + 1}</span>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                  <code className="truncate font-mono text-xs">{id}</code>
+                  {m && <span className="rounded bg-muted px-1.5 text-[11px] text-muted-foreground">{m.kind}</span>}
+                  {m?.nonCommercial && <span className="text-[11px] text-muted-foreground">non-commercial</span>}
+                  {(!m || !onDisk(m)) && <span className="text-[11px] text-muted-foreground">not on a worker's disk now</span>}
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="Move up" disabled={i === 0} onClick={() => onChange(moveGenerator(value, i, -1))}>
+                  <ArrowUp />
+                </Button>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="Move down" disabled={i === value.length - 1} onClick={() => onChange(moveGenerator(value, i, 1))}>
+                  <ArrowDown />
+                </Button>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove ${id}`} onClick={() => onChange(removeGenerator(value, i))}>
+                  <X />
+                </Button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {value.length < maxGenerators && (
+        <Select value="" onValueChange={(m) => onChange(addGenerator(value, m))}>
+          <SelectTrigger className="w-full" aria-label="Add an image or video model">
+            <SelectValue placeholder={options.length ? "Add an image or video model…" : "No other image or video model is listed"} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.id} ({m.kind}){onDisk(m) ? "" : " · not on disk"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
+
 function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector | "new" | null; onOpenChange: (o: boolean) => void; onSaved: (c: Connector) => void }) {
   const models = useLive((s) => s.models);
   const editing = target && target !== "new" ? target : null;
@@ -390,7 +460,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
 
-  const set = (k: Exclude<keyof ConnectorForm, "agents">) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: Exclude<keyof ConnectorForm, "agents" | "generators">) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -414,7 +484,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
     }
   };
 
-  const field = (k: Exclude<keyof ConnectorForm, "agents">, label: string, props: React.ComponentProps<typeof Input> = {}, hint?: string) => (
+  const field = (k: Exclude<keyof ConnectorForm, "agents" | "generators">, label: string, props: React.ComponentProps<typeof Input> = {}, hint?: string) => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={`connector-${k}`}>{label}</Label>
       <Input id={`connector-${k}`} value={form[k]} onChange={(e) => set(k)(e.target.value)} aria-invalid={!!errors[k] || undefined} {...props} />
@@ -446,6 +516,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
               <ModelSelect id="connector-chat" label="Chat" kind="chat" value={form.chat} onChange={set("chat")} models={models} />
             </div>
             <AgentsEditor value={form.agents} onChange={(agents) => setForm((f) => ({ ...f, agents }))} models={models} error={errors.agents} />
+            <GeneratorsEditor value={form.generators} onChange={(generators) => setForm((f) => ({ ...f, generators }))} models={models} />
             {failure && <p className="text-sm text-destructive">{failure}</p>}
           </div>
           <DialogFooter>
