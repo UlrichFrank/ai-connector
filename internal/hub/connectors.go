@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +30,25 @@ type ConnectorModels struct {
 	Chat     string `json:"chat"`
 }
 
+// ConnectorAgent is one of the AIs a connector offers vboard to chat with (docs/api.md "Connectors", agents): a
+// chat model answered with vboard's tools (kind model) or an agent that works on the board itself through vboard's
+// MCP server (kind agent: Claude Code). The first is the default (what a request that names none gets).
+type ConnectorAgent struct {
+	ID    string `json:"id"`    // stable: vboard's panel remembers the pick by it
+	Model string `json:"model"` // a catalogue id or name as in /v1/* ("" only in the default list: the default chat model)
+	Name  string `json:"name"`  // shown in vboard ("" = the model's name)
+	Kind  string `json:"kind"`  // model | agent (claude-code/* is an agent; set by the server)
+}
+
+// AdvertisedAgent is an agent as the connector offers it to vboard now (its model offered by a connected worker).
+type AdvertisedAgent struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Kind   string `json:"kind"`
+	Worker string `json:"worker,omitempty"` // where it would run (a guess, for vboard's panel)
+	Model  string `json:"model"`            // the catalogue id it runs on
+}
+
 // Connector is a connector as the API shows it: its settings (never the token) and its live state.
 type Connector struct {
 	ID      string          `json:"id"`
@@ -38,14 +58,17 @@ type Connector struct {
 	Board   string          `json:"board"`
 	Enabled bool            `json:"enabled"`
 	Models  ConnectorModels `json:"models"`
-	Owner   string          `json:"owner"` // the user of the device that made it (Device.User)
-	Created time.Time       `json:"created"`
+	// Agents: the chosen list in its order ([] = the default: the chat model alone)
+	Agents  []ConnectorAgent `json:"agents"`
+	Owner   string           `json:"owner"` // the user of the device that made it (Device.User)
+	Created time.Time        `json:"created"`
 	// state: connecting | connected | error | disabled; error: why (also while it retries); since: connected since;
-	// user: who the token belongs to, as vboard says
-	State string `json:"state"`
-	Error string `json:"error"`
-	Since string `json:"since,omitempty"`
-	User  string `json:"user"`
+	// user: who the token belongs to, as vboard says; advertised: the agents vboard was told of (while connected)
+	State      string            `json:"state"`
+	Error      string            `json:"error"`
+	Since      string            `json:"since,omitempty"`
+	User       string            `json:"user"`
+	Advertised []AdvertisedAgent `json:"advertised"`
 }
 
 // connectorDefaultName is the name (and what vboard shows as the local AI's name) when none is given.
@@ -53,24 +76,26 @@ const connectorDefaultName = "ai-connector"
 
 // storedConnector is a connector as it sits in connectors.json.
 type storedConnector struct {
-	ID      string          `json:"id"`
-	Kind    string          `json:"kind"`
-	Name    string          `json:"name"`
-	URL     string          `json:"url"`
-	Token   string          `json:"token"`
-	Board   string          `json:"board,omitempty"`
-	Enabled bool            `json:"enabled"`
-	Models  ConnectorModels `json:"models"`
-	Owner   string          `json:"owner"`
-	Created time.Time       `json:"created"`
+	ID      string           `json:"id"`
+	Kind    string           `json:"kind"`
+	Name    string           `json:"name"`
+	URL     string           `json:"url"`
+	Token   string           `json:"token"`
+	Board   string           `json:"board,omitempty"`
+	Enabled bool             `json:"enabled"`
+	Models  ConnectorModels  `json:"models"`
+	Agents  []ConnectorAgent `json:"agents,omitempty"`
+	Owner   string           `json:"owner"`
+	Created time.Time        `json:"created"`
 }
 
 // connectorStatus is what a connector's runner reports.
 type connectorStatus struct {
-	State string
-	Error string
-	User  string
-	Since time.Time
+	State      string
+	Error      string
+	User       string
+	Since      time.Time
+	Advertised []AdvertisedAgent
 }
 
 type connectorEntry struct {
@@ -181,7 +206,7 @@ func (m *connectors) report(id string, gen int, update func(st *connectorStatus)
 		if e.conf.ID == id && e.gen == gen && e.cancel != nil {
 			before := e.status
 			update(&e.status)
-			changed = e.status != before
+			changed = !reflect.DeepEqual(e.status, before)
 		}
 	}
 	m.mu.Unlock()
@@ -206,8 +231,9 @@ func (m *connectors) notify() {
 
 func (e *connectorEntry) view() Connector {
 	c := Connector{ID: e.conf.ID, Kind: e.conf.Kind, Name: e.conf.Name, URL: e.conf.URL, Board: e.conf.Board,
-		Enabled: e.conf.Enabled, Models: e.conf.Models, Owner: e.conf.Owner, Created: e.conf.Created,
-		State: e.status.State, Error: e.status.Error, User: e.status.User}
+		Enabled: e.conf.Enabled, Models: e.conf.Models, Agents: append([]ConnectorAgent{}, e.conf.Agents...), Owner: e.conf.Owner,
+		Created: e.conf.Created, State: e.status.State, Error: e.status.Error, User: e.status.User,
+		Advertised: append([]AdvertisedAgent{}, e.status.Advertised...)}
 	if c.State == "" {
 		c.State = "disabled"
 	}
@@ -298,6 +324,86 @@ func cleanModels(m ConnectorModels) ConnectorModels {
 	return ConnectorModels{Classify: strings.TrimSpace(m.Classify), Embed: strings.TrimSpace(m.Embed), Chat: strings.TrimSpace(m.Chat)}
 }
 
+// Agents: at most 20 (vboard keeps 20), ids and names of at most 80 characters (vboard's limits).
+const (
+	maxAgents    = 20
+	agentChars   = 80
+	agentDefault = "default" // the id of the default list's one entry
+	kindModel    = "model"
+	kindAgent    = "agent"
+)
+
+// agentKind: a claude-code model is an agent (it works on the board itself, through MCP), anything else a model.
+func agentKind(model string) string {
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), claudePrefix) {
+		return kindAgent
+	}
+	return kindModel
+}
+
+// agentID derives a stable id from a model id: lower-case letters, digits, ".", "-" and "_" (claude-code/haiku →
+// claude-code-haiku).
+func agentID(model string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(model)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '.', r == '-', r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteRune('-')
+		}
+	}
+	return trimRunes(strings.Trim(b.String(), "-"), agentChars)
+}
+
+// cleanAgents checks a chosen list: a model each (the id derived from it when none is given), ids unique, at most 20,
+// and the first a chat model (vboards before agents, search, and requests that name none use the first, with vboard's
+// tools). An empty list is the default.
+func cleanAgents(in []ConnectorAgent) ([]ConnectorAgent, error) {
+	if len(in) > maxAgents {
+		return nil, &connectorError{"agents", fmt.Sprintf("At most %d agents", maxAgents)}
+	}
+	out := make([]ConnectorAgent, 0, len(in))
+	seen := map[string]bool{}
+	for i, a := range in {
+		a.Model = strings.TrimSpace(a.Model)
+		if a.Model == "" || len(a.Model) > 200 || strings.ContainsAny(a.Model, " \t\r\n") {
+			return nil, &connectorError{"agents", fmt.Sprintf("Agent %d: choose a model", i+1)}
+		}
+		if a.ID = strings.TrimSpace(a.ID); a.ID == "" {
+			a.ID = agentID(a.Model)
+		}
+		ok := a.ID != "" && len([]rune(a.ID)) <= agentChars
+		for _, r := range a.ID {
+			ok = ok && !unicode.IsSpace(r) && unicode.IsPrint(r)
+		}
+		if !ok {
+			return nil, &connectorError{"agents", fmt.Sprintf("Agent %d: an id of at most %d characters without spaces", i+1, agentChars)}
+		}
+		if seen[a.ID] {
+			return nil, &connectorError{"agents", fmt.Sprintf("The id %q is there twice", a.ID)}
+		}
+		seen[a.ID] = true
+		a.Name = trimRunes(strings.TrimSpace(a.Name), agentChars)
+		a.Kind = agentKind(a.Model)
+		if i == 0 && a.Kind != kindModel {
+			return nil, &connectorError{"agents", "The first agent is the default, which older vboards and search ask with " +
+				"vboard's tools: it must be a chat model, not " + a.Model}
+		}
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+// agentList is what a connector offers: the chosen agents, else the chat model alone (models.chat or the server's
+// default; kind model whatever it is: that is how it answered before there were agents).
+func (c storedConnector) agentList() []ConnectorAgent {
+	if len(c.Agents) > 0 {
+		return c.Agents
+	}
+	return []ConnectorAgent{{ID: agentDefault, Model: c.Models.Chat, Kind: kindModel}}
+}
+
 func trimRunes(s string, n int) string {
 	if r := []rune(s); len(r) > n {
 		return string(r[:n])
@@ -337,6 +443,7 @@ func (s *Server) addConnector(w http.ResponseWriter, r *http.Request) {
 		Board   string           `json:"board"`
 		Enabled *bool            `json:"enabled"`
 		Models  *ConnectorModels `json:"models"`
+		Agents  []ConnectorAgent `json:"agents"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request", "message": err.Error()})
@@ -363,6 +470,10 @@ func (s *Server) addConnector(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Models != nil {
 		c.Models = cleanModels(*body.Models)
+	}
+	if c.Agents, err = cleanAgents(body.Agents); err != nil {
+		writeConnectorError(w, err)
+		return
 	}
 	m := s.connectors
 	m.mu.Lock()
@@ -394,6 +505,7 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 			Embed    *string `json:"embed"`
 			Chat     *string `json:"chat"`
 		} `json:"models"`
+		Agents *[]ConnectorAgent `json:"agents"` // replaces the list ([] = the default)
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request", "message": err.Error()})
@@ -439,6 +551,9 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 		set(&c.Models.Embed, bm.Embed)
 		set(&c.Models.Chat, bm.Chat)
 	}
+	if err == nil && body.Agents != nil {
+		c.Agents, err = cleanAgents(*body.Agents)
+	}
 	if err != nil {
 		m.mu.Unlock()
 		writeConnectorError(w, err)
@@ -453,7 +568,7 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// changed settings: dial again with them (a connector that stopped on an error tries again on any edit)
-	if c != before || e.status.State == "error" {
+	if !reflect.DeepEqual(c, before) || e.status.State == "error" {
 		m.startLocked(e)
 	}
 	v := e.view()

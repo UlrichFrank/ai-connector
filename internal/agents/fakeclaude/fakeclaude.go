@@ -137,6 +137,14 @@ func fakeClaude(args []string) int {
 				continue
 			}
 			answer = "ticked"
+		case strings.Contains(text, "sticky"): // works on a board through its vboard MCP server
+			send(map[string]any{"type": "assistant", "message": map[string]any{"id": "m1", "role": "assistant", "content": []any{
+				map[string]any{"type": "tool_use", "id": "toolu_v1", "name": "mcp__vboard__create_items",
+					"input": map[string]any{"items": []any{map[string]any{"type": "sticky", "data": map[string]any{"text": "hello", "color": "yellow"}}}}}}}})
+			send(map[string]any{"type": "user", "message": map[string]any{"role": "user", "content": []any{
+				map[string]any{"type": "tool_result", "tool_use_id": "toolu_v1", "content": `{"batchId":"bt_1"}`}}}})
+			message("m2", "Added a yellow ", "sticky.")
+			answer = "Added a yellow sticky."
 		case strings.Contains(text, "tool"):
 			message("m1", "Let me ", "look.")
 			send(map[string]any{"type": "assistant", "message": map[string]any{"id": "m1", "role": "assistant", "content": []any{
