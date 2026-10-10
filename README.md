@@ -61,6 +61,30 @@ for chunk in client.chat.completions.create(model="qwen3.6-35b-a3b", stream=True
 Thinking is off unless asked for (`reasoning_effort` other than `"none"`); the thought then streams as
 `reasoning_content`. `MLXLAB_EMBED_MODEL` and `MLXLAB_CLASSIFY_MODEL` set the server's default models.
 
+### vboard without vboard-ai
+
+vboard's "local AI" (classify, "Group by theme", the board chat with its tools) can come from the workers without
+anyone running vboard-ai. Two ways:
+
+1. **A connector** (the server dials vboard, as vboard-ai does): in vboard, *Set up AI* (a board's AI menu or the user
+   menu) → *Create token* (a personal token `vbp_…`, or a board token for one board). In the console, *Connectors* →
+   *Add vboard*: the vboard address, the token, optionally a board id (then everyone on that board uses it; the token
+   needs "Can edit" there) and the models (blank: the server's defaults, `MLXLAB_CLASSIFY_MODEL`,
+   `MLXLAB_EMBED_MODEL`, the first chat model a worker offers). The connector shows `connected` with the vboard user
+   the token belongs to. It tells vboard what the connected workers offer and says it again when that changes; chats
+   become jobs in a worker's queue (`client` "vboard: <name>"), classify and embed run beside the queue.
+   Or by API: `POST /api/connectors {"url":"https://vboard.example.com","token":"vbp_…"}` (docs/api.md, "Connectors").
+2. **Configuration only** (vboard's own server-side AI settings, no bridge): make a client token (*Clients*) and
+   point vboard's environment at this server — `EMBED_URL`/`EMBED_TOKEN` (TEI `/embed`), `CLASSIFIER_URL`/
+   `CLASSIFIER_TOKEN` (Laya `/v1/systemone`) and, for the board chat, vboard's cloud AI (`CLOUD_AI_PROVIDER=openai`,
+   `CLOUD_AI_BASE_URL=<server>/v1`, `CLOUD_AI_API_KEY`, `CLOUD_AI_MODEL`); the *Clients* page shows the snippet
+   filled in. That serves everybody on that vboard, and the chat runs as vboard's "cloud AI" (its consent rules
+   apply), not as a person's local AI.
+
+Compatibility: the connector speaks the bridge protocol of every vboard since the bridge exists — tested against
+each stage: `d508560` (classify), `0992b68` (+ embed), `f914d44` (+ chat with tools), `175647c` → today (+ handover on
+rolling updates, chat status). vboard is not changed for it.
+
 ### Console
 
 The server has two web apps: the **console** of ai-connector under `/console/` (`console/`, embedded from
