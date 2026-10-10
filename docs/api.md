@@ -883,7 +883,8 @@ which do not exist yet. Three new generator kinds — vboards that do not know t
   offered to boards); `languages`: what it speaks (`[]` = it detects); `instruct`: it takes how to say it ("warm,
   slow") (Qwen3-TTS). Request: `{"kind":"speech","generator"?,"text","voice"?,"language"?,"instruct"?}` — `text`
   required, at most `maxChars`; `voice` absent → the model's default for the language; a language the model does not
-  speak → the next speech generator that does, else `error`.
+  speak → the next speech generator that does, else `error`. The first `generateStatus` then names the one used
+  (`generator`, `name`), so the placeholder never shows a model that does not read it.
 
 **The file.** The worker writes WAV; the connector sends **`audio/mp4`** (AAC, 192 kbit/s stereo for music and sound,
 96 kbit/s mono for speech; `afconvert` on macOS, `ffmpeg` elsewhere) — a 3-minute song ≈ 4–5 MB instead of ≈ 35 MB.
@@ -891,8 +892,10 @@ No encoder → `audio/wav` when it is at most vboard's audio limit, else `error`
 be `audio/mp4` | `audio/wav`.
 **Status and done.** `generateStatus` as for the others (a song: tens of seconds to a few minutes; `step`/`total`
 where the model reports them); the first one carries `seconds` (the length that will be made) instead of
-`width`/`height`. `generateDone` has `seconds`, `seed`, `generator`, `took`, and for music `title` and `bpm` (when
-known).
+`width`/`height`. `generateDone` has `seconds`, `seed`, `generator`, `took`, `peaks`, and for music `title` and `bpm`
+(when known). `peaks`: the waveform, 256 numbers 0..1 — the maximum of the mono mix per slice of the length,
+computed from the WAV before it is encoded (vboard's backend has no decoder for AAC; uploads get theirs from the
+browser).
 **Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song
 unloads the built-in chat model first. Kokoro is small but runs in the same speech worker, which is one large runtime.
 
