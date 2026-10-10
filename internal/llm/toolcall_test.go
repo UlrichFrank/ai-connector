@@ -7,6 +7,7 @@ import (
 
 func TestParseToolCall(t *testing.T) {
 	tools := []Tool{
+		{Name: "list_items", Parameters: json.RawMessage(`{"type":"object","properties":{"limit":{"type":"number"},"type":{"type":"string"}}}`)},
 		{Name: "stack_items", Parameters: json.RawMessage(`{"type":"object","properties":{"ids":{"type":"array"},"gap":{"type":"number"},"label":{"type":"string"},"dry":{"type":"boolean"},"note":{"type":["string","null"]}}}`)},
 	}
 	for _, c := range []struct{ body, name, args string }{
@@ -22,6 +23,12 @@ func TestParseToolCall(t *testing.T) {
 		// an unknown tool: JSON values are read as JSON, the rest as text
 		{"<function=other>\n<parameter=n>\n3\n</parameter>\n<parameter=s>\nhello\n</parameter>\n</function>",
 			"other", `{"n":3,"s":"hello"}`},
+		// "<function=" missing (Qwen3.6, now and then): the bare name of a known tool on the first line
+		{"list_items\n<parameter=limit>\n1\n</parameter>\n</function>\n", "list_items", `{"limit":1}`},
+		{"stack_items\n<parameter=ids>\n[\"a\"]\n</parameter>\n<parameter=gap>\n3\n</parameter>\n</function>", "stack_items", `{"ids":["a"],"gap":3}`},
+		{"\nlist_items\n</function>\n", "list_items", `{}`},
+		{"stack_items>\n<parameter=ids>\n[\"a\"]\n</parameter>\n</function>", "stack_items", `{"ids":["a"]}`},
+		{"list_items", "list_items", `{}`},
 		// cut off before </function>
 		{"<function=stack_items>\n<parameter=gap>\n5\n</parameter>\n", "stack_items", `{"gap":5}`},
 		// Qwen3 JSON
@@ -37,7 +44,7 @@ func TestParseToolCall(t *testing.T) {
 			t.Errorf("%q: invalid JSON %s", c.body, args)
 		}
 	}
-	for _, bad := range []string{"", "no call", `{"arguments": {}}`} {
+	for _, bad := range []string{"", "no call", `{"arguments": {}}`, "unknown_tool\n<parameter=x>\n1\n</parameter>", "list_items is what I would call"} {
 		if _, _, ok := ParseToolCall(bad, tools); ok {
 			t.Errorf("%q parsed", bad)
 		}

@@ -11,12 +11,25 @@ var (
 	jsonObject = regexp.MustCompile(`(?s)\{.*\}`)
 	xmlFunc    = regexp.MustCompile(`(?s)<function=([^>\n]+)>(.*?)(?:</function>|$)`)
 	xmlParam   = regexp.MustCompile(`(?s)<parameter=([^>\n]+)>\n?(.*?)\n?</parameter>`)
+	// the XML call without "<function=" (Qwen3.6 writes it so now and then): the bare name on the first line (with
+	// or without its ">"), then the parameters (or nothing, or the closing tag)
+	bareFunc = regexp.MustCompile(`(?s)^\s*([A-Za-z_][A-Za-z0-9_.-]*)>?[ \t]*(?:\n(.*))?$`)
 )
 
 // ParseToolCall reads the body of a <tool_call> block: Qwen3's JSON ({"name": …, "arguments": {…}}) or Qwen3.5's
 // XML (<function=name><parameter=p>value</parameter></function>). The arguments come back as a JSON object; XML
 // values are typed by the tool's schema (a string stays a string, a number/array/object/boolean is read as JSON).
+//
+// A call whose "<function=" is missing ("<tool_call>list_items\n<parameter=type>…", also "create_items>\n…") is
+// read as that tool's when the name is one of the tools (any name when none are given) and only parameters or
+// "</function>" follow.
 func ParseToolCall(body string, tools []Tool) (name, args string, ok bool) {
+	if m := bareFunc.FindStringSubmatch(body); m != nil && !strings.Contains(body, "<function=") && knownTool(tools, m[1]) {
+		rest := strings.TrimSpace(m[2])
+		if rest == "" || strings.HasPrefix(rest, "<parameter=") || strings.HasPrefix(rest, "</function>") {
+			body = "<function=" + m[1] + ">\n" + m[2]
+		}
+	}
 	if m := xmlFunc.FindStringSubmatch(body); m != nil {
 		name = strings.TrimSpace(m[1])
 		types := paramTypes(tools, name)
@@ -52,6 +65,19 @@ func ParseToolCall(body string, tools []Tool) (name, args string, ok bool) {
 		args = "{}"
 	}
 	return c.Name, args, true
+}
+
+// knownTool says whether name is one of tools (true when there are none to check against).
+func knownTool(tools []Tool, name string) bool {
+	if len(tools) == 0 {
+		return true
+	}
+	for _, t := range tools {
+		if t.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // paramTypes maps a tool's parameters to their JSON-schema types.
