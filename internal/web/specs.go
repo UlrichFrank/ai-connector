@@ -88,6 +88,9 @@ func (s *Server) specs() Specs {
 func (s *Server) state(rt *route) WorkerState {
 	st := WorkerState{Loaded: map[string]string{}}
 	for _, j := range s.Jobs.Jobs() {
+		if j.Active() && s.Jobs.Beside(j) {
+			continue // a Claude Code turn does not keep the queue busy
+		}
 		switch j.State {
 		case jobs.Running:
 			id := rt.outID(j.ID)

@@ -116,7 +116,18 @@ func (rt *route) inPath(p string) string {
 	if rest, ok := strings.CutPrefix(p, "/files/"+rt.rid+"/"); ok {
 		return "/files/" + rest
 	}
+	if rest, ok := strings.CutPrefix(p, "/api/agents/sessions/"); ok { // a Claude Code session, like a job
+		return "/api/agents/sessions/" + rt.inID(rest)
+	}
 	return p
+}
+
+// isSession: a Claude Code session (agents.Info as JSON).
+func isSession(m map[string]any) bool {
+	_, id := m["id"].(string)
+	_, driver := m["driver"].(string)
+	_, used := m["lastUsed"]
+	return id && driver && used
 }
 
 // isJob: a job object (jobs.Job as JSON).
@@ -139,7 +150,7 @@ func (rt *route) out(v any) any {
 			x[i] = rt.out(x[i])
 		}
 	case map[string]any:
-		job := isJob(x)
+		job, session := isJob(x), isSession(x)
 		for k, e := range x {
 			x[k] = rt.out(e)
 		}
@@ -154,6 +165,12 @@ func (rt *route) out(v any) any {
 					req[k] = rt.outID(s)
 				}
 			}
+			if rt.id != "" {
+				x["worker"] = map[string]string{"id": rt.id, "name": rt.name}
+			}
+		}
+		if session {
+			x["id"] = rt.outID(x["id"].(string))
 			if rt.id != "" {
 				x["worker"] = map[string]string{"id": rt.id, "name": rt.name}
 			}
