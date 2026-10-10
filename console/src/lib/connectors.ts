@@ -1,5 +1,12 @@
 // The connector form (docs/api.md, "Connectors"). Pure: tested with `pnpm test` (src/lib/connectors.test.ts).
-import type { Connector, ConnectorInput, ConnectorState } from "../api/types.ts";
+import type { Connector, ConnectorAgent, ConnectorInput, ConnectorState } from "../api/types.ts";
+
+/** An agent of the form: the model, a name ("" the model's), its id (kept from the server, else derived). */
+export interface AgentRow {
+  id: string;
+  model: string;
+  name: string;
+}
 
 export interface ConnectorForm {
   name: string;
@@ -10,13 +17,83 @@ export interface ConnectorForm {
   classify: string;
   embed: string;
   chat: string;
+  /** The agents vboard's chat offers, in order ([] = the chat model alone). */
+  agents: AgentRow[];
 }
 
-export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "" };
+export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "", agents: [] };
 
 export function formOf(c: Connector): ConnectorForm {
-  return { name: c.name, url: c.url, token: "", board: c.board ?? "", classify: c.models?.classify ?? "", embed: c.models?.embed ?? "", chat: c.models?.chat ?? "" };
+  return {
+    name: c.name,
+    url: c.url,
+    token: "",
+    board: c.board ?? "",
+    classify: c.models?.classify ?? "",
+    embed: c.models?.embed ?? "",
+    chat: c.models?.chat ?? "",
+    agents: (c.agents ?? []).map((a) => ({ id: a.id, model: a.model, name: a.name ?? "" })),
+  };
 }
+
+// ---------- agents ----------
+
+/** At most this many (vboard keeps 20). */
+export const maxAgents = 20;
+
+/** A Claude Code model is an agent (it works on the board itself, through vboard's MCP); anything else a model. */
+export function agentKind(model: string): "model" | "agent" {
+  return model.trim().toLowerCase().startsWith("claude-code/") ? "agent" : "model";
+}
+
+/** The id the server derives from a model id (claude-code/haiku → claude-code-haiku). */
+export function agentId(model: string): string {
+  return model
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+/** The list with the model added at the end (an id not used yet; nothing when the model is there already). */
+export function addAgent(list: AgentRow[], model: string): AgentRow[] {
+  if (!model || list.some((a) => a.model === model) || list.length >= maxAgents) return list;
+  const base = agentId(model) || "agent";
+  let id = base;
+  for (let n = 2; list.some((a) => a.id === id); n++) id = `${base}-${n}`;
+  return [...list, { id, model, name: "" }];
+}
+
+/** The list with row i moved by d (-1 up, +1 down). */
+export function moveAgent(list: AgentRow[], i: number, d: number): AgentRow[] {
+  const j = i + d;
+  if (i < 0 || i >= list.length || j < 0 || j >= list.length) return list;
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
+export function removeAgent(list: AgentRow[], i: number): AgentRow[] {
+  return list.filter((_, k) => k !== i);
+}
+
+/** What is wrong with the list ("" fine), as the server checks it. */
+export function agentsProblem(list: AgentRow[]): string {
+  if (list.length > maxAgents) return `At most ${maxAgents} agents`;
+  if (list.length && agentKind(list[0].model) !== "model")
+    return "The first is the default, which older vboards and search ask with vboard's tools: it must be a chat model, not Claude Code";
+  const ids = new Set<string>();
+  for (const a of list) {
+    if (!a.model.trim()) return "Every agent needs a model";
+    const id = a.id.trim() || agentId(a.model);
+    if (ids.has(id)) return `The id “${id}” is there twice`;
+    ids.add(id);
+  }
+  return "";
+}
+
+const agentsBody = (list: AgentRow[]): ConnectorAgent[] => list.map((a) => ({ id: a.id.trim() || agentId(a.model), model: a.model.trim(), name: a.name.trim() }));
 
 /** "vboard.example.com/" → "https://vboard.example.com"; keeps an explicit http:// (a LAN vboard). */
 export function normalizeUrl(u: string): string {
@@ -49,6 +126,8 @@ export function validate(f: ConnectorForm, editing: boolean): Partial<Record<key
   const t = f.token.trim();
   if (!t && !editing) e.token = "A vboard token (vbp_…) is needed";
   else if (/\s/.test(t)) e.token = "A token has no spaces";
+  const a = agentsProblem(f.agents);
+  if (a) e.agents = a;
   return e;
 }
 
@@ -67,6 +146,7 @@ export function createBody(f: ConnectorForm): ConnectorInput {
   if (f.board.trim()) body.board = f.board.trim();
   const m = models(f);
   if (Object.keys(m).length) body.models = m;
+  if (f.agents.length) body.agents = agentsBody(f.agents);
   return body;
 }
 
@@ -83,6 +163,9 @@ export function patchBody(c: Connector, f: ConnectorForm): ConnectorInput {
   const before = c.models ?? {};
   if ((before.classify ?? "") !== f.classify || (before.embed ?? "") !== f.embed || (before.chat ?? "") !== f.chat)
     p.models = { classify: f.classify, embed: f.embed, chat: f.chat };
+  const agents = agentsBody(f.agents);
+  const was = (c.agents ?? []).map((a) => ({ id: a.id, model: a.model, name: a.name ?? "" }));
+  if (JSON.stringify(agents) !== JSON.stringify(was)) p.agents = agents; // [] = back to the default
   return p;
 }
 

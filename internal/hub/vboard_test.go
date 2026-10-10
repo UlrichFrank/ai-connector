@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,11 +32,41 @@ const (
 	stageClassify vbStage = iota // d508560: hello {type,name,device,model}; classify → answers | error
 	stageEmbed                   // 0992b68: + hello.embed; embed → vectors
 	stageChat                    // f914d44: + hello.chat; chat/chatCancel → chatDelta (text, thinking) / chatDone
-	stageHead                    // 175647c → HEAD: + hello.instance/handover, {reconnect}, chatDelta.status
+	stageHead                    // 175647c → main: + hello.instance/handover, {reconnect}, chatDelta.status
+	stageAgents                  // ai-agents (e5a7292c): + hello.agents, {type:"agents"}, chat.agent/context
 )
 
 func (s vbStage) String() string {
-	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "HEAD handover"}[s]
+	return [...]string{"d508560 classify", "0992b68 embed", "f914d44 chat", "main handover", "ai-agents"}[s]
+}
+
+// vbAgent is an agent entry as the ai-agents stage keeps it (api/bridge.go: id required, trimmed, at most 80
+// characters, unique; unknown kind → model; at most 20).
+type vbAgent struct{ ID, Name, Kind, Worker string }
+
+func vbAgents(raw []json.RawMessage) []vbAgent {
+	var out []vbAgent
+	seen := map[string]bool{}
+	for _, r := range raw {
+		var a vbAgent
+		if json.Unmarshal(r, &a) != nil {
+			continue
+		}
+		a.ID = trimTo(strings.TrimSpace(a.ID), 80)
+		if a.ID == "" || seen[a.ID] || len(out) == 20 {
+			continue
+		}
+		seen[a.ID] = true
+		if a.Kind != "agent" {
+			a.Kind = "model"
+		}
+		if a.Name == "" {
+			a.Name = a.ID
+		}
+		a.Name, a.Worker = trimTo(a.Name, 80), trimTo(a.Worker, 80)
+		out = append(out, a)
+	}
+	return out
 }
 
 // vbHello is a hello as the stage's server kept it (fields it does not know stay empty), trimmed as it trims.
@@ -87,6 +118,8 @@ type fakeBridge struct {
 	ended   chan struct{}
 	status  websocket.StatusCode // how it was closed (after ended)
 	rawErr  string               // the last chat error as sent (before vboard cuts it)
+	agents  []vbAgent            // ai-agents: hello.agents
+	updates chan []vbAgent       // ai-agents: {type:"agents"} as they come
 	n       int
 	nmu     sync.Mutex
 }
@@ -163,11 +196,16 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 		var h struct {
 			Type, Name, Device, Model, Embed, Chat, Instance string
 			Handover                                         bool
+			Agents                                           []json.RawMessage
 		}
 		err = errOr(err, json.Unmarshal(raw, &h))
 		typ, b.hello = h.Type, vbHello{Name: trimTo(h.Name, 80), Device: trimTo(h.Device, 20), Model: trimTo(h.Model, 60), Embed: trimTo(h.Embed, 80),
 			Chat: trimTo(h.Chat, 80), Instance: trimTo(h.Instance, 64), Handover: h.Handover}
+		if v.stage >= stageAgents {
+			b.agents = vbAgents(h.Agents)
+		}
 	}
+	b.updates = make(chan []vbAgent, 16)
 	if err != nil || typ != "hello" {
 		c.Close(websocket.StatusPolicyViolation, "hello expected")
 		return
@@ -210,8 +248,13 @@ func (v *fakeVboard) bridge(w http.ResponseWriter, r *http.Request) {
 			Answers []json.RawMessage `json:"answers"`
 			Vectors [][]float32       `json:"vectors"`
 			Message string            `json:"message"`
+			Agents  []json.RawMessage `json:"agents"`
 		}
 		if json.Unmarshal(raw, &m) != nil {
+			continue
+		}
+		if v.stage >= stageAgents && m.Type == "agents" {
+			b.updates <- vbAgents(m.Agents)
 			continue
 		}
 		if v.stage >= stageChat && b.chatMessage(m.Type, m.ID, raw) {
@@ -344,12 +387,20 @@ func (b *fakeBridge) ask(t *testing.T, typ, body string) vbResult {
 
 // chat starts a model round; its events arrive on the channel.
 func (b *fakeBridge) chat(messages, tools string) (string, chan vbChatEv) {
+	return b.chatWith(messages, tools, "")
+}
+
+// chatWith is a chat with more fields (ai-agents: `"agent":"…","context":{…}`).
+func (b *fakeBridge) chatWith(messages, tools, extra string) (string, chan vbChatEv) {
 	id := b.id()
 	ch := make(chan vbChatEv, 256)
 	b.chats.Store(id, ch)
 	msg := `{"type":"chat","id":"` + id + `","messages":` + messages
 	if tools != "" {
 		msg += `,"tools":` + tools
+	}
+	if extra != "" {
+		msg += "," + extra
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -575,7 +626,7 @@ func waitState(t *testing.T, base, device, id, state string) Connector {
 // Every protocol stage: the hello it reads, classify (order, Python JSON, one answer per state), embed, chat (thinking,
 // text, tool calls, the job's client), errors.
 func TestVboardStages(t *testing.T) {
-	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead} {
+	for _, stage := range []vbStage{stageClassify, stageEmbed, stageChat, stageHead, stageAgents} {
 		t.Run(stage.String(), func(t *testing.T) {
 			fastBridges(t)
 			_, base, device := vbHub(t)
@@ -602,8 +653,16 @@ func TestVboardStages(t *testing.T) {
 			if b.hello != want || b.board != "b_1" {
 				t.Fatalf("hello %+v (board %q), sent %s", b.hello, b.board, b.raw)
 			}
+			// ai-agents: the default list, the chat model alone (older stages ignore the field)
+			wantAgents := []vbAgent(nil)
+			if stage >= stageAgents {
+				wantAgents = []vbAgent{{ID: "default", Name: "Qwen3.6", Kind: "model", Worker: "Mac"}}
+			}
+			if !reflect.DeepEqual(b.agents, wantAgents) {
+				t.Fatalf("agents %+v, sent %s", b.agents, b.raw)
+			}
 			got := waitState(t, base, device, c.ID, "connected")
-			if got.User != "Anna" || got.Since == "" || got.Error != "" {
+			if got.User != "Anna" || got.Since == "" || got.Error != "" || len(got.Advertised) != 1 || got.Advertised[0].Model != "qwen3.6-35b-a3b" {
 				t.Fatalf("connected %+v", got)
 			}
 
@@ -685,7 +744,7 @@ func TestVboardChatStatusAndCancel(t *testing.T) {
 	_, base, device := vbHub(t)
 	_, wtok := enroll(t, base, device, "Mac")
 	mac := startVboardMac(t, base, wtok, "chat")
-	for _, stage := range []vbStage{stageChat, stageHead} {
+	for _, stage := range []vbStage{stageChat, stageHead, stageAgents} {
 		v := newFakeVboard(t, stage)
 		c := addConnector(t, base, device, `{"name":"Board AI","url":"`+v.srv.URL+`","token":"vbp_secret"}`)
 		b := v.next(t)
@@ -1210,20 +1269,22 @@ func TestVboardClaudeOwner(t *testing.T) {
 	}
 	bobChat.mu.Unlock()
 
-	// carol has no worker: the chat is an error that says so
+	// carol has no worker: Claude Code is not offered for her connector (it would only fail), so with nothing else to
+	// offer it does not dial
 	v = newFakeVboard(t, stageHead)
-	addConnector(t, base, carol, `{"name":"Carol AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
-	b = v.next(t)
-	_, ch := b.chat(`[{"role":"user","content":"hi"}]`, "")
-	if evs := until(t, ch); evs[len(evs)-1].Type != "error" || !strings.Contains(evs[len(evs)-1].Error, "Carol has no worker") {
-		t.Fatalf("carol: %+v", evs)
+	cc := addConnector(t, base, carol, `{"name":"Carol AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
+	waitFor(t, "carol's connector waits", func() bool {
+		return strings.Contains(connectorOf(t, base, carol, cc.ID).Error, "No connected worker offers")
+	})
+	if _, dials := v.count(); dials != 0 {
+		t.Fatalf("carol's connector dialled")
 	}
 
 	// a plain chat model of a connector carries no owner
 	v = newFakeVboard(t, stageHead)
 	addConnector(t, base, alice, `{"name":"Qwen AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"qwen3.6-35b-a3b"}}`)
 	b = v.next(t)
-	_, ch = b.chat(`[{"role":"user","content":"hi"}]`, "")
+	_, ch := b.chat(`[{"role":"user","content":"hi"}]`, "")
 	if evs := until(t, ch); evs[len(evs)-1].Type != "done" {
 		t.Fatalf("qwen: %+v", evs)
 	}

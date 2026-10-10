@@ -121,11 +121,13 @@ type Request struct {
 
 	// claude-code (Claude Code agents, claudecode.go; docs/api.md "Agents (Claude Code)"): Session is the
 	// conversation key (turns with the same owner and key share one long-running session; "" a one-off), Driver
-	// "json" (default) or "tty", MCP the MCP servers the session may use. Owner is set by the server only.
+	// "json" (default) or "tty", MCP the MCP servers the session may use. Owner is set by the server only. Fresh
+	// starts the Session's conversation anew (its running session is closed, nothing is resumed).
 	Session string      `json:"session,omitempty"`
 	Driver  string      `json:"driver,omitempty"`
 	MCP     []MCPServer `json:"mcp,omitempty"`
 	Owner   string      `json:"owner,omitempty"`
+	Fresh   bool        `json:"fresh,omitempty"`
 }
 
 // Option is one answer of a choice question.

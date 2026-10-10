@@ -186,6 +186,33 @@ func TestIdleCloseAndResume(t *testing.T) {
 	}
 }
 
+// Opening is sent only while the conversation is new here (no turn yet, nothing to resume); Fresh starts it anew.
+func TestOpeningAndFresh(t *testing.T) {
+	m, log := fakeManager(t)
+	o := Options{Key: "k", Opening: "history + one"}
+	if res, err := m.Turn(context.Background(), o, "one", nil); err != nil || res.Text != "echo: history + one" {
+		t.Fatalf("first turn %+v %v", res, err)
+	}
+	o.Opening = "history + two"
+	if res, _ := m.Turn(context.Background(), o, "two", nil); res.Text != "echo: two" {
+		t.Fatalf("second turn %q", res.Text)
+	}
+	// a resumed conversation (closed meanwhile) has its history: no opening either
+	m.Reap(time.Now().Add(time.Hour))
+	if res, _ := m.Turn(context.Background(), o, "three", nil); res.Text != "echo: three" {
+		t.Fatalf("resumed turn %q", res.Text)
+	}
+	// fresh: the running session is closed, nothing resumed, the opening is sent
+	o.Fresh, o.Opening = true, ""
+	if res, _ := m.Turn(context.Background(), o, "anew", nil); res.Text != "echo: anew" {
+		t.Fatalf("fresh turn %q", res.Text)
+	}
+	st := starts(t, log)
+	if len(st) != 3 || !strings.Contains(st[1], "resume=fake-") || !strings.HasSuffix(st[2], "resume= tools=Read(./**),Glob(./**),Grep(./**),WebSearch,WebFetch,TodoWrite") {
+		t.Fatalf("starts %v", st)
+	}
+}
+
 func TestOneOffAndStop(t *testing.T) {
 	m, log := fakeManager(t)
 	res, err := m.Turn(context.Background(), Options{}, "once", nil)

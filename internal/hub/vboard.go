@@ -2,6 +2,8 @@ package hub
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -56,14 +59,25 @@ const (
 	bridgePath       = "/api/v1/classifier/bridge"
 )
 
-// bridgeCaps are the models the connector answers with now (catalogue ids; "" = it cannot do that now).
-type bridgeCaps struct{ classify, embed, chat string }
+// bridgeCaps is what the connector answers with now: the models (catalogue ids; "" = it cannot do that now) and the
+// agents it offers (the first is the default; chat is its model, for vboards before agents).
+type bridgeCaps struct {
+	classify, embed, chat string
+	agents                []AdvertisedAgent
+}
 
-func (c bridgeCaps) empty() bool { return c == bridgeCaps{} }
+func (c bridgeCaps) empty() bool {
+	return c.classify == "" && c.embed == "" && c.chat == "" && len(c.agents) == 0
+}
+
+// sameHello: the hello's top-level fields are the same (vboards before agents learn only these, and only from hello).
+func (c bridgeCaps) sameHello(o bridgeCaps) bool {
+	return c.classify == o.classify && c.embed == o.embed && c.chat == o.chat
+}
 
 func (c bridgeCaps) String() string {
 	var parts []string
-	for _, p := range []struct{ k, v string }{{"classify", c.classify}, {"embed", c.embed}, {"chat", c.chat}} {
+	for _, p := range []struct{ k, v string }{{"classify", c.classify}, {"embed", c.embed}, {"chat", c.chat}, {"agents", agentIDs(c.agents)}} {
 		if p.v != "" {
 			parts = append(parts, p.k+" "+p.v)
 		}
@@ -74,10 +88,31 @@ func (c bridgeCaps) String() string {
 	return strings.Join(parts, ", ")
 }
 
-// connectorCaps resolves a connector's models against what the connected workers list now: the chosen model or the
-// server's default (MLXLAB_CLASSIFY_MODEL, MLXLAB_EMBED_MODEL; chat: the first chat model a worker lists that is not
-// Claude Code).
-func (s *Server) connectorCaps(ctx context.Context, want ConnectorModels) bridgeCaps {
+func agentIDs(as []AdvertisedAgent) string {
+	ids := make([]string, len(as))
+	for i, a := range as {
+		ids[i] = a.ID
+	}
+	return strings.Join(ids, " ")
+}
+
+// wireAgents is the agents list as vboard reads it (hello.agents, {type:"agents"}): id, name, kind, worker.
+func wireAgents(as []AdvertisedAgent) []map[string]string {
+	out := make([]map[string]string, len(as))
+	for i, a := range as {
+		out[i] = map[string]string{"id": a.ID, "name": a.Name, "kind": a.Kind}
+		if a.Worker != "" {
+			out[i]["worker"] = a.Worker
+		}
+	}
+	return out
+}
+
+// connectorCaps resolves a connector's models and agents against what the connected workers list now: the chosen
+// model or the server's default (MLXLAB_CLASSIFY_MODEL, MLXLAB_EMBED_MODEL; chat: the first chat model a worker lists
+// that is not Claude Code), and the agents whose model a connected worker offers — a claude-code one only while a
+// worker of the connector's owner with Claude Code is connected (it runs there, on their subscription).
+func (s *Server) connectorCaps(ctx context.Context, conf storedConnector) bridgeCaps {
 	routed, _ := s.fleet.pick(ctx)
 	models := fleetModels(routed)
 	find := func(name, kind string) string {
@@ -92,19 +127,70 @@ func (s *Server) connectorCaps(ctx context.Context, want ConnectorModels) bridge
 		}
 		return b
 	}
-	c := bridgeCaps{classify: find(or(want.Classify, s.cfg.ClassifyModel), "classify"), embed: find(or(want.Embed, s.cfg.EmbedModel), "embed")}
-	if want.Chat != "" {
-		c.chat = find(want.Chat, "chat")
-	} else {
-		for _, m := range models {
-			// not Claude Code: it uses its owner's subscription, so a connector uses it only when chosen
-			if m.Kind == "chat" && m.Backend != "claude-code" && !strings.HasPrefix(m.ID, claudePrefix) {
-				c.chat = m.ID
+	c := bridgeCaps{classify: find(or(conf.Models.Classify, s.cfg.ClassifyModel), "classify"), embed: find(or(conf.Models.Embed, s.cfg.EmbedModel), "embed")}
+	for _, a := range conf.agentList() {
+		if adv, ok := s.advertise(routed, models, conf, a); ok {
+			c.agents = append(c.agents, adv)
+		}
+	}
+	// the default must be a model (older vboards and search ask it with tools): when the first chosen one is not
+	// offered now, the first model that is takes its place
+	if len(c.agents) > 0 && c.agents[0].Kind != kindModel {
+		for i, a := range c.agents {
+			if a.Kind == kindModel {
+				c.agents = append(append([]AdvertisedAgent{a}, c.agents[:i]...), c.agents[i+1:]...)
 				break
 			}
 		}
 	}
+	if len(c.agents) > 0 && c.agents[0].Kind == kindModel {
+		c.chat = c.agents[0].Model
+	}
 	return c
+}
+
+// advertise is an agent as offered now (false: no connected worker can run it).
+func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConnector, a ConnectorAgent) (AdvertisedAgent, bool) {
+	var fm fleetModel
+	ok := false
+	if a.Model == "" { // the default chat model
+		for _, m := range models {
+			// not Claude Code: it uses its owner's subscription, so a connector uses it only when chosen
+			if m.Kind == "chat" && m.Backend != "claude-code" && !strings.HasPrefix(m.ID, claudePrefix) {
+				fm, ok = m, true
+				break
+			}
+		}
+	} else {
+		fm, ok = findModel(models, a.Model)
+	}
+	if !ok || fm.Kind != "chat" {
+		return AdvertisedAgent{}, false
+	}
+	kind := a.Kind
+	if kind == "" {
+		kind = kindModel
+	}
+	var n *node
+	if fm.Backend == "claude-code" || strings.HasPrefix(fm.ID, claudePrefix) {
+		if n, _ = s.claudeNode(conf.Owner, routed, "", viaConnector); n == nil {
+			return AdvertisedAgent{}, false
+		}
+		if len(conf.Agents) > 0 {
+			kind = kindAgent // chosen as an agent (a name that resolves to Claude Code, too)
+		}
+	} else if n, ok = choose(routed, s.fleet.primary(routed), fm.catalogModel, true, nil); !ok {
+		return AdvertisedAgent{}, false
+	}
+	name := a.Name
+	if name == "" {
+		name = fm.Name
+	}
+	if name == "" {
+		name = fm.ID
+	}
+	return AdvertisedAgent{ID: trimRunes(a.ID, agentChars), Name: trimRunes(name, agentChars), Kind: kind,
+		Worker: trimRunes(n.name, agentChars), Model: fm.ID}, true
 }
 
 // ---------- errors ----------
@@ -174,7 +260,14 @@ func (r *vboardRun) logf(format string, args ...any) {
 func (r *vboardRun) set(update func(st *connectorStatus)) { r.m.report(r.conf.ID, r.gen, update) }
 
 func (r *vboardRun) connecting(msg string) {
-	r.set(func(st *connectorStatus) { st.State, st.Error, st.Since = "connecting", msg, time.Time{} })
+	r.set(func(st *connectorStatus) {
+		st.State, st.Error, st.Since, st.Advertised = "connecting", msg, time.Time{}, nil
+	})
+}
+
+// advertised reports the agents vboard was told of.
+func (r *vboardRun) advertised(as []AdvertisedAgent) {
+	r.set(func(st *connectorStatus) { st.Advertised = append([]AdvertisedAgent(nil), as...) })
 }
 
 // run connects and serves until ctx ends or vboard refuses the connector for good. Lost connections and network
@@ -205,11 +298,12 @@ func (r *vboardRun) run(ctx context.Context) {
 					st.Since = time.Now()
 				}
 				st.State, st.Error, st.User = "connected", "", c.user
+				st.Advertised = append([]AdvertisedAgent(nil), c.capsNow().agents...)
 			})
 			if moved {
-				r.logf("moved to a new connection — answers %s", c.caps)
+				r.logf("moved to a new connection — answers %s", c.capsNow())
 			} else {
-				r.logf("connected to %s as %s — answers %s", r.conf.URL, c.user, c.caps)
+				r.logf("connected to %s as %s — answers %s", r.conf.URL, c.user, c.capsNow())
 			}
 			if next, err = r.serve(ctx, c); next != nil {
 				backoff = bridgeBackoffMin
@@ -225,7 +319,9 @@ func (r *vboardRun) run(ctx context.Context) {
 		}
 		if isBridgeFatal(err) {
 			r.logf("stopped: %v", err)
-			r.set(func(st *connectorStatus) { st.State, st.Error, st.Since = "error", err.Error(), time.Time{} })
+			r.set(func(st *connectorStatus) {
+				st.State, st.Error, st.Since, st.Advertised = "error", err.Error(), time.Time{}, nil
+			})
 			return
 		}
 		if served {
@@ -244,7 +340,7 @@ func (r *vboardRun) run(ctx context.Context) {
 func (r *vboardRun) waitCaps(ctx context.Context) (bridgeCaps, bool) {
 	for {
 		changed := r.s.fleet.Changed()
-		caps := r.s.connectorCaps(ctx, r.conf.Models)
+		caps := r.s.connectorCaps(ctx, r.conf)
 		if ctx.Err() != nil {
 			return caps, false
 		}
@@ -317,10 +413,36 @@ func (r *vboardRun) wsURL() (string, error) {
 // bridgeConn is one WebSocket to vboard.
 type bridgeConn struct {
 	ws   *websocket.Conn
-	caps bridgeCaps // what its hello said
-	user string     // welcome.user
+	user string // welcome.user
+
+	cmu  sync.Mutex
+	caps bridgeCaps // what its hello said, with the agents as last sent
 
 	wmu sync.Mutex
+}
+
+func (c *bridgeConn) capsNow() bridgeCaps {
+	c.cmu.Lock()
+	defer c.cmu.Unlock()
+	return c.caps
+}
+
+func (c *bridgeConn) setAgents(as []AdvertisedAgent) {
+	c.cmu.Lock()
+	c.caps.agents = as
+	c.cmu.Unlock()
+}
+
+// agent is the agent a request names ("" the default: the first).
+func (c *bridgeConn) agent(id string) (AdvertisedAgent, bool) {
+	c.cmu.Lock()
+	defer c.cmu.Unlock()
+	for i, a := range c.caps.agents {
+		if id == "" && i == 0 || id != "" && a.ID == id {
+			return a, true
+		}
+	}
+	return AdvertisedAgent{}, false
 }
 
 // dial opens a connection: the WebSocket, {hello} with what the workers offer, vboard's {welcome}.
@@ -341,10 +463,11 @@ func (r *vboardRun) dial(ctx context.Context, caps bridgeCaps) (*bridgeConn, err
 		return nil, err
 	}
 	ws.SetReadLimit(bridgeInbound)
-	// the caps are vboard's (bridge.go trimTo); instance + handover: this bridge understands {reconnect}
+	// the caps are vboard's (bridge.go trimTo); instance + handover: this bridge understands {reconnect}; agents: what
+	// a vboard that knows them lets the person pick (older ones ignore the field)
 	hello, _ := json.Marshal(map[string]any{"type": "hello", "name": trimRunes(r.conf.Name, 80), "device": bridgeDevice,
 		"model": trimRunes(caps.classify, 60), "embed": trimRunes(caps.embed, 80), "chat": trimRunes(caps.chat, 80),
-		"instance": r.instance, "handover": true})
+		"instance": r.instance, "handover": true, "agents": wireAgents(caps.agents)})
 	if err := ws.Write(ctx, websocket.MessageText, hello); err != nil {
 		ws.CloseNow()
 		return nil, err
@@ -454,6 +577,27 @@ type bridgeMsg struct {
 	Texts        []string          `json:"texts"`
 	Messages     []bridgeChatMsg   `json:"messages"`
 	Tools        []bridgeTool      `json:"tools"`
+	Agent        string            `json:"agent"`   // chat: the agent picked ("" the default)
+	Context      *bridgeContext    `json:"context"` // chat of an agent that works on the board itself
+}
+
+// bridgeContext is where an agent of kind "agent" works (vboard's chatContext): the board, the person, what they
+// selected and see.
+type bridgeContext struct {
+	BoardID   string   `json:"boardId"`
+	BoardName string   `json:"boardName"`
+	UserID    string   `json:"userId"`
+	UserName  string   `json:"userName"`
+	Role      string   `json:"role"`
+	Lang      string   `json:"lang"`
+	Selection []string `json:"selection"`
+	View      *struct {
+		X float64 `json:"x"`
+		Y float64 `json:"y"`
+		W float64 `json:"w"`
+		H float64 `json:"h"`
+	} `json:"view"`
+	Resume bool `json:"resume"`
 }
 
 type bridgeChatMsg struct {
@@ -610,8 +754,9 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 		case <-changed:
 		case <-tick.C:
 		}
-		caps := r.s.connectorCaps(cctx, r.conf.Models)
-		if cctx.Err() != nil || caps == c.caps {
+		caps := r.s.connectorCaps(cctx, r.conf)
+		cur := c.capsNow()
+		if cctx.Err() != nil || caps.sameHello(cur) && reflect.DeepEqual(caps.agents, cur.agents) {
 			continue
 		}
 		if caps.empty() {
@@ -619,7 +764,16 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 			stop(false)
 			return nil, errNothingOffered
 		}
-		handover(fmt.Sprintf("the workers offer %s now (was %s)", caps, c.caps))
+		if !caps.sameHello(cur) {
+			// older vboards learn the models only from hello: a new connection (whose hello has the agents too)
+			handover(fmt.Sprintf("the workers offer %s now (was %s)", caps, cur))
+			continue
+		}
+		// only the agents changed: a vboard that knows them takes the new list on this connection (older ones ignore it)
+		c.setAgents(caps.agents)
+		c.send("", map[string]any{"type": "agents", "agents": wireAgents(caps.agents)})
+		r.advertised(caps.agents)
+		r.logf("agents now: %s (was %s)", agentIDs(caps.agents), agentIDs(cur.agents))
 	}
 }
 
@@ -628,7 +782,7 @@ func (r *vboardRun) serve(ctx context.Context, c *bridgeConn) (*bridgeConn, erro
 func (r *vboardRun) handoverDial(ctx context.Context) *bridgeConn {
 	pause := bridgeBackoffMin
 	for {
-		caps := r.s.connectorCaps(ctx, r.conf.Models)
+		caps := r.s.connectorCaps(ctx, r.conf)
 		if ctx.Err() != nil || caps.empty() {
 			return nil
 		}
@@ -660,9 +814,9 @@ func (r *vboardRun) answer(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	var err error
 	switch m.Type {
 	case "classify":
-		out, err = r.classify(ctx, c.caps, m)
+		out, err = r.classify(ctx, c.capsNow(), m)
 	case "embed":
-		out, err = r.embed(ctx, c.caps, m)
+		out, err = r.embed(ctx, c.capsNow(), m)
 	default:
 		err = fmt.Errorf("unknown request %q", m.Type)
 	}
@@ -851,9 +1005,13 @@ func bridgeChatJob(m *bridgeMsg) (map[string]any, error) {
 }
 
 // chat answers a {chat} with a chat job: {chatDelta, text} as the answer streams, {chatDelta, thinking:true} once when
-// the model thinks (the thought itself stays here), {chatDelta, status} while the job waits or its model loads, then
-// {chatDone, content, toolCalls} — or {error}. Nothing is sent when it is canceled ({chatCancel}, the connection or the
-// connector stopped): the job is canceled on the worker.
+// the model thinks (the thought itself stays here), {chatDelta, status} while the job waits or its model loads (and,
+// for an agent, for its tool calls), then {chatDone, content, toolCalls} — or {error}. Nothing is sent when it is
+// canceled ({chatCancel}, the connection or the connector stopped): the job is canceled on the worker.
+//
+// The request's agent (none: the default, the first) picks the model. A model (kind model) gets vboard's messages and
+// tools and returns its calls; an agent (kind agent, or a request with context) works on the board itself through
+// vboard's MCP server in a long-running Claude Code session of its own (agentJob) and returns no calls.
 func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	start := time.Now()
 	id := m.ID
@@ -872,17 +1030,29 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		r.logf("chat %s failed: %s", id, err)
 		send(map[string]any{"type": "error", "message": err})
 	}
-	if c.caps.chat == "" {
+	a, ok := c.agent(m.Agent)
+	switch {
+	case !ok && m.Agent == "":
 		fail("this connector cannot chat now: no connected worker offers a chat model")
 		return
+	case !ok:
+		fail(fmt.Sprintf("%q is not available now: no connected worker offers it", m.Agent))
+		return
 	}
-	job, err := bridgeChatJob(m)
+	asAgent := a.Kind == kindAgent || m.Context != nil
+	var job map[string]any
+	var err error
+	if asAgent {
+		job, err = r.agentJob(m)
+	} else {
+		job, err = bridgeChatJob(m)
+	}
 	if err != nil {
 		fail(err.Error())
 		return
 	}
 	// a claude-code model runs on the connector's owner's worker, with them as the job's owner (placeChat)
-	run, e := r.s.placeChat(ctx, c.caps.chat, chatFor{r.conf.Owner, viaConnector})
+	run, e := r.s.placeChat(ctx, a.Model, chatFor{r.conf.Owner, viaConnector})
 	if e != nil {
 		fail(e.message)
 		return
@@ -906,7 +1076,9 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 		content.WriteString(s)
 		send(map[string]any{"type": "chatDelta", "text": s})
 	}}
-	j, e := run.run(ctx, events, job, chatHooks{
+	toolsSeen := map[string]bool{}
+	var used []string
+	hooks := chatHooks{
 		text: sp.write,
 		tick: func(state string) {
 			quiet := time.Since(last) >= bridgeKeepAlive
@@ -924,13 +1096,35 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 				if state == "queued" {
 					st = "Waiting for " + n.name + " (queued)"
 				}
+				if len(used) > 0 { // an agent's tool call says more than "running": kept, repeated only to keep vboard waiting
+					st = status
+				}
 				if st != status || quiet {
 					status = st
 					send(map[string]any{"type": "chatDelta", "status": trimRunes(st, bridgeErrorChars)})
 				}
 			}
 		},
-	})
+	}
+	if asAgent {
+		// the agent's tool calls as status lines ("create_items …"), one per call as it starts
+		hooks.event = func(typ, text string, data map[string]any) {
+			if typ != "tool" {
+				return
+			}
+			tid, _ := data["id"].(string)
+			name, _ := data["name"].(string)
+			if tid == "" || name == "" || toolsSeen[tid] {
+				return
+			}
+			toolsSeen[tid] = true
+			line := toolStatus(name, data)
+			used = append(used, line)
+			status = line
+			send(map[string]any{"type": "chatDelta", "status": line})
+		}
+	}
+	j, e := run.run(ctx, events, job, hooks)
 	if e != nil {
 		fail(e.message)
 		return
@@ -942,18 +1136,164 @@ func (r *vboardRun) chat(ctx context.Context, c *bridgeConn, m *bridgeMsg) {
 	}
 	calls := make([]map[string]string, 0, len(j.Result.ToolCalls))
 	names := make([]string, 0, len(j.Result.ToolCalls))
-	for _, tc := range j.Result.ToolCalls {
-		args := tc.Arguments
-		if strings.TrimSpace(args) == "" {
-			args = "{}"
+	if !asAgent { // an agent changed the board itself: no calls for vboard to run
+		for _, tc := range j.Result.ToolCalls {
+			args := tc.Arguments
+			if strings.TrimSpace(args) == "" {
+				args = "{}"
+			}
+			calls = append(calls, map[string]string{"id": tc.ID, "name": tc.Name, "arguments": args})
+			names = append(names, tc.Name)
 		}
-		calls = append(calls, map[string]string{"id": tc.ID, "name": tc.Name, "arguments": args})
-		names = append(names, tc.Name)
 	}
-	line := fmt.Sprintf("chat %s: answered in %.1f s on %s", id, time.Since(start).Seconds(), n.name)
+	line := fmt.Sprintf("chat %s (%s): answered in %.1f s on %s", id, a.ID, time.Since(start).Seconds(), n.name)
 	if len(names) > 0 {
 		line += " → " + strings.Join(names, ", ")
 	}
+	if len(used) > 0 {
+		line += " after " + strings.Join(used, ", ")
+	}
 	r.logf("%s", line)
 	send(map[string]any{"type": "chatDone", "content": content.String(), "toolCalls": calls})
+}
+
+// toolStatus is the status line of an agent's tool call: the tool's own name (mcp__vboard__create_items →
+// create_items …); a built-in tool with what it works on, short (WebSearch <query> …).
+func toolStatus(name string, data map[string]any) string {
+	if rest, ok := strings.CutPrefix(name, "mcp__"); ok {
+		if _, tool, ok := strings.Cut(rest, "__"); ok {
+			return trimRunes(tool, 100) + " …" // its summary would be the arguments' JSON
+		}
+	}
+	line := name + " …"
+	if s, _ := data["summary"].(string); strings.TrimSpace(s) != "" && !strings.HasPrefix(s, "{") {
+		line = name + " " + trimRunes(strings.Join(strings.Fields(s), " "), 60) + " …"
+	}
+	return trimRunes(line, 120)
+}
+
+// agentJob is the Claude Code job of an agent's {chat}: one turn in a long-running session per conversation (see
+// agentSession), with vboard's MCP server (the connector's token, bound to the board) as its only MCP server, the
+// board and the person in its system prompt, and only the newest message as the turn (the session has the history;
+// a session new on the worker gets the history as a transcript first, engine claudePrompt). What the person selected
+// and sees changes from turn to turn, so it is said in front of the message, not in the system prompt (which a
+// running session read when it started).
+func (r *vboardRun) agentJob(m *bridgeMsg) (map[string]any, error) {
+	if len(m.Messages) == 0 {
+		return nil, errors.New("the chat has no messages")
+	}
+	cx := bridgeContext{}
+	if m.Context != nil {
+		cx = *m.Context
+	}
+	board := cx.BoardID
+	if board == "" {
+		board = r.conf.Board
+	}
+	var system []string
+	var msgs []map[string]any
+	first, answered, lastUser := "", false, -1
+	for i, x := range m.Messages {
+		switch x.Role {
+		case "system":
+			system = append(system, x.Content)
+		case "user":
+			if first == "" {
+				first = x.Content
+			}
+			lastUser = len(msgs)
+			msgs = append(msgs, map[string]any{"role": "user", "content": x.Content})
+		case "assistant":
+			answered = true
+			msgs = append(msgs, map[string]any{"role": "assistant", "content": x.Content})
+		case "tool": // a model's tool turns: not an agent's
+		default:
+			return nil, fmt.Errorf("messages[%d]: unknown role %q", i, x.Role)
+		}
+	}
+	if lastUser < 0 {
+		return nil, errors.New("the chat has no message of the person")
+	}
+	if note := turnNote(cx); note != "" {
+		msgs[lastUser]["content"] = note + "\n\n" + msgs[lastUser]["content"].(string)
+	}
+	system = append(system, agentSystem(cx, board))
+	all := append([]map[string]any{{"role": "system", "content": strings.Join(system, "\n\n")}}, msgs...)
+	mcpURL := r.conf.URL + "/mcp"
+	if board != "" {
+		mcpURL += "?board=" + url.QueryEscape(board) // vboard's MCP: the tools default to this board
+	}
+	return map[string]any{
+		"messages": all,
+		"think":    false,
+		"session":  agentSession(r.conf.ID, cx.UserID, board, first),
+		// a new conversation (nothing answered yet; not the "Continue" of a broken-off first answer) starts anew, even
+		// when an earlier one began with the same words
+		"fresh": !answered && !cx.Resume,
+		"mcp": []map[string]any{{"name": "vboard", "url": mcpURL,
+			"headers": map[string]string{"Authorization": "Bearer " + r.conf.Token}}},
+	}, nil
+}
+
+// agentSession is the conversation key of an agent's chat: the connector, the person, the board and the
+// conversation — vboard sends the whole conversation (its last 40 messages) every turn but no id for it, so its first
+// message stands for it. Follow-up turns of a conversation land in its warm session; another conversation, board or
+// person gets another one. When vboard's window drops the first message (long chats), the key changes: a new session
+// that gets the remaining history as a transcript.
+func agentSession(connector, user, board, first string) string {
+	h := sha256.Sum256([]byte(first))
+	return "vboard:" + connector + ":" + user + ":" + board + ":" + hex.EncodeToString(h[:6])
+}
+
+// agentSystem is what the connector adds to vboard's system message for an agent: how it reaches the board.
+func agentSystem(cx bridgeContext, board string) string {
+	var b strings.Builder
+	b.WriteString("You reach vboard through the MCP server \"vboard\" (tools mcp__vboard__…); its tools act as ")
+	if cx.UserName != "" {
+		b.WriteString(cx.UserName)
+	} else {
+		b.WriteString("the person you work for")
+	}
+	if cx.Role != "" {
+		fmt.Fprintf(&b, " (role on the board: %s)", cx.Role)
+	}
+	b.WriteString(", with their permissions. ")
+	if board != "" {
+		name := ""
+		if cx.BoardName != "" {
+			name = fmt.Sprintf(" %q", cx.BoardName)
+		}
+		fmt.Fprintf(&b, "This conversation is about the board%s (id %s): the tools default to it; pass boardId %q where a tool takes one. ", name, board, board)
+	}
+	b.WriteString("Read and change the board only with the vboard tools, and say only what you did. ")
+	lang := "the language of the person's message"
+	switch strings.ToLower(cx.Lang) {
+	case "de":
+		lang = "German unless the person writes in another language"
+	case "en":
+		lang = "English unless the person writes in another language"
+	}
+	fmt.Fprintf(&b, "Answer briefly in %s (Markdown allowed).", lang)
+	return b.String()
+}
+
+// turnNote is what vboard's context says about this turn (the selection, the view, a broken-off answer), in front of
+// the person's message.
+func turnNote(cx bridgeContext) string {
+	if cx.BoardID == "" && len(cx.Selection) == 0 && cx.View == nil && !cx.Resume {
+		return ""
+	}
+	var parts []string
+	if len(cx.Selection) > 0 {
+		parts = append(parts, fmt.Sprintf("selected item(s): %s", strings.Join(cx.Selection, ", ")))
+	} else {
+		parts = append(parts, "nothing is selected")
+	}
+	if v := cx.View; v != nil {
+		parts = append(parts, fmt.Sprintf("the person sees x %.0f, y %.0f, %.0f × %.0f px", v.X, v.Y, v.W, v.H))
+	}
+	if cx.Resume {
+		parts = append(parts, "your previous answer to this message broke off: the board may already hold part of it — do only what is still missing")
+	}
+	return "[vboard, now: " + strings.Join(parts, "; ") + "]"
 }

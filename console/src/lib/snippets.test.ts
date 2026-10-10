@@ -65,4 +65,7 @@ test("pickModel: the first of the kind, else the fallback", () => {
   assert.equal(pickModel(ms, "chat", "x"), "c1");
   assert.equal(pickModel(ms, "embed", "x"), "e1");
   assert.equal(pickModel([], "chat", "x"), "x");
+  // Claude Code only when there is no other chat model
+  assert.equal(pickModel([{ id: "claude-code/sonnet", kind: "chat" }, ...ms], "chat", "x"), "c1");
+  assert.equal(pickModel([{ id: "claude-code/sonnet", kind: "chat" }], "chat", "x"), "claude-code/sonnet");
 });

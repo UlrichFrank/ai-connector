@@ -108,7 +108,11 @@ export function snippets(i: SnippetInput): Snippet[] {
   ];
 }
 
-/** The model a snippet should name: the first of that kind the server lists, else the default. */
+/**
+ * The model a snippet should name: the first of that kind the server lists — for chat one that is not Claude Code (it
+ * runs only for its owner, on their subscription), unless there is nothing else — else the default.
+ */
 export function pickModel(models: { id: string; kind: string }[], kind: "chat" | "embed", fallback: string): string {
-  return models.find((m) => m.kind === kind)?.id ?? fallback;
+  const of = models.filter((m) => m.kind === kind);
+  return (of.find((m) => !m.id.startsWith("claude-code/")) ?? of[0])?.id ?? fallback;
 }

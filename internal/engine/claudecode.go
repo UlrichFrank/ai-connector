@@ -82,14 +82,14 @@ func (b *ClaudeCodeBackend) Run(ctx context.Context, m *Model, r Request, _ stri
 	if r.Zone != "" {
 		return fmt.Errorf("Claude Code brings its own tools: no zone (%s)", r.Zone)
 	}
-	prompt, system := claudePrompt(r)
+	prompt, opening, system := claudePrompt(r)
 	if strings.TrimSpace(prompt) == "" {
 		return fmt.Errorf("no message")
 	}
 	emit.Status("starting Claude Code …")
 	tools := map[string]map[string]any{}
 	res, err := b.Agents.Turn(ctx, agents.Options{Key: r.Session, Owner: r.Owner, Model: alias, Driver: r.Driver, MCP: r.MCP,
-		System: system}, prompt, func(e agents.Event) {
+		System: system, Fresh: r.Fresh, Opening: opening}, prompt, func(e agents.Event) {
 		switch e.Type {
 		case "text":
 			emit(Event{Type: "text", Text: e.Text})
@@ -145,9 +145,10 @@ func (b *ClaudeCodeBackend) Run(ctx context.Context, m *Model, r Request, _ stri
 }
 
 // claudePrompt is what a turn sends: the last user message. A session keeps its own history, so the earlier
-// messages are not sent again; a one-off turn (no session) gets them as a transcript in front. System messages
-// become the session's appended system prompt (read when it starts).
-func claudePrompt(r Request) (prompt, system string) {
+// messages are not sent again; a one-off turn (no session) gets them as a transcript in front, and so does the
+// first turn of a session that is new on the worker (opening: the prompt then, "" when there is no history).
+// System messages become the session's appended system prompt (read when it starts).
+func claudePrompt(r Request) (prompt, opening, system string) {
 	var sys []string
 	var turns []llm.Message
 	for _, m := range r.Messages {
@@ -159,17 +160,17 @@ func claudePrompt(r Request) (prompt, system string) {
 	}
 	system = strings.Join(sys, "\n\n")
 	if len(turns) == 0 {
-		return r.Prompt, system
+		return r.Prompt, "", system
 	}
 	last := len(turns) - 1
 	for last >= 0 && turns[last].Role != "user" {
 		last--
 	}
 	if last < 0 {
-		return "", system
+		return "", "", system
 	}
 	prompt = turns[last].Content
-	if r.Session == "" && last > 0 {
+	if last > 0 {
 		var b strings.Builder
 		b.WriteString("The conversation so far:\n\n")
 		for _, m := range turns[:last] {
@@ -177,7 +178,10 @@ func claudePrompt(r Request) (prompt, system string) {
 		}
 		b.WriteString("Now answer this message:\n\n")
 		b.WriteString(prompt)
-		prompt = b.String()
+		if r.Session == "" {
+			return b.String(), "", system
+		}
+		opening = b.String()
 	}
-	return prompt, system
+	return prompt, opening, system
 }

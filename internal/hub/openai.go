@@ -321,6 +321,8 @@ type chatHooks struct {
 	text func(string)
 	// tick: every chatPoll while the job waits or runs, with its state as last heard ("queued", "running")
 	tick func(state string)
+	// event: every other event of the job as it comes (status, tool …; may be missed when events are dropped)
+	event func(typ, text string, data map[string]any)
 }
 
 // run submits the job to the worker and follows it to its end; it returns the job as the worker has it then. When
@@ -346,7 +348,7 @@ func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]
 			h.text(s)
 		}
 	}
-	j, err := c.follow(ctx, events, onText, h.tick)
+	j, err := c.follow(ctx, events, onText, h.tick, h.event)
 	if err != nil {
 		if ctx.Err() != nil {
 			c.cancel()
@@ -367,8 +369,9 @@ func (c *chatRun) run(ctx context.Context, events <-chan []byte, job map[string]
 }
 
 // follow waits for the job's end, passing its text on as it streams (onText) and calling tick every chatPoll with the
-// job's state as last heard. It returns the job as the worker has it then.
-func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(string), tick func(string)) (*chatJob, error) {
+// job's state as last heard, and onEvent (if any) with its other events. It returns the job as the worker has it then.
+func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(string), tick func(string),
+	onEvent func(typ, text string, data map[string]any)) (*chatJob, error) {
 	key := []byte(`"jobId":"` + c.id + `"`)
 	poll := time.NewTicker(chatPoll)
 	defer poll.Stop()
@@ -388,8 +391,9 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 					State string `json:"state"`
 				} `json:"job"`
 				Event *struct {
-					Type string `json:"type"`
-					Text string `json:"text"`
+					Type string         `json:"type"`
+					Text string         `json:"text"`
+					Data map[string]any `json:"data"`
 				} `json:"event"`
 			}
 			if json.Unmarshal(data, &u) != nil || u.JobID != c.id {
@@ -397,6 +401,8 @@ func (c *chatRun) follow(ctx context.Context, events <-chan []byte, onText func(
 			}
 			if u.Event != nil && u.Event.Type == "text" && onText != nil {
 				onText(u.Event.Text)
+			} else if u.Event != nil && onEvent != nil {
+				onEvent(u.Event.Type, u.Event.Text, u.Event.Data)
 			}
 			if u.Job != nil && u.Job.State != "" {
 				state = u.Job.State

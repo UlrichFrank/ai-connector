@@ -109,7 +109,12 @@ func (cs *clients) list() []Client {
 	for _, s := range cs.byHash {
 		out = append(out, s.Client)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Created.Before(out[j].Created) })
+	sort.Slice(out, func(i, j int) bool { // made in the same second: by id, so the order stays
+		if !out[i].Created.Equal(out[j].Created) {
+			return out[i].Created.Before(out[j].Created)
+		}
+		return out[i].ID < out[j].ID
+	})
 	return out
 }
 
@@ -131,7 +136,12 @@ func (cs *clients) saveLocked() error {
 	for _, s := range cs.byHash {
 		list = append(list, s)
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Created.Before(list[j].Created) })
+	sort.Slice(list, func(i, j int) bool {
+		if !list[i].Created.Equal(list[j].Created) {
+			return list[i].Created.Before(list[j].Created)
+		}
+		return list[i].ID < list[j].ID
+	})
 	return writeFileAtomic(cs.path, list)
 }
 
