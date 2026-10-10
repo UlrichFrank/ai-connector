@@ -70,8 +70,8 @@ the workers should run web-search chats at a time.
 
 `mlxlab tui [--server https://mlxlab.example.org]` — a client of the hub API (`internal/client`). The first time it
 asks for the password and keeps the device token in `~/.config/mlxlab/client.json`
-(`{"server":"…","token":"…"}`). `mlxlab tui --server http://127.0.0.1:8484` works against `mlxlab serve`
-(no sign-in needed there).
+(`{"server":"…","token":"…"}`). The server is `--server`, else the saved one, else `$MLXLAB_SERVER`; there is no
+built-in default. `mlxlab tui --server http://127.0.0.1:8484` works against `mlxlab serve` (no sign-in needed there).
 
 ## Connecting a Mac from the web UI (like vboard's local AI)
 

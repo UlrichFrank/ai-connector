@@ -259,8 +259,12 @@ build_vboard() {
   (cd "$VBOARD_SRC/frontend" && pnpm install --frozen-lockfile && pnpm build) >"$LOGS/build-vboard.log" 2>&1 ||
     { tail -30 "$LOGS/build-vboard.log"; die "vboard web app build failed (log: $LOGS/build-vboard.log)"; }
   mkdir -p "$VB_DIR/bin"
+  # the version package's import path comes from vboard's own go.mod
+  local mod
+  mod="$(go -C "$VBOARD_SRC/backend" list -m 2>>"$LOGS/build-vboard.log")" && [[ -n "$mod" ]] ||
+    { tail -30 "$LOGS/build-vboard.log"; die "vboard: no Go module in $VBOARD_SRC/backend (log: $LOGS/build-vboard.log)"; }
   CGO_ENABLED=0 go -C "$VBOARD_SRC/backend" build -trimpath -buildvcs=false \
-    -ldflags "-X vboard/backend/internal/version.Version=local -X vboard/backend/internal/version.Commit=$v" \
+    -ldflags "-X $mod/internal/version.Version=local -X $mod/internal/version.Commit=$v" \
     -o "$VB_BIN" ./cmd/vboard >>"$LOGS/build-vboard.log" 2>&1 ||
     { tail -30 "$LOGS/build-vboard.log"; die "vboard build failed (log: $LOGS/build-vboard.log)"; }
   # the web app copied next to the binary: a later build in the checkout does not change the running one

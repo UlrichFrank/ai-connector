@@ -21,8 +21,8 @@ import (
 	"github.com/philipparndt/ai-connector/internal/jobs"
 )
 
-// DefaultServer is the hub.
-const DefaultServer = "https://mlxlab.example.org"
+// ServerEnv names the server when neither --server nor the saved config does (there is no built-in default).
+const ServerEnv = "MLXLAB_SERVER"
 
 var (
 	// ErrSignIn: the server wants a device token (none was sent, or it was revoked).
@@ -47,7 +47,7 @@ type Client struct {
 	idle  time.Duration // a stream without a byte for this long is dead (the worker pings every 15 s)
 }
 
-// New makes a client for a server ("https://mlxlab.example.org", "http://127.0.0.1:8484").
+// New makes a client for a server ("https://ai.example.org", "http://127.0.0.1:8484").
 func New(server, token string) *Client {
 	return &Client{Server: strings.TrimRight(server, "/"), Token: token, HTTP: &http.Client{}, retry: time.Second,
 		idle: 45 * time.Second}

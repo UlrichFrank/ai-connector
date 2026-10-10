@@ -15,11 +15,11 @@ import (
 	"github.com/philipparndt/ai-connector/internal/client"
 )
 
-// Main is `mlxlab tui [--server URL]`: it signs in at the hub if it has to (the token is kept in
+// Main is `mlxlab tui [--server URL]`: the server is --server, else the last one, else $MLXLAB_SERVER. It signs in at the hub if it has to (the token is kept in
 // ~/.config/mlxlab/client.json) and runs the TUI over the API.
 func Main(args []string) error {
 	fs := flag.NewFlagSet("mlxlab tui", flag.ContinueOnError)
-	server := fs.String("server", "", "the hub, or `mlxlab serve` at http://127.0.0.1:8484 (default: the last one, else "+client.DefaultServer+")")
+	server := fs.String("server", "", "the hub (e.g. https://ai.example.org), or `mlxlab serve` at http://127.0.0.1:8484 (default: the last one, else $"+client.ServerEnv+")")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -32,7 +32,10 @@ func Main(args []string) error {
 		s = strings.TrimRight(cfg.Server, "/")
 	}
 	if s == "" {
-		s = client.DefaultServer
+		s = strings.TrimRight(strings.TrimSpace(os.Getenv(client.ServerEnv)), "/")
+	}
+	if s == "" {
+		return fmt.Errorf("no server: start with --server URL (e.g. --server https://ai.example.org, or http://127.0.0.1:8484 for `mlxlab serve`) or set %s; it is remembered in %s after the sign-in", client.ServerEnv, client.ConfigPath())
 	}
 	token := ""
 	if strings.TrimRight(cfg.Server, "/") == s {

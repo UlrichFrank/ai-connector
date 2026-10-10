@@ -219,7 +219,8 @@ cache.
 ## TUI
 
 `mlxlab` (or `mlxlab tui --server URL`) is a client of the hub: it asks for the password the first time and keeps
-the device token in `~/.config/mlxlab/client.json`. `--server http://127.0.0.1:8484` uses `mlxlab serve` instead.
+the device token (and the server) in `~/.config/mlxlab/client.json`. The first start needs `--server URL` (or
+`MLXLAB_SERVER`); there is no built-in default. `--server http://127.0.0.1:8484` uses `mlxlab serve` instead.
 
 `↑↓` choose a model · `enter`/`tab` type · `e` (or `ctrl+e` while typing) next example prompt · `esc` back · `o` open
 the newest file · `L` logs · `c` clear the chat · `x` cancel · `u` unload · `w` open the web app · `q` quit.
