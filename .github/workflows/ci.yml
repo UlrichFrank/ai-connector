@@ -35,10 +35,6 @@ jobs:
         run: make vet-all
 
       - name: go test
-        # the hub's routing tests run a real worker handler, which reports this machine's RAM: pretend a 64 GB Mac
-        # so models fit regardless of the runner
-        env:
-          MLXLAB_FAKE_RAM_GB: "64"
         run: go test ./...
 
   web:

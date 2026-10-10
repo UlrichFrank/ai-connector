@@ -101,20 +101,7 @@ func startMac(t *testing.T, base, token string, ramGB int) *fakeMac {
 	mgr := jobs.New(cat, []engine.Backend{be}, dir)
 	lib := prompts.Open(dir)
 	api := (&web.Server{Jobs: mgr, Prompts: lib, Version: "test"}).Handler()
-	// the memory this Mac claims (MLXLAB_FAKE_RAM_GB is per process; these Macs share one)
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/info" {
-			api.ServeHTTP(w, r)
-			return
-		}
-		rec := &recorder{header: http.Header{}}
-		api.ServeHTTP(rec, r)
-		var info map[string]any
-		json.Unmarshal(rec.body.Bytes(), &info)
-		info["specs"].(map[string]any)["ramGB"] = ramGB
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(info)
-	})
+	h := withRAM(api, ramGB)
 	stop, _ := connectWorkerWith(t, base, token, h)
 	m := &fakeMac{mgr: mgr, prompts: lib, backend: be, stop: stop}
 	t.Cleanup(func() {
@@ -123,6 +110,26 @@ func startMac(t *testing.T, base, token string, ramGB int) *fakeMac {
 		}
 	})
 	return m
+}
+
+// withRAM makes a worker API claim ramGB of memory in its /api/info, whatever this machine has (the tests run on
+// 6 GB VMs and 16 GB CI runners; MLXLAB_FAKE_RAM_GB is per process, and these Macs share one).
+func withRAM(api http.Handler, ramGB int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/info" {
+			api.ServeHTTP(w, r)
+			return
+		}
+		rec := &recorder{header: http.Header{}}
+		api.ServeHTTP(rec, r)
+		var info map[string]any
+		json.Unmarshal(rec.body.Bytes(), &info)
+		if sp, ok := info["specs"].(map[string]any); ok {
+			sp["ramGB"] = ramGB
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(info)
+	})
 }
 
 type recorder struct {

@@ -40,7 +40,7 @@ func startClaudeMac(t *testing.T, base, token string, am *agents.Manager) (*jobs
 	dir := t.TempDir()
 	mgr := jobs.New(cat, []engine.Backend{&fakeBackend{}}, dir)
 	api := (&web.Server{Jobs: mgr, Prompts: prompts.Open(dir), Version: "test", Agents: am}).Handler()
-	stop, _ := connectWorkerWith(t, base, token, api)
+	stop, _ := connectWorkerWith(t, base, token, withRAM(api, 64)) // a 64 GB Mac, whatever runs the test
 	t.Cleanup(func() {
 		stop()
 		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline) && !mgr.Settled(); time.Sleep(5 * time.Millisecond) {
@@ -265,7 +265,7 @@ func startClaudeChatMac(t *testing.T, base, token string) (*fakeChat, func()) {
 	chat := &fakeChat{}
 	mgr := jobs.New(cat, []engine.Backend{chat}, dir)
 	api := (&web.Server{Jobs: mgr, Prompts: prompts.Open(dir), Version: "test"}).Handler()
-	stop, _ := connectWorkerWith(t, base, token, api)
+	stop, _ := connectWorkerWith(t, base, token, withRAM(api, 64)) // a 64 GB Mac, whatever runs the test
 	t.Cleanup(func() {
 		stop()
 		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline) && !mgr.Settled(); time.Sleep(5 * time.Millisecond) {

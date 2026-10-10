@@ -125,7 +125,7 @@ func startAPIMac(t *testing.T, base, token string) *apiMac {
 	dir := t.TempDir()
 	m.mgr = jobs.New(cat, []engine.Backend{m.chat, m.text}, dir)
 	api := (&web.Server{Jobs: m.mgr, Prompts: prompts.Open(dir), Version: "test"}).Handler()
-	stop, _ := connectWorkerWith(t, base, token, api)
+	stop, _ := connectWorkerWith(t, base, token, withRAM(api, 64)) // a 64 GB Mac, whatever runs the test
 	t.Cleanup(func() {
 		stop()
 		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline) && !m.mgr.Settled(); time.Sleep(5 * time.Millisecond) {
