@@ -264,7 +264,7 @@ the hub and signs in there with the password once; the hub keeps one token per d
 
 ## Licences
 
-MLX and mlx-c are MIT (`internal/mlx/darwin_arm64/LICENSE-MLX.txt`). The models keep their own licences:
+ai-connector is MIT licensed ([LICENSE](LICENSE)). MLX and mlx-c are MIT (`internal/mlx/darwin_arm64/LICENSE-MLX.txt`). The models keep their own licences:
 FLUX.2 [klein] 4B is Apache 2.0, 9B is FLUX non-commercial, Qwen-Image 2512 and Edit 2511 are Apache 2.0, Qwen-Image
 2.1 is the Qwen Research License (non-commercial), LTX-2.x is the LTX-2 Community License, and Qwen is
 Apache 2.0.
