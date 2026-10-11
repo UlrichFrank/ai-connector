@@ -1088,6 +1088,9 @@ model, which may not exist yet.
   upscaler from a picture model before it is a generator), `["generate"]` / `["edit"]` for a model that does only
   that (Qwen-Image, Qwen-Image-Edit); a song model's studio tasks (`cover`, `repaint`, …); a speech model's
   (`presets`, `clone`, `instruct`, …, and `["transcribe"]` for Qwen3-ASR, the transcriber, which is no generator).
+  `languages` (a speech model only; absent when it detects the language itself): the languages it speaks, as in its
+  generator's `audio.languages` — Kokoro `en, es, fr, hi, it, ja, pt, zh`, so vboard offers Kokoro's download only for
+  those and takes another model (Qwen3-TTS) for German.
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
   accepted on `url`), `token` (no token is set, or Hugging Face does not take it: 4), `unknown` (no answer). Asked of
   Hugging Face per repository (`GET https://huggingface.co/api/models/<repo>/auth-check` with the token: 200

@@ -51,6 +51,7 @@ type setupModel struct {
 	Fits          bool     `json:"fits"`
 	Recommended   bool     `json:"recommended"`
 	Tasks         []string `json:"tasks,omitempty"`
+	Languages     []string `json:"languages,omitempty"`
 }
 
 // downloadState is a worker's download (engine.DownloadState).
@@ -360,6 +361,9 @@ func (r *vboardRun) modelList(ctx context.Context, conf storedConnector) []map[s
 			}
 			if len(m.Tasks) > 0 { // an upscaler (["upscale"]) is told apart before it is a generator
 				e["tasks"] = m.Tasks
+			}
+			if len(m.Languages) > 0 { // a speech model: vboard proposes its download only for a language it speaks
+				e["languages"] = m.Languages
 			}
 			if role := setupRole(m.Kind, m.Tasks); m.Recommended {
 				if j, ok := best[role]; !ok || ws.Memory > bestMem[role] {

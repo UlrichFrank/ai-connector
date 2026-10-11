@@ -328,6 +328,16 @@ func TestSetupModelsRecommendedAudio(t *testing.T) {
 	if m := byID["kokoro-82m"]; m.Kind != Speech || m.Licence != "Apache-2.0" || m.Here || !slices.Contains(m.Tasks, "presets") {
 		t.Errorf("kokoro %+v", m)
 	}
+	// the languages a speech model speaks (vboard proposes Kokoro's download only for them, not for German)
+	if l := byID["kokoro-82m"].Languages; !slices.Contains(l, "en") || slices.Contains(l, "de") {
+		t.Errorf("kokoro languages %v", l)
+	}
+	if l := byID["qwen3-tts-1.7b"].Languages; !slices.Contains(l, "de") {
+		t.Errorf("qwen3-tts languages %v", l)
+	}
+	if byID["ace-step-1.5-turbo"].Languages != nil {
+		t.Error("languages on a song model")
+	}
 	if m := byID["seedvr2-3b"]; m.Kind != Image || !slices.Equal(m.Tasks, []string{TaskUpscale}) || SetupRole(m.Kind, m.Tasks) != "image/upscale" {
 		t.Errorf("seedvr2 %+v", m)
 	}

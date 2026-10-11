@@ -297,6 +297,9 @@ type SetupModel struct {
 	// Tasks: what the model does (Model.Tasks: "upscale" for SeedVR2, "generate"/"edit"; a song or speech model's);
 	// absent: the usual. Recommended is per kind, and per kind/task for an upscaler (SetupRole).
 	Tasks []string `json:"tasks,omitempty"`
+	// Languages: the languages a speech model speaks (absent: it detects them, or not a speech model) — vboard proposes
+	// a model to download only for a language it speaks
+	Languages []string `json:"languages,omitempty"`
 }
 
 // FreeBytes is the free disk where the models go.
@@ -337,6 +340,9 @@ func (d *Downloads) Models(ctx context.Context, mem int64, withAccess bool) []Se
 		sm := SetupModel{ID: m.ID, Name: m.Name, Kind: m.Kind, About: m.About, Here: m.Here, Size: m.Size, Licence: lic,
 			NonCommercial: nc, Gated: m.Gated, URL: RepoURL(m), Fits: fits,
 			Recommended: fits && m.ID == recommendedOf(SetupRole(m.Kind, m.Tasks), mem), Tasks: m.Tasks}
+		if m.Kind == Speech && m.Audio != nil {
+			sm.Languages = m.Audio.Languages
+		}
 		if m.Gated {
 			sm.Access = "unknown"
 			gated = append(gated, len(out))
