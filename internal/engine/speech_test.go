@@ -1,8 +1,12 @@
 package engine
 
 import (
+	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -230,5 +234,73 @@ func TestWavInfo(t *testing.T) {
 	}
 	if r, s := wavInfo(f + ".nope"); r != 0 || s != 0 {
 		t.Fatal("missing file")
+	}
+}
+
+// voicedEndsCheck runs speech.py's voiced_ends (taken out of the embedded worker, the rest of it needs mlx) on tone
+// bursts in silence, the words' ends set too late, once loud and once 40 dB quieter; it prints the words as JSON.
+const voicedEndsCheck = `
+import ast, json, sys
+import numpy as np
+fn = next(n for n in ast.parse(sys.stdin.read()).body if isinstance(n, ast.FunctionDef) and n.name == "voiced_ends")
+exec(compile(ast.Module(body=[fn], type_ignores=[]), "speech.py", "exec"))
+sr = 24000
+out = []
+for amp in (0.5, 0.005):
+    t = np.arange(int(3.0 * sr)) / sr
+    wav = np.random.default_rng(1).normal(0, amp * 1e-4, t.size)  # a noise floor 80 dB down
+    for a, b in ((0.2, 0.6), (0.8, 1.0), (1.0, 1.3), (1.5, 1.9), (2.4, 2.41)):
+        on = (t >= a) & (t < b)
+        wav[on] += amp * np.sin(2 * np.pi * 220 * t[on])
+    words = [
+        {"text": "late", "start": 0.2, "end": 0.75},   # voiced to 0.6
+        {"text": "tight", "start": 0.8, "end": 0.95},  # voiced past its end: kept
+        {"text": "next", "start": 1.0, "end": 1.45},   # voiced to 1.3
+        {"text": "long", "start": 1.5, "end": 2.3},    # voiced to 1.9
+        {"text": "silent", "start": 2.0, "end": 2.3},  # nothing voiced: kept
+        {"text": "short", "start": 2.4, "end": 2.7},   # 10 ms voiced: start + min_len
+    ]
+    out.append(voiced_ends(words, wav.astype(np.float32), sr))
+print(json.dumps(out))
+`
+
+func TestVoicedEnds(t *testing.T) {
+	py, err := exec.LookPath("python3")
+	if err != nil {
+		t.Skip("python3 not found")
+	}
+	if exec.Command(py, "-c", "import numpy").Run() != nil {
+		t.Skip("python3 has no numpy")
+	}
+	src, err := workerFiles.ReadFile("workers/speech.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(py, "-c", voicedEndsCheck)
+	cmd.Stdin = bytes.NewReader(src)
+	b, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("%v: %s", err, b)
+	}
+	var got [][]Word
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("%v: %s", err, b)
+	}
+	want := []Word{
+		{Text: "late", Start: 0.2, End: 0.63}, {Text: "tight", Start: 0.8, End: 0.95}, {Text: "next", Start: 1.0, End: 1.33},
+		{Text: "long", Start: 1.5, End: 1.93}, {Text: "silent", Start: 2.0, End: 2.3}, {Text: "short", Start: 2.4, End: 2.45},
+	}
+	if len(got) != 2 {
+		t.Fatalf("%s", b)
+	}
+	for i, words := range got {
+		if len(words) != len(want) {
+			t.Fatalf("clip %d: %v", i, words)
+		}
+		for j, w := range words {
+			if w.Text != want[j].Text || w.Start != want[j].Start || math.Abs(w.End-want[j].End) > 0.011 {
+				t.Errorf("clip %d: %+v, want %+v", i, w, want[j])
+			}
+		}
 	}
 }

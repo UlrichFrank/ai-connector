@@ -10,7 +10,8 @@
 #          "instruct": "…", "language": "de", "seed": 1, "exaggeration": 0.5 (chatterbox),
 #          "chunks": [{"text": "…", "pause": 0.3}], "output": "/out.wav"}
 #        → progress per chunk; result {"file", "seconds" (generation), "duration" (audio), "peakGB",
-#          "words": [{"text", "start", "end"}] (Kokoro, English: when each word is said, in seconds)}
+#          "words": [{"text", "start", "end"}] (Kokoro, English: when each word is said, in seconds;
+#          the end is where its voiced part ends)}
 #   asr:  {"op": "asr", "dirs": {"asr": "/dir"}, "audio": "/x.wav", "language": "de"} → result {"text"}
 #   unload_asr: frees the ASR model.
 #
@@ -295,6 +296,29 @@ def short_espeak_data():
 KOKORO_CODES = {"es": "e", "fr": "f", "hi": "h", "it": "i", "pt": "p", "zh": "z"}
 
 
+def voiced_ends(words, wav, sr, frame=0.01, below_db=35.0, tail=0.03, min_len=0.05):
+    """Kokoro's word ends run up to ~0.4 s into the silence after the word (the starts are right): each end goes back
+    to the word's last voiced frame (RMS of 10 ms frames, at most below_db under the clip's speech level: the loud 5 %
+    of the frames, so a quiet clip keeps its words) plus a short tail — never before start + min_len, never later.
+    Words without a voiced frame keep their end; the starts stay."""
+    n = max(1, int(sr * frame))
+    count = len(wav) // n
+    if count == 0:
+        return words
+    rms = np.sqrt(np.mean(np.square(wav[: count * n].reshape(count, n), dtype=np.float64), axis=1))
+    level = float(np.percentile(rms, 95))
+    if level <= 0:
+        return words
+    voiced = rms > level * 10 ** (-below_db / 20)
+    for w in words:
+        a, b = int(w["start"] * sr) // n, min(count, -(-int(w["end"] * sr) // n))
+        hit = np.flatnonzero(voiced[a:b])
+        if hit.size:
+            end = (a + hit[-1] + 1) * n / sr + tail
+            w["end"] = round(min(w["end"], max(end, w["start"] + min_len)), 3)
+    return words
+
+
 def kokoro_tts(req, model):
     """Kokoro through its pipeline (model.generate does not hand out the tokens): the voice from the weights' voices
     folder (nothing is fetched), the words' times from the tokens (English only: the other languages are phonemized
@@ -343,7 +367,7 @@ def kokoro_tts(req, model):
     seconds = time.time() - t0
     os.makedirs(os.path.dirname(os.path.abspath(req["output"])), exist_ok=True)
     audio_write(req["output"], wav, sr)
-    return seconds, len(wav) / sr, words
+    return seconds, len(wav) / sr, voiced_ends(words, wav, sr)
 
 
 def tts(req):
