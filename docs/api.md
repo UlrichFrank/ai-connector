@@ -958,8 +958,11 @@ per slice of the length, computed from the WAV before it is encoded (PCM 8/16/24
 WAVE_FORMAT_EXTENSIBLE; vboard's backend has no decoder for AAC; uploads get theirs from the browser).
 * `speech`: `text` (as read, trimmed), `voice` (`{id, name}`; absent for a model's own voice), `language`, and
   `words: [{"text","start","end"}]` (seconds from the start) when the model gives timings — for subtitles and the
-  word being spoken; absent otherwise (vboard then shows the whole text). **Kokoro gives them for English** (from
-  its pipeline's tokens, punctuation left out; checked on a real run: "Hello" 0.28–0.75 s …); its other languages
+  word being spoken; absent otherwise (vboard then shows the whole text). `start` is when the word begins, `end`
+  where its voiced part ends (+30 ms), not where the next word or the pause after it begins. **Kokoro gives them
+  for English** (from its pipeline's tokens, punctuation left out; the tokens' ends run up to ~0.4 s into the
+  silence after a word, so each end is moved back to the word's last 10 ms frame within 35 dB of the clip's speech
+  level; checked on a real run: "Antarctica" 4.50–5.60 s → 4.50–5.25 s, silent from 5.20 s); its other languages
   are phonemized without tokens, and the other models give none (mlx-audio reports no timings for them).
 * `music`: `title` (the request's, else the style's first part: "dark techno, 130 bpm" → "dark techno"), `bpm` (the
   tempo as the job measured it, else the one asked; absent when neither), and `lyrics` as sent (with their `[verse]`
