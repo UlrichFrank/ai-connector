@@ -79,8 +79,8 @@ func TestKokoroCatalog(t *testing.T) {
 // The other models' capabilities as vboard's generators show them.
 func TestAudioCaps(t *testing.T) {
 	sp := byID(speechModels())
-	if sp["qwen3-asr"].Audio != nil {
-		t.Error("the transcriber is no generator")
+	if sp["qwen3-asr"].Audio != nil || sp["qwen3-forced-aligner"].Audio != nil {
+		t.Error("the transcriber and the aligner are no generators")
 	}
 	q := sp["qwen3-tts-1.7b"].Audio
 	if !q.Instruct || q.Words || len(q.Voices) != 9 || q.Voices[5] != (PresetVoice{"Ryan", "Ryan", "en"}) || len(q.Languages) != 10 {
@@ -125,7 +125,7 @@ func TestAudioCaps(t *testing.T) {
 }
 
 // fakeSpeechWorker speaks the worker protocol: it writes the request into the output file and answers with the
-// words of a Kokoro request.
+// words of an English Kokoro request or of a request with the aligner.
 const fakeSpeechWorker = `
 import json, os, sys
 ev = os.fdopen(3, "w", buffering=1)
@@ -136,7 +136,7 @@ for line in sys.stdin:
     with open(req["output"], "w") as f:
         json.dump(req, f)
     res = dict(type="result", file=req["output"], seconds=0.2, duration=1.5, peakGB=1.0)
-    if req["family"] == "kokoro" and req["language"] == "en":
+    if req["family"] == "kokoro" and req["language"] == "en" or req["dirs"].get("align"):
         res["words"] = [{"text": "Hello", "start": 0.1, "end": 0.4}, {"text": "board", "start": 0.5, "end": 0.9}]
     emit(**res)
 `
@@ -234,5 +234,78 @@ func TestSpeechRequestQwen(t *testing.T) {
 	}
 	if res["language"] != "de" || res["voice"] != (PresetVoice{"Ryan", "Ryan", "en"}) || res["words"] != nil {
 		t.Fatalf("result %v", res)
+	}
+}
+
+// A clip gets the aligner's folder when the aligner is on disk and times the language — never fetched for a clip;
+// the words come back for any model then.
+func TestSpeechRequestAligner(t *testing.T) {
+	b := fakeSpeechBackend(t)
+	defer b.Unload()
+	here := true
+	b.hasAligner = func() bool { return here }
+	var fetched []string
+	b.fetch = func(_ context.Context, _ string, hr hubRepo, _ Emit) (string, error) {
+		fetched = append(fetched, hr.key)
+		return "/w/" + hr.key, nil
+	}
+	sp := byID(speechModels())
+	run := func(model string, r Request) (map[string]any, map[string]any) {
+		t.Helper()
+		var file string
+		var res map[string]any
+		err := b.Run(context.Background(), sp[model], r, t.TempDir(), func(ev Event) {
+			switch ev.Type {
+			case "file":
+				file = ev.File
+			case "result":
+				res = ev.Data
+			}
+		})
+		must(t, err)
+		raw, err := os.ReadFile(file)
+		must(t, err)
+		var req map[string]any
+		must(t, json.Unmarshal(raw, &req))
+		return req["dirs"].(map[string]any), res
+	}
+	dirs, res := run("qwen3-tts-1.7b", Request{Text: "Guten Morgen, wie geht es dir heute?", Language: "de"})
+	if w, _ := res["words"].([]Word); dirs["align"] != "/w/align" || dirs["model"] != "/w/custom" || len(w) != 2 {
+		t.Fatalf("german with the aligner: %v %v", dirs, res)
+	}
+	// a language it does not time (Hindi, Japanese): none, and it is not fetched
+	fetched = nil
+	if dirs, _ := run("kokoro-82m", Request{Text: "Namaste, yah ek chhota sa parikshan hai.", Voice: "hf_alpha"}); dirs["align"] != nil ||
+		slices.Contains(fetched, "align") {
+		t.Fatalf("hindi: %v %v", dirs, fetched)
+	}
+	if dirs, _ := run("qwen3-tts-1.7b", Request{Text: "Konnichiwa, kore wa tesuto desu.", Language: "ja"}); dirs["align"] != nil {
+		t.Fatalf("japanese: %v", dirs)
+	}
+	// not on disk: none, and no words but Kokoro's English (its tokens)
+	here = false
+	fetched = nil
+	dirs, res = run("qwen3-tts-1.7b", Request{Text: "Guten Morgen, wie geht es dir heute?", Language: "de"})
+	if dirs["align"] != nil || slices.Contains(fetched, "align") || res["words"] != nil {
+		t.Fatalf("german without the aligner: %v %v %v", dirs, fetched, res)
+	}
+	if dirs, res := run("kokoro-82m", Request{Text: "Hello board, how are you today?"}); dirs["align"] != nil || res["words"] == nil {
+		t.Fatalf("english kokoro without the aligner: %v %v", dirs, res)
+	}
+	// the aligner says nothing itself
+	if err := b.Run(context.Background(), sp["qwen3-forced-aligner"], Request{Text: "Hello"}, t.TempDir(), func(Event) {}); err == nil ||
+		!strings.Contains(err.Error(), "does not speak") {
+		t.Fatalf("aligner job: %v", err)
+	}
+}
+
+// A clip stretched to another speed (a model without its own) moves its words with it.
+func TestStretchWords(t *testing.T) {
+	got := stretchWords([]Word{{"a", 0.5, 1.0}, {"b", 1.2, 2.4}}, 1.25)
+	if !reflect.DeepEqual(got, []Word{{"a", 0.4, 0.8}, {"b", 0.96, 1.92}}) {
+		t.Fatalf("%v", got)
+	}
+	if got := stretchWords([]Word{{"a", 1, 2}}, 4); got[0] != (Word{"a", 0.5, 1}) { // at most ×2, as stretch
+		t.Fatalf("%v", got)
 	}
 }

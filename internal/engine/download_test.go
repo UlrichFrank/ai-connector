@@ -244,6 +244,7 @@ func TestDownloadsAudioPrepare(t *testing.T) {
 		"kokoro-82m":           "speech false",
 		"qwen3-tts-1.7b":       "speech false",
 		"qwen3-asr":            "speech false",
+		"qwen3-forced-aligner": "speech false",
 		"seedvr2-3b":           "mflux false",
 	}
 	for id := range want {
@@ -289,10 +290,10 @@ func TestSetupModelsRecommendedAudio(t *testing.T) {
 		mem  int64
 		want []string
 	}{
-		{64 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "seedvr2-3b"}},
-		{32 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "seedvr2-3b"}},
-		{24 * gb, []string{"flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "seedvr2-3b", "stable-audio-3-small"}},
-		{16 * gb, []string{"kokoro-82m", "moss-soundeffect", "seedvr2-3b", "stable-audio-3-small"}},
+		{64 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b"}},
+		{32 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b"}},
+		{24 * gb, []string{"flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b", "stable-audio-3-small"}},
+		{16 * gb, []string{"kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b", "stable-audio-3-small"}},
 	} {
 		var got []string
 		roles := map[string]bool{}
@@ -343,6 +344,11 @@ func TestSetupModelsRecommendedAudio(t *testing.T) {
 	}
 	if SetupRole(Speech, byID["qwen3-asr"].Tasks) != "speech/transcribe" {
 		t.Errorf("asr %+v", byID["qwen3-asr"])
+	}
+	// the aligner: recommended beside the voices (its own role), no languages of a voice
+	if m := byID["qwen3-forced-aligner"]; SetupRole(m.Kind, m.Tasks) != "speech/align" || !slices.Equal(m.Tasks, []string{"align"}) ||
+		m.Languages != nil || m.Licence != "Apache-2.0" || m.URL != "https://huggingface.co/mlx-community/Qwen3-ForcedAligner-0.6B-8bit" {
+		t.Errorf("aligner %+v", m)
 	}
 	// too large for the memory: does not fit (HeartMuLa, 21 GB, wants 42)
 	for _, m := range d.Models(context.Background(), 32*gb, false) {

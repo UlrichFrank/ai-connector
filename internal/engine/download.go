@@ -221,11 +221,11 @@ func RecommendedMusic(mem int64) string {
 }
 
 // SetupRole is what a model is recommended among: its kind, or kind/task for a model that does only a task of its
-// own (an upscaler: "image/upscale"; the transcriber: "speech/transcribe") — so it does not compete with the kind's
-// generators.
+// own (an upscaler: "image/upscale"; the transcriber: "speech/transcribe"; the aligner: "speech/align") — so it does
+// not compete with the kind's generators.
 func SetupRole(kind Kind, tasks []string) string {
 	for _, t := range tasks {
-		if t == TaskUpscale || t == "transcribe" {
+		if t == TaskUpscale || t == "transcribe" || t == TaskAlign {
 			return string(kind) + "/" + t
 		}
 	}
@@ -253,6 +253,8 @@ func recommendedOf(role string, mem int64) string {
 		return "moss-soundeffect"
 	case string(Speech):
 		return "kokoro-82m"
+	case string(Speech) + "/" + TaskAlign:
+		return "qwen3-forced-aligner"
 	}
 	return ""
 }

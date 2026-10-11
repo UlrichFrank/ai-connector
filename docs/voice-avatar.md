@@ -16,10 +16,16 @@ Models (ids as the catalog shows them; weights from mlx-community where there is
 | `voxcpm2` | VoxCPM2 (48 kHz) | Apache-2.0 |
 | `higgs-audio-v3` | Higgs Audio v3 TTS 4B (inline emotion tags, whisper/shout, effects) | research, **non-commercial** |
 | `voxtral-tts` | Voxtral 4B TTS | CC BY-NC 4.0, **non-commercial** |
+| `qwen3-asr` | Qwen3-ASR 1.7B (8-bit): transcribes (task `transcribe`; no voice) | Apache-2.0 |
+| `qwen3-forced-aligner` | Qwen3-ForcedAligner 0.6B (8-bit, `mlx-community/Qwen3-ForcedAligner-0.6B-8bit`, 1.2 GB): the words' timings of every clip (task `align`; no voice, no generator) | Apache-2.0 |
 
 Request: `text`, `voice` (library id or preset name), `instruct`, `language`, `speed`, `seed`. Output: one wav
 (job file); stats: seconds, rtf, sampleRate; result: `text`, `language`, `voice` (`{id, name, language}` of the
-preset or library voice; absent: the model's own) and `words` (`[{text, start, end}]`, seconds; Kokoro in English).
+preset or library voice; absent: the model's own) and `words` (`[{text, start, end}]`, seconds): with
+Qwen3-ForcedAligner on disk for every model in English, German, French, Spanish, Italian, Portuguese, Russian and
+Chinese (each sentence aligned to its audio after the clip is made; the aligner stays loaded beside the TTS model);
+without it Kokoro's English from its tokens, the others none. A failed alignment is logged, the clip goes out
+without words.
 Long texts are split at sentences and joined. A model's presets, languages and limits are in the catalogue's
 `audio` (`engine.AudioCaps`; vboard's generators read it).
 

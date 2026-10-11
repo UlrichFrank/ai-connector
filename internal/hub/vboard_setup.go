@@ -330,10 +330,11 @@ func (r *vboardRun) setupRequest(ctx context.Context, c *bridgeConn, work *runni
 }
 
 // setupRole is what a model is recommended among (engine.SetupRole): its kind, or kind/task for an upscaler
-// ("image/upscale") and the transcriber ("speech/transcribe"), which do not compete with the kind's generators.
+// ("image/upscale"), the transcriber ("speech/transcribe") and the aligner ("speech/align"), which do not compete
+// with the kind's generators.
 func setupRole(kind string, tasks []string) string {
 	for _, t := range tasks {
-		if t == "upscale" || t == "transcribe" {
+		if t == "upscale" || t == "transcribe" || t == "align" {
 			return kind + "/" + t
 		}
 	}

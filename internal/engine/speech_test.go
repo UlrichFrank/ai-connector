@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -142,6 +143,9 @@ func TestSpeechCatalog(t *testing.T) {
 	if _, ok := presets["qwen3-asr"]; ok {
 		t.Error("the transcriber has no voices")
 	}
+	if _, ok := presets["qwen3-forced-aligner"]; ok {
+		t.Error("the aligner has no voices")
+	}
 	if len(presets["voxtral-tts"]) != 20 || len(presets["qwen3-tts-1.7b"]) != 9 || len(presets["kokoro-82m"]) != 49 {
 		t.Errorf("presets %v", presets)
 	}
@@ -167,18 +171,27 @@ func TestSpeechCatalog(t *testing.T) {
 		tasks[m.ID] = strings.Join(m.Tasks, ",")
 	}
 	for id, want := range map[string]string{
-		"qwen3-tts-1.7b": "clone,design,presets,instruct,speed,language",
-		"qwen3-tts-0.6b": "clone,presets,instruct,speed,language",
-		"chatterbox-v3":  "clone,presets,instruct,speed,language",
-		"voxcpm2":        "clone,design,instruct,speed",
-		"higgs-audio-v3": "clone,instruct,speed",
-		"voxtral-tts":    "presets,speed,language",
-		"kokoro-82m":     "presets,speed,language",
-		"qwen3-asr":      "transcribe",
+		"qwen3-tts-1.7b":       "clone,design,presets,instruct,speed,language",
+		"qwen3-tts-0.6b":       "clone,presets,instruct,speed,language",
+		"chatterbox-v3":        "clone,presets,instruct,speed,language",
+		"voxcpm2":              "clone,design,instruct,speed",
+		"higgs-audio-v3":       "clone,instruct,speed",
+		"voxtral-tts":          "presets,speed,language",
+		"kokoro-82m":           "presets,speed,language",
+		"qwen3-asr":            "transcribe",
+		"qwen3-forced-aligner": "align",
 	} {
 		if tasks[id] != want {
 			t.Errorf("%s tasks %q, want %q", id, tasks[id], want)
 		}
+	}
+	al := byID(speechModels())["qwen3-forced-aligner"]
+	if al == nil || len(al.repos) != 1 || al.repos[0].rev != alignRepo.rev || al.Licence != "Apache-2.0" || al.Size < gb || al.Size > 2*gb ||
+		alignRepo.repo != "mlx-community/Qwen3-ForcedAligner-0.6B-8bit" {
+		t.Errorf("aligner %+v", al)
+	}
+	if _, err := (&SpeechBackend{}).speechModel("qwen3-forced-aligner"); err == nil {
+		t.Error("the aligner speaks")
 	}
 	if qwenPart("clone") != "base" || qwenPart("design") != "design" || qwenPart("preset") != "custom" {
 		t.Error("qwen parts")
@@ -302,5 +315,96 @@ func TestVoicedEnds(t *testing.T) {
 				t.Errorf("clip %d: %+v, want %+v", i, w, want[j])
 			}
 		}
+	}
+}
+
+// alignCheck runs speech.py's aligner helpers (taken out of the embedded worker, the rest of it needs mlx): the
+// language names, the text's items as written, and the aligner's items merged into the clip's words; it prints JSON.
+const alignCheck = `
+import ast, json, re, sys, unicodedata
+names = {"align_language", "align_text", "_kept", "_cjk", "align_units", "aligned_words"}
+body = [n for n in ast.parse(sys.stdin.read()).body if isinstance(n, ast.FunctionDef) and n.name in names
+        or isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("ALIGN_LANGS", "_CONTROL_TAG") for t in n.targets)]
+exec(compile(ast.Module(body=body, type_ignores=[]), "speech.py", "exec"))
+de = "„Hallo!“ Das ist z.B. ein E-Mail-Test – oder?"
+zh = "你好，世界！OK-go 3.5"
+items = [("Hallo", 0.0, 0.4), ("Das", 0.5, 0.6), ("ist", 0.6, 0.7), ("zB", 0.7, 1.0), ("ein", 1.0, 1.1),
+         ("EMailTest", 1.1, 1.9), ("oder", 2.0, 1.9)]
+print(json.dumps({
+    "langs": [align_language(x) for x in ("de", "de-DE", "EN", "pt_BR", "zh", "ja", "ko", "hi", "", None)],
+    "units": {lang: align_units(t, lang) for lang, t in (("German", de), ("Chinese", zh), ("English", zh))},
+    "higgs": align_units("<|emotion:amusement|> Ha, that's funny!", "English"),
+    "words": aligned_words(de, "German", items, offset=2.0, limit=3.95),
+    "short": aligned_words(de, "German", items[:-1]),
+    "other": aligned_words(de, "German", items[:-1] + [("odor", 2.0, 2.1)]),
+}))
+`
+
+// The aligner's words as the clip's: its languages, the text's words as written (the aligner's own tokenization:
+// checked against mlx-audio's ForceAlignProcessor.encode_timestamp on these texts), the items merged.
+func TestAlignWords(t *testing.T) {
+	py, err := exec.LookPath("python3")
+	if err != nil {
+		t.Skip("python3 not found")
+	}
+	src, err := workerFiles.ReadFile("workers/speech.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(py, "-c", alignCheck)
+	cmd.Stdin = bytes.NewReader(src)
+	b, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("%v: %s", err, b)
+	}
+	var got struct {
+		Langs []*string
+		Units map[string][][2]string
+		Higgs [][2]string
+		Words []Word
+		Short []Word
+		Other []Word
+	}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("%v: %s", err, b)
+	}
+	var langs []string
+	for _, l := range got.Langs {
+		if l == nil {
+			langs = append(langs, "-")
+		} else {
+			langs = append(langs, *l)
+		}
+	}
+	if want := []string{"German", "German", "English", "Portuguese", "Chinese", "-", "-", "-", "-", "-"}; !reflect.DeepEqual(langs, want) {
+		t.Errorf("languages %v, want %v", langs, want)
+	}
+	// the Go side asks for the same languages
+	if len(alignLangs) != 8 || !slices.Contains(alignLangs, "de") || slices.Contains(alignLangs, "ja") {
+		t.Errorf("alignLangs %v", alignLangs)
+	}
+	// words as written without the marks around them (inner ones stay), "–" none; Chinese: a character each, and a
+	// word ends at any mark
+	for lang, want := range map[string][][2]string{
+		"German": {{"Hallo", "Hallo"}, {"Das", "Das"}, {"ist", "ist"}, {"z.B", "zB"}, {"ein", "ein"},
+			{"E-Mail-Test", "EMailTest"}, {"oder", "oder"}},
+		"Chinese": {{"你", "你"}, {"好", "好"}, {"世", "世"}, {"界", "界"}, {"OK", "OK"}, {"go", "go"}, {"3", "3"}, {"5", "5"}},
+		"English": {{"你", "你"}, {"好", "好"}, {"世", "世"}, {"界", "界"}, {"OK-go", "OKgo"}, {"3.5", "35"}},
+	} {
+		if !reflect.DeepEqual(got.Units[lang], want) {
+			t.Errorf("%s: %q, want %q", lang, got.Units[lang], want)
+		}
+	}
+	if want := [][2]string{{"Ha", "Ha"}, {"that's", "that's"}, {"funny", "funny"}}; !reflect.DeepEqual(got.Higgs, want) {
+		t.Errorf("higgs tags: %q", got.Higgs)
+	}
+	// moved by the sentence's start, kept before its end, never ending before they start
+	want := []Word{{"Hallo", 2, 2.4}, {"Das", 2.5, 2.6}, {"ist", 2.6, 2.7}, {"z.B", 2.7, 3}, {"ein", 3, 3.1},
+		{"E-Mail-Test", 3.1, 3.9}, {"oder", 3.95, 3.95}}
+	if !reflect.DeepEqual(got.Words, want) {
+		t.Errorf("words %v\nwant %v", got.Words, want)
+	}
+	if got.Short != nil || got.Other != nil {
+		t.Errorf("items that do not match the text: %v %v", got.Short, got.Other)
 	}
 }

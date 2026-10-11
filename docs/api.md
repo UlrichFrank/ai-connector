@@ -876,7 +876,8 @@ the worker: the catalogue's `audio` (`internal/engine/audiocaps.go`), `POST /api
 the WAV reader and the encoder (`internal/audio`); Kokoro in `internal/engine/speech.go` and `workers/speech.py`.
 Needs **audio items on vboard's board** (vboard's side, below), which do not exist yet. Three new generator kinds —
 vboards that do not know them drop them. Which models: those whose catalogue entry has `audio` (what they take, below;
-a worker before this version describes none, so offers none); the transcriber (Qwen3-ASR) is no generator. `"*"` in
+a worker before this version describes none, so offers none); the transcriber (Qwen3-ASR) and the aligner
+(Qwen3-ForcedAligner, which times the words of the others' clips) are no generators. `"*"` in
 the connector's `generators` includes them (and `ai-connector vboard` offers them by default like the others); it
 puts the defaults of each kind first: `ace-step-1.5-turbo`, `stable-audio-3-small`; `kokoro-82m`, `qwen3-tts-1.7b`
 (the first of a kind is its default).
@@ -957,13 +958,22 @@ WAV's length), `seed` (the job's: a random one when 0 was asked), `generator`, `
 per slice of the length, computed from the WAV before it is encoded (PCM 8/16/24/32-bit and 32/64-bit float, also
 WAVE_FORMAT_EXTENSIBLE; vboard's backend has no decoder for AAC; uploads get theirs from the browser).
 * `speech`: `text` (as read, trimmed), `voice` (`{id, name}`; absent for a model's own voice), `language`, and
-  `words: [{"text","start","end"}]` (seconds from the start) when the model gives timings — for subtitles and the
-  word being spoken; absent otherwise (vboard then shows the whole text). `start` is when the word begins, `end`
-  where its voiced part ends (+30 ms), not where the next word or the pause after it begins. **Kokoro gives them
-  for English** (from its pipeline's tokens, punctuation left out; the tokens' ends run up to ~0.4 s into the
-  silence after a word, so each end is moved back to the word's last 10 ms frame within 35 dB of the clip's speech
-  level; checked on a real run: "Antarctica" 4.50–5.60 s → 4.50–5.25 s, silent from 5.20 s); its other languages
-  are phonemized without tokens, and the other models give none (mlx-audio reports no timings for them).
+  `words: [{"text","start","end"}]` (seconds from the start) when there are timings — for subtitles and the word
+  being spoken; absent otherwise (vboard then shows the whole text). Each `text` is a word of `text` as written, in
+  order, without the punctuation around it (inner marks stay: "E-Mail", "z.B", "that's"; a dash alone is no word;
+  Chinese: a character each), so each is found in `text` from where the last one was. `start` is when the word
+  begins, `end` where its voiced part ends (+30 ms: each end is moved back to the word's last 10 ms frame within
+  35 dB of the clip's speech level), not where the next word or the pause after it begins. **Every speech model
+  gives them when Qwen3-ForcedAligner (`qwen3-forced-aligner`, setup role `speech/align`) is on the worker's disk**
+  and the language is one it times: English, German, French, Spanish, Italian, Portuguese, Russian, Chinese (not
+  Japanese, Korean, Hindi, …) — after the clip is made, each sentence's text is aligned to its audio (80 ms steps;
+  ~1 s for a 7 s clip, on top of the generation; a word squeezed between two may get `start` = `end`). Without the
+  aligner **Kokoro gives them for English** (from its pipeline's tokens; their starts ~55 ms early, their ends
+  ~50 ms late at pauses, against the aligner's ~15 / ~30 ms — so Kokoro takes the aligner's when it is there) and
+  the other models none. A failed alignment never fails the clip: it comes without `words` (Kokoro's English:
+  its tokens'). Checked on real clips (Kokoro English, Qwen3-TTS 1.7B German) against ffmpeg's silencedetect and
+  Qwen3-ASR hearing each word's span: starts and ends at pauses within ~0–70 ms, inside a phrase a boundary is off
+  by up to a syllable now and then.
 * `music`: `title` (the request's, else the style's first part: "dark techno, 130 bpm" → "dark techno"), `bpm` (the
   tempo as the job measured it, else the one asked; absent when neither), and `lyrics` as sent (with their `[verse]`
   / `[chorus]` marks; absent for an instrumental and for a model without `lyrics`).
@@ -1098,13 +1108,16 @@ model, which may not exist yet.
   unknown) and `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein
   4B Apache-2.0, 9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers
   Apache-2.0 — listed as `image` models; ACE-Step MIT, Stable Audio 3 "Stability AI Community License", YuE2 and
-  LeVo 2 non-commercial, MOSS-SoundEffect and Kokoro Apache-2.0, Higgs and Voxtral non-commercial). `url`: the
+  LeVo 2 non-commercial, MOSS-SoundEffect, Kokoro, Qwen3-ASR and Qwen3-ForcedAligner Apache-2.0, Higgs and Voxtral
+  non-commercial). `url`: the
   Hugging Face page (for a model of several repositories its own, the first). `tasks` (absent when the model has
   none): what the model does — for an image model `["upscale"]` for the SeedVR2 upscalers (so vboard tells an
   upscaler from a picture model before it is a generator), `["generate"]` / `["edit"]` for a model that does only
   that (Qwen-Image, Qwen-Image-Edit); a song model's studio tasks (`cover`, `repaint`, …); a speech model's
-  (`presets`, `clone`, `instruct`, …, and `["transcribe"]` for Qwen3-ASR, the transcriber, which is no generator).
-  `languages` (a speech model only; absent when it detects the language itself): the languages it speaks, as in its
+  (`presets`, `clone`, `instruct`, …, `["transcribe"]` for Qwen3-ASR, the transcriber, and `["align"]` for
+  Qwen3-ForcedAligner, which gives every speech model's clips their `words` once it is on disk — neither is a
+  generator). `languages` (a speech model only; absent when it detects the language itself, and for the transcriber
+  and the aligner): the languages it speaks, as in its
   generator's `audio.languages` — Kokoro `en, es, fr, hi, it, ja, pt, zh`, so vboard offers Kokoro's download only for
   those and takes another model (Qwen3-TTS) for German.
 * `gated` + `access` (only for a gated model): `granted` (the token can fetch it), `needed` (the licence must be
@@ -1117,12 +1130,14 @@ model, which may not exist yet.
   — and, when it is not here, its disk (`size` + 512 MB free).
   `recommended`: the one to propose first for its **role**, at most one per role (on the owner's worker with the most
   memory), and only when it fits. The role is the `kind`, except for a model whose `tasks` hold a task of its own:
-  `image` + `["upscale"]` is the role `image/upscale` and `speech` + `["transcribe"]` is `speech/transcribe` — so an
-  upscaler is recommended beside the image generator, not instead of it (vboard tells them apart by `tasks`, as for
-  generators). Per role: chat by memory (1 above), embed `qwen3-embedding-0.6b`, classify `laya-typed-decisions`,
+  `image` + `["upscale"]` is the role `image/upscale`, `speech` + `["transcribe"]` is `speech/transcribe` and
+  `speech` + `["align"]` is `speech/align` — so an upscaler is recommended beside the image generator and the aligner
+  beside the voice, not instead of them (vboard tells them apart by `tasks`, as for generators). Per role: chat by memory (1 above), embed `qwen3-embedding-0.6b`, classify `laya-typed-decisions`,
   image `flux2-klein-4b`, image/upscale `seedvr2-3b`, video `ltx-2.5-q4`, music `ace-step-1.5-turbo` (songs with
   vocals, 10 GB) on a worker with ≥ 32 GB of memory, else `stable-audio-3-small` (instrumentals only, 1.8 GB), sound
-  `moss-soundeffect`, speech `kokoro-82m` (no German: Qwen3-TTS is the one for that); speech/transcribe none.
+  `moss-soundeffect`, speech `kokoro-82m` (no German: Qwen3-TTS is the one for that); speech/align
+  `qwen3-forced-aligner` (1.2 GB: word timings for every speech model, subtitles and the word being spoken — vboard
+  may offer it with or after a voice); speech/transcribe none.
 * vboard asks for it when it needs to decide (a card is about to be shown, the settings open), not on every turn.
 
 **4. Downloading** — `{"type":"download","id","model","worker"?}`
@@ -1148,7 +1163,8 @@ model, which may not exist yet.
   parts (Qwen3-TTS 1.7B: CustomVoice, Base and VoiceDesign, 4 GB each — the job would fetch Base and VoiceDesign
   only when first cloning or designing). Not part of a download: ACE-Step's larger planner (`planner: "4b"`, 7.8 GB,
   fetched by the first job that asks for it) and Qwen3-ASR (its own model, `speech/transcribe`; cloning a voice from a
-  sample transcribes it). A model already on disk is `done` at once without `preparing` (its runtime is made by the
+  sample transcribes it), nor Qwen3-ForcedAligner (its own model, `speech/align`: a clip never fetches it, it uses
+  it once downloaded). A model already on disk is `done` at once without `preparing` (its runtime is made by the
   first job, as before).
 * An unknown model, a worker that went away mid-download ("… the download goes on when it is back — ask again"), a
   failed download → `{"type":"error","id","message"}`; a download canceled elsewhere → `error`.
