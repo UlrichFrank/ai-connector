@@ -453,7 +453,7 @@ func encodeHere(ctx context.Context, wav []byte, bitrate, channels int) ([]byte,
 }
 
 // audioDone is {generateDone} of a music, sound or speech job: the length, the seed, the waveform, and what each
-// kind is (speech: the text, voice, language and the words' times; music: title, tempo, lyrics).
+// kind is (speech: the text, voice, language and the words' times; music: title, tempo, lyrics, faded).
 func audioDone(g advertisedGenerator, q *genRequest, plan genPlan, j *genJob, seconds float64, peaks []float64) map[string]any {
 	done := map[string]any{"type": "generateDone", "generator": g.ID, "seed": q.Seed, "peaks": peaks,
 		"took": math.Round(j.Finished.Sub(j.Started).Seconds()*10) / 10}
@@ -490,6 +490,9 @@ func audioDone(g advertisedGenerator, q *genRequest, plan genPlan, j *genJob, se
 		}
 		if q.Lyrics != "" && !q.Instrumental && g.Lyrics {
 			done["lyrics"] = q.Lyrics
+		}
+		if f, _ := j.Stats["faded"].(bool); f { // cut at the length and faded out (audio.FadeCut)
+			done["faded"] = true
 		}
 	}
 	return done

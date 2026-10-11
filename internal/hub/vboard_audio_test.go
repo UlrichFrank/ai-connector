@@ -78,6 +78,9 @@ func (b *fakeAudio) Run(ctx context.Context, m *engine.Model, r engine.Request, 
 	if r.BPM > 0 {
 		stats["bpm"] = r.BPM + 1 // the measured tempo
 	}
+	if m.Kind == engine.Music {
+		stats["faded"] = r.Title != "" // (a song with a title: cut at its length and faded out)
+	}
 	emit(engine.Event{Type: "stats", Data: stats})
 	emit(engine.Event{Type: "file", File: out})
 	if m.Kind == engine.Speech {
@@ -276,7 +279,7 @@ func TestVboardAudioGenerators(t *testing.T) {
 }
 
 // A song: the length at once, the job with the style, lyrics, length, tempo, title and seed, AAC made on the
-// worker, and generateDone with the length, the waveform, title, tempo (as measured) and lyrics.
+// worker, and generateDone with the length, the waveform, title, tempo (as measured), lyrics and faded.
 func TestVboardMusic(t *testing.T) {
 	encoder(t, true)
 	b, mac := audioWorld(t, `["*"]`, false)
@@ -297,7 +300,8 @@ func TestVboardMusic(t *testing.T) {
 	done := evs[len(evs)-1].M
 	peaks, _ := done["peaks"].([]any)
 	if done["generator"] != "ace-step-1.5-turbo" || done["seconds"] != 12.0 || done["seed"] != 5.0 || done["title"] != "Night Drive" ||
-		done["bpm"] != 129.0 || done["lyrics"] != "[verse]\nla la la\n[chorus]\noh" || len(peaks) != 256 || done["width"] != nil {
+		done["bpm"] != 129.0 || done["lyrics"] != "[verse]\nla la la\n[chorus]\noh" || len(peaks) != 256 || done["width"] != nil ||
+		done["faded"] != true {
 		t.Fatalf("done %+v", done)
 	}
 	if p0, p1 := peaks[0].(float64), peaks[255].(float64); p0 > 0.01 || math.Abs(p1-0.8) > 0.01 {
@@ -307,7 +311,7 @@ func TestVboardMusic(t *testing.T) {
 	_, evs = genDone(t, `"kind":"music","generator":"stable-audio-3-small","prompt":"lo-fi beat, mellow piano","instrumental":true,"seconds":500`, b)
 	done = evs[len(evs)-1].M
 	if r := mac.music.last(); r.Duration != 120 || !r.Instrumental || r.Lyrics != "" || done["title"] != "lo-fi beat" ||
-		done["lyrics"] != nil || done["bpm"] != nil || done["seed"] != 99.0 {
+		done["lyrics"] != nil || done["bpm"] != nil || done["seed"] != 99.0 || done["faded"] != nil {
 		t.Fatalf("request %+v done %+v", r, done)
 	}
 	_, _ = genDone(t, `"kind":"music","prompt":"a march"`, b)

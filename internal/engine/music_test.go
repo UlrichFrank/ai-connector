@@ -9,6 +9,16 @@ import (
 	"testing"
 )
 
+// A song that ends where its length runs out gets its cut faded; edits that keep the source's end and stems do not.
+func TestFadesEnd(t *testing.T) {
+	for task, want := range map[string]bool{"generate": true, "cover": true, "extend": true, "restyle": true,
+		"repaint": false, "lego": false, "extract": false, TrainStyle: false} {
+		if fadesEnd(task) != want {
+			t.Errorf("fadesEnd(%q) = %v", task, !want)
+		}
+	}
+}
+
 func TestStyleBPM(t *testing.T) {
 	for style, want := range map[string]int{
 		"uplifting trance, 138 bpm, supersaw lead":   138,
