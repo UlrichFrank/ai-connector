@@ -804,13 +804,18 @@ func TestVboardChatStatusAndCancel(t *testing.T) {
 		}
 		_ = id
 
-		// cancel: the job ends on the worker, vboard hears nothing more of it
+		// cancel: the job ends on the worker, vboard hears nothing more of it. The new job, not the first chat's (it
+		// can still be running for a moment after its answer: then the cancel went out before the new job existed)
+		before := map[string]bool{}
+		for _, j := range mac.mgr.Jobs() {
+			before[j.ID] = true
+		}
 		hold = make(chan struct{})
 		mac.chat.setHold(hold)
 		id, ch = b.chat(`[{"role":"user","content":"long"}]`, "")
 		waitFor(t, "the job running", func() bool {
 			for _, j := range mac.mgr.Jobs() {
-				if j.State == jobs.Running {
+				if j.State == jobs.Running && !before[j.ID] {
 					return true
 				}
 			}
