@@ -528,14 +528,15 @@ func TestVboardSetupAudioGenerator(t *testing.T) {
 		Tasks: []string{"presets", "speed", "language"}}
 	qwen := &engine.Model{ID: "qwen3-tts-1.7b", Name: "Qwen3-TTS 1.7B", Kind: engine.Speech, Backend: "speech", Size: 12 * gib, Audio: qwenCaps}
 	asr := &engine.Model{ID: "qwen3-asr", Name: "Qwen3-ASR", Kind: engine.Speech, Backend: "speech", Size: 2 * gib, Tasks: []string{"transcribe"}}
+	align := &engine.Model{ID: "qwen3-forced-aligner", Name: "Qwen3-ForcedAligner", Kind: engine.Speech, Backend: "speech", Size: gib, Tasks: []string{"align"}}
 	song := &engine.Model{ID: "ace-step-1.5-turbo", Name: "ACE-Step 1.5 turbo", Kind: engine.Music, Backend: "music", Size: 10 * gib,
 		Defaults: engine.Request{Duration: 60}, Audio: &engine.AudioCaps{MaxSeconds: 600, Lyrics: true, Instrumental: true, BPM: true}}
 	sound := &engine.Model{ID: "moss-soundeffect", Name: "MOSS-SoundEffect", Kind: engine.Sound, Backend: "sound", Size: 7 * gib,
 		Defaults: engine.Request{Duration: 8}, Audio: &engine.AudioCaps{MaxSeconds: 30}}
-	for _, m := range []*engine.Model{kokoro, qwen, asr, song, sound} {
+	for _, m := range []*engine.Model{kokoro, qwen, asr, align, song, sound} {
 		m.SetRepo("org/"+m.ID, "rev")
 	}
-	mac := startSetupMac(t, base, wtok, kokoro, qwen, asr, song, sound)
+	mac := startSetupMac(t, base, wtok, kokoro, qwen, asr, align, song, sound)
 	v := newFakeVboard(t, stageGenerators)
 	addConnector(t, base, device, `{"url":"`+v.srv.URL+`","token":"vbp_secret","generators":["*"]}`)
 	b := v.next(t)
@@ -550,7 +551,8 @@ func TestVboardSetupAudioGenerator(t *testing.T) {
 			rec[e["id"].(string)] = true
 		}
 	}
-	if !rec["kokoro-82m"] || rec["qwen3-tts-1.7b"] || rec["qwen3-asr"] || !rec["ace-step-1.5-turbo"] || !rec["moss-soundeffect"] {
+	// the aligner beside the voices (its own role "speech/align"), the transcriber none
+	if !rec["kokoro-82m"] || rec["qwen3-tts-1.7b"] || rec["qwen3-asr"] || !rec["qwen3-forced-aligner"] || !rec["ace-step-1.5-turbo"] || !rec["moss-soundeffect"] {
 		t.Fatalf("recommended %v", rec)
 	}
 

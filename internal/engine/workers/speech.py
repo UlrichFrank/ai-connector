@@ -1,31 +1,36 @@
 # mlxlab's speech worker: text to speech and speech to text with mlx-audio (github.com/Blaizzy/mlx-audio, MIT).
-# Keeps one TTS model (and the ASR model, when asked to transcribe) loaded.
+# Keeps one TTS model (and the ASR model when asked to transcribe, the aligner once a clip used it) loaded.
 #
 # Protocol: one JSON request per line on stdin; events as JSON lines on file descriptor 3 (stdout and stderr stay
 # free for the libraries' own output, which mlxlab shows as log lines).
 #   tts:  {"op": "tts", "family": "qwen3-tts"|"chatterbox"|"voxcpm2"|"higgs"|"voxtral"|"kokoro",
-#          "dirs": {"model": "/dir", …}  (the model's folder; chatterbox also "conds" and "s3tok"),
+#          "dirs": {"model": "/dir", …}  (the model's folder; chatterbox also "conds" and "s3tok"; "align":
+#                  Qwen3-ForcedAligner's, when it is on disk and times the language),
 #          "voice": {"mode": "preset"|"clone"|"design"|"default", "preset": "Ryan", "ref_audio": "/x.wav",
 #                    "ref_text": "…", "description": "…"},
 #          "instruct": "…", "language": "de", "seed": 1, "exaggeration": 0.5 (chatterbox),
 #          "chunks": [{"text": "…", "pause": 0.3}], "output": "/out.wav"}
 #        → progress per chunk; result {"file", "seconds" (generation), "duration" (audio), "peakGB",
-#          "words": [{"text", "start", "end"}] (Kokoro, English: when each word is said, in seconds;
-#          the end is where its voiced part ends)}
+#          "words": [{"text", "start", "end"}] (when each word is said, in seconds, the word as written with its
+#          punctuation; the end is where its voiced part ends): from the aligner (dirs.align) for every model, each
+#          sentence aligned to its audio; without it from Kokoro's tokens (English); none when alignment fails (the
+#          clip is made all the same)}
 #   asr:  {"op": "asr", "dirs": {"asr": "/dir"}, "audio": "/x.wav", "language": "de"} → result {"text"}
-#   unload_asr: frees the ASR model.
+#   unload_asr: frees the ASR model (unload_align: the aligner).
 #
 # The worker never downloads (HF_HUB_OFFLINE=1): mlxlab fetches the pinned repositories and passes their folders.
 import ctypes
 import gc
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
 import threading
 import time
 import traceback
+import unicodedata
 from pathlib import Path
 
 events = os.fdopen(3, "w", buffering=1)
@@ -106,7 +111,7 @@ class PeakSampler:
 
 
 # ---------------------------------------------------------------- loading
-loaded = {"key": None, "model": None, "tmp": None, "asr_key": None, "asr": None}
+loaded = {"key": None, "model": None, "tmp": None, "asr_key": None, "asr": None, "align_key": None, "align": None}
 
 
 def trim():
@@ -140,7 +145,7 @@ def chatterbox_dir(dirs):
 def tts_model(req):
     from mlx_audio.tts.utils import load_model
 
-    dirs = req.get("dirs") or {}
+    dirs = {k: v for k, v in (req.get("dirs") or {}).items() if k != "align"}  # the aligner is not the voice's
     if not dirs.get("model"):
         raise ValueError("dirs.model is required")
     key = (req["family"], json.dumps(dirs, sort_keys=True))
@@ -172,6 +177,20 @@ def asr_model(req):
         loaded["asr"] = load_model(Path(d), model_type="qwen3_asr", model_name_parts=[])
         loaded["asr_key"] = d
     return loaded["asr"]
+
+
+def align_model(d):
+    """Qwen3-ForcedAligner (mlx-audio's qwen3_asr loader tells it from the ASR model by its weights); it stays loaded
+    beside the TTS model (0.6B, 8-bit), like the ASR model."""
+    from mlx_audio.stt.utils import load_model
+
+    if loaded["align_key"] != d:
+        loaded["align"] = None
+        trim()
+        emit(type="status", text="loading Qwen3-ForcedAligner …")
+        loaded["align"] = load_model(Path(d), model_type="qwen3_asr", model_name_parts=[])
+        loaded["align_key"] = d
+    return loaded["align"]
 
 
 # ---------------------------------------------------------------- text to speech
@@ -319,10 +338,117 @@ def voiced_ends(words, wav, sr, frame=0.01, below_db=35.0, tail=0.03, min_len=0.
     return words
 
 
+# ---------------------------------------------------------------- the words' timings by Qwen3-ForcedAligner
+# its languages (config.json's support_languages), by our codes; not Japanese and Korean: mlx-audio splits their words
+# with nagisa / soynlp, which the runtime does not have (speech.go's alignLangs is the same list)
+ALIGN_LANGS = {"de": "German", "en": "English", "es": "Spanish", "fr": "French", "it": "Italian", "pt": "Portuguese",
+               "ru": "Russian", "zh": "Chinese"}
+_CONTROL_TAG = re.compile(r"<\|[^|>]*\|>")  # Higgs' <|emotion:…|> tags in the text: not said
+
+
+def align_language(lang):
+    """The aligner's name of a language ("de", "de-DE" → "German"; None: it does not time it)."""
+    return ALIGN_LANGS.get((lang or "").strip().lower().replace("_", "-").split("-")[0])
+
+
+def align_text(text):
+    """The text the aligner gets: the clip's text without control tags."""
+    return " ".join(_CONTROL_TAG.sub(" ", text).split())
+
+
+def _kept(ch):  # the aligner keeps letters, numbers and the apostrophe of a word (ForceAlignProcessor.is_kept_char)
+    return ch == "'" or unicodedata.category(ch)[0] in "LN"
+
+
+def _cjk(ch):  # ForceAlignProcessor.is_cjk_char: each such character is an item of its own
+    c = ord(ch)
+    return (0x4E00 <= c <= 0x9FFF or 0x3400 <= c <= 0x4DBF or 0x20000 <= c <= 0x2A6DF or 0x2A700 <= c <= 0x2B73F
+            or 0x2B740 <= c <= 0x2B81F or 0x2B820 <= c <= 0x2CEAF or 0xF900 <= c <= 0xFAFF)
+
+
+def align_units(text, language):
+    """The aligner's items of a text, as written: [(written, item)] — one per item it times, in its order (mlx-audio's
+    encode_timestamp: words split at spaces with only letters, numbers and ' kept, a CJK character alone; Chinese
+    also ends a word at any other character). written is the item's span of the text: from its first kept character
+    to its last, so the punctuation around a word is left out (as Kokoro's tokens do) and inner marks stay
+    ("e-mail", "z.B"); a word of punctuation only ("–") is none."""
+    chinese = language.lower() == "chinese"
+    units = []
+    for tok in align_text(text).split():
+        run, gap = False, ""  # a word is open; the marks after it, kept when it goes on
+        for ch in tok:
+            if _cjk(ch):
+                units.append([ch, ch])
+                run, gap = False, ""
+            elif _kept(ch):
+                if run:
+                    units[-1][0] += gap + ch
+                    units[-1][1] += ch
+                else:
+                    units.append([ch, ch])
+                    run = True
+                gap = ""
+            elif run and not chinese:
+                gap += ch
+            else:
+                run, gap = False, ""
+    return [(w, c) for w, c in units]
+
+
+def aligned_words(text, language, items, offset=0.0, limit=None):
+    """The aligner's items [(item, start, end)] of one sentence as the clip's words [{text, start, end}] (the text as
+    written, align_units), moved by offset seconds and kept before limit; None when they do not match the text."""
+    units = align_units(text, language)
+    if len(units) != len(items):
+        return None
+    words = []
+    for (written, item), (got, start, end) in zip(units, items):
+        if item != got:
+            return None
+        start, end = offset + float(start), offset + float(end)
+        if limit is not None:
+            start, end = min(start, limit), min(end, limit)
+        words.append({"text": written, "start": round(start, 3), "end": round(max(start, end), 3)})
+    return words
+
+
+def align_clip(req, wav, sr, spans):
+    """The words of a clip by Qwen3-ForcedAligner, each sentence aligned to its own audio — spans: [(text, first
+    sample, end sample)]; their ends trimmed to the voice (voiced_ends). None without the aligner (dirs.align), for a
+    language it does not time, and when it fails (logged: the clip goes out without words)."""
+    d, name = (req.get("dirs") or {}).get("align"), align_language(req.get("language"))
+    if not d or not name or not spans:
+        return None
+    try:
+        from mlx_audio.utils import resample_audio
+
+        model = align_model(d)
+        emit(type="status", text="timing the words …")
+        t0, words = time.time(), []
+        for text, a, b in spans:
+            if not align_units(text, name):
+                continue
+            seg = np.asarray(wav[a:b], dtype=np.float32)
+            if sr != 16000:
+                seg = np.asarray(resample_audio(seg, sr, 16000), dtype=np.float32)
+            res = model.generate(seg, text=align_text(text), language=name)
+            got = aligned_words(text, name, [(it.text, it.start_time, it.end_time) for it in res], a / sr, b / sr)
+            if got is None:
+                raise ValueError(f"the aligner's words do not match the text: {text[:60]!r}")
+            words.extend(got)
+        mx.clear_cache()
+        emit(type="log", text=f"{len(words)} words timed in {time.time() - t0:.1f} s (Qwen3-ForcedAligner, {name})")
+        return voiced_ends(words, wav, sr)
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        emit(type="log", text=f"no word timings: {type(e).__name__}: {e}")
+        return None
+
+
 def kokoro_tts(req, model):
     """Kokoro through its pipeline (model.generate does not hand out the tokens): the voice from the weights' voices
-    folder (nothing is fetched), the words' times from the tokens (English only: the other languages are phonemized
-    by espeak-ng or misaki's zh without tokens)."""
+    folder (nothing is fetched), the words' times from the aligner, else from the tokens (English only: the other
+    languages are phonemized by espeak-ng or misaki's zh without tokens)."""
     voice = (req.get("voice") or {}).get("preset") or "af_heart"
     lang = (req.get("language") or "en").lower()
     code = ("b" if voice.startswith("b") else "a") if lang == "en" else KOKORO_CODES.get(lang, "a")
@@ -338,11 +464,11 @@ def kokoro_tts(req, model):
     chunks = req.get("chunks") or []
     if not chunks:
         raise ValueError("no text")
-    parts, words, at, t0 = [], [], 0, time.time()
+    parts, words, spans, at, t0 = [], [], [], 0, time.time()
     for i, ch in enumerate(chunks):
         emit(type="status", text=f"sentence {i + 1} of {len(chunks)} …")
         emit(type="progress", step=i, total=len(chunks))
-        got = False
+        got, first = False, at
         for res in pipe(ch["text"], voice=path, speed=speed, split_pattern=None):
             if res.audio is None:
                 continue
@@ -357,6 +483,7 @@ def kokoro_tts(req, model):
             got = True
         if not got:
             raise RuntimeError(f"no audio for: {ch['text'][:60]}")
+        spans.append((ch["text"], first, at))
         pause = float(ch.get("pause") or 0)
         if pause > 0 and i < len(chunks) - 1:
             parts.append(np.zeros(int(pause * sr), dtype=np.float32))
@@ -367,6 +494,12 @@ def kokoro_tts(req, model):
     seconds = time.time() - t0
     os.makedirs(os.path.dirname(os.path.abspath(req["output"])), exist_ok=True)
     audio_write(req["output"], wav, sr)
+    # the aligner's timings before the tokens' (English) when it is there: measured on a clip against its pauses, the
+    # tokens' starts came ~55 ms early and their ends ~50 ms late (after voiced_ends), the aligner's ~15 / ~30 ms off;
+    # the words inside a phrase about the same
+    aligned = align_clip(req, wav, sr, spans)
+    if aligned is not None:
+        return seconds, len(wav) / sr, aligned
     return seconds, len(wav) / sr, voiced_ends(words, wav, sr)
 
 
@@ -385,7 +518,7 @@ def tts(req):
     if not chunks:
         raise ValueError("no text")
     sr = int(getattr(model, "sample_rate", 0) or 24000)
-    parts, t0 = [], time.time()
+    parts, spans, at, t0 = [], [], 0, time.time()
     for i, ch in enumerate(chunks):
         emit(type="status", text=f"sentence {i + 1} of {len(chunks)} …")
         emit(type="progress", step=i, total=len(chunks))
@@ -400,16 +533,19 @@ def tts(req):
         if not audio:
             raise RuntimeError(f"no audio for: {ch['text'][:60]}")
         parts.append(np.concatenate(audio))
+        spans.append((ch["text"], at, at + len(parts[-1])))
+        at += len(parts[-1])
         pause = float(ch.get("pause") or 0)
         if pause > 0 and i < len(chunks) - 1:
             parts.append(np.zeros(int(pause * sr), dtype=np.float32))
+            at += len(parts[-1])
         mx.clear_cache()
     emit(type="progress", step=len(chunks), total=len(chunks))
     wav = np.clip(np.concatenate(parts), -1.0, 1.0)
     seconds = time.time() - t0
     os.makedirs(os.path.dirname(os.path.abspath(req["output"])), exist_ok=True)
     audio_write(req["output"], wav, sr)
-    return seconds, len(wav) / sr, []
+    return seconds, len(wav) / sr, align_clip(req, wav, sr, spans) or []
 
 
 def asr(req):
@@ -430,8 +566,8 @@ for line in sys.stdin:
     try:
         req = json.loads(line)
         op = req.get("op") or "tts"
-        if op == "unload_asr":
-            loaded.update(asr=None, asr_key=None)
+        if op in ("unload_asr", "unload_align"):
+            loaded.update(**({"asr": None, "asr_key": None} if op == "unload_asr" else {"align": None, "align_key": None}))
             trim()
             emit(type="result")
             continue

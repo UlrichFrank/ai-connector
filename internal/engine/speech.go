@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"os"
 	"os/exec"
@@ -23,8 +24,9 @@ import (
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-// Speech: text to speech with a voice library (docs/voice-avatar.md), and Qwen3-ASR for transcribing (voice
-// samples, "transcribe" jobs). Every model runs in one Python worker (workers/speech.py) on mlx-audio.
+// Speech: text to speech with a voice library (docs/voice-avatar.md), Qwen3-ASR for transcribing (voice samples,
+// "transcribe" jobs), and Qwen3-ForcedAligner for the words' timings of every clip (when it is on disk). Every model
+// runs in one Python worker (workers/speech.py) on mlx-audio.
 
 // mlxAudioCommit is mlx-audio's main after v0.5.7 (2026-10-03): v0.5.7 plus a Voxtral TTS first-frame fix.
 const mlxAudioCommit = "543792553ba62fe7cdb9e0b22c505bfa899c0f09"
@@ -51,7 +53,7 @@ type speechFamily struct {
 	speed    bool                     // honours speed itself (else the wav is time-stretched afterwards, pitch kept)
 	langs    []string                 // languages it needs to be told (nil: it detects them)
 	honoured string                   // what of the request it honours, for the model's "about"
-	words    bool                     // it gives word timings (Kokoro, English)
+	words    bool                     // it gives word timings itself (Kokoro, English; any model with the aligner)
 	speaks   []string                 // the languages it speaks when it is not told them (langs) — nil: many, it detects
 }
 
@@ -121,14 +123,18 @@ var speechFamilies = map[string]*speechFamily{
 		return "neutral_female"
 	}, honoured: "presets (the language picks the default one)",
 		speaks: []string{"en", "fr", "es", "de", "it", "pt", "nl", "ar", "hi"}},
-	"asr": {},
+	"asr":   {},
+	"align": {},
 }
+
+// speechTool: the worker model is a tool of the speech models (the transcriber, the aligner), not a voice.
+func speechTool(workerModel string) bool { return workerModel == "asr" || workerModel == "align" }
 
 // SpeechPresets are the preset voices of each speech model (GET /api/voices).
 func SpeechPresets() map[string][]string {
 	out := map[string][]string{}
 	for _, m := range speechModels() {
-		if f := speechFamilies[m.workerModel]; f != nil && m.workerModel != "asr" {
+		if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
 			out[m.ID] = append([]string{}, f.presets...)
 		}
 	}
@@ -147,6 +153,18 @@ func qwenRepos(size string, revs ...string) []hubRepo {
 
 // asrRepo is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
 var asrRepo = hubRepo{key: "asr", repo: "mlx-community/Qwen3-ASR-1.7B-8bit", rev: "a8379a2e2f9e313c9292cdf1af4055ab56d50d55"}
+
+// alignRepo is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
+// in its languages (alignLangs) once it is on disk — a model of its own, fetched by its download, never by a clip.
+var alignRepo = hubRepo{key: "align", repo: "mlx-community/Qwen3-ForcedAligner-0.6B-8bit", rev: "0e1a68e91d815300c7c9754b2a7639378b23db15"}
+
+// alignLangs are the languages Qwen3-ForcedAligner times (its config's support_languages; not Japanese and Korean:
+// mlx-audio splits their words with nagisa / soynlp, which the speech runtime does not have). workers/speech.py
+// maps them to the aligner's names (ALIGN_LANGS).
+var alignLangs = []string{"de", "en", "es", "fr", "it", "pt", "ru", "zh"}
+
+// TaskAlign is the aligner's task: its own setup role ("speech/align"), beside the voices.
+const TaskAlign = "align"
 
 // speechModels are the catalogue's speech models.
 func speechModels() []*Model {
@@ -189,6 +207,9 @@ func speechModels() []*Model {
 		{ID: "qwen3-asr", Name: "Qwen3-ASR 1.7B (transcribe)", Kind: Speech, Backend: "speech", workerModel: "asr",
 			repos: []hubRepo{asrRepo}, Licence: "Apache-2.0", Size: 2360 << 20,
 			About: "Qwen3-ASR 1.7B (8-bit): speech to text in 30 languages; a job with an audio file gives its transcript (the voice library uses it for samples)"},
+		{ID: "qwen3-forced-aligner", Name: "Qwen3-ForcedAligner 0.6B (word timings)", Kind: Speech, Backend: "speech", workerModel: "align",
+			repos: []hubRepo{alignRepo}, Licence: "Apache-2.0", Size: 1217 << 20,
+			About: "Qwen3-ForcedAligner 0.6B (8-bit): when each word of a clip is said, for every speech model, in English, German, French, Spanish, Italian, Portuguese, Russian and Chinese (subtitles, the word being spoken); every clip uses it once it is on disk (it makes nothing itself)"},
 	}
 	for _, m := range ms {
 		m.Tasks = speechTasks(m)
@@ -200,8 +221,11 @@ func speechModels() []*Model {
 // speechTasks are what a speech model honours, for the UI: clone, design, presets, instruct, speed, language (the
 // transcriber: transcribe).
 func speechTasks(m *Model) []string {
-	if m.workerModel == "asr" {
+	switch m.workerModel {
+	case "asr":
 		return []string{"transcribe"}
+	case "align":
+		return []string{TaskAlign}
 	}
 	f := speechFamilies[m.workerModel]
 	var t []string
@@ -269,8 +293,9 @@ type SpeechBackend struct {
 	Voices  VoiceStore // the voice library (nil: presets only)
 
 	// tests: a fake runtime, and the repositories' folders without fetching
-	env   *pyenv.Env
-	fetch func(ctx context.Context, name string, hr hubRepo, emit Emit) (string, error)
+	env        *pyenv.Env
+	fetch      func(ctx context.Context, name string, hr hubRepo, emit Emit) (string, error)
+	hasAligner func() bool // Qwen3-ForcedAligner on disk (nil: the store says)
 
 	mu    sync.Mutex
 	w     *pyWorker
@@ -374,7 +399,7 @@ func (b *SpeechBackend) speechModel(id string) (*Model, error) {
 	}
 	var tts []*Model
 	for _, m := range all {
-		if m.Backend == "speech" && m.workerModel != "asr" {
+		if m.Backend == "speech" && !speechTool(m.workerModel) {
 			tts = append(tts, m)
 		}
 	}
@@ -475,7 +500,7 @@ func (b *SpeechBackend) afterError() {
 func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out string, emit Emit) (spoken, error) {
 	var said spoken
 	fam := speechFamilies[m.workerModel]
-	if fam == nil || m.workerModel == "asr" {
+	if fam == nil || speechTool(m.workerModel) {
 		return said, fmt.Errorf("%s does not speak", m.Name)
 	}
 	text := strings.TrimSpace(r.Text)
@@ -526,6 +551,14 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	if dirs["model"] == "" {
 		return said, fmt.Errorf("%s cannot speak with a %s voice", m.Name, v.Mode)
 	}
+	// the words' timings: Qwen3-ForcedAligner when it is on disk and times the language (never fetched for a clip)
+	if slices.Contains(alignLangs, lang) && b.alignerHere() {
+		if dir, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo, emit); err == nil {
+			dirs["align"] = dir
+		} else {
+			emit.Log("no word timings: " + err.Error())
+		}
+	}
 	if err := b.worker(ctx, emit); err != nil {
 		return said, err
 	}
@@ -550,6 +583,7 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 		if err := stretch(ctx, out, r.Speed); err != nil {
 			return said, err
 		}
+		ev.Words = stretchWords(ev.Words, r.Speed)
 	}
 	rate, dur := wavInfo(out)
 	stats := map[string]any{"seconds": ev.Seconds, "duration": dur, "sampleRate": rate}
@@ -569,6 +603,24 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 		said.voice = PresetVoice{ID: strings.TrimSpace(r.Voice), Name: v.name, Language: v.language}
 	}
 	return said, nil
+}
+
+// alignerHere: Qwen3-ForcedAligner is on disk (a clip uses it then; it never fetches it).
+func (b *SpeechBackend) alignerHere() bool {
+	if b.hasAligner != nil {
+		return b.hasAligner()
+	}
+	return b.Store != nil && reposHere(b.Store, []hubRepo{alignRepo})
+}
+
+// stretchWords moves the words' timings with the clip's speed change (the wav stretched to 1/speed of its length).
+func stretchWords(words []Word, speed float64) []Word {
+	speed = min(max(speed, 0.5), 2) // as stretch
+	for i := range words {
+		words[i].Start = math.Round(words[i].Start/speed*1000) / 1000
+		words[i].End = math.Round(words[i].End/speed*1000) / 1000
+	}
+	return words
 }
 
 // qwenPart is the Qwen3-TTS checkpoint a voice needs.

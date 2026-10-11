@@ -59,7 +59,7 @@ func musicCaps(m *Model) *AudioCaps {
 // speechTasks says.
 func speechCaps(m *Model) *AudioCaps {
 	f := speechFamilies[m.workerModel]
-	if f == nil || m.workerModel == "asr" {
+	if f == nil || speechTool(m.workerModel) { // the transcriber and the aligner are no generators
 		return nil
 	}
 	c := &AudioCaps{Languages: f.speaks, Instruct: slices.Contains(m.Tasks, "instruct"), MaxChars: speechMaxChars, Words: f.words}
