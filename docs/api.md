@@ -1035,10 +1035,23 @@ model, which may not exist yet.
   systemd user unit `~/.config/systemd/user/ai-connector-vboard.service` (`$XDG_CONFIG_HOME`; `enable` + `restart`;
   log: `journalctl --user -u ai-connector-vboard`); Windows a scheduled task "ai-connector vboard" at logon
   (`schtasks /Create … /SC ONLOGON`), and when Windows refuses that task (rights) the user's Run key
-  (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`). The environment that says where the files and the models
-  are (`PATH`, `MLXLAB_HOME`, `XDG_CONFIG_HOME`, `MLXLAB_STATE`, `MLXLAB_MODELS_FROM`, `MLXLAB_RUNTIMES`, `HF_HOME`,
-  `HF_HUB_CACHE`, `HF_TOKEN_PATH`, `CLAUDE_CONFIG_DIR`) is kept in the plist/unit (not on Windows).
+  (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; it starts at the next login). The environment that says
+  where the files and the models are (`PATH`, `MLXLAB_HOME`, `XDG_CONFIG_HOME`, `MLXLAB_STATE`, `MLXLAB_MODELS_FROM`,
+  `MLXLAB_RUNTIMES`, `HF_HOME`, `HF_HUB_CACHE`, `HF_TOKEN_PATH`, `CLAUDE_CONFIG_DIR`) is kept in the plist/unit; on
+  Windows the command carries it as `--env KEY=VALUE` per key (a flag of `vboard` that accepts only these keys and
+  sets them before anything reads the environment; `PATH` not — the task has the user's own), quoted for the
+  Windows command line. A command longer than `schtasks /TR` takes (261 characters) goes to the Run key at once.
   `ai-connector vboard --uninstall` stops and removes it.
+* **One at a time per settings folder:** `ai-connector vboard` holds an OS lock on `<files>/vboard/instance.lock`
+  (flock; LockFileEx on Windows — freed when the process ends, however it ends) with its PID in the file. Another one
+  with the same `<files>` (a terminal copy beside the one started at login) does not connect: it says "another
+  ai-connector vboard runs (pid N) …", tries again every 5 s and takes over once the lock is free (it does not end:
+  launchd's KeepAlive and systemd's Restart would start it again and again). `--install` stops a copy that runs
+  before it starts the service ("stopped the running copy (pid N): the service takes over"): only the process whose
+  PID is in the file while the lock is held (a free lock means a stale PID, nothing is stopped) — SIGTERM, up to
+  10 s for the lock to be free, else it says so and the service waits; on Windows the process is terminated (once
+  the task is there; with the Run key the running copy is left alone until the next login). `--uninstall` does not
+  touch the lock.
 * **Python for the generators** (mflux, ltx-2-mlx, the music, sound and speech runtimes need `uv`): when `uv` is not on the `PATH` the worker fetches
   Astral's standalone `uv` (pinned 0.13.0, checked against the release's `sha256.sum`) into `<files>/bin` itself
   (state `preparing` below) instead of asking for Homebrew; `internal/pyenv/uv.go`.

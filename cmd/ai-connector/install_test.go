@@ -2,10 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // testService is a service on goos in a temporary home whose commands are recorded (fail: commands that fail).
@@ -110,28 +113,171 @@ func TestInstallSystemd(t *testing.T) {
 }
 
 func TestInstallWindows(t *testing.T) {
-	s, ran := testService(t, "windows", nil)
-	s.exe = `C:\Program Files\ai-connector\ai-connector.exe`
+	windows := func(fail map[string]bool) (*service, *[]string) {
+		s, ran := testService(t, "windows", fail)
+		s.exe = `C:\Program Files\ai-connector\ai-connector.exe`
+		s.env = [][2]string{{"PATH", `C:\Windows;C:\Tools`}, {"MLXLAB_HOME", `D:\AI files\`}, {"HF_HOME", `D:\hf`}}
+		return s, ran
+	}
+	// the kept environment as --env (PATH not: the task has the user's), quoted for the command line
+	cmd := `"C:\Program Files\ai-connector\ai-connector.exe" vboard --env "MLXLAB_HOME=D:\AI files\\" --env HF_HOME=D:\hf`
+	s, ran := windows(nil)
+	if s.command() != cmd {
+		t.Fatalf("command %s", s.command())
+	}
 	if err := s.install(); err != nil {
 		t.Fatal(err)
 	}
-	want := `schtasks /Create /TN ai-connector vboard /TR "C:\Program Files\ai-connector\ai-connector.exe" vboard /SC ONLOGON /RL LIMITED /F` +
-		"\nschtasks /Run /TN ai-connector vboard"
+	want := `schtasks /Create /TN ai-connector vboard /TR ` + cmd + ` /SC ONLOGON /RL LIMITED /F` + "\nschtasks /Run /TN ai-connector vboard"
 	if got := strings.Join(*ran, "\n"); got != want {
 		t.Fatalf("ran %q", got)
 	}
+	if !strings.Contains(s.describe(), "scheduled task") {
+		t.Fatal(s.describe())
+	}
 	// a task at logon refused: the user's Run key
-	s, ran = testService(t, "windows", map[string]bool{"schtasks /Create": true})
+	s, ran = windows(map[string]bool{"schtasks /Create": true})
 	if err := s.install(); err != nil {
 		t.Fatal(err)
 	}
-	if got := (*ran)[len(*ran)-1]; !strings.HasPrefix(got, `reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ai-connector vboard /t REG_SZ /d "`) {
+	if got := (*ran)[len(*ran)-1]; got != `reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ai-connector vboard /t REG_SZ /d `+cmd+` /f` {
+		t.Fatalf("ran %q", *ran)
+	}
+	if !strings.Contains(s.describe(), `in HKCU\Software`) {
+		t.Fatal(s.describe())
+	}
+	// longer than schtasks /TR takes (261): the Run key at once
+	s, ran = windows(nil)
+	s.env = append(s.env, [2]string{"HF_HUB_CACHE", `D:\` + strings.Repeat("models ", 30)})
+	if len(s.command()) <= 261 {
+		t.Fatal(len(s.command()))
+	}
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if len(*ran) != 1 || !strings.HasPrefix((*ran)[0], "reg add ") || !strings.Contains((*ran)[0], `--env "HF_HUB_CACHE=D:\models models`) {
 		t.Fatalf("ran %q", *ran)
 	}
 	*ran = nil
 	s.uninstall()
 	if got := strings.Join(*ran, "\n"); !strings.Contains(got, "schtasks /Delete /TN ai-connector vboard /F") || !strings.Contains(got, "reg delete") {
 		t.Fatalf("ran %q", got)
+	}
+}
+
+func TestWinQuote(t *testing.T) {
+	// as CommandLineToArgvW reads them back (Go's syscall.EscapeArg does the same)
+	for in, want := range map[string]string{"a": "a", "": `""`, `C:\x`: `C:\x`, "a b": `"a b"`, `C:\x y\`: `"C:\x y\\"`,
+		`say "hi"`: `"say \"hi\""`, `a\"b`: `"a\\\"b"`, `a\\b c`: `"a\\b c"`, "a\tb": "\"a\tb\""} {
+		if got := winQuote(in); got != want {
+			t.Errorf("winQuote(%q) = %s, want %s", in, got, want)
+		}
+	}
+}
+
+// TestInstallReplaces: --install stops the copy that holds the lock (the PID it wrote), never one whose lock is free.
+func TestInstallReplaces(t *testing.T) {
+	type copyState struct {
+		pid        int
+		held       bool
+		endsOnStop bool
+	}
+	setup := func(goos string, c *copyState) (*service, *[]string, *strings.Builder) {
+		s, ran := testService(t, goos, nil)
+		var out strings.Builder
+		s.out, s.stopWait = &out, 300*time.Millisecond
+		s.holder = func() (int, bool) { return c.pid, c.held }
+		s.stop = func(pid int) error {
+			*ran = append(*ran, fmt.Sprintf("stop %d", pid))
+			if c.endsOnStop {
+				c.held = false
+			}
+			return nil
+		}
+		return s, ran, &out
+	}
+
+	// a copy from a terminal: stopped before launchd starts the service
+	c := &copyState{pid: 4242, held: true, endsOnStop: true}
+	s, ran, out := setup("darwin", c)
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if (*ran)[0] != "stop 4242" || !strings.HasPrefix((*ran)[2], "launchctl bootstrap") {
+		t.Fatalf("ran %q", *ran)
+	}
+	if !strings.Contains(out.String(), "stopped the running copy (pid 4242): the service takes over") {
+		t.Fatalf("said %q", out.String())
+	}
+
+	// a stale PID (the lock is free): nothing is stopped
+	c = &copyState{pid: 4242, held: false}
+	s, ran, out = setup("linux", c)
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if len(*ran) != 3 || slices.Contains(*ran, "stop 4242") || out.Len() != 0 {
+		t.Fatalf("ran %q, said %q", *ran, out.String())
+	}
+
+	// held, its PID unknown (yet): not stopped
+	c = &copyState{pid: 0, held: true}
+	s, ran, out = setup("linux", c)
+	_ = s.install()
+	if slices.ContainsFunc(*ran, func(l string) bool { return strings.HasPrefix(l, "stop") }) || !strings.Contains(out.String(), "PID is unknown") {
+		t.Fatalf("ran %q, said %q", *ran, out.String())
+	}
+
+	// one that does not end: said so, installed all the same (the service waits for it)
+	c = &copyState{pid: 4242, held: true}
+	s, ran, out = setup("linux", c)
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if (*ran)[0] != "stop 4242" || len(*ran) != 4 || !strings.Contains(out.String(), "did not end within") {
+		t.Fatalf("ran %q, said %q", *ran, out.String())
+	}
+
+	// Windows: stopped once the task is there, before it runs
+	c = &copyState{pid: 4242, held: true, endsOnStop: true}
+	s, ran, _ = setup("windows", c)
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if len(*ran) != 3 || !strings.HasPrefix((*ran)[0], "schtasks /Create") || (*ran)[1] != "stop 4242" || !strings.HasPrefix((*ran)[2], "schtasks /Run") {
+		t.Fatalf("ran %q", *ran)
+	}
+	// the Run key starts it at the next login only: the running copy is left alone
+	c = &copyState{pid: 4242, held: true, endsOnStop: true}
+	s, ran, out = setup("windows", c)
+	s.run = func(name string, args ...string) (string, error) {
+		*ran = append(*ran, name+" "+strings.Join(args, " "))
+		if name == "schtasks" {
+			return "Access is denied.", errors.New("exit status 1")
+		}
+		return "", nil
+	}
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(*ran, "stop 4242") || !strings.Contains(out.String(), "(pid 4242) keeps running") {
+		t.Fatalf("ran %q, said %q", *ran, out.String())
+	}
+}
+
+func TestApplyEnv(t *testing.T) {
+	got := map[string]string{}
+	set := func(k, v string) error { got[k] = v; return nil }
+	if err := applyEnv([]string{`MLXLAB_HOME=D:\AI files\`, "HF_HOME=a=b", "PATH="}, set); err != nil {
+		t.Fatal(err)
+	}
+	if got["MLXLAB_HOME"] != `D:\AI files\` || got["HF_HOME"] != "a=b" || len(got) != 3 {
+		t.Fatalf("%q", got)
+	}
+	for _, bad := range []string{"VBOARD_TOKEN=x", "MLXLAB_HOME", "=x"} {
+		if err := applyEnv([]string{bad}, set); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
 	}
 }
 

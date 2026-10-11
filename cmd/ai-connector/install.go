@@ -4,23 +4,30 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/philipparndt/ai-connector/internal/engine"
 )
 
 // `ai-connector vboard --install` starts it at login: a launchd agent on macOS, a systemd user unit on Linux, a
 // scheduled task on Windows (the Run key of the user when Windows refuses the task). It runs `ai-connector vboard`
 // without flags — the settings, the token too, are in <files>/vboard/settings.json (0600), not in the service's
-// file. `--uninstall` stops and removes it.
+// file (on Windows the task's command carries --env for where the files are). A copy that runs already with these
+// settings (from a terminal, the service's older one) is stopped: the service takes over (instance.go). `--uninstall`
+// stops and removes it.
 
 const (
 	serviceLabel  = "de.rnd7.ai-connector.vboard" // launchd
 	serviceUnit   = "ai-connector-vboard.service" // systemd --user
 	serviceTask   = "ai-connector vboard"         // schtasks, the Run key
 	serviceRunKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	schtasksMaxTR = 261 // schtasks /TR refuses a longer command; the Run key has no such limit
 )
 
 // serviceEnvKeys are kept from the environment of `--install` (where the files and the models are, what the agents
@@ -37,6 +44,14 @@ type service struct {
 	uid  int
 	// run runs a command; it returns its output (tests record the commands instead)
 	run func(name string, args ...string) (string, error)
+	// holder is the PID of the running `ai-connector vboard` that holds the settings folder's lock (held false: none,
+	// whatever PID the file has); stop ends that process, then install waits up to stopWait for the lock to be free.
+	// Tests replace them.
+	holder   func() (pid int, held bool)
+	stop     func(pid int) error
+	stopWait time.Duration
+	out      io.Writer // what install says besides describe (nil: stdout)
+	runKey   bool      // Windows: installed in the Run key, not as a task
 }
 
 func newService(getenv func(string) string) (service, error) {
@@ -54,10 +69,11 @@ func newService(getenv func(string) string) (service, error) {
 	if err != nil {
 		return service{}, err
 	}
+	lock := instanceLock(filepath.Join(engine.ConfigDir(), "vboard"))
 	s := service{goos: runtime.GOOS, home: home, exe: exe, uid: os.Getuid(), run: func(name string, args ...string) (string, error) {
 		out, err := exec.Command(name, args...).CombinedOutput()
 		return strings.TrimSpace(string(out)), err
-	}}
+	}, holder: func() (int, bool) { return lockHolder(lock) }, stop: stopProcess, stopWait: 10 * time.Second}
 	for _, k := range serviceEnvKeys {
 		if v := getenv(k); v != "" {
 			s.env = append(s.env, [2]string{k, v})
@@ -153,8 +169,42 @@ func (s service) content() string {
 	return b.String()
 }
 
-// command is the Windows task's command line.
-func (s service) command() string { return `"` + s.exe + `" vboard` }
+// command is the Windows task's command line. A task or the Run key starts it with the user's environment, not the
+// one of `--install`: what was kept from that comes as --env (PATH not: the user's own is there).
+func (s service) command() string {
+	parts := []string{`"` + s.exe + `"`, "vboard"}
+	for _, kv := range s.env {
+		if kv[0] != "PATH" {
+			parts = append(parts, "--env", winQuote(kv[0]+"="+kv[1]))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// winQuote quotes a word for a Windows command line (CommandLineToArgvW: "…"; a " as \", the \ before it doubled).
+func winQuote(v string) string {
+	if v != "" && !strings.ContainsAny(v, " \t\"") {
+		return v
+	}
+	var b strings.Builder
+	b.WriteByte('"')
+	slashes := 0
+	for i := 0; i < len(v); i++ {
+		switch v[i] {
+		case '\\':
+			slashes++
+		case '"':
+			b.WriteString(strings.Repeat(`\`, slashes+1))
+			slashes = 0
+		default:
+			slashes = 0
+		}
+		b.WriteByte(v[i])
+	}
+	b.WriteString(strings.Repeat(`\`, slashes)) // before the closing "
+	b.WriteByte('"')
+	return b.String()
+}
 
 // installCmds start the service (after its file is written).
 func (s service) installCmds() [][]string {
@@ -186,11 +236,77 @@ func (s service) uninstallCmds() [][]string {
 	return nil
 }
 
-// install writes the service's file and starts it.
-func (s service) install() error {
+func (s *service) printf(format string, a ...any) {
+	w := s.out
+	if w == nil {
+		w = os.Stdout
+	}
+	fmt.Fprintf(w, format, a...)
+}
+
+// replaceRunning stops the copy of `ai-connector vboard` that runs with these settings, if one does: only the process
+// whose PID is in the lock file while it holds the lock. Not stopping it is no error: the service waits for it.
+func (s *service) replaceRunning() {
+	if s.holder == nil {
+		return
+	}
+	pid, held := s.holder()
+	if !held {
+		return
+	}
+	if pid <= 0 {
+		s.printf("another ai-connector vboard runs (its PID is unknown): the service waits until it ends\n")
+		return
+	}
+	if err := s.stop(pid); err != nil {
+		s.printf("could not stop the running copy (pid %d: %v): the service waits until it ends\n", pid, err)
+		return
+	}
+	for end := time.Now().Add(s.stopWait); ; time.Sleep(100 * time.Millisecond) {
+		if _, held := s.holder(); !held {
+			s.printf("stopped the running copy (pid %d): the service takes over\n", pid)
+			return
+		}
+		if time.Now().After(end) {
+			s.printf("the running copy (pid %d) did not end within %s: the service waits until it does\n", pid, s.stopWait)
+			return
+		}
+	}
+}
+
+// keptRunning tells about a copy that runs and is left alone (the Run key starts the service at the next login only).
+func (s *service) keptRunning() {
+	if s.holder == nil {
+		return
+	}
+	if pid, held := s.holder(); held {
+		s.printf("the running copy (pid %d) keeps running until then\n", pid)
+	}
+}
+
+// addRunKey puts the command into the user's Run key (Windows; it starts at the next login).
+func (s *service) addRunKey() error {
+	if out, err := s.run("reg", "add", serviceRunKey, "/v", serviceTask, "/t", "REG_SZ", "/d", s.command(), "/f"); err != nil {
+		return fmt.Errorf("reg add %s: %v: %s", serviceRunKey, err, out)
+	}
+	s.runKey = true
+	return nil
+}
+
+// install writes the service's file, stops a copy that runs already and starts the service.
+func (s *service) install() error {
 	cmds := s.installCmds()
 	if cmds == nil {
 		return fmt.Errorf("--install: not on %s (macOS, Linux and Windows only)", s.goos)
+	}
+	if s.goos == "windows" && len(s.command()) > schtasksMaxTR {
+		if err := s.addRunKey(); err != nil {
+			return err
+		}
+		s.printf("the command is longer than a scheduled task takes (%d characters, at most %d): added to %s instead (starts at the next login)\n",
+			len(s.command()), schtasksMaxTR, serviceRunKey)
+		s.keptRunning()
+		return nil
 	}
 	if p := s.file(); p != "" {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
@@ -204,15 +320,23 @@ func (s service) install() error {
 	if l := s.logFile(); l != "" {
 		_ = os.MkdirAll(filepath.Dir(l), 0o755)
 	}
+	replaceAt := 0 // the commands from here on start the service
+	if s.goos == "windows" {
+		replaceAt = 1 // schtasks /Run, once the task is there
+	}
 	for i, c := range cmds {
+		if i == replaceAt {
+			s.replaceRunning()
+		}
 		out, err := s.run(c[0], c[1:]...)
 		if err == nil || s.goos == "darwin" && i == 0 { // bootout: an older one may not be there
 			continue
 		}
 		if s.goos == "windows" && i == 0 {
 			// a scheduled task at logon may need rights this user does not have: the user's Run key does it too
-			if _, rerr := s.run("reg", "add", serviceRunKey, "/v", serviceTask, "/t", "REG_SZ", "/d", s.command(), "/f"); rerr == nil {
-				fmt.Printf("the scheduled task was refused (%s): added to %s instead (starts at the next login)\n", out, serviceRunKey)
+			if s.addRunKey() == nil {
+				s.printf("the scheduled task was refused (%s): added to %s instead (starts at the next login)\n", out, serviceRunKey)
+				s.keptRunning()
 				return nil
 			}
 		}
@@ -244,6 +368,9 @@ func (s service) describe() string {
 		return fmt.Sprintf("installed %s: ai-connector vboard starts at login (now too)\n  log: %s", s.file(), s.logFile())
 	case "linux":
 		return fmt.Sprintf("installed %s: ai-connector vboard starts at login (now too)\n  log: journalctl --user -u %s", s.file(), serviceUnit)
+	}
+	if s.runKey {
+		return "installed \"" + serviceTask + "\" in " + serviceRunKey + ": ai-connector vboard starts at login"
 	}
 	return "installed the scheduled task \"" + serviceTask + "\": ai-connector vboard starts at login (now too)"
 }
