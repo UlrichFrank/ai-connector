@@ -976,7 +976,10 @@ WAVE_FORMAT_EXTENSIBLE; vboard's backend has no decoder for AAC; uploads get the
   by up to a syllable now and then.
 * `music`: `title` (the request's, else the style's first part: "dark techno, 130 bpm" → "dark techno"), `bpm` (the
   tempo as the job measured it, else the one asked; absent when neither), and `lyrics` as sent (with their `[verse]`
-  / `[chorus]` marks; absent for an instrumental and for a model without `lyrics`).
+  / `[chorus]` marks; absent for an instrumental and for a model without `lyrics`), and `faded: true` when the song
+  was cut at the requested length and faded out (absent otherwise): a song whose last second is still within 10 dB
+  of its median second gets an exponential fade over its last 3 s (a clip under 9 s: its last third) on the worker
+  before it is encoded; one that already ends quietly is left as made (`docs/music.md`, "Ending a cut song").
 * `sound`: nothing more (`seconds`, `peaks` as for all).
 
 **Memory.** As for images: the worker keeps one large model in memory at a time (ACE-Step turbo ≈ 10 GB), so a song

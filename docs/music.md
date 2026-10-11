@@ -61,6 +61,30 @@ Stats: `bpmAsked`, `bpmMeasured`, `bpmFinal`, `stretched` (+ `stretchFactor`, `s
 `takeBPMs`, `tempoMissed`, `tempoError` (a failed measurement never loses the song). CLI: `--bpm N`; the lock is on
 by default.
 
+## Ending a cut song (`internal/audio/fade.go`)
+
+A song made to a length often does not end: the model is still mid-song when the length runs out and the audio just
+stops (HeartMuLa 3B, 150 s asked with ~700 characters of lyrics: −18…−20 dB in every 5 s window up to the last).
+After every model's song (`generate`, `cover`, `extend`, `restyle`; not `repaint` / `lego`, which keep the source's
+end, nor `extract`, a stem to mix) and after the tempo lock, before anything is encoded, `audio.FadeCut` looks at the
+WAV:
+
+* **A cut** is a last second that is still music (above −60 dBFS) and within **10 dB** of the median of the song's
+  1 s windows (RMS of all channels; windows below −60 dBFS — silence before or between parts — left out of the
+  median). A song that fades out, rings out or ends in silence by itself is far below that and is left as made.
+* **The fade** covers the last **3 s** (a clip under 9 s: its last third), rewritten in place; every frame before it
+  is untouched. Its curve is exponential: the gain falls by the same number of dB every moment (40 dB over the
+  fade, ~13 dB/s), shifted to start at exactly 1 and land on exactly 0 — the ear hears it as an even fade, unlike a
+  linear ramp (hangs on, then drops at the end) or an equal-power quarter-sine (made for crossfades: still −3 dB at
+  half-time, then a fast drop).
+* Stats: `faded` (true / false; absent for the other tasks); vboard's `generateDone` gets `faded: true`. A failed
+  fade is logged and the song goes out as made.
+
+Checked on ACE-Step 1.5 turbo (20 s asked with lyrics for a minute, seed 7; the same seed is bit-identical with and
+without the fade, so the comparison is exact): last second −14.2 dBFS (song −12.4 LUFS) → faded, last second
+−48.5 dBFS, last 100 ms −85 dBFS, every byte before the fade the same. Stable Audio 3 Small (12 s) ended by itself
+(last second −67 dBFS) and was left alone.
+
 ## ACE-Step: what mlxlab sends (and why)
 
 ACE-Step 1.5 plans a song with a 5 Hz language model first (metadata: bpm, key, time signature, and by default a new

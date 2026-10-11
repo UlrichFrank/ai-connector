@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/philipparndt/ai-connector/internal/audio"
 	"github.com/philipparndt/ai-connector/internal/models"
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 	"github.com/philipparndt/ai-connector/internal/styles"
@@ -372,6 +373,17 @@ func (b *MusicBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 			return err
 		}
 	}
+	// a song cut at its length (still at full loudness in its last second) fades out over its last 3 s; one that
+	// ends quietly stays as it is (audio.FadeCut). After the tempo lock: the stretched song is the one that goes out.
+	faded := false
+	if fadesEnd(task) {
+		var err error
+		if faded, err = audio.FadeCut(ev.File); err != nil {
+			emit.Log("fade-out: " + err.Error()) // the song is there: it goes out as made
+		} else if faded {
+			emit.Log("the song was still going at its length: faded out over its last seconds")
+		}
+	}
 	emit(Event{Type: "file", File: ev.File})
 	if f, ok := tempo["original"].(string); ok {
 		emit(Event{Type: "file", File: f}) // the song as the model made it, before the tempo lock
@@ -384,10 +396,19 @@ func (b *MusicBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 	if ev.PeakGB > 0 {
 		stats["peakGB"] = ev.PeakGB
 	}
+	if fadesEnd(task) {
+		stats["faded"] = faded
+	}
 	maps.Copy(stats, tempo)
 	emit(Event{Type: "stats", Data: stats})
 	emit.Log(fmt.Sprintf("%.0f s of audio in %.1f s", ev.Duration, ev.Seconds))
 	return nil
+}
+
+// fadesEnd: a task whose song ends where the length runs out (a new song, a cover, an extension, a restyle) gets
+// its end faded when it is cut; repaint and lego keep the source's end, extract makes a stem to mix.
+func fadesEnd(task string) bool {
+	return task == "generate" || task == "cover" || task == "extend" || task == "restyle"
 }
 
 // modelDirs fetches every repository a song model needs (pinned and checked) and names their folders by key.
