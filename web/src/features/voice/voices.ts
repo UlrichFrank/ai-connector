@@ -48,8 +48,10 @@ export function useVoiceLibrary() {
 
 /** The model that writes down what a recording says: a speech model, but not one to speak with. */
 export const isAsr = (m: Model) => m.tasks?.includes("transcribe") || /asr|whisper/i.test(m.id);
+/** The aligner: gives the words' timings of every clip once it is on the Mac; it says nothing itself. */
+export const isAligner = (m: Model) => !!m.tasks?.includes("align");
 /** Speech models to speak with. */
-export const speaks = (m: Model) => !isAsr(m);
+export const speaks = (m: Model) => !isAsr(m) && !isAligner(m);
 
 /** The transcription model, if the Mac has one. */
 export function asrModel(): Model | undefined {

@@ -19,7 +19,7 @@ const kinds: { kind: Kind; title: string; about: string }[] = [
   { kind: "image", title: "Image", about: "Text to image, and editing with reference images." },
   { kind: "video", title: "Video", about: "Text and image to video, with sound." },
   { kind: "music", title: "Music", about: "Songs from a style and lyrics; some can also rework a song." },
-  { kind: "speech", title: "Speech", about: "Text to speech with preset, cloned or designed voices; and writing down what a recording says." },
+  { kind: "speech", title: "Speech", about: "Text to speech with preset, cloned or designed voices; writing down what a recording says; and timing each spoken word." },
   { kind: "sound", title: "Sound effects", about: "Sounds from a description." },
   { kind: "avatar", title: "Avatar", about: "A portrait that speaks: a video from a picture and speech." },
   { kind: "embed", title: "Embeddings", about: "Turn texts into vectors to compare their meaning." },
