@@ -98,6 +98,10 @@ anyone running vboard-ai. Three ways:
    Claude Code (Sonnet, Opus) is offered by itself when it is installed and logged in here. A Hugging Face token for
    gated models is pasted on a local page vboard links to (it never goes through vboard).
 
+   One runs at a time with the same files (`$MLXLAB_HOME`): a second `ai-connector vboard` waits until the first
+   ends, then takes over; `--install` stops a copy that runs, and the service takes over. On Windows the scheduled
+   task (or the Run key) gets `$MLXLAB_HOME` and the other locations as `--env KEY=VALUE` on its command line.
+
    The server runs inside this process on a loopback port only, this computer is its one worker, and its one vboard
    connector dials vboard — the same connector, routing and Claude Code agents as with a server (`--board ID` for
    one board, `--name`, `--chat MODEL`, `--console 127.0.0.1:8485` to look inside; `ai-connector vboard --help`).

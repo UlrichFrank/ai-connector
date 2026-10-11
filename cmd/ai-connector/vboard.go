@@ -17,8 +17,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/philipparndt/ai-connector/internal/engine"
 	"github.com/philipparndt/ai-connector/internal/hub"
@@ -65,8 +67,11 @@ usage:
                     disk, so one downloaded from vboard is offered at once; "none" for none.
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/vboard/worker, apart from a plain worker's)
-  --install         start it at login with these settings (a launchd agent, a systemd user unit, a scheduled task)
+  --install         start it at login with these settings (a launchd agent, a systemd user unit, a scheduled task);
+                    a copy that runs already with these settings is stopped: the service takes over
   --uninstall       stop that and remove it
+
+One runs at a time with the same settings ($MLXLAB_HOME): another one waits until the first ends, then takes over.
 
 On its first start it downloads the embedder and the classifier (about 1 GB); vboard asks before anything else
 is downloaded ("Set up AI").
@@ -89,6 +94,8 @@ func vboardCommand(args []string) error {
 	state := fs.String("state", "", "this process's jobs and sessions")
 	install := fs.Bool("install", false, "start at login")
 	uninstall := fs.Bool("uninstall", false, "do not start at login any more")
+	var env envFlag // not in the usage: the Windows task's command carries the environment of --install with it
+	fs.Var(&env, "env", "KEY=VALUE, set before anything else (only the keys --install keeps)")
 	// the address may come first (as with vboard-ai): flags after it still count
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		*url, args = args[0], args[1:]
@@ -101,6 +108,9 @@ func vboardCommand(args []string) error {
 	}
 	if fs.NArg() > 0 && *url == "" {
 		*url = fs.Arg(0)
+	}
+	if err := applyEnv(env, os.Setenv); err != nil {
+		return err
 	}
 
 	if *uninstall { // install.go
@@ -138,6 +148,28 @@ func vboardCommand(args []string) error {
 		}
 		fmt.Println(svc.describe())
 		return nil
+	}
+	// one at a time with these settings (instance.go): another one is waited for, not given up on
+	waitCtx, waitStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	waited := false
+	lock, err := waitInstance(waitCtx, instanceLock(dir), 5*time.Second, func(pid int) {
+		who := "another ai-connector vboard runs"
+		if pid > 0 {
+			who += fmt.Sprintf(" (pid %d)", pid)
+		}
+		fmt.Printf("%s with the settings in %s: waiting until it ends (`ai-connector vboard --install` replaces it)\n", who, dir)
+		waited = true
+	})
+	waitStop()
+	if errors.Is(err, context.Canceled) {
+		return nil // stopped while waiting
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", instanceLock(dir), err)
+	}
+	defer lock.Close()
+	if waited {
+		fmt.Println("the other ai-connector vboard ended: this one takes over")
 	}
 	host := web.HostName()
 	// --agents, else Claude Code beside the chat model when it is ready here (vboard_setup.go)
@@ -213,6 +245,27 @@ func vboardCommand(args []string) error {
 	claudeAgents.Close()
 	closeSandboxes()
 	return werr
+}
+
+// envFlag is the repeatable --env KEY=VALUE.
+type envFlag []string
+
+func (e *envFlag) String() string     { return strings.Join(*e, " ") }
+func (e *envFlag) Set(v string) error { *e = append(*e, v); return nil }
+
+// applyEnv sets the --env values (the Windows task's command: the environment of `--install`). Only the keys that
+// --install keeps (serviceEnvKeys), nothing else.
+func applyEnv(list []string, setenv func(k, v string) error) error {
+	for _, kv := range list {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok || !slices.Contains(serviceEnvKeys, k) {
+			return fmt.Errorf("--env %q: KEY=VALUE with KEY one of %s", kv, strings.Join(serviceEnvKeys, ", "))
+		}
+		if err := setenv(k, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // resolveVboard: the flags, else $VBOARD_URL / $VBOARD_TOKEN, else the settings of the last start; what was given is
