@@ -29,6 +29,7 @@ test("createBody", () => {
     url: "https://vboard.example.com",
     token: "vbp_x",
     models: { embed: "e" },
+    generators: ["*"],
   });
   assert.equal(createBody({ ...emptyForm, name: "a", url: "b", token: "vbp_" }).models, undefined);
   // a blank name: the server's default
@@ -112,6 +113,11 @@ test("an agent's effort: kept through an edit, sent for Claude Code agents only"
   assert.deepEqual(patchBody(withEffort, f).agents?.[1], { id: "op", model: "claude-code/opus", name: "" });
 });
 
+test("Claude Code is no chat model: the form refuses it there", () => {
+  assert.match(validate({ ...emptyForm, url: "https://b", token: "vbp_", chat: "claude-code/opus" }, false).chat ?? "", /Chat agents/);
+  assert.equal(validate({ ...emptyForm, url: "https://b", token: "vbp_", chat: "qwen3.6-35b-a3b" }, false).chat, undefined);
+});
+
 test("generators: added once, moved, removed; sent when chosen or changed, [] turns them off", () => {
   let g = addGenerator(addGenerator([], "flux2-klein-4b"), "ltx-2.5-q4");
   assert.deepEqual(addGenerator(g, "ltx-2.5-q4"), g);
@@ -120,7 +126,9 @@ test("generators: added once, moved, removed; sent when chosen or changed, [] tu
   assert.deepEqual(moveGenerator(g, 0, -1), g);
   assert.deepEqual(removeGenerator(g, 0), ["flux2-klein-4b"]);
   assert.deepEqual(createBody({ ...emptyForm, url: "b", token: "vbp_", generators: g }).generators, g);
-  assert.equal(createBody({ ...emptyForm, url: "b", token: "vbp_" }).generators, undefined);
+  // a new connector: every generator model on disk; none when the list is emptied
+  assert.deepEqual(createBody({ ...emptyForm, url: "b", token: "vbp_" }).generators, ["*"]);
+  assert.equal(createBody({ ...emptyForm, url: "b", token: "vbp_", generators: [] }).generators, undefined);
   const withGenerators: Connector = { ...connector, generators: ["flux2-klein-4b"] };
   assert.deepEqual(formOf(withGenerators).generators, ["flux2-klein-4b"]);
   assert.deepEqual(patchBody(withGenerators, formOf(withGenerators)), {});

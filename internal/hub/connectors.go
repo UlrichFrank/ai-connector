@@ -336,8 +336,19 @@ func cleanBoard(s string) (string, error) {
 	return s, nil
 }
 
-func cleanModels(m ConnectorModels) ConnectorModels {
-	return ConnectorModels{Classify: strings.TrimSpace(m.Classify), Embed: strings.TrimSpace(m.Embed), Chat: strings.TrimSpace(m.Chat)}
+func cleanModels(m ConnectorModels) (ConnectorModels, error) {
+	m = ConnectorModels{Classify: strings.TrimSpace(m.Classify), Embed: strings.TrimSpace(m.Embed), Chat: strings.TrimSpace(m.Chat)}
+	return m, checkChatModel(m.Chat)
+}
+
+// checkChatModel: the chat model is vboard's default, asked with vboard's own tools — Claude Code is no such model
+// (as one it got vboard's tools in the prompt and no MCP: it could not touch the board). It goes into the agents.
+func checkChatModel(chat string) error {
+	if agentKind(chat) == kindAgent {
+		return &connectorError{"models", "The chat model is vboard's default and must be a chat model, not " + chat +
+			": add Claude Code under the chat agents"}
+	}
+	return nil
 }
 
 // Agents: at most 20 (vboard keeps 20), ids and names of at most 80 characters (vboard's limits).
@@ -508,7 +519,10 @@ func (s *Server) addConnector(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.Models != nil {
-		c.Models = cleanModels(*body.Models)
+		if c.Models, err = cleanModels(*body.Models); err != nil {
+			writeConnectorError(w, err)
+			return
+		}
 	}
 	if c.Agents, err = cleanAgents(body.Agents); err != nil {
 		writeConnectorError(w, err)
@@ -594,6 +608,9 @@ func (s *Server) patchConnector(w http.ResponseWriter, r *http.Request) {
 		set(&c.Models.Classify, bm.Classify)
 		set(&c.Models.Embed, bm.Embed)
 		set(&c.Models.Chat, bm.Chat)
+		if err == nil {
+			err = checkChatModel(c.Models.Chat)
+		}
 	}
 	if err == nil && body.Agents != nil {
 		c.Agents, err = cleanAgents(*body.Agents)

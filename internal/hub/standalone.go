@@ -89,8 +89,11 @@ type ConnectorSettings struct {
 // takes the change over its open connection, as an edit in the console does). Other connectors are removed: the
 // hub serves this one vboard.
 func (s *Server) EnsureConnector(set ConnectorSettings) (Connector, error) {
-	c := storedConnector{Kind: "vboard", Name: cleanConnectorName(set.Name), Enabled: true, Owner: set.Owner, Models: cleanModels(set.Models)}
+	c := storedConnector{Kind: "vboard", Name: cleanConnectorName(set.Name), Enabled: true, Owner: set.Owner}
 	var err error
+	if c.Models, err = cleanModels(set.Models); err != nil {
+		return Connector{}, err
+	}
 	if c.URL, err = cleanConnectorURL(set.URL); err != nil {
 		return Connector{}, err
 	}

@@ -155,6 +155,14 @@ func (s *Server) connectorCaps(ctx context.Context, conf storedConnector) bridge
 			}
 		}
 	}
+	// none is a model (a chat model stored as Claude Code before that was refused): the default chat model in front
+	if len(c.agents) > 0 && c.agents[0].Kind != kindModel {
+		plain := conf
+		plain.Models.Chat = ""
+		if adv, ok := s.advertise(routed, models, plain, ConnectorAgent{ID: agentDefault, Kind: kindModel}); ok {
+			c.agents = append([]AdvertisedAgent{adv}, c.agents...)
+		}
+	}
 	if len(c.agents) > 0 && c.agents[0].Kind == kindModel {
 		c.chat = c.agents[0].Model
 	}
@@ -192,9 +200,7 @@ func (s *Server) advertise(routed []*node, models []fleetModel, conf storedConne
 		if n, _ = s.claudeNode(conf.Owner, routed, "", viaConnector); n == nil {
 			return AdvertisedAgent{}, false
 		}
-		if len(conf.Agents) > 0 {
-			kind = kindAgent // chosen as an agent (a name that resolves to Claude Code, too)
-		}
+		kind = kindAgent // always an agent: as a model it got vboard's tools and no MCP (a chat model set to it)
 	} else if n, ok = choose(routed, s.fleet.primary(routed), fm.catalogModel, true, nil); !ok {
 		return AdvertisedAgent{}, false
 	}

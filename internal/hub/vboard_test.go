@@ -1258,8 +1258,8 @@ func TestVboardClaudeOwner(t *testing.T) {
 	aliceID, aliceTok := enroll(t, base, alice, "Alice's Mac")
 	bobID, bobTok := enroll(t, base, bob, "Bob's Mac")
 	_, qwenTok := enroll(t, base, bob, "Bob's PC")
-	aliceChat, _ := startClaudeChatMac(t, base, aliceTok)
-	bobChat, _ := startClaudeChatMac(t, base, bobTok)
+	startClaudeChatMac(t, base, aliceTok)
+	startClaudeChatMac(t, base, bobTok)
 	startVboardMac(t, base, qwenTok, "chat")
 	waitFor(t, "the workers known", func() bool {
 		ws := workerItems(t, base, alice)
@@ -1273,41 +1273,38 @@ func TestVboardClaudeOwner(t *testing.T) {
 		t.Fatalf("default chat %q", b.hello.Chat)
 	}
 
-	// alice's connector with Claude Code: her worker, her job
-	v = newFakeVboard(t, stageHead)
-	c := addConnector(t, base, alice, `{"name":"Alice AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
+	// Claude Code is no chat model of a connector: as vboard's default it got vboard's tools and no MCP (it could not
+	// touch the board) — refused, at the start and on an edit; it is an agent in the chosen list
+	body := `{"name":"Alice AI","url":"https://vboard.invalid","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`
+	if code, b := post(t, base+"/api/connectors", alice, body); code != 400 || !strings.Contains(string(b), "add Claude Code under the chat agents") {
+		t.Fatalf("claude-code as the chat model: %d %s", code, b)
+	}
+
+	// alice's connector with Claude Code as an agent: the default is a model, Claude Code an agent on her worker
+	v = newFakeVboard(t, stageAgents)
+	c := addConnector(t, base, alice, `{"name":"Alice AI","url":"`+v.srv.URL+`","token":"vbp_secret",
+		"agents":[{"model":"qwen3.6-35b-a3b"},{"model":"claude-code/sonnet"}]}`)
 	if c.Owner != "Alice" {
 		t.Fatalf("owner %q", c.Owner)
 	}
+	if code, out := patchConnector(t, base, alice, c.ID, `{"models":{"chat":"claude-code/opus"}}`); code != 400 {
+		t.Fatalf("edit to claude-code as the chat model: %d %v", code, out)
+	}
 	b := v.next(t)
-	if b.hello.Chat != "claude-code/sonnet" {
-		t.Fatalf("hello %+v", b.hello)
+	for len(b.agents) < 2 { // the claude worker may come after the first hello
+		b.agents = nextUpdate(t, b)
 	}
-	for i := 0; i < 3; i++ {
-		_, ch := b.chat(`[{"role":"user","content":"hi"}]`, "")
-		evs := until(t, ch)
-		if last := evs[len(evs)-1]; last.Type != "done" || last.Content != "Hello!" {
-			t.Fatalf("chat %d: %+v", i, evs)
-		}
-		if got := aliceChat.last(); got.Owner != "Alice" || got.Client != "vboard: Alice AI" {
-			t.Fatalf("chat %d job: owner %q client %q", i, got.Owner, got.Client)
-		}
+	if b.hello.Chat != "qwen3.6-35b-a3b" || b.agents[0].Kind != "model" || b.agents[1].ID != "claude-code-sonnet" ||
+		b.agents[1].Kind != "agent" || b.agents[1].Worker != "Alice's Mac" {
+		t.Fatalf("hello %+v agents %+v", b.hello, b.agents)
 	}
-	bobChat.mu.Lock()
-	if len(bobChat.got) != 0 {
-		t.Fatalf("bob's worker ran %d of alice's connector's chats", len(bobChat.got))
-	}
-	bobChat.mu.Unlock()
 
-	// carol has no worker: Claude Code is not offered for her connector (it would only fail), so with nothing else to
-	// offer it does not dial
-	v = newFakeVboard(t, stageHead)
-	cc := addConnector(t, base, carol, `{"name":"Carol AI","url":"`+v.srv.URL+`","token":"vbp_secret","models":{"chat":"claude-code/sonnet"}}`)
-	waitFor(t, "carol's connector waits", func() bool {
-		return strings.Contains(connectorOf(t, base, carol, cc.ID).Error, "No connected worker offers")
-	})
-	if _, dials := v.count(); dials != 0 {
-		t.Fatalf("carol's connector dialled")
+	// carol has no worker: Claude Code is not offered for her connector (it would only fail), the model is
+	v = newFakeVboard(t, stageAgents)
+	addConnector(t, base, carol, `{"name":"Carol AI","url":"`+v.srv.URL+`","token":"vbp_secret",
+		"agents":[{"model":"qwen3.6-35b-a3b"},{"model":"claude-code/sonnet"}]}`)
+	if b := v.next(t); len(b.agents) != 1 || b.agents[0].ID != "qwen3.6-35b-a3b" {
+		t.Fatalf("carol's agents %+v", b.agents)
 	}
 
 	// a plain chat model of a connector carries no owner

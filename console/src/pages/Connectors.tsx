@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { addAgent, addGenerator, agentKind, createBody, defaultName, efforts, emptyForm, formOf, maxAgents, maxGenerators, moveAgent, moveGenerator, patchBody, removeAgent, removeGenerator, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
+import { addAgent, addGenerator, agentKind, allGenerators, createBody, defaultName, efforts, emptyForm, formOf, maxAgents, maxGenerators, moveAgent, moveGenerator, patchBody, removeAgent, removeGenerator, stateLabel, validate, type AgentRow, type ConnectorForm } from "@/lib/connectors";
 import { useLive } from "@/store/live";
 
 /** How often the list is read when the event stream is not there. */
@@ -277,7 +277,8 @@ function AgentsLine({ c }: { c: Connector }) {
 const DEFAULT = "__default";
 
 function ModelSelect({ id, label, kind, value, onChange, models }: { id: string; label: string; kind: string; value: string; onChange: (v: string) => void; models: Model[] }) {
-  const options = models.filter((m) => m.kind === kind);
+  // not Claude Code as the chat model: it is an agent (Chat agents), as vboard's default it would get no MCP
+  const options = models.filter((m) => m.kind === kind && agentKind(m.id) !== "agent");
   // a model chosen before that no connected worker lists now stays selectable
   const known = !value || options.some((m) => m.id === value);
   return (
@@ -404,11 +405,12 @@ const onDisk = (m: Model) => !!m.here || !!m.workers?.some((w) => w.here);
 function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChange: (v: string[]) => void; models: Model[] }) {
   const options = models.filter((m) => isGenerator(m) && !value.includes(m.id));
   const model = (id: string) => models.find((m) => m.id === id);
+  const all = value.includes(allGenerators);
   return (
     <div className="flex flex-col gap-1.5">
       <Label>Generators on the board</Label>
       <p className="text-xs text-muted-foreground">
-        The models vboard may make pictures, videos, songs, sounds and speech with (the first of each kind is the default). Offered only while a connected worker has the model on disk. Without a list: none — a video holds a Mac for minutes.
+        The models vboard may make pictures, videos, songs, sounds and speech with (the first of each kind is the default). Offered only while a connected worker has the model on disk. “All on disk” adds every one there, also those downloaded later from vboard, after the ones named before it. Without a list: none.
       </p>
       {value.length > 0 && (
         <ol className="flex flex-col gap-1.5">
@@ -418,10 +420,10 @@ function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChan
               <li key={id} className="flex items-center gap-2 rounded-md border px-2 py-1.5" data-generator={id}>
                 <span className="w-4 text-right text-xs text-muted-foreground">{i + 1}</span>
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                  <code className="truncate font-mono text-xs">{id}</code>
+                  {id === allGenerators ? <span className="text-xs">All on disk</span> : <code className="truncate font-mono text-xs">{id}</code>}
                   {m && <span className="rounded bg-muted px-1.5 text-[11px] text-muted-foreground">{m.kind}</span>}
                   {m?.nonCommercial && <span className="text-[11px] text-muted-foreground">non-commercial</span>}
-                  {(!m || !onDisk(m)) && <span className="text-[11px] text-muted-foreground">not on a worker's disk now</span>}
+                  {id !== allGenerators && (!m || !onDisk(m)) && <span className="text-[11px] text-muted-foreground">not on a worker's disk now</span>}
                 </div>
                 <Button type="button" variant="ghost" size="icon-sm" aria-label="Move up" disabled={i === 0} onClick={() => onChange(moveGenerator(value, i, -1))}>
                   <ArrowUp />
@@ -440,9 +442,10 @@ function GeneratorsEditor({ value, onChange, models }: { value: string[]; onChan
       {value.length < maxGenerators && (
         <Select value="" onValueChange={(m) => onChange(addGenerator(value, m))}>
           <SelectTrigger className="w-full" aria-label="Add a generator model">
-            <SelectValue placeholder={options.length ? "Add a generator model…" : "No other generator model is listed"} />
+            <SelectValue placeholder={options.length || !all ? "Add a generator model…" : "No other generator model is listed"} />
           </SelectTrigger>
           <SelectContent>
+            {!all && <SelectItem value={allGenerators}>All on disk</SelectItem>}
             {options.map((m) => (
               <SelectItem key={m.id} value={m.id}>
                 {m.id} ({m.kind}){onDisk(m) ? "" : " · not on disk"}
@@ -519,6 +522,7 @@ function ConnectorDialog({ target, onOpenChange, onSaved }: { target: Connector 
               <ModelSelect id="connector-embed" label="Embed" kind="embed" value={form.embed} onChange={set("embed")} models={models} />
               <ModelSelect id="connector-chat" label="Chat" kind="chat" value={form.chat} onChange={set("chat")} models={models} />
             </div>
+            {errors.chat && <p className="text-xs text-destructive">{errors.chat}</p>}
             <AgentsEditor value={form.agents} onChange={(agents) => setForm((f) => ({ ...f, agents }))} models={models} error={errors.agents} />
             <GeneratorsEditor value={form.generators} onChange={(generators) => setForm((f) => ({ ...f, generators }))} models={models} />
             {failure && <p className="text-sm text-destructive">{failure}</p>}

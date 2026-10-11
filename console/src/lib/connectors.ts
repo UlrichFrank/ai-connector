@@ -28,7 +28,11 @@ export interface ConnectorForm {
   generators: string[];
 }
 
-export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "", agents: [], generators: [] };
+/** Every generator model on a worker's disk (the server lists them, the defaults first). */
+export const allGenerators = "*";
+
+/** A new connector offers every generator model on disk (one downloaded from vboard is offered at once). */
+export const emptyForm: ConnectorForm = { name: "", url: "", token: "", board: "", classify: "", embed: "", chat: "", agents: [], generators: [allGenerators] };
 
 export function formOf(c: Connector): ConnectorForm {
   return {
@@ -156,6 +160,8 @@ export function validate(f: ConnectorForm, editing: boolean): Partial<Record<key
   const e: Partial<Record<keyof ConnectorForm, string>> = {};
   const url = normalizeUrl(f.url);
   if (!url) e.url = "The vboard address is needed";
+  // vboard's default chat model is asked with vboard's own tools: Claude Code there gets no MCP and cannot touch the board
+  if (agentKind(f.chat) === "agent") e.chat = "Claude Code is an agent: add it under Chat agents, with a chat model first";
   else {
     try {
       const p = new URL(url);
