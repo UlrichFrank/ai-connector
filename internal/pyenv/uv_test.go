@@ -100,3 +100,15 @@ func TestUVTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestUVEnvSystemCerts(t *testing.T) {
+	got := strings.Join(uvEnv([]string{"PATH=/bin"}), " ")
+	if !strings.Contains(got, "UV_SYSTEM_CERTS=1") || !strings.Contains(got, "UV_NATIVE_TLS=1") {
+		t.Fatalf("uv without the system certificates: %s", got)
+	}
+	for _, own := range []string{"UV_SYSTEM_CERTS=0", "UV_NATIVE_TLS=false"} {
+		if got := uvEnv([]string{own}); len(got) != 1 {
+			t.Fatalf("%s overridden: %v", own, got)
+		}
+	}
+}
