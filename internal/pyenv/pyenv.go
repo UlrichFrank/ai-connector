@@ -59,16 +59,41 @@ func (e Env) Ensure(ctx context.Context, root string, log func(string)) error {
 		return err
 	}
 	log(fmt.Sprintf("installing the %s runtime into %s (once) …", e.Name, dir))
-	if err := Stream(ctx, exec.CommandContext(ctx, uv, "venv", "--python", e.Python, dir), log); err != nil {
+	if err := Stream(ctx, uvCommand(ctx, uv, "venv", "--python", e.Python, dir), log); err != nil {
 		return fmt.Errorf("uv venv: %w", err)
 	}
 	if len(e.Packages) > 0 { // a worker that needs only the standard library has none
 		args := append([]string{"pip", "install", "--python", filepath.Join(dir, "bin", "python")}, e.Packages...)
-		if err := Stream(ctx, exec.CommandContext(ctx, uv, args...), log); err != nil {
+		if err := Stream(ctx, uvCommand(ctx, uv, args...), log); err != nil {
 			return fmt.Errorf("uv pip install: %w", err)
 		}
 	}
 	return os.WriteFile(filepath.Join(dir, ".mlxlab-ready"), []byte(strings.Join(e.Packages, "\n")+"\n"), 0o644)
+}
+
+// uvCommand runs uv with the system's certificates (macOS keychain, Windows store, Linux CA bundle) instead of
+// uv's own: behind a TLS-inspecting proxy (a company network re-signs pypi.org and github.com with its own CA) uv
+// otherwise fails with "invalid peer certificate: UnknownIssuer". UV_SYSTEM_CERTS for uv 0.11 and newer,
+// UV_NATIVE_TLS for older ones on the PATH; a value the user set wins.
+func uvCommand(ctx context.Context, uv string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, uv, args...)
+	cmd.Env = uvEnv(os.Environ())
+	return cmd
+}
+
+func uvEnv(env []string) []string {
+	set := func(k string) bool {
+		for _, kv := range env {
+			if strings.HasPrefix(kv, k+"=") {
+				return true
+			}
+		}
+		return false
+	}
+	if set("UV_SYSTEM_CERTS") || set("UV_NATIVE_TLS") {
+		return env
+	}
+	return append(env, "UV_SYSTEM_CERTS=1", "UV_NATIVE_TLS=1")
 }
 
 // Stream runs cmd and passes every line it writes (stdout and stderr; a carriage return ends a line too, so
