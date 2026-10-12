@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useRoute } from "@/lib/route";
 import { ClientsPage } from "@/pages/Clients";
 import { ConnectorsPage } from "@/pages/Connectors";
+import { LinkPage } from "@/pages/Link";
 import { ModelsPage } from "@/pages/Models";
 import { OverviewPage } from "@/pages/Overview";
 import { WorkersPage } from "@/pages/Workers";
@@ -17,6 +18,7 @@ const pages: Record<string, { title: string; render: () => ReactNode }> = {
   models: { title: "Models", render: () => <ModelsPage /> },
   clients: { title: "Clients", render: () => <ClientsPage /> },
   connectors: { title: "Connectors", render: () => <ConnectorsPage /> },
+  link: { title: "Link a device", render: () => <LinkPage /> }, // <hub>/pin leads here; not in the sidebar
 };
 
 /** Signs in first (on the server), then the console. */

@@ -30,6 +30,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       automountServiceAccountToken: false
+      {{- if .Values.mdns.enabled }}
+      # Bonjour's multicast reaches the LAN only from the node's network
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       enableServiceLinks: false
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -51,6 +56,16 @@ spec:
             {{- with .Values.hosts.console }}
             - name: MLXLAB_CONSOLE_HOSTS
               value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.publicURL }}
+            - name: MLXLAB_PUBLIC_URL
+              value: {{ . | quote }}
+            {{- end }}
+            - name: MLXLAB_MDNS
+              value: {{ ternary "1" "0" (.Values.mdns.enabled | default false) | quote }}
+            {{- if and .Values.mdns.enabled .Values.mdns.name }}
+            - name: MLXLAB_MDNS_NAME
+              value: {{ .Values.mdns.name | quote }}
             {{- end }}
             {{- with .Values.models.embed }}
             - name: MLXLAB_EMBED_MODEL

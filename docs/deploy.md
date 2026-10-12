@@ -65,6 +65,12 @@ hosts:
   console: ai.example.org
   app: ""            # e.g. lab.example.org; mlxlab.example.org only after the mlxlab release is gone
 
+publicURL: https://ai.example.org   # MLXLAB_PUBLIC_URL: apps' PIN page and Bonjour's url
+
+mdns:
+  enabled: false     # true: announce on the LAN (Bonjour), with hostNetwork; see below
+  name: ""           # MLXLAB_MDNS_NAME, default "AI Connector"
+
 models:
   embed: ""          # MLXLAB_EMBED_MODEL, default qwen3-embedding-0.6b
   classify: ""       # MLXLAB_CLASSIFY_MODEL, default laya-typed-decisions
@@ -162,6 +168,19 @@ WebSocket may be cut (they reconnect, but the tunnel flaps). mlxlab's README in 
 
 With cert-manager per Ingress instead of the reflected wildcard: `ingress.annotations: {cert-manager.io/cluster-issuer:
 <issuer>}` and an empty `ingress.tls.secretName` (cert-manager then fills `ai-connector-tls` for both hosts).
+
+## Bonjour (mDNS) and the public URL
+
+`publicURL` (`MLXLAB_PUBLIC_URL`, e.g. `https://ai.example.org`) is the address apps are sent to: the PIN page an
+app shows while it links itself (`<publicURL>/pin`, docs/api.md "Linking an app") and the `url` in the Bonjour
+record. Empty: the address each request came to.
+
+The server can announce itself on the LAN as `_ai-connector._tcp` (docs/api.md "Finding the server"). Behind
+traefik in k0s the pod's multicast never leaves the pod network, so `mdns.enabled: true` also sets
+`hostNetwork: true` and `dnsPolicy: ClusterFirstWithHostNet` (and `MLXLAB_MDNS=1`); otherwise the chart sets
+`MLXLAB_MDNS=0`. With `hostNetwork` the server also listens on the node's port `service.port` (8080) and uses UDP
+5353 there: both must be free on the node (`Recreate` keeps two pods from wanting them at once). Apps still connect
+to `publicURL` (the HTTPS ingress name), so set it whenever mDNS is on.
 
 ## Upgrading
 

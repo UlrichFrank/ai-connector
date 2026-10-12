@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deviceName, rememberDeviceName, rememberedDeviceName } from "@/lib/device";
+import { useRoute } from "@/lib/route";
 import { local } from "@/lib/storage";
 import { useSession } from "@/store/session";
 import { Backdrop, Logo } from "./Shell";
@@ -13,6 +14,8 @@ import { Backdrop, Logo } from "./Shell";
 export function SignIn() {
   const note = useSession((s) => s.note);
   const signIn = useSession((s) => s.signIn);
+  // the hash stays as it is while signing in, so a device's PIN link (<hub>/pin/…) opens its page afterwards
+  const linking = useRoute().page === "link";
   const [password, setPassword] = useState("");
   // the same keys as the mlxlab app: one browser, one name
   const [user, setUser] = useState(() => local.get("user", ""));
@@ -44,7 +47,9 @@ export function SignIn() {
         <Logo className="size-12 rounded-2xl shadow-lg shadow-primary/20" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">ai-connector</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to manage workers, models, clients and connectors.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {linking ? "Sign in to approve the device that asks for a client token." : "Sign in to manage workers, models, clients and connectors."}
+          </p>
         </div>
       </div>
 

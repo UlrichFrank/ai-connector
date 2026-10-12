@@ -33,7 +33,7 @@
 | `GET /api/worker/connect` | the worker's tunnel (`Authorization: Bearer <worker token>`), see `internal/tunnel` |
 | `GET /api/worker/events` | SSE: `data: {"connected":bool,"id":"…","name":"…","since":"…","workers":[…]}` at once and on every change (the old fields: the primary) |
 
-**Auth**: every request except `/healthz`, `/api/info`, `/api/login`, the worker tunnel, `/tools/mlxlab/…` (a worker token
+**Auth**: every request except `/healthz`, `/api/info`, `/api/login`, `POST /api/link/start` and `/token`, `/pin`, the worker tunnel, `/tools/mlxlab/…` (a worker token
 or a device token, see below) and the static UI needs a device
 token: `Authorization: Bearer <token>`, the `mlxlab_session` cookie, or `?token=<token>` (for players and
 `EventSource` that cannot set headers). Without one: `401 {"error":"signin"}`. Tokens are random 32 bytes
@@ -41,7 +41,10 @@ token: `Authorization: Bearer <token>`, the `mlxlab_session` cookie, or `?token=
 
 **Configuration** (environment): `MLXLAB_PASSWORD` (sign-in password), `MLXLAB_WORKER_TOKEN` (optional: the
 legacy shared worker token, see below), `MLXLAB_DATA` (default `/data`: devices.json, workers.json),
-`MLXLAB_ADDR` (default `:8080`), `MLXLAB_TOOLS` (default `/tools`: the Mac program). In k8s: sops secret.
+`MLXLAB_ADDR` (default `:8080`), `MLXLAB_TOOLS` (default `/tools`: the Mac program), `MLXLAB_CONSOLE_HOSTS`,
+`MLXLAB_PUBLIC_URL` (the address for people and apps, e.g. `https://ai.example.org`; default: each request's
+origin), `MLXLAB_MDNS` (Bonjour, default on; `0`/`false`/`off` turns it off) and `MLXLAB_MDNS_NAME` (default
+`AI Connector`); see docs/api.md. In k8s: sops secret.
 
 ## Worker
 

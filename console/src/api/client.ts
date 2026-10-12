@@ -1,4 +1,4 @@
-import type { Client, ClientCreated, Connector, ConnectorInput, ErrorBody, Info, Job, LoginResponse, ModelsResponse, Worker, WorkerCreated } from "./types";
+import type { Client, ClientCreated, Connector, ConnectorInput, ErrorBody, Info, Job, LinkRequest, LoginResponse, ModelsResponse, Worker, WorkerCreated } from "./types";
 
 /** A request the server refused. `code` is the `error` field of a JSON answer ("signin", "offline", …), if any. */
 export class ApiError extends Error {
@@ -122,6 +122,10 @@ export const api = {
   clients: () => call<Client[]>("/api/clients", { serverOnly: true }),
   createClient: (name: string) => post<ClientCreated>("/api/clients", { name }, { serverOnly: true }),
   revokeClient: (id: string) => call<void>(`/api/clients/${enc(id)}`, { method: "DELETE", serverOnly: true }),
+  /** An app's link request by its PIN (any spelling: the server keeps the digits). */
+  linkRequest: (code: string) => call<LinkRequest>(`/api/link/${enc(code)}`, { serverOnly: true }),
+  approveLink: (code: string) => post<{ client: Client }>(`/api/link/${enc(code)}`, { approve: true }, { serverOnly: true }),
+  denyLink: (code: string) => post<void>(`/api/link/${enc(code)}`, { approve: false }, { serverOnly: true }),
 
   connectors: () => call<Connector[]>("/api/connectors", { serverOnly: true }),
   createConnector: (c: ConnectorInput) => post<Connector>("/api/connectors", c, { serverOnly: true }),

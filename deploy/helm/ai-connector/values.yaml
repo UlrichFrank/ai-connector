@@ -17,12 +17,25 @@ hosts:
   console: ai.example.org
   app: mlxlab.example.org
 
+# The server's address for people and apps (MLXLAB_PUBLIC_URL), e.g. https://ai.example.org: the PIN page an app
+# shows when it links itself (<publicURL>/pin) and the url in the Bonjour announcement. Empty = the address each
+# request came to.
+publicURL: ""
+
+# Bonjour (mDNS): announce the server on the LAN as _ai-connector._tcp, so apps find it without a typed URL. The
+# multicast reaches the LAN only from the node's network: enabled sets hostNetwork (the pod then also listens on
+# the node's port service.port). Off = MLXLAB_MDNS=0.
+mdns:
+  enabled: false
+  name: ""  # MLXLAB_MDNS_NAME, the instance name; empty = "AI Connector"
+
 # the client APIs' default models (docs/api.md); empty = the server's defaults
 models:
   embed: ""     # MLXLAB_EMBED_MODEL, e.g. qwen3-embedding-0.6b
   classify: ""  # MLXLAB_CLASSIFY_MODEL
 
-# more plain environment (MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_CONSOLE_HOSTS and the models are set by the chart)
+# more plain environment (MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_CONSOLE_HOSTS, MLXLAB_PUBLIC_URL, MLXLAB_MDNS(_NAME) and
+# the models are set by the chart)
 env:
   # a soft limit below the memory limit: the GC works harder before the kernel OOM-kills the pod
   GOMEMLIMIT: "300MiB"

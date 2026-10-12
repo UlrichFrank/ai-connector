@@ -38,10 +38,17 @@ type Config struct {
 	ClassifyModel string
 	// ConsoleHosts: host names (lower case, no port) on which / redirects to the console (/console/)
 	ConsoleHosts []string
+	// PublicURL is the hub's address for people and apps ("https://ai.example.org", no trailing slash; "": the
+	// origin of each request). The link flow's PIN page and the Bonjour TXT record name it.
+	PublicURL string
+	// MDNS announces the hub on the LAN (Bonjour, mdns.go) while Run serves; MDNSName is its instance name.
+	MDNS     bool
+	MDNSName string
 }
 
 // FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL,
-// MLXLAB_CLASSIFY_MODEL and MLXLAB_CONSOLE_HOSTS (a comma list of host names).
+// MLXLAB_CLASSIFY_MODEL, MLXLAB_CONSOLE_HOSTS (a comma list of host names), MLXLAB_PUBLIC_URL, MLXLAB_MDNS (on
+// unless "0", "false" or "off") and MLXLAB_MDNS_NAME.
 func FromEnv() Config {
 	c := Config{
 		Password:      os.Getenv("MLXLAB_PASSWORD"),
@@ -51,8 +58,15 @@ func FromEnv() Config {
 		Tools:         os.Getenv("MLXLAB_TOOLS"),
 		EmbedModel:    os.Getenv("MLXLAB_EMBED_MODEL"),
 		ClassifyModel: os.Getenv("MLXLAB_CLASSIFY_MODEL"),
+		PublicURL:     os.Getenv("MLXLAB_PUBLIC_URL"),
+		MDNSName:      strings.TrimSpace(os.Getenv("MLXLAB_MDNS_NAME")),
 	}
 	c.ConsoleHosts = parseHosts(os.Getenv("MLXLAB_CONSOLE_HOSTS"))
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("MLXLAB_MDNS"))) {
+	case "0", "false", "off":
+	default:
+		c.MDNS = true
+	}
 	if c.Data == "" {
 		c.Data = "/data"
 	}
@@ -75,12 +89,16 @@ type Server struct {
 	connectors *connectors // connectors.go, vboard.go
 	invites    *invites
 	logins     *limiter
-	fleet      *fleet
-	proxy      http.Handler
-	rp         *httputil.ReverseProxy
-	ui         http.Handler
-	console    http.Handler
-	setup      *setupPage // the standalone hub's setup page (setup_page.go; nil: none)
+	links      *links   // link.go
+	linkStarts *limiter // POST /api/link/start per IP
+	// linkLookups: PIN lookups per device (a PIN is guessable)
+	linkLookups *limiter
+	fleet       *fleet
+	proxy       http.Handler
+	rp          *httputil.ReverseProxy
+	ui          http.Handler
+	console     http.Handler
+	setup       *setupPage // the standalone hub's setup page (setup_page.go; nil: none)
 
 	// failDelay slows down wrong passwords (shorter in tests).
 	failDelay time.Duration
@@ -104,6 +122,7 @@ func New(cfg Config) (*Server, error) {
 	if cfg.ClassifyModel == "" {
 		cfg.ClassifyModel = defaultClassifyModel
 	}
+	cfg.PublicURL = strings.TrimRight(strings.TrimSpace(cfg.PublicURL), "/")
 	d, err := openDevices(cfg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("devices: %w", err)
@@ -121,16 +140,19 @@ func New(cfg Config) (*Server, error) {
 		return wk.ID, wk.Name, ok
 	}
 	s := &Server{
-		cfg:       cfg,
-		tunnel:    &tunnel.Hub{Check: check, Token: cfg.WorkerToken},
-		devices:   d,
-		workers:   ws,
-		clients:   cs,
-		invites:   newInvites(),
-		logins:    newLimiter(10, time.Minute),
-		ui:        webui.Handler(),
-		console:   consoleui.Handler(),
-		failDelay: time.Second,
+		cfg:         cfg,
+		tunnel:      &tunnel.Hub{Check: check, Token: cfg.WorkerToken},
+		devices:     d,
+		workers:     ws,
+		clients:     cs,
+		invites:     newInvites(),
+		logins:      newLimiter(10, time.Minute),
+		links:       newLinks(),
+		linkStarts:  newLimiter(10, time.Minute),
+		linkLookups: newLimiter(30, time.Minute),
+		ui:          webui.Handler(),
+		console:     consoleui.Handler(),
+		failDelay:   time.Second,
 	}
 	s.fleet = newFleet(s.tunnel, ws, cfg.Data)
 	if s.connectors, err = openConnectors(s, cfg.Data); err != nil {
@@ -150,6 +172,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /healthz", healthz) // liveness/readiness for Kubernetes probes, no auth
 	mux.HandleFunc("GET /api/info", s.info)
 	mux.HandleFunc("POST /api/login", s.login)
+	mux.HandleFunc("POST /api/link/start", s.startLink) // an app asks for a client token (link.go)
+	mux.HandleFunc("POST /api/link/token", s.linkToken)
+	mux.HandleFunc("GET /pin", pinPage) // the short address the app shows, on every host name
+	mux.HandleFunc("GET /pin/", pinPage)
 	mux.Handle("GET "+tunnel.Path, s.tunnel)               // checks the worker token itself
 	mux.HandleFunc("GET /tools/mlxlab/{platform}", s.tool) // a worker token or a device token
 
@@ -160,6 +186,8 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("PATCH /api/devices/{id}", s.patchDevice)
 	auth.HandleFunc("DELETE /api/devices/{id}", s.revokeDevice)
 	auth.HandleFunc("POST /api/invites", s.createInvite)
+	auth.HandleFunc("GET /api/link/{code}", s.getLink)
+	auth.HandleFunc("POST /api/link/{code}", s.decideLink)
 	auth.HandleFunc("GET /api/workers", s.listWorkers)
 	auth.HandleFunc("POST /api/workers", s.addWorker)
 	auth.HandleFunc("DELETE /api/workers/{id}", s.revokeWorker)
@@ -186,11 +214,15 @@ func (s *Server) Handler() http.Handler {
 }
 
 // Run serves until ctx ends, then shuts down gracefully: streams (SSE) are cancelled, running requests get a
-// few seconds to finish.
+// few seconds to finish. It announces the hub on the LAN (MDNS) while it serves; Serve alone does not, so the
+// standalone hub on its loopback port stays quiet.
 func (s *Server) Run(ctx context.Context) error {
 	l, err := net.Listen("tcp", s.cfg.Addr)
 	if err != nil {
 		return err
+	}
+	if s.cfg.MDNS {
+		defer s.announce(l.Addr())()
 	}
 	return s.Serve(ctx, l)
 }

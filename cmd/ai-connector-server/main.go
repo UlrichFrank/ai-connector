@@ -1,7 +1,7 @@
 // mlxlab-hub is the public side of mlxlab: the web UI, sign-in, and the proxy to the worker on the Mac.
 // See docs/architecture.md. Configured from the environment (MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN (optional,
 // the legacy shared worker token), MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS,
-// MLXLAB_CONSOLE_HOSTS).
+// MLXLAB_CONSOLE_HOSTS, MLXLAB_PUBLIC_URL, MLXLAB_MDNS, MLXLAB_MDNS_NAME).
 package main
 
 import (
@@ -47,6 +47,12 @@ func main() {
 	}
 	if len(cfg.ConsoleHosts) > 0 {
 		log.Printf("console hosts (/ → /console/): %s", strings.Join(cfg.ConsoleHosts, ", "))
+	}
+	if cfg.PublicURL != "" {
+		log.Printf("public URL (link PINs, Bonjour): %s", cfg.PublicURL)
+	}
+	if !cfg.MDNS {
+		log.Printf("bonjour off (MLXLAB_MDNS)")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

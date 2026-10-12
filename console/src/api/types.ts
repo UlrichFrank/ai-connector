@@ -167,6 +167,14 @@ export interface ClientCreated {
   token: string;
 }
 
+/** An app waiting for its client token (GET /api/link/{code}): approving it makes a client that acts for you. */
+export interface LinkRequest {
+  name: string;
+  /** The PIN as the app shows it, "123 456". */
+  userCode: string;
+  expires: string;
+}
+
 export type ConnectorState = "connected" | "connecting" | "error" | "disabled";
 
 export interface ConnectorModels {

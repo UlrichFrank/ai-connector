@@ -30,6 +30,46 @@ person where it matters — its `claude-code/*` jobs run only on their workers, 
 (Claude Code)", Ownership). Tokens from before owners have none (their Claude Code jobs are refused with 403; make
 a new token).
 
+## Linking an app (device flow)
+
+An app gets its own client token without anyone pasting it, in the manner of RFC 8628: it shows a PIN; a person
+signed in to the server opens `<server>/pin` (on a phone, say), types the PIN and approves; the app picks the token
+up once. Pending links live in memory only (like invites): 10 minutes, at most 100 at a time.
+
+| | |
+|---|---|
+| `POST /api/link/start` (no auth) | `{"name":"Wall Display"}` → 200 `{"device_code":"<≥128-bit random, base64url>","user_code":"123 456","verification_uri":"<base>/pin","verification_uri_complete":"<base>/pin/123456","expires_in":600,"interval":5}`. Blank name → 400 `{"error":"name"}` (trimmed, cut to 100 bytes). More than 10 a minute from one IP, or 100 pending → 429 `{"error":"rate","message":"…"}` |
+| `POST /api/link/token` (no auth) | `{"device_code":"…"}` → 200 `{"token":"aic_…","client":{…}}` exactly once after approval (the link is gone then); else 400 with `{"error":…}`: `authorization_pending` (waiting), `slow_down` (polled sooner than `interval`, with a second's grace), `access_denied` (denied; the link is gone), `expired_token` (unknown, expired or already picked up) |
+| `GET /api/link/{code}` (device token) | → 200 `{"name":"Wall Display","userCode":"123 456","expires":"RFC3339"}`; unknown, expired or already decided → 404 `{"error":"not found"}` |
+| `POST /api/link/{code}` (device token) | `{"approve":true}` → 200 `{"client":{…}}`: the client is made now, its owner the approving device's user (its Claude Code jobs run on their workers), its token kept for the one pickup. `{"approve":false}` → 204 (the app gets `access_denied`). Unknown, expired or already decided → 404 |
+| `GET /pin`, `GET /pin/{code}` (no auth) | 302 to `/console/#/link` (`/console/#/link/123456` when `{code}` is a PIN), on every host name: the console's "Link a device" page, after sign-in if needed |
+
+* `user_code` is a 6-digit PIN, uniform from `crypto/rand`, unique among the pending links, shown as `123 456`.
+  Lookups keep the digits only (`123 456`, `123-456`, `123456` are the same); the URLs carry digits only.
+* `<base>` is `MLXLAB_PUBLIC_URL` (e.g. `https://ai.example.org`, no trailing slash) when set, else the origin the
+  request came to (`X-Forwarded-Proto`/`-Host` behind traefik).
+* A PIN is guessable, so the lookups (`GET`/`POST /api/link/{code}`) are limited to 30 a minute per device (→ 429
+  `{"error":"rate"}`); with the 10-minute TTL and the cap on pending links that keeps guessing hopeless.
+* Client tokens do not reach `/api/link/{code}` (401 `{"error":"signin"}`): only a person approves.
+* The app polls every `interval` seconds until it has the token or an error other than `authorization_pending` /
+  `slow_down` (on `slow_down`, wait longer); after `expires_in` it starts over.
+
+## Finding the server (Bonjour)
+
+The server announces itself on the LAN, so an app finds it without a typed URL: service type `_ai-connector._tcp`,
+domain `local.`, the instance name `MLXLAB_MDNS_NAME` (default `AI Connector`), the port it listens on
+(`MLXLAB_ADDR`, default 8080). TXT record:
+
+| Key | |
+|---|---|
+| `url` | `MLXLAB_PUBLIC_URL`, only when set. **When present, apps connect to it**, not to the announced host and port (behind an ingress those are the node's plain HTTP port, not the HTTPS name) |
+| `role` | `hub` |
+| `path` | `/` |
+
+`MLXLAB_MDNS` turns it off (`0`, `false`, `off`; default on). A failed registration only logs. `ai-connector vboard`'s
+built-in server (loopback only) never announces. In Kubernetes the multicast reaches the LAN only with `hostNetwork`
+(docs/deploy.md, `mdns.enabled`).
+
 ## OpenAI-compatible API (client or device token)
 
 Model ids are the catalogue ids the workers list (`GET /api/models`): built-in ones (`qwen3.6-35b-a3b`,

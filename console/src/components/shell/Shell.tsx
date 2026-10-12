@@ -34,7 +34,8 @@ const navItems: Item[] = [
 ];
 
 function Nav({ onPick }: { onPick?: () => void }) {
-  const { page } = useRoute();
+  const { page: route } = useRoute();
+  const page = route === "link" ? "clients" : route; // linking a device makes a client
   const busy = useLive((s) => Object.values(s.jobs).some(isActive));
   const workers = useLive((s) => s.connected.length);
   return (

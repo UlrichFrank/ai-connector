@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
+import { KeyRound, Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { api, errorText, isNotAvailable } from "@/api/client";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { navigate } from "@/lib/route";
 import { DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL, pickModel, snippets, TOKEN_PLACEHOLDER, type SnippetGroup } from "@/lib/snippets";
 import { cn } from "@/lib/utils";
 import { useLive } from "@/store/live";
@@ -35,6 +36,9 @@ export function ClientsPage() {
   return (
     <Page>
       <PageHeader title="Clients" description="API tokens for applications (vboard, docscanner, scripts): they may use the OpenAI, TEI, Laya and jobs APIs, nothing else.">
+        <Button variant="outline" onClick={() => navigate("link")} disabled={missing}>
+          <Link2 /> Link a device
+        </Button>
         <Button onClick={() => setCreating(true)} disabled={missing}>
           <Plus /> New token
         </Button>

@@ -151,14 +151,17 @@ The server has two web apps: the **console** of ai-connector under `/console/` (
   too big.
 - **Clients** — API tokens for applications (`aic_…`, shown once) and copy-paste snippets with this server filled
   in: curl and Python (OpenAI SDK) for `/v1/chat/completions` and `/v1/embeddings`, vboard's sidecar environment,
-  docscanner's.
+  docscanner's. **Link a device** approves an app that asks for its own token with a PIN (`<server>/pin`, the
+  device flow in docs/api.md).
 - **Connectors** — vboard connectors (the server dials vboard's classifier bridge): add, edit, enable/disable,
   delete, with their live state; the chat agents in order, and which of them vboard is offered now.
 
 `MLXLAB_CONSOLE_HOSTS` (comma list of host names, e.g. `ai.example.org`) makes `GET /` on those hosts redirect to
 `/console/` (matched against `X-Forwarded-Host` behind traefik, else `Host`; port and case ignored). Every host
 serves both apps at their paths. Pages of the console whose API the server does not have yet say so instead of
-failing.
+failing. `MLXLAB_PUBLIC_URL` (e.g. `https://ai.example.org`) is the address apps are sent to (the PIN page, the
+Bonjour record); `MLXLAB_MDNS` (default on; `0`/`false`/`off`) and `MLXLAB_MDNS_NAME` (default `AI Connector`)
+announce the server on the LAN as `_ai-connector._tcp`.
 
 Build and develop: `make console` (pnpm, into `internal/consoleui/dist`; `make build`/`make server` run it),
 `make console-dev` (Vite on http://localhost:5173/console/, proxying `/api`, `/files` and `/v1` to `MLXLAB_URL`,
