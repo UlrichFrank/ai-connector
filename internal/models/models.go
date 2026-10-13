@@ -211,7 +211,13 @@ func (s *Store) have(m Model, f File) bool {
 		return false
 	}
 	mark, err := os.ReadFile(p + ".sha256")
-	return err == nil && strings.TrimSpace(string(mark)) == f.sum()
+	if err != nil {
+		return false
+	}
+	// "<sum>  <name>": a publisher's checksum file that overwrote the marker (before filter left those out) — the
+	// file only got here through its hash check, so the same sum still says verified
+	sum, _, _ := strings.Cut(strings.TrimSpace(string(mark)), " ")
+	return sum == f.sum()
 }
 
 // Ensure fetches the files that are not there yet and returns the directory the model loads from.

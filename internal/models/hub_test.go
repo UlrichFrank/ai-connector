@@ -80,3 +80,36 @@ func TestMatches(t *testing.T) {
 		}
 	}
 }
+
+// A publisher's checksum file X.sha256 next to X (ckadirt/LeVo2-GGUF) has the name of the store's marker of a verified
+// X: it is left out of the listing, and a marker it overwrote in an older store still counts (X stays here).
+func TestPublisherChecksumFile(t *testing.T) {
+	got := filter([]File{{Path: "w.gguf"}, {Path: "w.gguf.sha256"}, {Path: "w.gguf.manifest.json"}, {Path: "other.sha256"}}, nil)
+	if len(got) != 3 || got[0].Path != "w.gguf" || got[1].Path != "w.gguf.manifest.json" || got[2].Path != "other.sha256" {
+		t.Fatalf("filter: %v", got)
+	}
+
+	weights := []byte("weights weights weights")
+	h := sha256.Sum256(weights)
+	ws := hex.EncodeToString(h[:])
+	published := []byte(ws + "  w.gguf\n")
+	files := map[string][]byte{"w.gguf": weights, "w.gguf.sha256": published}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write(files[r.URL.Path[len("/org/m/"):]]) }))
+	defer srv.Close()
+	src, _ := Mirror(srv.URL, nil)
+	// both files, X first: what a store fetched before filter left the checksum file out
+	m := Model{Repo: "org/m", Rev: "r", Files: []File{
+		{Path: "w.gguf", Size: int64(len(weights)), SHA256: ws},
+		{Path: "w.gguf.sha256", Size: int64(len(published)), GitSHA1: gitSHA1(published)},
+	}}
+	s := &Store{Dir: t.TempDir(), Sources: []Source{src}}
+	if _, err := s.Ensure(context.Background(), m); err != nil {
+		t.Fatal(err)
+	}
+	if mark, _ := os.ReadFile(filepath.Join(s.Dir, "org", "m", "r", "w.gguf.sha256")); string(mark) != string(published) {
+		t.Fatalf("marker not overwritten (the case to cover): %q", mark)
+	}
+	if n := s.Missing(m); n != 0 {
+		t.Fatalf("missing %d after a complete download", n)
+	}
+}
