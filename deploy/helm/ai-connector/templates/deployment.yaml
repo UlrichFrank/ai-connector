@@ -30,7 +30,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       automountServiceAccountToken: false
-      {{- if .Values.mdns.enabled }}
+      {{- if include "ai-connector.mdnsInProcess" . }}
       # Bonjour's multicast reaches the LAN only from the node's network
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -38,6 +38,45 @@ spec:
       enableServiceLinks: false
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if include "ai-connector.mdnsAvahi" . }}
+      initContainers:
+        # Bonjour through the node's avahi: write the announcement into its services dir (avahi watches it), so
+        # the server needs no hostNetwork. Root only to write that root-owned dir; nothing else is mounted.
+        - name: avahi-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - avahi-service
+            - /avahi/{{ .Values.mdns.avahi.file }}
+            - {{ .Values.mdns.avahi.port | quote }}
+          env:
+            {{- with .Values.publicURL }}
+            - name: MLXLAB_PUBLIC_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.mdns.name }}
+            - name: MLXLAB_MDNS_NAME
+              value: {{ . | quote }}
+            {{- end }}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: avahi-services
+              mountPath: /avahi
+          resources:
+            limits:
+              memory: 32Mi
+            requests:
+              cpu: 10m
+              memory: 16Mi
+      {{- end }}
       containers:
         - name: server
           securityContext:
@@ -62,8 +101,8 @@ spec:
               value: {{ . | quote }}
             {{- end }}
             - name: MLXLAB_MDNS
-              value: {{ ternary "1" "0" (.Values.mdns.enabled | default false) | quote }}
-            {{- if and .Values.mdns.enabled .Values.mdns.name }}
+              value: {{ ternary "1" "0" (include "ai-connector.mdnsInProcess" . | eq "true") | quote }}
+            {{- if and (include "ai-connector.mdnsInProcess" .) .Values.mdns.name }}
             - name: MLXLAB_MDNS_NAME
               value: {{ .Values.mdns.name | quote }}
             {{- end }}
@@ -117,6 +156,12 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        {{- if include "ai-connector.mdnsAvahi" . }}
+        - name: avahi-services
+          hostPath:
+            path: {{ .Values.mdns.avahi.servicesDir }}
+            type: Directory
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

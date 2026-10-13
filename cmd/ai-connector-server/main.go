@@ -26,6 +26,10 @@ var version = "dev"
 
 func main() {
 	cfg := hub.FromEnv()
+	if len(os.Args) > 1 && os.Args[1] == "avahi-service" {
+		writeAvahiService(cfg, os.Args[2:])
+		return
+	}
 	s, err := hub.New(cfg)
 	if err != nil {
 		log.Fatalf("mlxlab-hub: %v", err)
@@ -62,6 +66,34 @@ func main() {
 		log.Fatalf("mlxlab-hub: %v", err)
 	}
 	log.Printf("mlxlab-hub stopped")
+}
+
+// writeAvahiService is `ai-connector-server avahi-service <file> [port]`: it writes the Bonjour announcement as an
+// avahi static service file (MLXLAB_MDNS_NAME, MLXLAB_PUBLIC_URL; port default 443) and exits. The chart's init
+// container runs it into the node's /etc/avahi/services (mdns.avahi).
+func writeAvahiService(cfg hub.Config, args []string) {
+	if len(args) < 1 || len(args) > 2 {
+		log.Fatalf("usage: ai-connector-server avahi-service <file> [port]")
+	}
+	port := 443
+	if len(args) == 2 {
+		if _, err := fmt.Sscanf(args[1], "%d", &port); err != nil || port <= 0 || port > 65535 {
+			log.Fatalf("avahi-service: bad port %q", args[1])
+		}
+	}
+	if cfg.PublicURL == "" {
+		log.Printf("avahi-service: no MLXLAB_PUBLIC_URL, the record carries no url (apps then use the node's address)")
+	}
+	// write next to the file and rename: avahi watches the directory and must never read half a file
+	tmp := args[0] + ".tmp"
+	if err := os.WriteFile(tmp, hub.AvahiService(cfg.MDNSName, cfg.PublicURL, port), 0o644); err != nil {
+		log.Fatalf("avahi-service: %v", err)
+	}
+	if err := os.Rename(tmp, args[0]); err != nil {
+		os.Remove(tmp)
+		log.Fatalf("avahi-service: %v", err)
+	}
+	log.Printf("avahi-service: wrote %s", args[0])
 }
 
 // logWorker prints which Macs are connected, at start and on every change.

@@ -70,6 +70,8 @@ publicURL: https://ai.example.org   # MLXLAB_PUBLIC_URL: apps' PIN page and Bonj
 mdns:
   enabled: false     # true: announce on the LAN (Bonjour), with hostNetwork; see below
   name: ""           # MLXLAB_MDNS_NAME, default "AI Connector"
+  avahi:
+    enabled: false   # true: through the node's avahi-daemon instead of hostNetwork; see below
 
 models:
   embed: ""          # MLXLAB_EMBED_MODEL, default qwen3-embedding-0.6b
@@ -181,6 +183,14 @@ traefik in k0s the pod's multicast never leaves the pod network, so `mdns.enable
 `MLXLAB_MDNS=0`. With `hostNetwork` the server also listens on the node's port `service.port` (8080) and uses UDP
 5353 there: both must be free on the node (`Recreate` keeps two pods from wanting them at once). Apps still connect
 to `publicURL` (the HTTPS ingress name), so set it whenever mDNS is on.
+
+When the node already runs avahi-daemon, or `service.port` is taken there (k3s' kube-router holds 8080 on a
+Raspberry Pi), set `mdns.avahi.enabled: true` as well: the pod keeps the pod network (`MLXLAB_MDNS=0`) and an init
+container runs `ai-connector-server avahi-service` to write the announcement as a static service file into the
+node's `mdns.avahi.servicesDir` (default `/etc/avahi/services`, a hostPath; the init container runs as root only
+for that write). avahi picks the file up by itself, and every start of the pod rewrites it. The record's port is
+`mdns.avahi.port` (443); apps use its `url`. Uninstalling leaves the file: remove
+`/etc/avahi/services/ai-connector.service` on the node to stop the announcement.
 
 ## Upgrading
 

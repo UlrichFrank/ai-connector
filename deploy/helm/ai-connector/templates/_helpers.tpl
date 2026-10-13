@@ -60,3 +60,15 @@ The host names of the ingress (console first), without empty ones.
 {{- with .Values.hosts.app }}{{ if not (has . $hosts) }}{{ $hosts = append $hosts . }}{{ end }}{{ end }}
 {{- toJson $hosts }}
 {{- end }}
+
+{{/*
+Bonjour: "true" (or empty) for how the server is announced. In process = the server's own mDNS, which needs
+hostNetwork; avahi = an init container writes a service file for the node's avahi-daemon.
+*/}}
+{{- define "ai-connector.mdnsInProcess" -}}
+{{- if and .Values.mdns.enabled (not .Values.mdns.avahi.enabled) }}true{{ end }}
+{{- end }}
+
+{{- define "ai-connector.mdnsAvahi" -}}
+{{- if and .Values.mdns.enabled .Values.mdns.avahi.enabled }}true{{ end }}
+{{- end }}

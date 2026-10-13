@@ -2,6 +2,7 @@ package hub
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -25,5 +26,24 @@ func TestMDNSFromEnv(t *testing.T) {
 	t.Setenv("MLXLAB_PUBLIC_URL", "https://ai.example.org")
 	if c := FromEnv(); c.MDNSName != "Hub" || c.PublicURL != "https://ai.example.org" {
 		t.Fatalf("config %+v", c)
+	}
+}
+
+func TestAvahiService(t *testing.T) {
+	got := string(AvahiService("", "https://ai.example.org/?a=1&b=2", 443))
+	for _, want := range []string{
+		"<name>AI Connector</name>",
+		"<type>_ai-connector._tcp</type>",
+		"<port>443</port>",
+		"<txt-record>url=https://ai.example.org/?a=1&amp;b=2</txt-record>",
+		"<txt-record>role=hub</txt-record>",
+		"<txt-record>path=/</txt-record>",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in\n%s", want, got)
+		}
+	}
+	if got := string(AvahiService("Küche <1>", "", 8080)); !strings.Contains(got, "<name>Küche &lt;1&gt;</name>") || strings.Contains(got, "url=") {
+		t.Fatalf("name/no url:\n%s", got)
 	}
 }
