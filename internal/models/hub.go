@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -156,14 +157,22 @@ func (s *Store) HubInfo(ctx context.Context, repo, rev string) (HubRepo, error) 
 	return h, nil
 }
 
+// filter keeps the files keep wants — but not a publisher's checksum file X.sha256 next to a kept X: the store's own
+// marker of a verified X has that name (Store.have), the file would overwrite it, and X counted as missing again
+// (ckadirt/LeVo2-GGUF: "4.6 GB did not arrive complete" after every download). X's own hash already pins it.
 func filter(fs []File, keep func(string) bool) []File {
 	var out []File
+	kept := map[string]bool{}
 	for _, f := range fs {
 		if keep == nil || keep(f.Path) {
 			out = append(out, f)
+			kept[f.Path] = true
 		}
 	}
-	return out
+	return slices.DeleteFunc(out, func(f File) bool {
+		x, ok := strings.CutSuffix(f.Path, ".sha256")
+		return ok && kept[x]
+	})
 }
 
 var nextLink = regexp.MustCompile(`<([^>]+)>;\s*rel="next"`)
