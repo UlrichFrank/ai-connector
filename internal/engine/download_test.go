@@ -261,11 +261,20 @@ func TestDownloadsAudioPrepare(t *testing.T) {
 			t.Errorf("%s: %+v, prepared %q, want %q", id, st, got, w)
 		}
 	}
-	mu.Lock()
-	if !slices.Equal(states, []string{DownloadQueued, DownloadDownloading, DownloadVerifying, DownloadPreparing, DownloadDone}) {
-		t.Errorf("kokoro's states %v", states)
+	// Changed hears the states on a goroutine of its own, maybe after Status already says done
+	wantStates := []string{DownloadQueued, DownloadDownloading, DownloadVerifying, DownloadPreparing, DownloadDone}
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+		mu.Lock()
+		got := slices.Clone(states)
+		mu.Unlock()
+		if slices.Equal(got, wantStates) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Errorf("kokoro's states %v", got)
+			break
+		}
 	}
-	mu.Unlock()
 	// a runtime that cannot be made: failed, with why
 	d.Start("levo2-medium", 64*gb)
 	if st := waitState(t, d, "levo2-medium", func(s DownloadState) bool { return !s.Active() }); st.State != DownloadFailed || !strings.Contains(st.Error, "cmake") {
