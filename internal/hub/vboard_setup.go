@@ -330,11 +330,11 @@ func (r *vboardRun) setupRequest(ctx context.Context, c *bridgeConn, work *runni
 }
 
 // setupRole is what a model is recommended among (engine.SetupRole): its kind, or kind/task for an upscaler
-// ("image/upscale"), the transcriber ("speech/transcribe") and the aligner ("speech/align"), which do not compete
+// ("image/upscale"), a cutout model ("image/cutout"), the transcriber ("speech/transcribe") and the aligner ("speech/align"), which do not compete
 // with the kind's generators.
 func setupRole(kind string, tasks []string) string {
 	for _, t := range tasks {
-		if t == "upscale" || t == "transcribe" || t == "align" {
+		if t == "upscale" || t == "cutout" || t == "transcribe" || t == "align" {
 			return kind + "/" + t
 		}
 	}
@@ -360,7 +360,7 @@ func (r *vboardRun) modelList(ctx context.Context, conf storedConnector) []map[s
 			if m.Gated {
 				e["access"] = m.Access
 			}
-			if len(m.Tasks) > 0 { // an upscaler (["upscale"]) is told apart before it is a generator
+			if len(m.Tasks) > 0 { // an upscaler (["upscale"]), a cutout model (["cutout"]) is told apart before it is a generator
 				e["tasks"] = m.Tasks
 			}
 			if len(m.Languages) > 0 { // a speech model: vboard proposes its download only for a language it speaks

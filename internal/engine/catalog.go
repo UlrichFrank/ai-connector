@@ -30,7 +30,8 @@ type Model struct {
 	NonCommercial bool   `json:"nonCommercial,omitempty"`
 	// Tasks are the studio tasks a song model can do besides making a new song (cover, repaint, extend, lego, extract);
 	// an image model with tasks does only those: "generate" (text to image, no reference images), "edit" (needs
-	// reference images) or "upscale" (one image made larger, no prompt: SeedVR2). An image model without tasks does
+	// reference images), "upscale" (one image made larger, no prompt: SeedVR2) or "cutout" (one image's background made
+	// transparent, no prompt: BiRefNet). An image model without tasks does
 	// the first two (FLUX.2 klein).
 	Tasks []string `json:"tasks,omitempty"`
 	// Styles: a song model that can learn a style from the user's tracks (a LoRA, see styles.go); its requests
@@ -56,6 +57,7 @@ type Model struct {
 	ignore []string      // file patterns not to download
 	mflux  string        // mflux's model name
 	hq     bool          // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
+	side   int           // cutout: the side the model sees (BiRefNet 1024, the HR ones 2048)
 
 	served      *servedModel // a model of a local OpenAI-compatible server (OpenAIBackend)
 	runtime     string       // music: the runtime (MusicBackend.Runtimes)
@@ -172,7 +174,7 @@ func (c *Catalog) OfKind(k Kind) []*Model {
 const gb = int64(1) << 30
 
 // NewCatalog builds the catalogue: the vboard models (chat, embedder, classifier), local MLX chat models (LM
-// Studio, the Hugging Face cache), FLUX.2 klein, Qwen-Image, the SeedVR2 upscalers and LTX-2.5.
+// Studio, the Hugging Face cache), FLUX.2 klein, Qwen-Image, the SeedVR2 upscalers, the BiRefNet cutouts and LTX-2.5.
 func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	_, hub := llm.LocalRoots()
 	c := &Catalog{HFHub: hub}
@@ -262,6 +264,11 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 
 	// SeedVR2 through mflux: upscales an image (upscale.go)
 	for _, m := range seedvr2Catalog(store, hub) {
+		add(m)
+	}
+
+	// BiRefNet through PyTorch: cuts an image's background away (cutout.go)
+	for _, m := range cutoutCatalog(store, hub) {
 		add(m)
 	}
 

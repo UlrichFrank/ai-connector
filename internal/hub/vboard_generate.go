@@ -25,7 +25,8 @@ import (
 // {generate}; the connector runs an image or video job on a worker that has the model, says how it goes
 // ({generateStatus}), sends the file in pieces ({generateFile}) and ends with {generateDone}. {generateCancel}
 // cancels the job. The generation is a request of its own, not part of a chat turn: it runs as long as it takes.
-// Upscales (SeedVR2) are generators of their own kind: vboard_upscale.go; music, sound and speech: vboard_audio.go.
+// Upscales (SeedVR2) and cutouts (BiRefNet: the background made transparent) are generators of their own kinds:
+// vboard_upscale.go, vboard_cutout.go; music, sound and speech: vboard_audio.go.
 
 // Limits (docs/api.md).
 const (
@@ -43,6 +44,7 @@ const (
 	genVideoMax       = 1280
 	genVideoMaxSecond = 10
 	genUpscaleMax     = 4096      // SeedVR2 (engine.UpscaleMax): the longest side of the result
+	genCutoutMax      = 4096      // BiRefNet: the longest side of an image it cuts out (the result has its size)
 	genImageRead      = 256 << 20 // an image result read to make it a JPEG (a 4096² PNG is 30–50 MB)
 	genJPEGQuality    = 92
 )
@@ -80,8 +82,8 @@ type advertisedGenerator struct {
 }
 
 // generatorOf is what a catalogue model can do on the board (false: it is no image or video model the connector
-// knows how to ask): FLUX and Qwen-Image (mflux) for images, SeedVR2 (mflux, task "upscale") for upscales, LTX for
-// videos.
+// knows how to ask): FLUX and Qwen-Image (mflux) for images, SeedVR2 (mflux, task "upscale") for upscales, BiRefNet
+// (task "cutout") for cutouts, LTX for videos.
 func generatorOf(m catalogModel) (advertisedGenerator, bool) {
 	d := modelDefaults{}
 	if m.Defaults != nil {
@@ -91,6 +93,8 @@ func generatorOf(m catalogModel) (advertisedGenerator, bool) {
 	switch {
 	case m.Kind == "image" && m.Backend == "mflux" && slices.Contains(m.Tasks, "upscale"):
 		g.Kind, g.Scales, g.Max = "upscale", genUpscaleScales, genUpscaleMax
+	case m.Kind == "image" && slices.Contains(m.Tasks, "cutout"):
+		g.Kind, g.Max = "cutout", genCutoutMax
 	case m.Kind == "image" && m.Backend == "mflux":
 		// a model with tasks does only those (Qwen-Image: text to image, Qwen-Image-Edit: editing); FLUX does both
 		g.Edit = len(m.Tasks) == 0 || slices.Contains(m.Tasks, "edit")
@@ -218,6 +222,11 @@ func wireGenerators(gs []advertisedGenerator) []map[string]any {
 		if g.Kind == "upscale" {
 			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "scales": g.Scales,
 				"max": g.Max, "nonCommercial": g.NonCommercial}
+			continue
+		}
+		if g.Kind == "cutout" { // one image in, the same size out: no sizes, no factors
+			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "max": g.Max,
+				"nonCommercial": g.NonCommercial}
 			continue
 		}
 		w := map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "multiple": g.Multiple,
@@ -355,6 +364,9 @@ type genPlan struct {
 func planGenerate(g advertisedGenerator, q *genRequest) (genPlan, error) {
 	if g.Kind == "upscale" {
 		return planUpscale(g, q)
+	}
+	if g.Kind == "cutout" {
+		return planCutout(g, q)
 	}
 	if audioKind(g.Kind) {
 		return planAudio(g, q)
@@ -533,14 +545,17 @@ func (r *vboardRun) generate(ctx context.Context, c *bridgeConn, id string, raw 
 		// one image and the factor: the worker works out the size itself (as planUpscale did)
 		job = map[string]any{"model": g.Model, "scale": plan.scale, "client": "vboard: " + c.conf.Name}
 	}
+	if g.Kind == "cutout" { // the one image (below), nothing else
+		job = map[string]any{"model": g.Model, "client": "vboard: " + c.conf.Name}
+	}
 	if audioKind(g.Kind) { // music, sound, speech: their own fields (planAudio)
 		job = map[string]any{"model": g.Model, "client": "vboard: " + c.conf.Name}
 		maps.Copy(job, plan.job)
 	}
-	if q.Seed > 0 {
+	if q.Seed > 0 && g.Kind != "cutout" {
 		job["seed"] = q.Seed
 	}
-	if q.Steps > 0 && g.Kind != "upscale" && g.Kind != "sound" && g.Kind != "speech" { // SeedVR2 takes one step
+	if q.Steps > 0 && g.Kind != "upscale" && g.Kind != "cutout" && g.Kind != "sound" && g.Kind != "speech" { // SeedVR2 takes one step
 		job["steps"] = q.Steps
 	}
 	if g.Kind == "video" {
@@ -721,6 +736,8 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 		switch strings.ToLower(path.Ext(f)) {
 		case ".png":
 			file, mime = f, "image/png"
+		case ".webp": // a cutout too large as a PNG (engine.CutoutMaxPNG): a WebP keeps its transparency
+			file, mime = f, "image/webp"
 		case ".mp4":
 			file, mime = f, "video/mp4"
 		}
@@ -760,8 +777,9 @@ func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *n
 			b = pngWithoutMeta(b)
 		}
 		size, body = int64(len(b)), bytes.NewReader(b)
-		// a PNG larger than vboard takes (a 4096² upscale) goes as a JPEG of quality 92
-		if mime == "image/png" && size > limit && size <= read {
+		// a PNG larger than vboard takes (a 4096² upscale) goes as a JPEG of quality 92 — not a cutout: a JPEG has no
+		// transparency (its worker writes a WebP instead of a PNG that large)
+		if mime == "image/png" && size > limit && size <= read && g.Kind != "cutout" {
 			jb, err := asJPEG(b)
 			if err != nil {
 				fail(fmt.Sprintf("the image is %.1f MB, more than vboard takes (%d MB), and could not be made a JPEG: %v",

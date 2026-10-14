@@ -212,8 +212,9 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	always := approvals.Open(own)
 	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
 	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
-	// the embedder and the classifier run everywhere (pure Go); MLX and the Python runtimes need Apple silicon
-	backends := []engine.Backend{text}
+	// the embedder and the classifier run everywhere (pure Go); so does the cutout (BiRefNet on PyTorch: CUDA, Apple's
+	// MPS or the CPU); MLX and the other Python runtimes need Apple silicon
+	backends := []engine.Backend{text, &engine.CutoutBackend{Root: root, Store: store}}
 	if appleSilicon {
 		backends = append(backends,
 			&engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)},
