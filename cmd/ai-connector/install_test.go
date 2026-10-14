@@ -117,6 +117,10 @@ func TestInstallWindows(t *testing.T) {
 		s, ran := testService(t, "windows", fail)
 		s.exe = `C:\Program Files\ai-connector\ai-connector.exe`
 		s.env = [][2]string{{"PATH", `C:\Windows;C:\Tools`}, {"MLXLAB_HOME", `D:\AI files\`}, {"HF_HOME", `D:\hf`}}
+		s.startNow = func(exe string, args []string) error {
+			*ran = append(*ran, "start "+exe+" "+strings.Join(args, " "))
+			return nil
+		}
 		return s, ran
 	}
 	// the kept environment as --env (PATH not: the task has the user's), quoted for the command line
@@ -140,8 +144,23 @@ func TestInstallWindows(t *testing.T) {
 	if err := s.install(); err != nil {
 		t.Fatal(err)
 	}
-	if got := (*ran)[len(*ran)-1]; got != `reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ai-connector vboard /t REG_SZ /d `+cmd+` /f` {
+	if got := (*ran)[len(*ran)-2]; got != `reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ai-connector vboard /t REG_SZ /d `+cmd+` /f` {
 		t.Fatalf("ran %q", *ran)
+	}
+	// "now and at every login" without a task: it starts now too, apart from the console (not only at the next login)
+	if got := (*ran)[len(*ran)-1]; got != `start C:\Program Files\ai-connector\ai-connector.exe vboard --env MLXLAB_HOME=D:\AI files\ --env HF_HOME=D:\hf` {
+		t.Fatalf("ran %q", *ran)
+	}
+	// a copy runs already (an update): it is stopped, the new one starts
+	s, ran = windows(map[string]bool{"schtasks /Create": true})
+	held, stopped := true, 0
+	s.holder = func() (int, bool) { return 4711, held }
+	s.stop = func(pid int) error { stopped = pid; held = false; return nil }
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if stopped != 4711 || !strings.HasPrefix((*ran)[len(*ran)-1], "start ") {
+		t.Fatalf("stopped %d, ran %q", stopped, *ran)
 	}
 	if !strings.Contains(s.describe(), `in HKCU\Software`) {
 		t.Fatal(s.describe())
@@ -155,7 +174,7 @@ func TestInstallWindows(t *testing.T) {
 	if err := s.install(); err != nil {
 		t.Fatal(err)
 	}
-	if len(*ran) != 1 || !strings.HasPrefix((*ran)[0], "reg add ") || !strings.Contains((*ran)[0], `--env "HF_HUB_CACHE=D:\models models`) {
+	if len(*ran) != 2 || !strings.HasPrefix((*ran)[0], "reg add ") || !strings.HasPrefix((*ran)[1], "start ") || !strings.Contains((*ran)[0], `--env "HF_HUB_CACHE=D:\models models`) {
 		t.Fatalf("ran %q", *ran)
 	}
 	*ran = nil
@@ -260,7 +279,8 @@ func TestInstallReplaces(t *testing.T) {
 	if err := s.install(); err != nil {
 		t.Fatal(err)
 	}
-	if slices.Contains(*ran, "stop 4242") || !strings.Contains(out.String(), "(pid 4242) keeps running") {
+	// the Run key instead of a task: the running copy (an older version, perhaps) makes room for the update all the same
+	if !slices.Contains(*ran, "stop 4242") || !strings.Contains(out.String(), "stopped the running copy (pid 4242)") {
 		t.Fatalf("ran %q, said %q", *ran, out.String())
 	}
 }
