@@ -4,7 +4,8 @@
 # BiRefNet (ZhengPeng7, MIT) predicts a soft foreground mask; the mask becomes the alpha channel as it is (sigmoid,
 # resized back to the image's size, never thresholded): fine hair and soft edges stay half transparent. BiRefNet
 # drops what only tints the background (a glow, a soft shadow); on a plain background those come back half
-# transparent by colour to alpha (glow).
+# transparent by colour to alpha (glow) — against a smooth field fitted to the backdrop (its gradient and vignette
+# included) and only near the object, so the backdrop leaves no veil.
 # The colours at the edge are estimated anew (blur fusion, github.com/Photoroom/fast-foreground-estimation): a pixel
 # half covered by the object no longer carries the old background into a picture placed on another one (no light
 # grey fringe on a dark slide). Nothing is downloaded here: the snapshot (birefnet.py, BiRefNet_config.py,
@@ -117,35 +118,54 @@ def foreground(image, alpha):
 
 
 def plain_background(image, alpha):
-    # the background's colour when it is plain (a studio backdrop, a generated picture's "on a light grey
-    # background"): the median of the border's pixels the mask leaves out, and how far they stray (95th percentile of
-    # the largest channel difference). None: too little border is background, or it is not plain.
+    # the background when it is plain (a studio backdrop, a generated picture's "on a light grey background"): a smooth
+    # field — a quadratic in x and y per channel, so a backdrop's gradient and vignette fit too — fitted to the pixels
+    # far from the object (the mask leaves them out and they lie outside its reach, so a glow does not count), and how
+    # far the pixels stray from it (95th percentile of the largest channel difference). None: too little background,
+    # or it is not plain.
     h, w = image.shape[-2:]
-    band = max(2, round(0.02 * max(h, w)))
-    edge = torch.ones(h, w, dtype=torch.bool, device=image.device)
-    edge[band:-band, band:-band] = False
-    px = image[0][:, edge].T  # [n, 3]
-    keep = alpha[0, 0][edge] < 0.05
-    if keep.float().mean() < 0.5:
+    subject = (alpha > 0.5).float()
+    reach = near(subject, h, w)
+    far = (alpha[0, 0] < 0.05) & (reach[0, 0] < 0.01)
+    if far.float().mean() < 0.15:
         return None
-    px = px[keep]
-    bg = px.median(dim=0).values
-    spread = torch.quantile((px - bg).abs().amax(dim=1).float().cpu(), 0.95).item()
+    ys, xs = torch.meshgrid(torch.linspace(-1, 1, h, device=image.device), torch.linspace(-1, 1, w, device=image.device), indexing="ij")
+    basis = torch.stack([torch.ones_like(xs), xs, ys, xs * xs, xs * ys, ys * ys], dim=-1)  # [h, w, 6]
+    pts = basis[far]
+    px = image[0].permute(1, 2, 0)[far]  # [n, 3]
+    if pts.shape[0] > 40000:
+        pick = torch.randperm(pts.shape[0], device=pts.device)[:40000]
+        pts, px = pts[pick], px[pick]
+    coef = torch.linalg.lstsq(pts.cpu(), px.cpu()).solution.to(image.device)  # [6, 3]
+    field = (basis @ coef).permute(2, 0, 1).unsqueeze(0).clamp(1e-3, 1 - 1e-3)
+    spread = torch.quantile((image[0].permute(1, 2, 0)[far] - field[0].permute(1, 2, 0)[far]).abs().amax(dim=1).float().cpu()[:200000], 0.95).item()
     if spread > 0.06:
         return None
-    return bg, spread
+    return field, spread, reach
 
 
-def glow(image, bg, spread):
-    # colour to alpha against the plain background: how much of each pixel is not background (the largest channel's
+def near(subject, h, w):
+    # how close each pixel is to the object, 1 next to it fading to 0 at about a quarter of the picture's longer side:
+    # a glow or a shadow belongs to the object, a stain in a corner of the backdrop does not
+    r = max(3, round(max(h, w) / 8)) | 1
+    grown = F.max_pool2d(subject, r, stride=1, padding=r // 2)
+    return box_blur(grown, r)
+
+
+def glow(image, field, spread, reach):
+    # colour to alpha against the background field: how much of each pixel is not background (the largest channel's
     # share of the way from the background's value to black or white) and the colour it then has. A soft glow, a
-    # shadow, smoke come out half transparent in their own colour; the noise floor (the border's own spread) stays 0.
-    b = bg.view(1, 3, 1, 1).clamp(1e-3, 1 - 1e-3)
-    d = image - b
-    a = torch.where(d > 0, d / (1 - b), -d / b).amax(dim=1, keepdim=True).clamp(0, 1)
-    colour = (b + d / a.clamp_min(1e-3)).clamp(0, 1)
-    floor = max(0.03, 2 * spread)
-    return ((a - floor) / (1 - floor)).clamp(0, 1), colour
+    # shadow come out half transparent in their own colour; the noise floor (the backdrop's own spread, at least 4 %)
+    # stays 0, and the alpha is smoothed a little (no blotches from a compressed picture's noise) and fades out away
+    # from the object.
+    d = image - field
+    a = torch.where(d > 0, d / (1 - field), -d / field).amax(dim=1, keepdim=True).clamp(0, 1)
+    colour = (field + d / a.clamp_min(1e-3)).clamp(0, 1)
+    floor = max(0.04, 2.5 * spread)
+    a = ((a - floor) / (1 - floor)).clamp(0, 1)
+    h, w = image.shape[-2:]
+    a = box_blur(a, max(1, round(max(h, w) / 400)))
+    return a * reach.clamp(0, 1), colour
 
 
 def cutout(req):
@@ -182,7 +202,7 @@ def cutout(req):
         ga, colour = glow(image, *plain)
         more = ga > alpha
         alpha, fg = torch.where(more, ga, alpha), torch.where(more, colour, fg)
-        emit(type="log", text=f"plain background {[round(v * 255) for v in plain[0].tolist()]}: glows and shadows kept")
+        emit(type="log", text=f"plain background (spread {plain[1]:.3f}): glows and shadows near the object kept")
     sync(dev)
     rgba = torch.cat([fg, alpha], dim=1)[0].permute(1, 2, 0).mul(255).round().byte().cpu().numpy()
     out = req["output"]
