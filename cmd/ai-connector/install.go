@@ -52,6 +52,9 @@ type service struct {
 	stopWait time.Duration
 	out      io.Writer // what install says besides describe (nil: stdout)
 	runKey   bool      // Windows: installed in the Run key, not as a task
+	// startNow starts `exe args…` in the background, apart from this console (Windows: when only the Run key could be
+	// set, which starts it at the next login — "now and at every login" starts it now this way). Tests record it.
+	startNow func(exe string, args []string) error
 }
 
 func newService(getenv func(string) string) (service, error) {
@@ -73,7 +76,7 @@ func newService(getenv func(string) string) (service, error) {
 	s := service{goos: runtime.GOOS, home: home, exe: exe, uid: os.Getuid(), run: func(name string, args ...string) (string, error) {
 		out, err := exec.Command(name, args...).CombinedOutput()
 		return strings.TrimSpace(string(out)), err
-	}, holder: func() (int, bool) { return lockHolder(lock) }, stop: stopProcess, stopWait: 10 * time.Second}
+	}, holder: func() (int, bool) { return lockHolder(lock) }, stop: stopProcess, stopWait: 10 * time.Second, startNow: startDetached}
 	for _, k := range serviceEnvKeys {
 		if v := getenv(k); v != "" {
 			s.env = append(s.env, [2]string{k, v})
@@ -167,6 +170,17 @@ func (s service) content() string {
 		b.WriteString("Restart=always\nRestartSec=10\n\n[Install]\nWantedBy=default.target\n")
 	}
 	return b.String()
+}
+
+// commandArgs are command's words after the program, unquoted (for starting it from here).
+func (s service) commandArgs() []string {
+	args := []string{"vboard"}
+	for _, kv := range s.env {
+		if kv[0] != "PATH" {
+			args = append(args, "--env", kv[0]+"="+kv[1])
+		}
+	}
+	return args
 }
 
 // command is the Windows task's command line. A task or the Run key starts it with the user's environment, not the
@@ -274,14 +288,19 @@ func (s *service) replaceRunning() {
 	}
 }
 
-// keptRunning tells about a copy that runs and is left alone (the Run key starts the service at the next login only).
-func (s *service) keptRunning() {
-	if s.holder == nil {
+// startedNow follows the Run key, which starts the service at the next login only: a copy that runs already is stopped
+// (an update brings a new version) and the service starts now in the background, so "now and at every login" holds
+// without a scheduled task.
+func (s *service) startedNow() {
+	s.replaceRunning() // an update: the running copy (an older version, perhaps) makes room; one that won't, waits
+	if s.startNow == nil {
 		return
 	}
-	if pid, held := s.holder(); held {
-		s.printf("the running copy (pid %d) keeps running until then\n", pid)
+	if err := s.startNow(s.exe, s.commandArgs()); err != nil {
+		s.printf("could not start it now (%v): it starts at the next login, or run \"ai-connector vboard\"\n", err)
+		return
 	}
+	s.printf("started it now in the background\n")
 }
 
 // addRunKey puts the command into the user's Run key (Windows; it starts at the next login).
@@ -303,9 +322,9 @@ func (s *service) install() error {
 		if err := s.addRunKey(); err != nil {
 			return err
 		}
-		s.printf("the command is longer than a scheduled task takes (%d characters, at most %d): added to %s instead (starts at the next login)\n",
+		s.printf("the command is longer than a scheduled task takes (%d characters, at most %d): added to %s instead (starts at every login)\n",
 			len(s.command()), schtasksMaxTR, serviceRunKey)
-		s.keptRunning()
+		s.startedNow()
 		return nil
 	}
 	if p := s.file(); p != "" {
@@ -335,8 +354,8 @@ func (s *service) install() error {
 		if s.goos == "windows" && i == 0 {
 			// a scheduled task at logon may need rights this user does not have: the user's Run key does it too
 			if s.addRunKey() == nil {
-				s.printf("the scheduled task was refused (%s): added to %s instead (starts at the next login)\n", out, serviceRunKey)
-				s.keptRunning()
+				s.printf("the scheduled task was refused (%s): added to %s instead (starts at every login; no admin rights needed)\n", out, serviceRunKey)
+				s.startedNow()
 				return nil
 			}
 		}
