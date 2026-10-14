@@ -221,11 +221,11 @@ func RecommendedMusic(mem int64) string {
 }
 
 // SetupRole is what a model is recommended among: its kind, or kind/task for a model that does only a task of its
-// own (an upscaler: "image/upscale"; the transcriber: "speech/transcribe"; the aligner: "speech/align") — so it does
+// own (an upscaler: "image/upscale"; a cutout model: "image/cutout"; the transcriber: "speech/transcribe"; the aligner: "speech/align") — so it does
 // not compete with the kind's generators.
 func SetupRole(kind Kind, tasks []string) string {
 	for _, t := range tasks {
-		if t == TaskUpscale || t == "transcribe" || t == TaskAlign {
+		if t == TaskUpscale || t == TaskCutout || t == "transcribe" || t == TaskAlign {
 			return string(kind) + "/" + t
 		}
 	}
@@ -245,6 +245,8 @@ func recommendedOf(role string, mem int64) string {
 		return "flux2-klein-4b"
 	case string(Image) + "/" + TaskUpscale:
 		return "seedvr2-3b"
+	case string(Image) + "/" + TaskCutout:
+		return "birefnet"
 	case string(Video):
 		return "ltx-2.5-q4"
 	case string(Music):
@@ -296,8 +298,8 @@ type SetupModel struct {
 	URL           string `json:"url,omitempty"`
 	Fits          bool   `json:"fits"`
 	Recommended   bool   `json:"recommended"`
-	// Tasks: what the model does (Model.Tasks: "upscale" for SeedVR2, "generate"/"edit"; a song or speech model's);
-	// absent: the usual. Recommended is per kind, and per kind/task for an upscaler (SetupRole).
+	// Tasks: what the model does (Model.Tasks: "upscale" for SeedVR2, "cutout" for BiRefNet, "generate"/"edit"; a song or speech model's);
+	// absent: the usual. Recommended is per kind, and per kind/task for an upscaler and a cutout model (SetupRole).
 	Tasks []string `json:"tasks,omitempty"`
 	// Languages: the languages a speech model speaks (absent: it detects them, or not a speech model) — vboard proposes
 	// a model to download only for a language it speaks
@@ -762,6 +764,8 @@ func runtimeOf(m *Model) (*pyenv.Env, func(ctx context.Context, root string, emi
 		}
 	case "sound":
 		return &soundEnv, nil
+	case "cutout": // BiRefNet on PyTorch
+		return &CutoutEnv, nil
 	case "speech": // with Kokoro's G2P (misaki, spaCy's English model, espeak-ng inside its wheel)
 		return &SpeechEnv, nil
 	}
@@ -776,8 +780,8 @@ func (d *Downloads) plan(ctx context.Context, m *Model) ([]models.Model, error) 
 		return []models.Model{m.chat.Model}, nil
 	case m.pinned != nil:
 		return []models.Model{*m.pinned}, nil
-	case m.Backend == "mflux":
-		// the files FluxBackend.Run (and upscale) loads
+	case m.Backend == "mflux" || m.Backend == "cutout":
+		// the files FluxBackend.Run (and upscale) loads; CutoutBackend.Run's (the code, the config, the weights)
 		files := m.files
 		if len(files) == 0 {
 			files = []string{"text_encoder/", "tokenizer/", "transformer/", "vae/", "scheduler/", "model_index.json"}

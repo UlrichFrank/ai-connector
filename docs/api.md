@@ -742,7 +742,7 @@ failed or canceled. The chat may look at it later (vboard's side, below).
 ```
 
 * `id`: the catalogue id (as for chat models, cut to 80 characters); `name`, `worker` as for agents. `kind`:
-  `image` | `video` (| `upscale`, see "Upscaling" below; | `music` | `sound` | `speech`, see "Music, sound and
+  `image` | `video` (| `upscale`, see "Upscaling" below; | `cutout`, see "Removing the background" below; | `music` | `sound` | `speech`, see "Music, sound and
   speech" below). The first of each kind is the default.
 * `edit` (image): takes reference images (edits, "make this sketch a photo"); a model that only edits has
   `"textToImage": false` and needs at least one. `firstFrame` (video): may start from an image. `audio` (video): the
@@ -751,7 +751,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   for images, 1280 for LTX); `default`: what an empty request gets (the catalogue's defaults; a video's `seconds`
   from its default frames: 97 at 24 fps → 4); `maxSeconds` (video: 10).
 * Which models are generators: image models run by mflux (FLUX.2 klein, Qwen-Image; `edit`/`textToImage` from the
-  catalogue's tasks), the SeedVR2 upscalers (mflux, task `upscale`: kind `upscale`), the LTX video models, and the
+  catalogue's tasks), the SeedVR2 upscalers (mflux, task `upscale`: kind `upscale`), the BiRefNet cutout models (task
+  `cutout`: kind `cutout`), the LTX video models, and the
   music, sound and speech models the worker describes (below); anything else in the setting is not offered.
 * `nonCommercial`: true when the weights' licence forbids commercial use (vboard may show it or leave the model out);
   always sent.
@@ -812,7 +813,8 @@ failed or canceled. The chat may look at it later (vboard's side, below).
   speech" below), `size` the whole file's bytes, `seq` 0, 1, …
   in order, `data` base64 of at most 1 MiB, `last: true` on the final piece. At most **15 MB an image** (vboard's
   limit for image assets; a 2048² PNG fits) and **200 MB a video** (vboard takes 500 MB). A larger PNG is sent as
-  `image/jpeg` (quality 92; see "Upscaling" below), still too large → `error`; a larger video → `error` (not
+  `image/jpeg` (quality 92; see "Upscaling" below) — a cutout never (a JPEG has no alpha; see "Removing the
+  background" below) —, still too large → `error`; a larger video → `error` (not
   re-encoded).
 * `{"type":"generateDone","id","width","height","seconds"?,"seed","generator","took"}` after the last piece
   (`width`/`height`, `seed`: as the job made it — the random seed when 0 was asked; `seconds`: a video's length,
@@ -907,6 +909,54 @@ detail without repainting the picture), which the pinned mflux (0.20.0, `mflux-u
   placeholder.
 * Video upscaling is not part of this: LTX already runs its own spatial upscaler inside its two-stage pipeline, and
   mflux offers SeedVR2 for images only.
+
+#### Removing the background (as built)
+
+Additive to the generators above, the path of an upscale (the connector: `internal/hub/vboard_cutout.go`; the
+worker: `internal/engine/cutout.go` and `workers/birefnet_worker.py`; tested in `vboard_cutout_test.go` and
+`engine/cutout_test.go`). An image on the board gets a transparent background — "Remove background" on an image, or
+"generate … with a transparent background" — by **BiRefNet** (ZhengPeng7, MIT; bilateral-reference dichotomous
+segmentation).
+
+* **Worker:** three catalogue models, kind `image` with `Tasks: ["cutout"]`, backend `cutout`: `birefnet` (the
+  default and recommended one: `ZhengPeng7/BiRefNet`, general, 1024² inside, 445 MB), `birefnet-hr-matting`
+  (`ZhengPeng7/BiRefNet_HR-matting`: trained for soft alpha — hair, fur, smoke — at 2048² inside, 445 MB; slower,
+  much more GPU memory) and `birefnet-lite` (`ZhengPeng7/BiRefNet_lite`, Swin-T, 178 MB: quicker on a CPU), each at
+  a pinned revision; only `birefnet.py`, `BiRefNet_config.py`, `config.json` and `model.safetensors` are fetched,
+  through "setting up models" below like any other. They run on **PyTorch** in a pinned uv environment (`cutout`:
+  torch, torchvision, transformers, timm, kornia, einops) — on CUDA where there is one, else Apple's MPS, else the
+  CPU; the one Python backend that is offered off Apple silicon too. A long-lived worker keeps one model loaded
+  (measured on a Mac with MPS: 1–4 s to load, 1–3 s a 1024² picture; the HR matting model about 4–5 s). The
+  job (`POST /api/jobs`) is `{"model":"birefnet","images":["/files/…"]}`: one image, nothing else.
+* **What it makes:** an RGBA PNG of the image's own size (EXIF orientation applied). The alpha channel is BiRefNet's
+  soft mask as predicted (sigmoid, resized back bilinearly) — **never thresholded**, so soft edges stay half
+  transparent; an image that was transparent already stays so where it was. The colours are estimated anew where
+  the alpha is partial (blur fusion foreground estimation, as BiRefNet's own `refine_foreground`), so no fringe of
+  the old background shows on a dark slide. BiRefNet drops what only tints the background — a glow, a soft shadow;
+  when the background is **plain** (most of the border outside the mask within ±6 % of one colour, as a generated
+  "on a light grey background" is), those come back by colour-to-alpha against that colour: half transparent in their
+  own colour (a yellow glow around a red cube stays a yellow glow on navy). A busy background skips that step. A PNG
+  larger than 15 MB is written as a **WebP with alpha** (quality 92, lossless alpha) instead.
+* **Advertised** with its own kind (vboards that do not know it drop it):
+
+  ```json
+  {"id": "birefnet", "name": "BiRefNet", "kind": "cutout", "worker": "Mac Studio", "max": 4096, "nonCommercial": false}
+  ```
+
+  `max`: the longest side of an image it takes. No `multiple`, `default`, `scales`. The first `cutout` generator is
+  the default; `"*"` includes them.
+* **Request:** `generate` with `{"kind":"cutout","generator"?,"images":[exactly one]}` — `prompt`, `seed`, `steps`,
+  `width`, `height` are ignored. The image as for the others (png/jpeg/webp, at most 8 MB); no image or more than
+  one, or a longer side over `max` → `error`. The first `generateStatus` has the image's `width`/`height` (the
+  result's).
+* **The file:** `generateFile` with `mime` `image/png` — or `image/webp` for the rare cutout too large as PNG. Never
+  `image/jpeg`: the JPEG fallback of upscales is not used for cutouts (a cutout PNG over 15 MB that is not a WebP →
+  `error`).
+* Progress (`step`/`total`: 0 → 1 the mask, 2 the edges), `generateDone`, cancel, errors, handover: as for images.
+
+**vboard's side (for reference):** "Remove background" in an image's context menu and a `remove_background {item}`
+tool, the image keeps its place and size and gets the cut-out file (the original kept for "Restore original"), and
+a "transparent background" option on image generation that runs the cutout after the picture is made.
 
 #### Music, sound and speech (as built)
 
@@ -1075,7 +1125,7 @@ model, which may not exist yet.
   worker tells its hub at once; with a server the connector notices a finished download on its next check, ≤ 30 s).
 * **Proposes, never downloads, the big ones:** the chat model by the worker's memory (≥ 64 GB: `qwen3.6-35b-a3b`;
   ≥ 32 GB: `qwen3.5-9b`; less: `qwen3.5-4b`), and one model per generator kind (music by memory, sound, speech, image,
-  the upscaler, video) — marked `recommended` in the model list (3); vboard asks.
+  the upscaler, the cutout model `birefnet`, video) — marked `recommended` in the model list (3); vboard asks.
 * **Claude Code by itself:** when `--agents` was never given (or cleared with `--agents=`) and `claude` is installed
   and logged in for the agents (`claude auth status`, as `ai-connector agents status` sees it; checked at start),
   the agents are `[{"id":"default","model":""}, claude-code/sonnet, claude-code/opus]`: the chat model (`--chat`, else
@@ -1150,12 +1200,13 @@ model, which may not exist yet.
   entry per model and worker of the owner). `size`: bytes to download (on disk when `here`). `licence` (absent when
   unknown) and `nonCommercial` as the catalogue says (the Qwen chat models and the embedder Apache-2.0, FLUX.2 klein
   4B Apache-2.0, 9B "FLUX Non-Commercial License", LTX-2.5 "LTX-2 Community License", the SeedVR2 upscalers
-  Apache-2.0 — listed as `image` models; ACE-Step MIT, Stable Audio 3 "Stability AI Community License", YuE2 and
+  Apache-2.0 and the BiRefNet cutout models MIT — listed as `image` models; ACE-Step MIT, Stable Audio 3 "Stability AI Community License", YuE2 and
   LeVo 2 non-commercial, MOSS-SoundEffect, Kokoro, Qwen3-ASR and Qwen3-ForcedAligner Apache-2.0, Higgs and Voxtral
   non-commercial). `url`: the
   Hugging Face page (for a model of several repositories its own, the first). `tasks` (absent when the model has
   none): what the model does — for an image model `["upscale"]` for the SeedVR2 upscalers (so vboard tells an
-  upscaler from a picture model before it is a generator), `["generate"]` / `["edit"]` for a model that does only
+  upscaler from a picture model before it is a generator), `["cutout"]` for the BiRefNet cutout models (their role
+  for `recommended` is `image/cutout`, beside FLUX), `["generate"]` / `["edit"]` for a model that does only
   that (Qwen-Image, Qwen-Image-Edit); a song model's studio tasks (`cover`, `repaint`, …); a speech model's
   (`presets`, `clone`, `instruct`, …, `["transcribe"]` for Qwen3-ASR, the transcriber, and `["align"]` for
   Qwen3-ForcedAligner, which gives every speech model's clips their `words` once it is on disk — neither is a

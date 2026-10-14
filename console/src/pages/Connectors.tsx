@@ -391,9 +391,9 @@ function AgentsEditor({ value, onChange, models, error }: { value: AgentRow[]; o
   );
 }
 
-/** A model the connector knows how to ask: images (FLUX, Qwen-Image, SeedVR2 through mflux), videos (LTX), and the music, sound and speech models the worker describes. */
+/** A model the connector knows how to ask: images (FLUX, Qwen-Image, SeedVR2 through mflux; BiRefNet cutouts), videos (LTX), and the music, sound and speech models the worker describes. */
 const isGenerator = (m: Model) =>
-  (m.kind === "image" && m.backend === "mflux") ||
+  (m.kind === "image" && (m.backend === "mflux" || m.backend === "cutout")) ||
   (m.kind === "video" && m.backend === "ltx") ||
   ((m.kind === "music" || m.kind === "sound") && !!m.audio) ||
   (m.kind === "speech" && !!m.audio?.maxChars);
