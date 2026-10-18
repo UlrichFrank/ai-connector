@@ -114,7 +114,7 @@ func vboardCommand(args []string) error {
 	}
 
 	if *uninstall { // install.go
-		svc, err := newService(os.Getenv)
+		svc, err := newService(os.Getenv, vboardKind, instanceLock(filepath.Join(engine.ConfigDir(), "vboard")))
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func vboardCommand(args []string) error {
 		return err
 	}
 	if *install { // the settings are kept: the service starts with them
-		svc, err := newService(os.Getenv)
+		svc, err := newService(os.Getenv, vboardKind, instanceLock(filepath.Join(engine.ConfigDir(), "vboard")))
 		if err != nil {
 			return err
 		}

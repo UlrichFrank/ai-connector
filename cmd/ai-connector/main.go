@@ -48,7 +48,7 @@ func usage() {
 	fmt.Fprint(os.Stderr, `mlxlab — local AI models on MLX
 
 usage:
-  mlxlab worker [--hub URL] [--token T] [--config FILE] [--state DIR]
+  mlxlab worker [--hub URL] [--token T] [--config FILE] [--state DIR] [--install | --uninstall]
                                               serve this Mac's models to the hub (see docs/architecture.md)
   mlxlab serve [--addr 127.0.0.1:8484] [--state DIR]
                                               standalone on this Mac only: the web app and the API, no hub
@@ -63,6 +63,11 @@ usage:
 worker: the hub URL and the token come from the flags, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or worker.json
         (written when --hub and a token (flag or MLXLAB_WORKER_TOKEN) are given). The token is the hub's MLXLAB_WORKER_TOKEN.
         --config FILE ($MLXLAB_WORKER_CONFIG): another file than <files>/worker.json (a second worker on this Mac).
+        --install: start it at login (a launchd agent de.rnd7.ai-connector.worker, a systemd user unit
+        ai-connector-worker.service, a scheduled task "ai-connector worker"); hub and token are kept in the file,
+        the service runs with --config/--state only (another --config: names of its own, e.g. worker-local.json →
+        de.rnd7.ai-connector.worker.local). A copy that runs with the same file is stopped: the service takes over.
+        --uninstall stops and removes it (with the same --config). One runs at a time per file (worker.lock beside it).
 state:  --state DIR ($MLXLAB_STATE): this process's jobs (history.json, outputs/), prompts, approvals.json and
         Claude Code sessions (agents/, agents.json) go to DIR; the models, envs/, lib/, tools/, mcp.json, voices/
         and styles/ stay shared in <files>. Default: <files> itself.
@@ -99,6 +104,8 @@ func run() error {
 	fs.Usage = usage
 	var addr, hub, token, cfgFile *string
 	state := new(string)
+	install, uninstall := new(bool), new(bool)
+	var env envFlag
 	switch cmd {
 	case "serve":
 		addr = fs.String("addr", "127.0.0.1:8484", "where the app listens (this Mac only)")
@@ -108,6 +115,10 @@ func run() error {
 		token = fs.String("token", "", "the worker token (the hub's MLXLAB_WORKER_TOKEN)")
 		cfgFile = fs.String("config", "", "the file with hub and token (default <config dir>/worker.json; $MLXLAB_WORKER_CONFIG)")
 		state = fs.String("state", "", "this worker's jobs, prompts and sessions (default: the config dir; $MLXLAB_STATE)")
+		install = fs.Bool("install", false, "start at login")
+		uninstall = fs.Bool("uninstall", false, "do not start at login any more")
+		// not in the usage: the Windows task's command carries the environment of --install with it (as vboard's)
+		fs.Var(&env, "env", "KEY=VALUE, set before anything else (only the keys --install keeps)")
 	}
 	ro := runOptions{}
 	if cmd == "run" {
@@ -119,22 +130,55 @@ func run() error {
 		}
 		return err
 	}
+	if err := applyEnv(env, os.Setenv); err != nil { // before anything reads the environment
+		return err
+	}
 
 	root := engine.ConfigDir()
 	own := stateDir(*state, os.Getenv, root)
 	switch cmd {
 	case "worker":
 		file := workerFile(*cfgFile, os.Getenv, root)
+		var svc service
+		if *uninstall || *install { // install.go
+			var err error
+			if svc, err = newService(os.Getenv, workerKind(file, filepath.Join(root, "worker.json"), *state), workerLock(file)); err != nil {
+				return err
+			}
+			if *uninstall {
+				if err := svc.uninstall(); err != nil {
+					return err
+				}
+				fmt.Println(svc.k().what, "does not start at login any more")
+				return nil
+			}
+		}
 		cfg, save, err := resolveWorker(*hub, *token, os.Getenv, file)
 		if err != nil {
+			if *install {
+				return fmt.Errorf("--install needs a hub and a token (--hub and --token, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or %s): %w", file, err)
+			}
 			return err
 		}
-		if save {
+		if save || *install { // the service has neither flags nor this environment: hub and token only from the file
 			if err := saveWorker(file, cfg); err != nil {
 				return err
 			}
 			fmt.Println("mlxlab worker: hub and token kept in", file)
 		}
+		if *install {
+			if err := svc.install(); err != nil {
+				return err
+			}
+			fmt.Println(svc.describe())
+			return nil
+		}
+		// one at a time per config file (instance.go): another one is waited for, not given up on
+		lock, err := takeWorkerLock(file)
+		if err != nil || lock == nil {
+			return err
+		}
+		defer lock.Close()
 		_, mgr := setup(root, own)
 		return worker(mgr, cfg, web.HostName(), (&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents,
 			Downloads: downloads(root, mgr.Catalog)}).Handler()) // a server's vboard connector downloads on request (vboard_setup.go)

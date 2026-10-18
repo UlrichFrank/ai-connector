@@ -54,6 +54,23 @@ environment (`MLXLAB_HUB`, `MLXLAB_WORKER_TOKEN`) or `~/.config/mlxlab/worker.js
 It reconnects with backoff and prints its state; a refused token (revoked) stops it. `mlxlab version` prints the
 build. The TUI is no longer part of the worker.
 
+**Starts at login** (`mlxlab worker --install`; `--uninstall` stops and removes it): hub and token as above (flags,
+environment or the file; none → "--install needs a hub and a token …") are written to the config file (0600), and
+the service runs `ai-connector worker` with no token on its command line or in its file — only `--config FILE` and
+`--state DIR` when they were given (absolute). macOS: launchd agent
+`~/Library/LaunchAgents/de.rnd7.ai-connector.worker.plist` (RunAtLoad, KeepAlive, log
+`~/Library/Logs/ai-connector-worker.log`); Linux: systemd user unit `ai-connector-worker.service` (log `journalctl
+--user -u ai-connector-worker`); Windows: scheduled task "ai-connector worker", else the Run key (started now too). The
+kept environment and the rest are `ai-connector vboard --install`'s (docs/api.md, "Starts at login"; install.go,
+`serviceKind`). A config file other than the default one gets names of its own from its file name (`workerSuffix`:
+lower case, a leading `worker-` dropped; `worker-local.json` → `de.rnd7.ai-connector.worker.local`,
+`ai-connector-worker-local.service`, "ai-connector worker local", `ai-connector-worker-local.log`; a name that says
+nothing, e.g. `worker.json` elsewhere → the first 8 hex digits of the SHA-256 of its absolute path), so two workers
+on one Mac have two services. **One per config file:** a worker holds an OS lock on the file's `.lock` sibling
+(`worker.json` → `worker.lock`, PID inside, instance.go); a second one with the same file says "another mlxlab
+worker runs (pid N) with …" and waits, so a terminal copy and the service never dial with the same token;
+`--install` stops the running copy (SIGTERM, up to 10 s) before the service starts.
+
 **Config file and state dir (several workers on one Mac).** `--config <file>` / `MLXLAB_WORKER_CONFIG` names the file
 with hub and token (default `<config dir>/worker.json`). `--state <dir>` / `MLXLAB_STATE` (also for `serve` and `run`)
 is where the process keeps what is its own; the rest of the config dir (`MLXLAB_HOME`, `~/.config/mlxlab`) is shared:
@@ -112,7 +129,7 @@ mkdir -p ~/.config/mlxlab/bin \
 ```
 
 `mlxlab worker --hub URL` with the token from `MLXLAB_WORKER_TOKEN` saves both to `~/.config/mlxlab/worker.json`,
-so later `~/.config/mlxlab/bin/mlxlab worker` is enough.
+so later `~/.config/mlxlab/bin/mlxlab worker` is enough, and `… worker --install` starts it at every login.
 
 ## Signing in with a QR code, users
 

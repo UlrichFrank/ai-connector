@@ -9,10 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
-
-	"github.com/philipparndt/ai-connector/internal/engine"
 )
 
 // `ai-connector vboard --install` starts it at login: a launchd agent on macOS, a systemd user unit on Linux, a
@@ -21,11 +20,25 @@ import (
 // file (on Windows the task's command carries --env for where the files are). A copy that runs already with these
 // settings (from a terminal, the service's older one) is stopped: the service takes over (instance.go). `--uninstall`
 // stops and removes it.
+//
+// `ai-connector worker --install` the same way under names of its own (workerKind): hub and token stay in worker.json
+// (or --config's file, 0600), the service's command has only --config and --state (paths) when they were given.
+
+// serviceKind is what is started: its names on each system and its command after the program.
+type serviceKind struct {
+	label string   // launchd
+	unit  string   // systemd --user
+	task  string   // schtasks, the Run key's value
+	log   string   // launchd's log, in ~/Library/Logs
+	what  string   // the command, as people type it (messages)
+	desc  string   // the systemd unit's Description
+	args  []string // after the program: the mode first, then its flags
+}
+
+var vboardKind = serviceKind{label: "de.rnd7.ai-connector.vboard", unit: "ai-connector-vboard.service", task: "ai-connector vboard",
+	log: "ai-connector-vboard.log", what: "ai-connector vboard", desc: "ai-connector for vboard (vboard's local AI)", args: []string{"vboard"}}
 
 const (
-	serviceLabel  = "de.rnd7.ai-connector.vboard" // launchd
-	serviceUnit   = "ai-connector-vboard.service" // systemd --user
-	serviceTask   = "ai-connector vboard"         // schtasks, the Run key
 	serviceRunKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 	schtasksMaxTR = 261 // schtasks /TR refuses a longer command; the Run key has no such limit
 )
@@ -37,6 +50,7 @@ var serviceEnvKeys = []string{"PATH", "MLXLAB_HOME", "XDG_CONFIG_HOME", "MLXLAB_
 
 // service is the start at login on one system.
 type service struct {
+	kind *serviceKind // nil: vboardKind
 	goos string
 	home string
 	exe  string
@@ -57,7 +71,15 @@ type service struct {
 	startNow func(exe string, args []string) error
 }
 
-func newService(getenv func(string) string) (service, error) {
+func (s service) k() *serviceKind {
+	if s.kind == nil {
+		return &vboardKind
+	}
+	return s.kind
+}
+
+// newService is kind's service on this system; lock is the instance lock of the copy it replaces (instance.go).
+func newService(getenv func(string) string, kind serviceKind, lock string) (service, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return service{}, err
@@ -72,8 +94,7 @@ func newService(getenv func(string) string) (service, error) {
 	if err != nil {
 		return service{}, err
 	}
-	lock := instanceLock(filepath.Join(engine.ConfigDir(), "vboard"))
-	s := service{goos: runtime.GOOS, home: home, exe: exe, uid: os.Getuid(), run: func(name string, args ...string) (string, error) {
+	s := service{kind: &kind, goos: runtime.GOOS, home: home, exe: exe, uid: os.Getuid(), run: func(name string, args ...string) (string, error) {
 		out, err := exec.Command(name, args...).CombinedOutput()
 		return strings.TrimSpace(string(out)), err
 	}, holder: func() (int, bool) { return lockHolder(lock) }, stop: stopProcess, stopWait: 10 * time.Second, startNow: startDetached}
@@ -89,7 +110,7 @@ func newService(getenv func(string) string) (service, error) {
 func (s service) file() string {
 	switch s.goos {
 	case "darwin":
-		return filepath.Join(s.home, "Library", "LaunchAgents", serviceLabel+".plist")
+		return filepath.Join(s.home, "Library", "LaunchAgents", s.k().label+".plist")
 	case "linux":
 		cfg := filepath.Join(s.home, ".config")
 		for _, kv := range s.env {
@@ -97,7 +118,7 @@ func (s service) file() string {
 				cfg = kv[1]
 			}
 		}
-		return filepath.Join(cfg, "systemd", "user", serviceUnit)
+		return filepath.Join(cfg, "systemd", "user", s.k().unit)
 	}
 	return ""
 }
@@ -105,7 +126,7 @@ func (s service) file() string {
 // logFile is where a launchd agent writes ("" elsewhere: journalctl --user -u ai-connector-vboard on Linux).
 func (s service) logFile() string {
 	if s.goos == "darwin" {
-		return filepath.Join(s.home, "Library", "Logs", "ai-connector-vboard.log")
+		return filepath.Join(s.home, "Library", "Logs", s.k().log)
 	}
 	return ""
 }
@@ -132,12 +153,15 @@ func (s service) content() string {
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>` + serviceLabel + `</string>
+	<string>` + xmlEsc(s.k().label) + `</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>` + xmlEsc(s.exe) + `</string>
-		<string>vboard</string>
-	</array>
+`)
+		for _, a := range s.k().args {
+			b.WriteString("\t\t<string>" + xmlEsc(a) + "</string>\n")
+		}
+		b.WriteString(`	</array>
 `)
 		if len(s.env) > 0 {
 			b.WriteString("\t<key>EnvironmentVariables</key>\n\t<dict>\n")
@@ -162,8 +186,15 @@ func (s service) content() string {
 </plist>
 `)
 	case "linux":
-		b.WriteString("[Unit]\nDescription=ai-connector for vboard (vboard's local AI)\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\n")
-		b.WriteString("ExecStart=" + systemdQuote(s.exe) + " vboard\n")
+		b.WriteString("[Unit]\nDescription=" + s.k().desc + "\nWants=network-online.target\nAfter=network-online.target\n\n[Service]\n")
+		b.WriteString("ExecStart=" + systemdQuote(s.exe))
+		for i, a := range s.k().args {
+			if i > 0 { // the mode as it is, its flags quoted
+				a = systemdQuote(a)
+			}
+			b.WriteString(" " + a)
+		}
+		b.WriteString("\n")
 		for _, kv := range s.env {
 			b.WriteString("Environment=" + systemdQuote(kv[0]+"="+kv[1]) + "\n")
 		}
@@ -174,7 +205,7 @@ func (s service) content() string {
 
 // commandArgs are command's words after the program, unquoted (for starting it from here).
 func (s service) commandArgs() []string {
-	args := []string{"vboard"}
+	args := slices.Clone(s.k().args)
 	for _, kv := range s.env {
 		if kv[0] != "PATH" {
 			args = append(args, "--env", kv[0]+"="+kv[1])
@@ -186,7 +217,10 @@ func (s service) commandArgs() []string {
 // command is the Windows task's command line. A task or the Run key starts it with the user's environment, not the
 // one of `--install`: what was kept from that comes as --env (PATH not: the user's own is there).
 func (s service) command() string {
-	parts := []string{`"` + s.exe + `"`, "vboard"}
+	parts := []string{`"` + s.exe + `"`}
+	for _, a := range s.k().args {
+		parts = append(parts, winQuote(a))
+	}
 	for _, kv := range s.env {
 		if kv[0] != "PATH" {
 			parts = append(parts, "--env", winQuote(kv[0]+"="+kv[1]))
@@ -225,13 +259,13 @@ func (s service) installCmds() [][]string {
 	switch s.goos {
 	case "darwin":
 		domain := fmt.Sprintf("gui/%d", s.uid)
-		return [][]string{{"launchctl", "bootout", domain + "/" + serviceLabel}, {"launchctl", "bootstrap", domain, s.file()}}
+		return [][]string{{"launchctl", "bootout", domain + "/" + s.k().label}, {"launchctl", "bootstrap", domain, s.file()}}
 	case "linux":
-		return [][]string{{"systemctl", "--user", "daemon-reload"}, {"systemctl", "--user", "enable", serviceUnit},
-			{"systemctl", "--user", "restart", serviceUnit}}
+		return [][]string{{"systemctl", "--user", "daemon-reload"}, {"systemctl", "--user", "enable", s.k().unit},
+			{"systemctl", "--user", "restart", s.k().unit}}
 	case "windows":
-		return [][]string{{"schtasks", "/Create", "/TN", serviceTask, "/TR", s.command(), "/SC", "ONLOGON", "/RL", "LIMITED", "/F"},
-			{"schtasks", "/Run", "/TN", serviceTask}}
+		return [][]string{{"schtasks", "/Create", "/TN", s.k().task, "/TR", s.command(), "/SC", "ONLOGON", "/RL", "LIMITED", "/F"},
+			{"schtasks", "/Run", "/TN", s.k().task}}
 	}
 	return nil
 }
@@ -240,12 +274,12 @@ func (s service) installCmds() [][]string {
 func (s service) uninstallCmds() [][]string {
 	switch s.goos {
 	case "darwin":
-		return [][]string{{"launchctl", "bootout", fmt.Sprintf("gui/%d/%s", s.uid, serviceLabel)}}
+		return [][]string{{"launchctl", "bootout", fmt.Sprintf("gui/%d/%s", s.uid, s.k().label)}}
 	case "linux":
-		return [][]string{{"systemctl", "--user", "disable", "--now", serviceUnit}}
+		return [][]string{{"systemctl", "--user", "disable", "--now", s.k().unit}}
 	case "windows":
-		return [][]string{{"schtasks", "/End", "/TN", serviceTask}, {"schtasks", "/Delete", "/TN", serviceTask, "/F"},
-			{"reg", "delete", serviceRunKey, "/v", serviceTask, "/f"}}
+		return [][]string{{"schtasks", "/End", "/TN", s.k().task}, {"schtasks", "/Delete", "/TN", s.k().task, "/F"},
+			{"reg", "delete", serviceRunKey, "/v", s.k().task, "/f"}}
 	}
 	return nil
 }
@@ -258,7 +292,7 @@ func (s *service) printf(format string, a ...any) {
 	fmt.Fprintf(w, format, a...)
 }
 
-// replaceRunning stops the copy of `ai-connector vboard` that runs with these settings, if one does: only the process
+// replaceRunning stops the copy of `ai-connector vboard` (or worker) that runs with these settings, if one does: only the process
 // whose PID is in the lock file while it holds the lock. Not stopping it is no error: the service waits for it.
 func (s *service) replaceRunning() {
 	if s.holder == nil {
@@ -269,7 +303,7 @@ func (s *service) replaceRunning() {
 		return
 	}
 	if pid <= 0 {
-		s.printf("another ai-connector vboard runs (its PID is unknown): the service waits until it ends\n")
+		s.printf("another %s runs (its PID is unknown): the service waits until it ends\n", s.k().what)
 		return
 	}
 	if err := s.stop(pid); err != nil {
@@ -297,7 +331,7 @@ func (s *service) startedNow() {
 		return
 	}
 	if err := s.startNow(s.exe, s.commandArgs()); err != nil {
-		s.printf("could not start it now (%v): it starts at the next login, or run \"ai-connector vboard\"\n", err)
+		s.printf("could not start it now (%v): it starts at the next login, or run \"%s\"\n", err, s.k().what)
 		return
 	}
 	s.printf("started it now in the background\n")
@@ -305,7 +339,7 @@ func (s *service) startedNow() {
 
 // addRunKey puts the command into the user's Run key (Windows; it starts at the next login).
 func (s *service) addRunKey() error {
-	if out, err := s.run("reg", "add", serviceRunKey, "/v", serviceTask, "/t", "REG_SZ", "/d", s.command(), "/f"); err != nil {
+	if out, err := s.run("reg", "add", serviceRunKey, "/v", s.k().task, "/t", "REG_SZ", "/d", s.command(), "/f"); err != nil {
 		return fmt.Errorf("reg add %s: %v: %s", serviceRunKey, err, out)
 	}
 	s.runKey = true
@@ -382,14 +416,15 @@ func (s service) uninstall() error {
 
 // describe says what was installed, for the person who ran it.
 func (s service) describe() string {
+	k := s.k()
 	switch s.goos {
 	case "darwin":
-		return fmt.Sprintf("installed %s: ai-connector vboard starts at login (now too)\n  log: %s", s.file(), s.logFile())
+		return fmt.Sprintf("installed %s: %s starts at login (now too)\n  log: %s", s.file(), k.what, s.logFile())
 	case "linux":
-		return fmt.Sprintf("installed %s: ai-connector vboard starts at login (now too)\n  log: journalctl --user -u %s", s.file(), serviceUnit)
+		return fmt.Sprintf("installed %s: %s starts at login (now too)\n  log: journalctl --user -u %s", s.file(), k.what, k.unit)
 	}
 	if s.runKey {
-		return "installed \"" + serviceTask + "\" in " + serviceRunKey + ": ai-connector vboard starts at login"
+		return "installed \"" + k.task + "\" in " + serviceRunKey + ": " + k.what + " starts at login"
 	}
-	return "installed the scheduled task \"" + serviceTask + "\": ai-connector vboard starts at login (now too)"
+	return "installed the scheduled task \"" + k.task + "\": " + k.what + " starts at login (now too)"
 }

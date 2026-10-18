@@ -1147,7 +1147,12 @@ model, which may not exist yet.
   Windows the command carries it as `--env KEY=VALUE` per key (a flag of `vboard` that accepts only these keys and
   sets them before anything reads the environment; `PATH` not — the task has the user's own), quoted for the
   Windows command line. A command longer than `schtasks /TR` takes (261 characters) goes to the Run key at once.
-  `ai-connector vboard --uninstall` stops and removes it.
+  `ai-connector vboard --uninstall` stops and removes it. `ai-connector worker --install` / `--uninstall` does the
+  same for a worker that dials a server, under names of its own (`de.rnd7.ai-connector.worker`,
+  `ai-connector-worker.service`, "ai-connector worker", `~/Library/Logs/ai-connector-worker.log`; another `--config`
+  file adds a suffix from its name, e.g. `.local`): hub and token stay in `worker.json` (or the `--config` file,
+  0600), the service's command has only `--config`/`--state` (`--env` on Windows), and one worker runs per config
+  file (`worker.lock` beside it) — docs/architecture.md, "Worker".
 * **One at a time per settings folder:** `ai-connector vboard` holds an OS lock on `<files>/vboard/instance.lock`
   (flock; LockFileEx on Windows — freed when the process ends, however it ends) with its PID in the file. Another one
   with the same `<files>` (a terminal copy beside the one started at login) does not connect: it says "another

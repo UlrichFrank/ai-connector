@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { guessOS, installCommand, restartCommand, type InstallOS } from "@/lib/install";
+import { guessOS, installCommand, loginCommand, restartCommand, type InstallOS } from "@/lib/install";
 import { navigate, useRoute } from "@/lib/route";
 import { loadText, loadedModels, platformOf, specParts, type Platform } from "@/lib/specs";
 import { cn } from "@/lib/utils";
@@ -315,6 +315,9 @@ function Command({ created: { worker, token }, onDone }: { created: WorkerCreate
           What runs where: every worker runs the embedder, the classifier and the models of its local runtimes; chat with tools and image, video, music, speech and avatar models run on a Mac (MLX).
         </li>
         <li>Keep it running while you use it; the server routes a job only to a worker that has its model.</li>
+        <li>
+          To start it at every login (and now, in the background), run <Code>{loginCommand(os)}</Code> once it has connected ({os === "windows" ? "a scheduled task" : "a launchd agent on macOS, a systemd user unit on Linux"}; <Code>--uninstall</Code> removes it). The token stays in its settings file, not in the service.
+        </li>
       </ul>
 
       <DialogFooter className="flex-row items-center justify-between max-sm:flex-row sm:justify-between">
