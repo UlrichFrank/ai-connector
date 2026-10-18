@@ -1,9 +1,10 @@
 import type { Job } from "@/api/types";
+import { locale, num, t } from "@/lib/i18n";
 
 /** 75 → "1:15"; under a minute "42 s". */
 export function duration(s: number | undefined): string {
   if (s == null || !isFinite(s)) return "";
-  if (s < 60) return `${s < 10 ? s.toFixed(1) : Math.round(s)} s`;
+  if (s < 60) return `${s < 10 ? num(s, 1) : Math.round(s)} s`;
   const m = Math.floor(s / 60);
   const r = Math.round(s % 60);
   return `${m}:${String(r).padStart(2, "0")}`;
@@ -14,19 +15,19 @@ export function bytes(n: number): string {
   const u = ["B", "KB", "MB", "GB", "TB"];
   let i = 0;
   while (n >= 1000 && i < u.length - 1) (n /= 1000), i++;
-  return `${n < 10 && i ? n.toFixed(1) : Math.round(n)} ${u[i]}`;
+  return `${n < 10 && i ? num(n, 1) : Math.round(n)} ${u[i]}`;
 }
 
 /** "just now", "5 min ago", "yesterday", or the date. */
 export function ago(iso: string | undefined): string {
   if (!iso) return "";
-  const t = new Date(iso).getTime();
-  const s = (Date.now() - t) / 1000;
-  if (s < 45) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-  if (s < 2 * 86400) return "yesterday";
-  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const at = new Date(iso).getTime();
+  const s = (Date.now() - at) / 1000;
+  if (s < 45) return t("just now");
+  if (s < 3600) return t("{n} min ago", { n: Math.round(s / 60) });
+  if (s < 86400) return t("{n} h ago", { n: Math.round(s / 3600) });
+  if (s < 2 * 86400) return t("yesterday");
+  return new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short" });
 }
 
 /** How long a job took (or is taking). */

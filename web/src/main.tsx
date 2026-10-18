@@ -3,9 +3,12 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 
-// dark or light, as the system is
+// dark or light, as the system is (index.html sets it before the first paint): html.dark and html[data-theme]
 const dark = matchMedia("(prefers-color-scheme: dark)");
-const theme = () => document.documentElement.classList.toggle("dark", dark.matches);
+const theme = () => {
+  document.documentElement.classList.toggle("dark", dark.matches);
+  document.documentElement.dataset.theme = dark.matches ? "dark" : "light";
+};
 theme();
 dark.addEventListener("change", theme);
 

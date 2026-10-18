@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { create } from "zustand";
 import { api, onUnauthorized } from "@/api/client";
 import type { Info } from "@/api/types";
@@ -61,7 +62,7 @@ export const useSession = create<SessionState>((set, get) => {
       await api.login(password, device, user);
       const info = await api.info();
       if (!info.signedIn)
-        throw new Error("Signed in, but this browser did not keep the session. Is the hub served over HTTPS?");
+        throw new Error(t("Signed in, but this browser did not keep the session. Is the hub served over HTTPS?"));
       ready(info);
     },
 
@@ -74,7 +75,7 @@ export const useSession = create<SessionState>((set, get) => {
     expire: () => {
       if (get().phase !== "ready") return;
       useApp.getState().stop();
-      set({ phase: "signin", note: "You were signed out. Sign in again to continue." });
+      set({ phase: "signin", note: t("You were signed out. Sign in again to continue.") });
     },
 
     refresh: async () => {

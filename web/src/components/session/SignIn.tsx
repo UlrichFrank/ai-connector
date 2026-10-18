@@ -1,7 +1,8 @@
 import { CircleAlert, Info, Loader2, LockKeyhole } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { RateLimitError, SignInError, errorText } from "@/api/client";
-import { Logo } from "@/components/shell/Logo";
+import { LangSwitch, Logo } from "@/components/shell/Logo";
+import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,14 +42,14 @@ export function SignIn() {
   return (
     <Backdrop>
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
-        <Logo className="size-12 rounded-2xl text-2xl shadow-lg shadow-primary/20" />
+        <Logo large />
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">mlxlab</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to use the models on your Mac.</p>
+          <h1 className="text-2xl font-semibold tracking-[-0.03em]">mlxlab</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("Sign in to use the models on your Mac.")}</p>
         </div>
       </div>
 
-      <form onSubmit={submit} className="rounded-2xl bg-card p-5 shadow-xl shadow-black/5 ring-1 ring-foreground/10 sm:p-6">
+      <form onSubmit={submit} className="card p-5 sm:p-6">
         {note && !error && (
           <div className="mb-4 flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
             <Info className="mt-0.5 size-4 shrink-0" />
@@ -56,11 +57,11 @@ export function SignIn() {
           </div>
         )}
         <div className="mb-4 grid gap-2">
-          <Label htmlFor="user">Your name</Label>
-          <Input id="user" name="username" autoComplete="username" placeholder="e.g. Philipp" maxLength={40} value={user} onChange={(e) => setUser(e.target.value)} autoFocus={!user} />
+          <Label htmlFor="user">{t("Your name")}</Label>
+          <Input id="user" name="username" autoComplete="username" placeholder={t("e.g. Philipp")} maxLength={40} value={user} onChange={(e) => setUser(e.target.value)} autoFocus={!user} />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("Password")}</Label>
           <div className="relative">
             <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -73,7 +74,7 @@ export function SignIn() {
               onChange={(e) => setPassword(e.target.value)}
               aria-invalid={!!error || undefined}
               aria-describedby={error ? "signin-error" : undefined}
-              className="h-10 pl-9"
+              className="pl-9"
             />
           </div>
         </div>
@@ -87,40 +88,45 @@ export function SignIn() {
           )}
         </div>
 
-        <Button type="submit" size="lg" className="mt-5 h-10 w-full" disabled={!password || !user.trim() || busy}>
+        <Button type="submit" size="lg" className="mt-5 w-full" disabled={!password || !user.trim() || busy}>
           {busy && <Loader2 className="animate-spin" />}
-          {busy ? "Signing in …" : "Sign in"}
+          {busy ? t("Signing in …") : t("Sign in")}
         </Button>
 
         <div className="mt-4 border-t pt-4 text-xs text-muted-foreground">
           {naming ? (
             <div className="grid gap-1.5">
               <Label htmlFor="device" className="text-xs font-normal text-muted-foreground">
-                Name of this device in the device list
+                {t("Name of this device in the device list")}
               </Label>
               <Input id="device" value={device} maxLength={60} onChange={(e) => setDevice(e.target.value)} onBlur={() => setNaming(false)} autoFocus />
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2">
               <span className="truncate">
-                Signing in as <span className="font-medium text-foreground">{device.trim() || deviceName()}</span>
+                {t("Signing in as")} <span className="font-medium text-foreground">{device.trim() || deviceName()}</span>
               </span>
-              <button type="button" className="shrink-0 font-medium text-primary hover:underline" onClick={() => setNaming(true)}>
-                Rename
+              <button type="button" className="-my-2 min-h-11 shrink-0 font-medium text-[var(--teal-ink)] hover:underline" onClick={() => setNaming(true)}>
+                {t("Rename")}
               </button>
             </div>
           )}
         </div>
       </form>
+      <div className="mt-6 flex justify-center">
+        <LangSwitch />
+      </div>
     </Backdrop>
   );
 }
 
 function message(e: unknown): string {
-  if (e instanceof SignInError) return "That password is not right.";
+  if (e instanceof SignInError) return t("That password is not right.");
   if (e instanceof RateLimitError)
     return e.retryAfter
-      ? `Too many attempts. Try again in ${e.retryAfter < 90 ? `${e.retryAfter} seconds` : `${Math.ceil(e.retryAfter / 60)} minutes`}.`
-      : "Too many attempts. Wait a minute and try again.";
+      ? e.retryAfter < 90
+        ? t("Too many attempts. Try again in {n} seconds.", { n: e.retryAfter })
+        : t("Too many attempts. Try again in {n} minutes.", { n: Math.ceil(e.retryAfter / 60) })
+      : t("Too many attempts. Wait a minute and try again.");
   return errorText(e);
 }

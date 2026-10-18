@@ -1,5 +1,6 @@
 // The zones a chat can use (docs/chat-tools.md): chosen when a chat starts, fixed for the conversation.
 
+import { t } from "@/lib/i18n";
 import { Check, ChevronDown, FileText, Globe, House, Lock, MessageSquare, type LucideIcon } from "lucide-react";
 import type { Zone } from "@/api/types";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export function ZoneBadge({ zone, className, compact }: { zone: Zone | undefined
       title={`${z.name} chat: ${z.blurb.toLowerCase()}${z.never ? ". " + z.never + "." : ""}`}
     >
       <Icon className="size-3" />
-      {!compact && z.name}
+      {!compact && t(z.name)}
     </span>
   );
 }
@@ -73,8 +74,8 @@ export function ZoneBadge({ zone, className, compact }: { zone: Zone | undefined
 export function ZoneCards({ value, onChange }: { value: Zone; onChange: (z: Zone) => void }) {
   return (
     <div className="flex w-full max-w-2xl flex-col gap-2">
-      <div className="text-xs font-medium text-muted-foreground">Tools for this chat</div>
-      <div role="radiogroup" aria-label="Tools for this chat" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="text-xs font-medium text-muted-foreground">{t("Tools for this chat")}</div>
+      <div role="radiogroup" aria-label={t("Tools for this chat")} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {zones.map((z) => {
           const on = z.zone === value;
           const Icon = z.icon;
@@ -93,11 +94,11 @@ export function ZoneCards({ value, onChange }: { value: Zone; onChange: (z: Zone
                 <span className={cn("grid size-6 place-items-center rounded-md", z.soft, z.tone)}>
                   <Icon className="size-3.5" />
                 </span>
-                {z.name}
+                {t(z.name)}
                 {on && <Check className="ml-auto size-3.5 text-primary" />}
               </span>
-              <span className="text-xs leading-snug text-muted-foreground">{z.blurb}</span>
-              {z.never && <span className="text-[11px] leading-snug text-muted-foreground/80">{z.never}</span>}
+              <span className="text-xs leading-snug text-muted-foreground">{t(z.blurb)}</span>
+              {z.never && <span className="text-[11px] leading-snug text-muted-foreground/80">{t(z.never)}</span>}
             </button>
           );
         })}
@@ -113,7 +114,7 @@ export function ZonePicker({ value, onChange, locked, onNewChat }: { value: Zone
   const label = (
     <>
       <Icon className={cn("size-3.5", value && z.tone)} />
-      <span className="max-sm:hidden">{value ? z.name : "No tools"}</span>
+      <span className="max-sm:hidden">{value ? t(z.name) : t("No tools")}</span>
     </>
   );
   const cls = "h-7 gap-1.5 px-2 text-[0.8rem] font-normal text-muted-foreground hover:text-foreground";
@@ -127,20 +128,20 @@ export function ZonePicker({ value, onChange, locked, onNewChat }: { value: Zone
           </Button>
         </TooltipTrigger>
         <TooltipContent className="max-w-60">
-          {value ? `This chat uses ${z.name} tools (${z.blurb.toLowerCase()}).` : "This chat has no tools."} Start a new chat to use other tools.
+          {value ? t("This chat uses {name} tools ({blurb}).", { name: t(z.name), blurb: t(z.blurb) }) : t("This chat has no tools.")} {t("Start a new chat to use other tools.")}
         </TooltipContent>
       </Tooltip>
     );
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className={cls} title="Tools for this chat">
+        <Button variant="ghost" size="sm" className={cls} title={t("Tools for this chat")}>
           {label}
           <ChevronDown className="size-3 opacity-60 max-sm:hidden" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Tools for this chat (fixed once it starts)</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t("Tools for this chat (fixed once it starts)")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {zones.map((o) => {
           const I = o.icon;
@@ -150,10 +151,10 @@ export function ZonePicker({ value, onChange, locked, onNewChat }: { value: Zone
                 <I className="size-3.5" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm">{o.name}</span>
+                <span className="text-sm">{t(o.name)}</span>
                 <span className="text-xs text-muted-foreground">
-                  {o.blurb}
-                  {o.never && ` · ${o.never.charAt(0).toLowerCase() + o.never.slice(1)}`}
+                  {t(o.blurb)}
+                  {o.never && ` · ${t(o.never)}`}
                 </span>
               </span>
               {o.zone === value && <Check className="mt-1 size-3.5 text-primary" />}

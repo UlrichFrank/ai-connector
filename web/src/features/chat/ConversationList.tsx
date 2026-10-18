@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Copy, Loader2, MessageSquarePlus, MoreHorizontal, Pencil, Search, Trash2, X } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -48,8 +49,8 @@ export function ConversationList({
     const today = shown.filter((c) => Date.parse(c.updated) >= start.getTime());
     const earlier = shown.filter((c) => Date.parse(c.updated) < start.getTime());
     return [
-      { name: "Today", list: today },
-      { name: "Earlier", list: earlier },
+      { name: t("Today"), list: today },
+      { name: t("Earlier"), list: earlier },
     ].filter((g) => g.list.length);
   }, [shown, now]);
 
@@ -61,9 +62,9 @@ export function ConversationList({
         </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats" className="h-8 pr-7 pl-8 text-sm" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search chats")} className="h-8 pr-7 pl-8 text-sm" />
           {q && (
-            <button className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setQ("")} title="Clear">
+            <button className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setQ("")} title={t("Clear")}>
               <X className="size-3.5" />
             </button>
           )}
@@ -79,7 +80,7 @@ export function ConversationList({
           </div>
         ))}
         {!groups.length && (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">{q ? "No chat matches." : "Your chats appear here."}</p>
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">{q ? t("No chat matches.") : t("Your chats appear here.")}</p>
         )}
       </div>
       <DeleteConversation c={deleting} onClose={() => setDeleting(null)} onDeleted={onDeleted} />
@@ -107,12 +108,12 @@ const Row = memo(function Row({
 
   const save = async () => {
     setEditing(false);
-    const t = name.trim();
-    if (!t || t === c.title) return;
+    const title = name.trim();
+    if (!title || title === c.title) return;
     try {
-      put(await api.rename(c.root.id, t));
+      put(await api.rename(c.root.id, title));
     } catch (e) {
-      toast.error("Could not rename", { description: errorText(e) });
+      toast.error(t("Could not rename"), { description: errorText(e) });
     }
   };
 
@@ -139,13 +140,13 @@ const Row = memo(function Row({
       <button className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-2.5 py-2 text-left" onClick={() => onOpen(c)}>
         <span className="flex w-full items-center gap-1.5">
           {c.active && !pending && <Loader2 className="size-3 shrink-0 animate-spin text-primary" />}
-          {pending > 0 && <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" title="A tool waits for your OK" />}
+          {pending > 0 && <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" title={t("A tool waits for your OK")} />}
           <span className="truncate">{c.title}</span>
         </span>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <ZoneBadge zone={c.root.request.zone} className="h-4 px-1 text-[10px]" />
           <span className="truncate">
-            {pending > 0 ? <span className="text-primary">Needs your OK</span> : ago(c.updated)}
+            {pending > 0 ? <span className="text-[var(--teal-ink)]">{t("Needs your OK")}</span> : ago(c.updated)}
             {models > 1 && ` · ${models} models`}
             {queued > 0 && <span className="text-foreground/80"> · {queued} queued</span>}
           </span>
@@ -157,7 +158,7 @@ const Row = memo(function Row({
             variant="ghost"
             size="icon-sm"
             className="mr-1 shrink-0 text-muted-foreground opacity-100 data-[state=open]:opacity-100 md:opacity-0 md:group-hover/row:opacity-100"
-            title="More"
+            title={t("More")}
           >
             <MoreHorizontal />
           </Button>
@@ -188,13 +189,13 @@ export function DeleteConversation({ c, onClose, onDeleted }: { c: Conversation 
     <AlertDialog open={!!c} onOpenChange={(o) => !o && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+          <AlertDialogTitle>{t("Delete this chat?")}</AlertDialogTitle>
           <AlertDialogDescription>
-            “{c?.title}” and its {c?.jobs.length === 1 ? "answer" : `${c?.jobs.length} answers`} will be deleted. {starred ? "Some are starred. " : ""}This cannot be undone.
+            {c?.jobs.length === 1 ? t("“{title}” and its answer will be deleted.", { title: c?.title ?? "" }) : t("“{title}” and its {n} answers will be deleted.", { title: c?.title ?? "", n: c?.jobs.length ?? 0 })} {starred ? t("Some are starred.") : ""} {t("This cannot be undone.")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={async () => {
@@ -210,11 +211,11 @@ export function DeleteConversation({ c, onClose, onDeleted }: { c: Conversation 
                   failed++;
                 }
               }
-              if (failed) toast.error("Delete failed", { description: `${failed} of the answers could not be deleted.` });
+              if (failed) toast.error(t("Delete failed"), { description: t("{n} of the answers could not be deleted.", { n: failed }) });
               onDeleted(c);
             }}
           >
-            Delete
+            {t("Delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

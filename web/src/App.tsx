@@ -17,6 +17,7 @@ import { BottomNav, Sidebar } from "@/components/shell/Sidebar";
 import { TopBar } from "@/components/shell/TopBar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { t, useLang } from "@/lib/i18n";
 import { useRoute } from "@/lib/route";
 import { useDoneToasts } from "@/lib/notify";
 import { useSession } from "@/store/session";
@@ -41,9 +42,11 @@ const pages: Record<string, { title: string; render: (arg: string) => ReactNode 
 export default function App() {
   const phase = useSession((s) => s.phase);
   const boot = useSession((s) => s.boot);
+  // a new language renders everything again (the key), the stores keep their data
+  const lang = useLang();
   useEffect(() => void boot(), [boot]);
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={300} key={lang}>
       {phase === "ready" ? <Shell /> : phase === "signin" ? <SignIn /> : <Splash />}
       {/* on a phone, above the bottom nav */}
       <Toaster position="bottom-right" mobileOffset={{ bottom: 72 }} />
@@ -59,7 +62,7 @@ function Shell() {
     <div className="flex h-full">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar title={p.title} />
+        <TopBar title={t(p.title)} />
         <main className="min-h-0 flex-1 overflow-y-auto">{p.render(arg)}</main>
         <PlayerBar />
         <BottomNav />

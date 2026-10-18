@@ -1,20 +1,20 @@
-import { Bot, Boxes, ExternalLink, KeyRound, LayoutDashboard, LogOut, Menu, Monitor, Moon, Plug, Server, Sun } from "lucide-react";
+import { Bot, Boxes, ExternalLink, KeyRound, LayoutDashboard, LogOut, Menu, Plug, Server } from "lucide-react";
 import { useState, type ComponentType, type ReactNode } from "react";
 import { Dot } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { isActive } from "@/lib/jobs";
 import { navigate, useRoute } from "@/lib/route";
-import { setTheme, useTheme, type Theme } from "@/lib/theme";
+import { LANGS, plural, setLang, t, useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useLive } from "@/store/live";
 import { useSession } from "@/store/session";
 
-/** The mark: a violet tile with a plug. */
-export function Logo({ className }: { className?: string }) {
+/** The mark: a plug on the Home OS icon chip (teal). */
+export function Logo({ className, large }: { className?: string; large?: boolean }) {
   return (
-    <span aria-hidden className={cn("grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground", className)}>
-      <Plug className="size-[60%]" />
+    <span aria-hidden className={cn("ico", large ? "lg" : "sm", className)}>
+      <Plug />
     </span>
   );
 }
@@ -49,13 +49,13 @@ function Nav({ onPick }: { onPick?: () => void }) {
           }}
           aria-current={page === it.page ? "page" : undefined}
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
-            page === it.page && "bg-sidebar-accent font-medium text-sidebar-foreground",
+            "flex min-h-10 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-[var(--ink-2)] transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            page === it.page && "bg-[var(--teal-soft)] font-medium text-[var(--teal-ink)] hover:bg-[var(--teal-soft)] hover:text-[var(--teal-ink)]",
           )}
         >
           <it.icon className="size-4" />
-          <span className="flex-1 text-left">{it.label}</span>
-          {it.page === "overview" && busy && <span className="size-1.5 animate-pulse rounded-full bg-primary" />}
+          <span className="flex-1 text-left">{t(it.label)}</span>
+          {it.page === "overview" && busy && <span className="dot live" style={{ "--c": "var(--teal)" } as React.CSSProperties} />}
           {it.page === "workers" && <span className="text-xs text-muted-foreground tabular-nums">{workers}</span>}
         </button>
       ))}
@@ -63,26 +63,14 @@ function Nav({ onPick }: { onPick?: () => void }) {
   );
 }
 
-function ThemeSwitch() {
-  const theme = useTheme();
-  const opts: { t: Theme; icon: ComponentType<{ className?: string }>; label: string }[] = [
-    { t: "system", icon: Monitor, label: "System" },
-    { t: "light", icon: Sun, label: "Light" },
-    { t: "dark", icon: Moon, label: "Dark" },
-  ];
+/** DE / EN, kept per browser (home.lang) like the house's other web UIs. */
+export function LangSwitch({ className }: { className?: string }) {
+  const lang = useLang();
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex rounded-md bg-sidebar-accent/60 p-0.5">
-      {opts.map((o) => (
-        <button
-          key={o.t}
-          role="radio"
-          aria-checked={theme === o.t}
-          title={o.label}
-          onClick={() => setTheme(o.t)}
-          className={cn("grid flex-1 place-items-center rounded py-1 text-muted-foreground transition-colors hover:text-foreground", theme === o.t && "bg-background text-foreground shadow-sm")}
-        >
-          <o.icon className="size-3.5" />
-          <span className="sr-only">{o.label}</span>
+    <div className={cn("seg", className)} role="group" aria-label={t("Language")}>
+      {LANGS.map((l) => (
+        <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
         </button>
       ))}
     </div>
@@ -95,16 +83,15 @@ function Foot() {
   const signOut = useSession((s) => s.signOut);
   return (
     <div className="mt-auto flex flex-col gap-2">
-      <a href="/" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground">
-        <ExternalLink className="size-4" /> mlxlab app
+      <a href="/" className="flex min-h-10 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-[var(--ink-2)] hover:bg-sidebar-accent hover:text-sidebar-foreground">
+        <ExternalLink className="size-4" /> {t("mlxlab app")}
       </a>
-      <ThemeSwitch />
       {hub && (
         <div className="flex items-center gap-2 px-1">
-          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{user ? `Signed in as ${user}` : "Signed in"}</span>
-          <Button variant="ghost" size="icon-xs" title="Sign out" onClick={() => void signOut()}>
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{user ? t("Signed in as {user}", { user }) : t("Signed in")}</span>
+          <Button variant="ghost" size="icon-sm" title={t("Sign out")} onClick={() => void signOut()}>
             <LogOut />
-            <span className="sr-only">Sign out</span>
+            <span className="sr-only">{t("Sign out")}</span>
           </Button>
         </div>
       )}
@@ -114,7 +101,7 @@ function Foot() {
 
 function Brand() {
   return (
-    <a href="#/overview" className="flex items-center gap-2 px-2">
+    <a href="#/overview" className="flex items-center gap-2.5 px-1.5">
       <Logo />
       <span className="font-semibold tracking-tight">ai-connector</span>
     </a>
@@ -124,7 +111,7 @@ function Brand() {
 /** The sidebar on a wide screen; a sheet behind the menu button on a narrow one. */
 export function Sidebar() {
   return (
-    <nav className="flex h-full w-56 shrink-0 flex-col gap-5 border-r bg-sidebar px-3 py-4 max-md:hidden">
+    <nav className="flex h-full w-60 shrink-0 flex-col gap-5 border-r border-[var(--line)] bg-[var(--surface-2)] px-3 py-4 max-md:hidden">
       <Brand />
       <Nav />
       <Foot />
@@ -137,9 +124,10 @@ function LiveBadge() {
   const connection = useLive((s) => s.connection);
   const n = useLive((s) => s.connected.length);
   const tone = connection === "live" ? "ok" : connection === "offline" ? "bad" : "busy";
-  const text = connection === "live" ? `${n} worker${n === 1 ? "" : "s"} · live` : connection === "waiting" ? "no worker connected" : connection === "offline" ? "reconnecting …" : "connecting …";
+  const text =
+    connection === "live" ? plural(n, "{n} worker · live", "{n} workers · live") : connection === "waiting" ? t("no worker connected") : connection === "offline" ? t("reconnecting …") : t("connecting …");
   return (
-    <span className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1 text-xs text-muted-foreground" data-connection={connection}>
+    <span className="flex h-9 items-center gap-2 rounded-full border border-[var(--line-2)] bg-[var(--surface)] px-3 text-xs font-medium whitespace-nowrap text-[var(--ink-2)] shadow-[var(--elevation-1),var(--highlight)] max-sm:px-2.5" data-connection={connection}>
       <Dot tone={tone} pulse={connection !== "live"} /> {text}
     </span>
   );
@@ -148,16 +136,20 @@ function LiveBadge() {
 export function TopBar({ title }: { title: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 max-sm:px-3">
-      <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setOpen(true)} aria-label="Menu">
+    <header className="top-bar flex min-h-14 shrink-0 items-center gap-2 px-4 pt-[env(safe-area-inset-top)] max-sm:px-3">
+      <Button variant="ghost" size="icon" className="size-11 md:hidden" onClick={() => setOpen(true)} aria-label={t("Menu")}>
         <Menu />
       </Button>
-      <h1 className="truncate text-sm font-semibold">{title}</h1>
+      <h1 className="min-w-0 truncate text-[15px] font-semibold tracking-tight max-sm:sr-only">{title}</h1>
+      <a href="#/overview" className="sm:hidden" aria-label="ai-connector">
+        <Logo />
+      </a>
       <div className="flex-1" />
       <LiveBadge />
+      <LangSwitch />
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-64 gap-5 bg-sidebar px-3 py-4">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
+        <SheetContent side="left" className="w-64 gap-5 bg-[var(--surface-2)] px-3 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
+          <SheetTitle className="sr-only">{t("Navigation")}</SheetTitle>
           <Brand />
           <Nav onPick={() => setOpen(false)} />
           <Foot />
@@ -167,13 +159,13 @@ export function TopBar({ title }: { title: string }) {
   );
 }
 
-/** The full-screen stage of the sign-in and loading screens: a soft violet glow behind a centred column. */
+/** The full-screen stage of the sign-in and loading screens: a soft teal glow behind a centred column. */
 export function Backdrop({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-full items-center justify-center overflow-hidden px-4 py-10">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_32rem_at_50%_-10%,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_32rem_at_50%_-10%,color-mix(in_oklch,var(--teal)_12%,transparent),transparent_70%)]"
       />
       <div className="relative w-full max-w-sm">{children}</div>
     </div>

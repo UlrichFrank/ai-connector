@@ -1,15 +1,16 @@
 import { useSyncExternalStore } from "react";
-import { local } from "./storage";
 
-/** The colour scheme: as the system is (default), or chosen. Kept per browser. */
-export type Theme = "system" | "light" | "dark";
+/** Light or dark, as the system is (no manual switch, like the house's other web UIs). index.html sets it before
+ * the first paint; this follows changes live: html.dark and html[data-theme] both. */
+export type Theme = "light" | "dark";
 
 const dark = matchMedia("(prefers-color-scheme: dark)");
-let theme: Theme = local.get<Theme>("console.theme", "system");
 const listeners = new Set<() => void>();
 
 function apply() {
-  document.documentElement.classList.toggle("dark", theme === "dark" || (theme === "system" && dark.matches));
+  document.documentElement.classList.toggle("dark", dark.matches);
+  document.documentElement.dataset.theme = dark.matches ? "dark" : "light";
+  listeners.forEach((l) => l());
 }
 
 export function initTheme() {
@@ -17,16 +18,9 @@ export function initTheme() {
   dark.addEventListener("change", apply);
 }
 
-export function setTheme(t: Theme) {
-  theme = t;
-  local.set("console.theme", t);
-  apply();
-  listeners.forEach((l) => l());
-}
-
 export function useTheme(): Theme {
   return useSyncExternalStore(
     (l) => (listeners.add(l), () => listeners.delete(l)),
-    () => theme,
+    () => (dark.matches ? "dark" : "light"),
   );
 }

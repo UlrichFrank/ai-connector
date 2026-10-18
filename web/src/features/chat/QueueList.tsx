@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { ArrowDown, ArrowUp, CirclePause, GripVertical, Pencil, SendHorizontal, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,27 +30,27 @@ export function QueueView({
   const change = (f: Parameters<typeof update>[1]) => update(conv, f);
 
   return (
-    <div className="flex flex-col gap-2" aria-label="Queued messages">
+    <div className="flex flex-col gap-2" aria-label={t("Queued messages")}>
       {q.paused && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">
           <CirclePause className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span className="min-w-0 flex-1">
-            <span className="font-medium">Queue paused</span>
+            <span className="font-medium">{t("Queue paused")}</span>
             <span className="text-muted-foreground"> — {pauseText(q.paused)}</span>
           </span>
           <span className="flex gap-1.5">
             <Button size="sm" variant="ghost" className="h-7 text-muted-foreground" onClick={() => clear(conv)}>
-              Discard all
+              {t("Discard all")}
             </Button>
             <Button size="sm" className="h-7" onClick={onContinue}>
-              Continue
+              {t("Continue")}
             </Button>
           </span>
         </div>
       )}
       <div className="flex items-center justify-end gap-2 pr-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-        {q.inflight ? "Sending …" : `${items.length} queued`}
-        {!q.paused && !q.inflight && <span className="font-normal tracking-normal normal-case">· sent when the answer is done</span>}
+        {q.inflight ? t("Sending …") : t("{n} queued", { n: items.length })}
+        {!q.paused && !q.inflight && <span className="font-normal tracking-normal normal-case">· {t("sent when the answer is done")}</span>}
       </div>
       <ol className="flex flex-col gap-1.5">
         {items.map((it, i) => (
@@ -170,7 +171,7 @@ function Item({
           }}
           onDragEnd={onDragEnd}
           className={cn("mt-0.5 flex shrink-0 items-center gap-0.5", !editing && "cursor-grab active:cursor-grabbing")}
-          title="Drag to reorder"
+          title={t("Drag to reorder")}
         >
           <GripVertical className="size-3.5 opacity-40 max-sm:hidden" />
           <span className="grid size-5 place-items-center rounded-full bg-background text-[11px] font-medium tabular-nums ring-1 ring-border">{n}</span>
@@ -191,7 +192,7 @@ function Item({
               }
             }}
             className="min-w-0 flex-1 resize-none bg-transparent outline-none"
-            aria-label={`Edit queued message ${n}`}
+            aria-label={t("Edit queued message {n}", { n })}
           />
         ) : (
           <span className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]" onDoubleClick={onEdit}>
@@ -203,28 +204,28 @@ function Item({
         {editing ? (
           <>
             <Button size="sm" variant="ghost" className="h-7 text-muted-foreground" onClick={onCancel}>
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button size="sm" className="h-7" onClick={() => onSave(text)}>
-              Save
+              {t("Save")}
             </Button>
           </>
         ) : (
           <>
-            <span className="mr-auto pl-7 text-[11px] tracking-wide uppercase opacity-70">queued</span>
-            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title="Edit" onClick={onEdit}>
+            <span className="mr-auto pl-7 text-[11px] tracking-wide uppercase opacity-70">{t("queued")}</span>
+            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title={t("Edit")} onClick={onEdit}>
               <Pencil className="size-3.5" />
             </Button>
-            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title="Move up" disabled={first} onClick={() => onMove(-1)}>
+            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title={t("Move up")} disabled={first} onClick={() => onMove(-1)}>
               <ArrowUp className="size-3.5" />
             </Button>
-            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title="Move down" disabled={last} onClick={() => onMove(1)}>
+            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground" title={t("Move down")} disabled={last} onClick={() => onMove(1)}>
               <ArrowDown className="size-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-muted-foreground" title="Stop the running answer and send this next" onClick={onSendNow}>
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-muted-foreground" title={t("Stop the running answer and send this next")} onClick={onSendNow}>
               <SendHorizontal className="size-3.5" /> Send now
             </Button>
-            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground hover:text-destructive" title="Remove" onClick={onRemove}>
+            <Button variant="ghost" size="icon-sm" className="size-7 text-muted-foreground hover:text-destructive" title={t("Remove")} onClick={onRemove}>
               <X className="size-3.5" />
             </Button>
           </>

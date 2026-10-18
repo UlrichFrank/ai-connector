@@ -7,6 +7,7 @@ import { Page, PageHeader } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { t } from "@/lib/i18n";
 import { navigate, useRoute } from "@/lib/route";
 import { useSession } from "@/store/session";
 
@@ -55,34 +56,34 @@ function LinkFlow({ arg }: { arg: string }) {
 
   return (
     <Page>
-      <PageHeader title="Link a device" description="An app shows a PIN and asks for its own client token. Approve it here and the app picks the token up by itself; nobody copies it." />
+      <PageHeader title={t("Link a device")} description={t("An app shows a PIN and asks for its own client token. Approve it here and the app picks the token up by itself; nobody copies it.")} />
       <div className="max-w-md">
         {state.kind === "enter" || state.kind === "missing" ? (
           <EnterCode initial={arg} error={state.kind === "missing" ? state.message : ""} onSubmit={lookUp} />
         ) : state.kind === "loading" ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Loading" />
+            <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t("Loading")} />
           </div>
         ) : state.kind === "found" ? (
           <Decide code={code} req={state.req} user={user} onDone={setState} />
         ) : state.kind === "approved" ? (
-          <Outcome icon={CircleCheck} tone="ok" title={`“${state.client.name}” is linked`}>
-            It picks its token up within a few seconds. You find it under Clients, where it can be revoked.
+          <Outcome icon={CircleCheck} tone="ok" title={t("“{name}” is linked", { name: state.client.name })}>
+            {t("It picks its token up within a few seconds. You find it under Clients, where it can be revoked.")}
             <div className="mt-4 flex gap-2">
               <Button variant="outline" onClick={() => navigate("clients")}>
-                Show clients
+                {t("Show clients")}
               </Button>
               <Button variant="ghost" onClick={() => navigate("link")}>
-                Link another
+                {t("Link another")}
               </Button>
             </div>
           </Outcome>
         ) : (
-          <Outcome icon={CircleX} tone="bad" title={`“${state.name}” was denied`}>
-            The app gets no token. It can ask again with a new PIN.
+          <Outcome icon={CircleX} tone="bad" title={t("“{name}” was denied", { name: state.name })}>
+            {t("The app gets no token. It can ask again with a new PIN.")}
             <div className="mt-4">
               <Button variant="ghost" onClick={() => navigate("link")}>
-                Link another
+                {t("Link another")}
               </Button>
             </div>
           </Outcome>
@@ -93,8 +94,8 @@ function LinkFlow({ arg }: { arg: string }) {
 }
 
 function missingText(e: unknown): string {
-  if (e instanceof ApiError && e.status === 404) return "No app is waiting with this PIN. It may have expired (a PIN lasts 10 minutes) or been answered already.";
-  if (e instanceof ApiError && e.status === 429) return "Too many PINs tried. Wait a minute and try again.";
+  if (e instanceof ApiError && e.status === 404) return t("No app is waiting with this PIN. It may have expired (a PIN lasts 10 minutes) or been answered already.");
+  if (e instanceof ApiError && e.status === 429) return t("Too many PINs tried. Wait a minute and try again.");
   return errorText(e);
 }
 
@@ -106,9 +107,9 @@ function EnterCode({ initial, error, onSubmit }: { initial: string; error: strin
     if (c) onSubmit(c);
   };
   return (
-    <form onSubmit={submit} className="rounded-xl border p-5">
+    <form onSubmit={submit} className="card p-5">
       <div className="grid gap-2">
-        <Label htmlFor="link-code">PIN shown on the device</Label>
+        <Label htmlFor="link-code">{t("PIN shown on the device")}</Label>
         <Input
           id="link-code"
           inputMode="numeric"
@@ -118,13 +119,13 @@ function EnterCode({ initial, error, onSubmit }: { initial: string; error: strin
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={!!error || undefined}
-          className="h-10 font-mono text-lg tracking-widest"
+          className="font-mono text-lg tracking-widest"
           autoFocus
         />
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
       <Button type="submit" className="mt-4" disabled={!digits(value)}>
-        <Link2 /> Look up
+        <Link2 /> {t("Look up")}
       </Button>
     </form>
   );
@@ -141,22 +142,23 @@ function Decide({ code, req, user, onDone }: { code: string; req: LinkRequest; u
         onDone({ kind: "denied", name: req.name });
       }
     } catch (e) {
-      toast.error(approve ? "Could not approve" : "Could not deny", { description: missingText(e) });
+      toast.error(approve ? t("Could not approve") : t("Could not deny"), { description: missingText(e) });
       setBusy("");
     }
   };
   return (
-    <div className="rounded-xl border p-5">
+    <div className="card p-5">
       <div className="mb-1 font-mono text-sm text-muted-foreground tabular-nums">{req.userCode}</div>
       <p>
-        <span className="font-medium">“{req.name}”</span> asks for a client token. It will act as <span className="font-medium">{user || "you"}</span>: its Claude Code jobs run on your workers.
+        <span className="font-medium">“{req.name}”</span> {t("asks for a client token. It will act as")} <span className="font-medium">{user || t("you")}</span>
+        {t(": its Claude Code jobs run on your workers.")}
       </p>
       <div className="mt-5 flex gap-2">
         <Button onClick={() => void decide(true)} disabled={!!busy}>
-          {busy === "approve" && <Loader2 className="animate-spin" />} Approve
+          {busy === "approve" && <Loader2 className="animate-spin" />} {t("Approve")}
         </Button>
         <Button variant="outline" onClick={() => void decide(false)} disabled={!!busy}>
-          {busy === "deny" && <Loader2 className="animate-spin" />} Deny
+          {busy === "deny" && <Loader2 className="animate-spin" />} {t("Deny")}
         </Button>
       </div>
     </div>
@@ -165,7 +167,7 @@ function Decide({ code, req, user, onDone }: { code: string; req: LinkRequest; u
 
 function Outcome({ icon: Icon, tone, title, children }: { icon: ComponentType<{ className?: string }>; tone: "ok" | "bad"; title: string; children: ReactNode }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border p-5">
+    <div className="card flex items-start gap-3 p-5">
       <Icon className={tone === "ok" ? "mt-0.5 size-5 shrink-0 text-emerald-500" : "mt-0.5 size-5 shrink-0 text-muted-foreground"} />
       <div className="min-w-0 text-sm text-muted-foreground">
         <div className="mb-1 text-base font-medium text-foreground">{title}</div>

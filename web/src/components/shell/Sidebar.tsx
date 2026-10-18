@@ -1,5 +1,6 @@
 import { AudioLines, Boxes, Clapperboard, FlaskConical, Image, Library, MessageSquare, MonitorSmartphone, Music, ScrollText, SquareUserRound, Tags, Wrench } from "lucide-react";
 import type { ComponentType } from "react";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { navigate, useRoute } from "@/lib/route";
@@ -55,26 +56,26 @@ export function Sidebar() {
   const { page } = useRoute();
   const busy = new Set(useApp(useShallow((s) => Object.values(s.jobs).filter(isActive).map((j) => j.kind))));
   return (
-    <nav className="flex h-full w-52 shrink-0 flex-col gap-5 border-r bg-sidebar px-3 py-4 max-md:hidden">
-      <a href="#/image" className="flex items-center gap-2 px-2">
+    <nav className="flex h-full w-56 shrink-0 flex-col gap-5 overflow-y-auto border-r border-[var(--line)] bg-[var(--surface-2)] px-3 py-4 max-md:hidden">
+      <a href="#/image" className="flex items-center gap-2.5 px-1.5">
         <Logo />
         <span className="font-semibold tracking-tight">mlxlab</span>
       </a>
       {groups.map((g, i) => (
         <div key={i} className="flex flex-col gap-0.5">
-          {g.title && <div className="px-2 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{g.title}</div>}
+          {g.title && <div className="px-2.5 pb-1 text-[11px] font-semibold tracking-[.07em] text-muted-foreground uppercase">{t(g.title)}</div>}
           {g.items.map((it) => (
             <button
               key={it.page}
               onClick={() => navigate(it.page)}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                page === it.page && "bg-sidebar-accent font-medium text-sidebar-foreground",
+                "flex min-h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-[var(--ink-2)] transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                page === it.page && "bg-[var(--teal-soft)] font-medium text-[var(--teal-ink)] hover:bg-[var(--teal-soft)] hover:text-[var(--teal-ink)]",
               )}
             >
               <it.icon className="size-4" />
-              <span className="flex-1 text-left">{it.label}</span>
-              {(busy.has(kindOf[it.page] as never) || busy.has(alsoKind[it.page] as never)) &&<span className="size-1.5 animate-pulse rounded-full bg-primary" />}
+              <span className="flex-1 text-left">{t(it.label)}</span>
+              {(busy.has(kindOf[it.page] as never) || busy.has(alsoKind[it.page] as never)) && <span className="dot live" style={{ "--c": "var(--teal)" } as React.CSSProperties} />}
             </button>
           ))}
         </div>
@@ -93,18 +94,18 @@ function SignedInAs() {
   return (
     <button
       onClick={() => navigate("devices")}
-      title={`${user || "No user name"} · ${device}`}
+      title={`${user || t("No user name")} · ${device}`}
       className={cn(
-        "mt-auto flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent",
+        "mt-auto flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent",
         page === "devices" && "bg-sidebar-accent",
       )}
       data-signed-in-as=""
     >
-      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-primary" aria-hidden>
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-semibold text-[var(--teal-ink)]" aria-hidden>
         {initials(user)}
       </span>
       <span className="min-w-0 flex-1 leading-tight">
-        <span className="block truncate text-sm font-medium text-sidebar-foreground">{user || "(no name)"}</span>
+        <span className="block truncate text-sm font-medium text-sidebar-foreground">{user || t("(no name)")}</span>
         <span className="block truncate text-[11px] text-muted-foreground">{device}</span>
       </span>
     </button>
@@ -116,15 +117,15 @@ export function BottomNav() {
   const { page } = useRoute();
   const items = [...groups[0].items, groups[1].items[0]];
   return (
-    <nav className="flex border-t bg-sidebar md:hidden">
+    <nav className="top-bar flex border-t border-b-0 pb-[env(safe-area-inset-bottom)] md:hidden">
       {items.map((it) => (
         <button
           key={it.page}
           onClick={() => navigate(it.page)}
-          className={cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] text-muted-foreground", page === it.page && "text-primary")}
+          className={cn("flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground", page === it.page && "font-medium text-[var(--teal-ink)]")}
         >
           <it.icon className="size-5" />
-          {it.label}
+          {t(it.label)}
         </button>
       ))}
     </nav>

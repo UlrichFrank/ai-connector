@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { Client, ClientCreated, Connector, ConnectorInput, ErrorBody, Info, Job, LinkRequest, LoginResponse, ModelsResponse, Worker, WorkerCreated } from "./types";
 
 /** A request the server refused. `code` is the `error` field of a JSON answer ("signin", "offline", …), if any. */
@@ -135,9 +136,9 @@ export const api = {
 
 /** A sentence for an error, for a toast or an empty state. */
 export function errorText(e: unknown): string {
-  if (e instanceof NotAvailableError) return "Not available on this server yet.";
-  if (e instanceof ApiError && e.status === 503 && e.code === "offline") return "No worker is connected. Connect one on the Workers page.";
+  if (e instanceof NotAvailableError) return t("Not available on this server yet.");
+  if (e instanceof ApiError && e.status === 503 && e.code === "offline") return t("No worker is connected. Connect one on the Workers page.");
   if (e instanceof ApiError) return e.message;
-  if (e instanceof TypeError) return "Can't reach the server.";
+  if (e instanceof TypeError) return t("Can't reach the server.");
   return e instanceof Error ? e.message : String(e);
 }

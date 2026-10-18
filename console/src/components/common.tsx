@@ -8,6 +8,7 @@ import { ago } from "@/lib/format";
 import { maskToken } from "@/lib/install";
 import { cn } from "@/lib/utils";
 import { useNow } from "@/lib/now";
+import { dateTime, t } from "@/lib/i18n";
 
 /** Inline code. */
 export function Code({ children }: { children: ReactNode }) {
@@ -17,10 +18,10 @@ export function Code({ children }: { children: ReactNode }) {
 /** A page's heading row: title, one line about it, actions on the right. */
 export function PageHeader({ title, description, children }: { title: string; description?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+        <h2 className="text-2xl font-semibold tracking-[-0.03em]">{title}</h2>
+        {description && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
     </div>
@@ -37,28 +38,17 @@ export type Tone = "ok" | "busy" | "bad" | "off";
 /** A coloured dot for a state. */
 export function Dot({ tone, pulse, className }: { tone: Tone; pulse?: boolean; className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "inline-block size-2 shrink-0 rounded-full",
-        tone === "ok" && "bg-emerald-500",
-        tone === "busy" && "bg-amber-500",
-        tone === "bad" && "bg-destructive",
-        tone === "off" && "bg-muted-foreground/40",
-        pulse && "animate-pulse",
-        className,
-      )}
-    />
+    <span aria-hidden className={cn("dot inline-block", tone === "busy" && "warn", tone === "bad" && "bad", tone === "off" && "idle", pulse && "live", className)} />
   );
 }
 
 /** "5 min ago", kept up to date, the exact time on hover. */
-export function Ago({ iso, never = "never" }: { iso: string | undefined; never?: string }) {
+export function Ago({ iso, never }: { iso: string | undefined; never?: string }) {
   useNow();
   const text = ago(iso);
-  if (!iso || text === "never") return <span className="text-muted-foreground">{never}</span>;
+  if (!iso || text === ago(undefined)) return <span className="text-muted-foreground">{never ?? t("never")}</span>;
   return (
-    <time dateTime={iso} title={new Date(iso).toLocaleString()}>
+    <time dateTime={iso} title={dateTime(iso)}>
       {text}
     </time>
   );
@@ -67,8 +57,10 @@ export function Ago({ iso, never = "never" }: { iso: string | undefined; never?:
 /** Nothing here yet: an icon, a sentence, maybe an action. */
 export function Empty({ icon: Icon = Plug, title, children }: { icon?: React.ComponentType<{ className?: string }>; title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center">
-      <Icon className="size-6 text-muted-foreground" />
+    <div className="flex flex-col items-center gap-2 rounded-[var(--r-lg)] border border-dashed border-[var(--line-2)] px-6 py-10 text-center">
+      <span className="ico mb-1" style={{ "--c": "var(--idle)" } as React.CSSProperties}>
+        <Icon />
+      </span>
       <div className="font-medium">{title}</div>
       {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
     </div>
@@ -95,14 +87,14 @@ export function ErrorNotice({ error, onRetry, what, className }: { error: unknow
     >
       <Icon className={cn("mt-0.5 size-4 shrink-0", missing ? "text-muted-foreground" : offline ? "text-amber-600 dark:text-amber-400" : "text-destructive")} />
       <div className="min-w-0 flex-1">
-        <div className="font-medium">{missing ? `${what ?? "This"} is not available on this server yet` : offline ? "No worker is connected" : "Something went wrong"}</div>
+        <div className="font-medium">{missing ? t("{what} is not available on this server yet", { what: what ? t(what) : t("This") }) : offline ? t("No worker is connected") : t("Something went wrong")}</div>
         <div className="mt-0.5 text-muted-foreground">
-          {missing ? "The server answered that it does not know this API. Update the server to a version that has it." : offline ? "This comes back when a worker connects (Workers → Connect a worker)." : errorText(error)}
+          {missing ? t("The server answered that it does not know this API. Update the server to a version that has it.") : offline ? t("This comes back when a worker connects (Workers → Connect a worker).") : errorText(error)}
         </div>
       </div>
       {onRetry && (
         <Button size="sm" variant="outline" onClick={onRetry}>
-          <RotateCw /> Retry
+          <RotateCw /> {t("Retry")}
         </Button>
       )}
     </div>
@@ -122,17 +114,17 @@ function useCopy(text: string) {
       await copyText(text);
       setCopied(true);
     } catch (e) {
-      toast.error("Could not copy", { description: e instanceof Error ? e.message : String(e) });
+      toast.error(t("Could not copy"), { description: e instanceof Error ? e.message : String(e) });
     }
   };
   return { copied, setCopied, copy };
 }
 
-export function CopyButton({ text, label = "Copy", className }: { text: string; label?: string; className?: string }) {
+export function CopyButton({ text, label, className }: { text: string; label?: string; className?: string }) {
   const { copied, copy } = useCopy(text);
   return (
     <Button variant={copied ? "secondary" : "outline"} size="xs" onClick={copy} className={className}>
-      {copied ? <Check /> : <Copy />} {copied ? "Copied" : label}
+      {copied ? <Check /> : <Copy />} {copied ? t("Copied") : (label ?? t("Copy"))}
     </Button>
   );
 }
@@ -143,16 +135,16 @@ export function CodeBlock({ text, secret, label }: { text: string; secret?: stri
   const [shown, setShown] = useState(false);
   const masked = !!secret && !shown;
   return (
-    <div className="overflow-hidden rounded-lg border bg-muted/50">
+    <div className="overflow-hidden rounded-[var(--r-md)] border border-[var(--line-2)] bg-[var(--sunken)] shadow-[var(--inset-track)]">
       <div className="flex items-center gap-1 border-b px-2 py-1">
         <span className="flex-1 truncate pl-1 text-xs text-muted-foreground">{label}</span>
         {secret && (
           <Button variant="ghost" size="xs" onClick={() => setShown((v) => !v)} aria-pressed={shown}>
-            {shown ? <EyeOff /> : <Eye />} {shown ? "Hide token" : "Show token"}
+            {shown ? <EyeOff /> : <Eye />} {shown ? t("Hide token") : t("Show token")}
           </Button>
         )}
         <Button variant={copied ? "secondary" : "default"} size="xs" onClick={copy} data-copy="">
-          {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}
+          {copied ? <Check /> : <Copy />} {copied ? t("Copied") : t("Copy")}
         </Button>
       </div>
       <pre

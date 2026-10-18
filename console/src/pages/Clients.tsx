@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { t, useLang } from "@/lib/i18n";
 import { navigate } from "@/lib/route";
 import { DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL, pickModel, snippets, TOKEN_PLACEHOLDER, type SnippetGroup } from "@/lib/snippets";
-import { cn } from "@/lib/utils";
 import { useLive } from "@/store/live";
 
 export function ClientsPage() {
@@ -35,12 +35,12 @@ export function ClientsPage() {
 
   return (
     <Page>
-      <PageHeader title="Clients" description="API tokens for applications (vboard, docscanner, scripts): they may use the OpenAI, TEI, Laya and jobs APIs, nothing else.">
+      <PageHeader title={t("Clients")} description={t("API tokens for applications (vboard, docscanner, scripts): they may use the OpenAI, TEI, Laya and jobs APIs, nothing else.")}>
         <Button variant="outline" onClick={() => navigate("link")} disabled={missing}>
-          <Link2 /> Link a device
+          <Link2 /> {t("Link a device")}
         </Button>
         <Button onClick={() => setCreating(true)} disabled={missing}>
-          <Plus /> New token
+          <Plus /> {t("New token")}
         </Button>
       </PageHeader>
 
@@ -51,14 +51,14 @@ export function ClientsPage() {
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : list.length ? (
-        <div className="overflow-x-auto rounded-xl border">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
+            <thead className="text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium max-sm:hidden">Owner</th>
-                <th className="px-3 py-2 font-medium max-sm:hidden">Created</th>
-                <th className="px-3 py-2 font-medium">Last used</th>
+                <th className="px-3 py-2.5 font-medium">{t("Name")}</th>
+                <th className="px-3 py-2.5 font-medium max-sm:hidden">{t("Owner")}</th>
+                <th className="px-3 py-2.5 font-medium max-sm:hidden">{t("Created")}</th>
+                <th className="px-3 py-2.5 font-medium">{t("Last used")}</th>
                 <th className="w-0 px-2 py-2" />
               </tr>
             </thead>
@@ -70,8 +70,8 @@ export function ClientsPage() {
           </table>
         </div>
       ) : (
-        <Empty icon={KeyRound} title="No client tokens yet">
-          Create one per application, so each can be revoked alone and its jobs show its name.
+        <Empty icon={KeyRound} title={t("No client tokens yet")}>
+          {t("Create one per application, so each can be revoked alone and its jobs show its name.")}
         </Empty>
       )}
 
@@ -94,10 +94,10 @@ function ClientRow({ c, onRevoked }: { c: Client; onRevoked: () => void }) {
   const revoke = async () => {
     try {
       await api.revokeClient(c.id);
-      toast.success(`“${c.name}” revoked`);
+      toast.success(t("“{name}” revoked", { name: c.name }));
       onRevoked();
     } catch (e) {
-      toast.error("Could not revoke", { description: errorText(e) });
+      toast.error(t("Could not revoke"), { description: errorText(e) });
     }
   };
   return (
@@ -111,19 +111,19 @@ function ClientRow({ c, onRevoked }: { c: Client; onRevoked: () => void }) {
         <Ago iso={c.lastSeen} />
       </td>
       <td className="px-2 py-1.5">
-        <Button variant="ghost" size="xs" onClick={() => setConfirm(true)} aria-label={`Revoke ${c.name}`}>
-          <Trash2 /> Revoke
+        <Button variant="ghost" size="xs" onClick={() => setConfirm(true)} aria-label={t("Revoke {name}", { name: c.name })}>
+          <Trash2 /> {t("Revoke")}
         </Button>
         <AlertDialog open={confirm} onOpenChange={setConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Revoke “{c.name}”?</AlertDialogTitle>
-              <AlertDialogDescription>Applications using this token get 401 from now on. This cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>{t("Revoke “{name}”?", { name: c.name })}</AlertDialogTitle>
+              <AlertDialogDescription>{t("Applications using this token get 401 from now on. This cannot be undone.")}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
               <AlertDialogAction variant="destructive" onClick={() => void revoke()}>
-                Revoke
+                {t("Revoke")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -149,7 +149,7 @@ function CreateClientDialog({ open, onOpenChange, onCreated }: { open: boolean; 
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return setError("A name is needed, e.g. the application's.");
+    if (!name.trim()) return setError(t("A name is needed, e.g. the application's."));
     setBusy(true);
     setError("");
     try {
@@ -168,34 +168,36 @@ function CreateClientDialog({ open, onOpenChange, onCreated }: { open: boolean; 
         {created ? (
           <>
             <DialogHeader>
-              <DialogTitle>Token for “{created.client.name}”</DialogTitle>
-              <DialogDescription>Send it as <code className="font-mono">Authorization: Bearer …</code>. The snippets below now have it filled in.</DialogDescription>
+              <DialogTitle>{t("Token for “{name}”", { name: created.client.name })}</DialogTitle>
+              <DialogDescription>
+                {t("Send it as")} <code className="font-mono">Authorization: Bearer …</code>. {t("The snippets below now have it filled in.")}
+              </DialogDescription>
             </DialogHeader>
-            <CodeBlock label="Client token" text={created.token} />
+            <CodeBlock label={t("Client token")} text={created.token} />
             <ShownOnce>
-              <span className="font-medium">The token is shown only now.</span> <span className="text-muted-foreground">Store it in the application's settings. Lost it? Revoke it and create a new one.</span>
+              <span className="font-medium">{t("The token is shown only now.")}</span> <span className="text-muted-foreground">{t("Store it in the application's settings. Lost it? Revoke it and create a new one.")}</span>
             </ShownOnce>
             <DialogFooter>
-              <Button onClick={() => change(false)}>Done</Button>
+              <Button onClick={() => change(false)}>{t("Done")}</Button>
             </DialogFooter>
           </>
         ) : (
           <form onSubmit={submit} className="contents">
             <DialogHeader>
-              <DialogTitle>New client token</DialogTitle>
-              <DialogDescription>One token per application. Its name shows on the jobs it submits.</DialogDescription>
+              <DialogTitle>{t("New client token")}</DialogTitle>
+              <DialogDescription>{t("One token per application. Its name shows on the jobs it submits.")}</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="client-name">Name</Label>
+              <Label htmlFor="client-name">{t("Name")}</Label>
               <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={80} placeholder="docscanner, vboard, scripts …" />
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => change(false)}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button type="submit" disabled={busy}>
-                {busy && <Loader2 className="animate-spin" />} Create
+                {busy && <Loader2 className="animate-spin" />} {t("Create")}
               </Button>
             </DialogFooter>
           </form>
@@ -216,31 +218,33 @@ function Usage({ token, tokenName }: { token?: string; tokenName?: string }) {
     embedModel: models.some((m) => m.id === DEFAULT_EMBED_MODEL) ? DEFAULT_EMBED_MODEL : pickModel(models, "embed", DEFAULT_EMBED_MODEL),
   });
   const shown = all.filter((s) => s.group === group);
+  const de = useLang() === "de";
   return (
     <section className="mt-10">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h3 className="font-semibold">Use it</h3>
+          <h3 className="font-semibold">{t("Use it")}</h3>
           <p className="text-sm text-muted-foreground">
             {token ? (
               <>
-                With the token of <span className="font-medium text-foreground">{tokenName}</span> filled in.
+                {de ? "Mit dem Token von" : "With the token of"} <span className="font-medium text-foreground">{tokenName}</span> {de ? "ausgefüllt." : "filled in."}
               </>
             ) : (
               <>
-                Replace <code className="font-mono">{TOKEN_PLACEHOLDER}</code> with a client token (create one above and it is filled in).
+                {de ? "Ersetze" : "Replace"} <code className="font-mono">{TOKEN_PLACEHOLDER}</code>{" "}
+                {de ? "durch ein Client-Token (oben eins anlegen, dann wird es eingesetzt)." : "with a client token (create one above and it is filled in)."}
               </>
             )}
           </p>
         </div>
-        <div role="tablist" className="flex rounded-lg bg-muted p-0.5 text-sm">
+        <div role="tablist" className="seg">
           {(
             [
               ["openai", "OpenAI API"],
               ["apps", "vboard & docscanner"],
             ] as const
           ).map(([g, label]) => (
-            <button key={g} role="tab" aria-selected={group === g} onClick={() => setGroup(g)} className={cn("rounded-md px-3 py-1 text-muted-foreground", group === g && "bg-background text-foreground shadow-sm")}>
+            <button key={g} role="tab" aria-selected={group === g} aria-pressed={group === g} onClick={() => setGroup(g)}>
               {label}
             </button>
           ))}
@@ -250,15 +254,15 @@ function Usage({ token, tokenName }: { token?: string; tokenName?: string }) {
         {shown.map((s) => (
           <div key={s.id}>
             <div className="mb-1.5 text-sm">
-              <span className="font-medium">{s.label}</span> <span className="text-muted-foreground">— {s.hint}</span>
+              <span className="font-medium">{t(s.label)}</span> <span className="text-muted-foreground">— {t(s.hint)}</span>
             </div>
-            <CodeBlock label={s.lang === "env" ? "Environment" : s.lang === "python" ? "Python" : "Shell"} text={s.text} secret={token} />
+            <CodeBlock label={s.lang === "env" ? t("Environment") : s.lang === "python" ? "Python" : "Shell"} text={s.text} secret={token} />
           </div>
         ))}
       </div>
       {group === "apps" && (
         <p className="mt-3 text-xs text-muted-foreground">
-          vboard can also be reached the other way round, without changing its settings: add a vboard connector on the Connectors page, and this server dials vboard instead.
+          {t("vboard can also be reached the other way round, without changing its settings: add a vboard connector on the Connectors page, and this server dials vboard instead.")}
         </p>
       )}
     </section>

@@ -5,6 +5,7 @@ import { Empty, ErrorNotice, Page, PageHeader } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bytes } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import { rankWorkers, whereText } from "@/lib/specs";
 import { cn } from "@/lib/utils";
 import { useLive } from "@/store/live";
@@ -35,24 +36,24 @@ export function ModelsPage() {
 
   return (
     <Page wide>
-      <PageHeader title="Models" description="Every model the connected workers offer, and where each can run. Clients name a model by its id.">
+      <PageHeader title={t("Models")} description={t("Every model the connected workers offer, and where each can run. Clients name a model by its id.")}>
         <Button variant="outline" onClick={() => void refresh()}>
-          <RotateCw /> Refresh
+          <RotateCw /> {t("Refresh")}
         </Button>
       </PageHeader>
 
       {error && !models.length ? (
         <ErrorNotice error={error} onRetry={refresh} what="The model list" />
       ) : !loaded ? null : !models.length ? (
-        <Empty icon={Boxes} title="No models">
-          The models come from the connected workers. Connect one on the Workers page.
+        <Empty icon={Boxes} title={t("No models")}>
+          {t("The models come from the connected workers. Connect one on the Workers page.")}
         </Empty>
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative w-full sm:w-64">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models" className="pl-8" aria-label="Search models" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search models")} className="pl-8" aria-label={t("Search models")} />
             </div>
             <div className="flex flex-wrap gap-1">
               {["all", ...kinds].map((k) => (
@@ -60,21 +61,21 @@ export function ModelsPage() {
                   key={k}
                   onClick={() => setKind(k)}
                   aria-pressed={kind === k}
-                  className={cn("rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground", kind === k && "border-primary/40 bg-primary/10 text-primary")}
+                  className={cn("min-h-8 rounded-full border border-[var(--line-2)] bg-[var(--surface)] px-3 text-xs text-muted-foreground transition-colors hover:text-foreground", kind === k && "border-primary/40 bg-primary/10 text-[var(--teal-ink)]")}
                 >
-                  {k} {k === "all" ? models.length : models.filter((m) => m.kind === k).length}
+                  {k === "all" ? t("all") : k} {k === "all" ? models.length : models.filter((m) => m.kind === k).length}
                 </button>
               ))}
             </div>
           </div>
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="card overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Model</th>
-                  <th className="px-3 py-2 font-medium">Kind</th>
-                  <th className="px-3 py-2 font-medium max-md:hidden">Backend</th>
-                  <th className="px-3 py-2 font-medium">Workers</th>
+                  <th className="px-3 py-2.5 font-medium">{t("Model")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("Kind")}</th>
+                  <th className="px-3 py-2.5 font-medium max-md:hidden">{t("Backend")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("Workers")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -83,7 +84,7 @@ export function ModelsPage() {
                 ))}
               </tbody>
             </table>
-            {!shown.length && <div className="p-6 text-center text-sm text-muted-foreground">No model matches.</div>}
+            {!shown.length && <div className="p-6 text-center text-sm text-muted-foreground">{t("No model matches.")}</div>}
           </div>
         </>
       )}
@@ -104,7 +105,7 @@ function ModelRow({ m }: { m: Model }) {
             {m.id}
           </code>
           {m.size ? <span className="shrink-0">· {bytes(m.size)}</span> : null}
-          {m.nonCommercial && <span className="shrink-0 rounded bg-amber-500/15 px-1 text-[10px] text-amber-700 dark:text-amber-400">non-commercial</span>}
+          {m.nonCommercial && <span className="shrink-0 rounded bg-amber-500/15 px-1 text-[10px] text-amber-700 dark:text-amber-400">{t("non-commercial")}</span>}
         </div>
       </td>
       <td className="px-3 py-2">
@@ -119,7 +120,7 @@ function ModelRow({ m }: { m: Model }) {
             ))}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">{m.here ? "on disk" : "—"}</span>
+          <span className="text-xs text-muted-foreground">{m.here ? t("on disk") : "—"}</span>
         )}
       </td>
     </tr>

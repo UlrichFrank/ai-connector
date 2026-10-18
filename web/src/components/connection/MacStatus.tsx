@@ -3,6 +3,7 @@ import { Code } from "@/components/connection/ErrorNotice";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ago } from "@/lib/format";
 import { navigate } from "@/lib/route";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/store/app";
 
@@ -47,19 +48,19 @@ export function MacStatus() {
               <span key={m.id} className="flex items-center gap-1.5">
                 <Laptop className="size-3.5 shrink-0" />
                 <span className="truncate">{m.name || "Mac"}</span>
-                {m.since && <span className="shrink-0 opacity-70">· connected {ago(m.since)}</span>}
+                {m.since && <span className="shrink-0 opacity-70">· {t("connected")} {ago(m.since)}</span>}
               </span>
             ))}
           </span>
         ) : online ? (
           <span className="flex items-center gap-1.5">
             <Laptop className="size-3.5" />
-            {worker?.name || "The Mac"} · connected {ago(worker?.since)}
+            {worker?.name || t("The Mac")} · {t("connected")} {ago(worker?.since)}
           </span>
         ) : (
           <>
-            Jobs wait until the Mac is back. Start it with <Code className="bg-background/15 text-background">mlxlab worker</Code>, or click to
-            connect a Mac.
+            {t("Jobs wait until the Mac is back. Start it with")} <Code className="bg-background/15 text-background">mlxlab worker</Code>
+            {t(", or click to connect a Mac.")}
           </>
         )}
       </TooltipContent>

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Brain, Check, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Loader2, RotateCw } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { Job } from "@/api/types";
@@ -100,11 +101,11 @@ export const Answer = memo(function Answer({
       {active && <Pending job={j} last={last} />}
       {ended && !failed && last?.kind === "think" && (
         <p className="text-sm text-muted-foreground">
-          {last.open ? "It ran out of tokens while thinking. Raise Max tokens (the sliders by Think) and answer again." : "No answer after the thinking."}
+          {last.open ? t("It ran out of tokens while thinking. Raise Max tokens (the sliders by Think) and answer again.") : t("No answer after the thinking.")}
         </p>
       )}
       {failed && <Failure job={j} />}
-      {j.state === "canceled" && !failed && <p className="text-xs text-muted-foreground">Stopped.</p>}
+      {j.state === "canceled" && !failed && <p className="text-xs text-muted-foreground">{t("Stopped.")}</p>}
       <Files files={files} />
       {ended && !failed && <Footer job={j} answer={answer} variants={variants} onPick={onPick} onRegenerate={onRegenerate} showModel={showModel} />}
     </div>
@@ -120,11 +121,11 @@ function StepsHeader({ thoughts, tools, open, onToggle }: { thoughts: number; to
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        title={open ? "Fold every thought" : "Unfold every thought"}
+        title={open ? t("Fold every thought") : t("Unfold every thought")}
         className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium hover:bg-muted hover:text-foreground"
       >
         <Icon className="size-3.5" />
-        {open ? "Hide steps" : "Show steps"}
+        {open ? t("Hide steps") : t("Show steps")}
       </button>
       <span className="tabular-nums opacity-80">
         {[thoughts && `${thoughts} ${thoughts === 1 ? "thought" : "thoughts"}`, tools && `${tools} ${tools === 1 ? "tool call" : "tool calls"}`].filter(Boolean).join(" · ")}
@@ -139,7 +140,7 @@ function Pending({ job: j, last }: { job: Job; last?: Step<Call> }) {
   if (last.kind !== "tool" || last.call.state === "approval") return null;
   return (
     <div className="flex items-center gap-2 py-0.5 text-sm text-muted-foreground">
-      <Loader2 className="size-4 animate-spin text-primary" /> {last.call.state === "running" ? "Waiting for the tool …" : "Reading the results …"}
+      <Loader2 className="size-4 animate-spin text-primary" /> {last.call.state === "running" ? t("Waiting for the tool …") : t("Reading the results …")}
     </div>
   );
 }
@@ -157,7 +158,7 @@ function Failure({ job: j }: { job: Job }) {
       </span>
       <div className="min-w-0">
         <div>{capital(why.trim())}</div>
-        <div className="text-xs text-muted-foreground">Its tools aren't set up on the Mac (docs/chat-tools.md). A plain chat works meanwhile.</div>
+        <div className="text-xs text-muted-foreground">{t("Its tools aren't set up on the Mac (docs/chat-tools.md). A plain chat works meanwhile.")}</div>
       </div>
     </div>
   );
@@ -166,13 +167,13 @@ function Failure({ job: j }: { job: Job }) {
 function Waiting({ job: j }: { job: Job }) {
   useNow(1000);
   const loading = /loading|download|fetch|verif/i.test(j.status ?? "");
-  const text = j.state === "queued" ? "Waiting for the GPU …" : j.status && j.status !== "answering …" ? capital(j.status) : "Reading the conversation …";
+  const text = j.state === "queued" ? t("Waiting for the GPU …") : j.status && j.status !== "answering …" ? capital(j.status) : t("Reading the conversation …");
   return (
     <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
       <Loader2 className="size-4 animate-spin text-primary" />
       <span className="min-w-0 truncate">{text}</span>
       {j.started && <span className="text-xs tabular-nums opacity-70">{duration(took(j))}</span>}
-      {loading && <span className="hidden text-xs opacity-70 sm:inline">· the first answer of a model takes a moment</span>}
+      {loading && <span className="hidden text-xs opacity-70 sm:inline">· {t("the first answer of a model takes a moment")}</span>}
     </div>
   );
 }
@@ -220,15 +221,15 @@ function Thought({
     seen.set(id, t);
   }, [id, live, begun, step.n, j.started]);
 
-  const t = seen.get(id);
-  const start = t?.start != null && t.start >= 0 ? t.start : undefined;
+  const times = seen.get(id);
+  const start = times?.start != null && times.start >= 0 ? times.start : undefined;
   const s = j.stats ?? {};
   const secs = live
     ? start != null
       ? (now - start) / 1000
       : undefined
-    : t?.start != null && t.end != null
-      ? (t.end - t.start) / 1000
+    : times?.start != null && times.end != null
+      ? (times.end - times.start) / 1000
       : thoughtSeconds({
           chars: step.text.length,
           allChars,
@@ -247,7 +248,7 @@ function Thought({
   const time = secs != null && secs >= 0.05 ? duration(secs) : "";
   const label = live ? (
     <>
-      <span className="think-live">Thinking</span>
+      <span className="think-live">{t("Thinking")}</span>
       {time && <span className="tabular-nums opacity-80">· {time}</span>}
     </>
   ) : cut ? (
@@ -327,13 +328,13 @@ function Footer({
       {verdict && <VerdictBadge verdict={verdict} />}
       {variants && variants.length > 1 && i >= 0 && (
         <div className="flex items-center">
-          <Button variant="ghost" size="icon-xs" disabled={i === 0} onClick={() => onPick?.(variants[i - 1].id)} title="Previous answer">
+          <Button variant="ghost" size="icon-xs" disabled={i === 0} onClick={() => onPick?.(variants[i - 1].id)} title={t("Previous answer")}>
             <ChevronLeft />
           </Button>
           <span className="tabular-nums">
             {i + 1}/{variants.length}
           </span>
-          <Button variant="ghost" size="icon-xs" disabled={i === variants.length - 1} onClick={() => onPick?.(variants[i + 1].id)} title="Next answer">
+          <Button variant="ghost" size="icon-xs" disabled={i === variants.length - 1} onClick={() => onPick?.(variants[i + 1].id)} title={t("Next answer")}>
             <ChevronRight />
           </Button>
         </div>
@@ -343,7 +344,7 @@ function Footer({
           <Button
             variant="ghost"
             size="icon-xs"
-            title="Copy answer"
+            title={t("Copy answer")}
             onClick={() => {
               navigator.clipboard.writeText(answer);
               setCopied(true);
@@ -354,7 +355,7 @@ function Footer({
           </Button>
         )}
         {onRegenerate && (
-          <Button variant="ghost" size="icon-xs" title="Answer again" onClick={() => onRegenerate(j)}>
+          <Button variant="ghost" size="icon-xs" title={t("Answer again")} onClick={() => onRegenerate(j)}>
             <RotateCw />
           </Button>
         )}

@@ -1,5 +1,6 @@
 // What a worker is and where a model can run, as words. Pure: tested with `pnpm test` (src/lib/specs.test.ts).
 import type { ModelWorker, Worker, WorkerSpecs } from "../api/types.ts";
+import { t } from "./i18n.ts";
 
 export type Platform = "mac" | "linux" | "windows" | "unknown";
 
@@ -36,7 +37,7 @@ export function archLabel(arch: string | undefined): string {
 export function specParts(s: WorkerSpecs | undefined): string[] {
   if (!s) return [];
   const gpu = s.gpu ? (s.vramGB ? `${s.gpu} (${s.vramGB} GB)` : s.gpu) : s.vramGB ? `${s.vramGB} GB VRAM` : "";
-  return [s.chip ?? "", s.ramGB ? `${s.ramGB} GB RAM` : "", gpu, s.gpuCores ? `${s.gpuCores}-core GPU` : "", osLabel(s), archLabel(s.arch)].filter(Boolean);
+  return [s.chip ?? "", s.ramGB ? `${s.ramGB} GB RAM` : "", gpu, s.gpuCores ? t("{n}-core GPU", { n: s.gpuCores }) : "", osLabel(s), archLabel(s.arch)].filter(Boolean);
 }
 
 /** One line for a worker's specs, "" when it never said (not connected yet, or an older worker). */
@@ -46,9 +47,9 @@ export function specLine(w: Pick<Worker, "specs">): string {
 
 /** "loaded", "on disk", "downloads first", "too little memory". */
 export function whereText(w: ModelWorker): string {
-  if (!w.fits) return "too little memory";
-  if (w.loaded) return "loaded";
-  return w.here ? "on disk" : "downloads first";
+  if (!w.fits) return t("too little memory");
+  if (w.loaded) return t("loaded");
+  return w.here ? t("on disk") : t("downloads first");
 }
 
 /** The workers a model can run on, best first: loaded, on disk, download; those without the memory last. */
@@ -59,13 +60,13 @@ export function rankWorkers(ws: ModelWorker[]): ModelWorker[] {
 
 /** What a worker is doing: "idle", "running · 2 queued", "3 queued". */
 export function loadText(w: Pick<Worker, "connected" | "state">): string {
-  if (!w.connected) return "offline";
+  if (!w.connected) return t("offline");
   const st = w.state;
-  if (!st) return "connected";
+  if (!st) return t("connected");
   const parts: string[] = [];
-  if (st.running) parts.push("running");
-  if (st.queued) parts.push(`${st.queued} queued`);
-  return parts.length ? parts.join(" · ") : "idle";
+  if (st.running) parts.push(t("running"));
+  if (st.queued) parts.push(t("{n} queued", { n: st.queued }));
+  return parts.length ? parts.join(" · ") : t("idle");
 }
 
 /** The models a worker holds in memory (backend → model id), as ids. */

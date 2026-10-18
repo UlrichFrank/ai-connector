@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { ArrowDown, Brain, Copy, MessageSquarePlus, MessagesSquare, MoreHorizontal, PanelLeft, Pencil, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -155,7 +156,7 @@ export function ChatPage({ arg }: { arg: string }) {
     if (!conv) return;
     const active = conv.jobs.filter(isActive).map((j) => j.id);
     updateQueue(conv.id, (q) => queueFirst(q, id, active, leafIds(columns)));
-    for (const j of active) await api.cancel(j).catch((e) => toast.error("Could not stop", { description: errorText(e) }));
+    for (const j of active) await api.cancel(j).catch((e) => toast.error(t("Could not stop"), { description: errorText(e) }));
   };
   const continueQueue = () => conv && updateQueue(conv.id, (q) => resume(q, leafIds(columns)));
 
@@ -201,7 +202,7 @@ export function ChatPage({ arg }: { arg: string }) {
       })
         .then((made) => updateQueue(cid, (x) => sent(x, made.map((j) => j.id))))
         .catch((e) => {
-          toast.error("Could not send a queued message", { description: errorText(e) });
+          toast.error(t("Could not send a queued message"), { description: errorText(e) });
           updateQueue(cid, (x) => unsent(x));
         })
         .finally(() => busy.current.delete(cid));
@@ -233,14 +234,14 @@ export function ChatPage({ arg }: { arg: string }) {
       }
       stick.current = true;
     } catch (e) {
-      startFailed(e, "Could not send");
+      startFailed(e, t("Could not send"));
     } finally {
       setSending(false);
     }
   };
 
   const stop = async () => {
-    for (const j of conv?.jobs ?? []) if (isActive(j)) await api.cancel(j.id).catch((e) => toast.error("Could not stop", { description: errorText(e) }));
+    for (const j of conv?.jobs ?? []) if (isActive(j)) await api.cancel(j.id).catch((e) => toast.error(t("Could not stop"), { description: errorText(e) }));
   };
 
   const regenerate = useCallback(
@@ -253,7 +254,7 @@ export function ChatPage({ arg }: { arg: string }) {
         setPicks((s) => ({ ...s, [p ?? `root:${conv?.id}:${j.model}`]: n.id }));
         if (!p && conv) addLinks({ [n.id]: conv.id });
       } catch (e) {
-        startFailed(e, "Could not answer again");
+        startFailed(e, t("Could not answer again"));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -358,7 +359,7 @@ export function ChatPage({ arg }: { arg: string }) {
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-card/30 md:flex">{list}</aside>
       <Sheet open={listOpen} onOpenChange={setListOpen}>
         <SheetContent side="left" className="w-[85vw] max-w-80 gap-0 p-0 pt-10" showCloseButton>
-          <SheetTitle className="sr-only">Chats</SheetTitle>
+          <SheetTitle className="sr-only">{t("Chats")}</SheetTitle>
           {list}
         </SheetContent>
       </Sheet>
@@ -392,7 +393,7 @@ export function ChatPage({ arg }: { arg: string }) {
           </div>
         </div>
         {away && (
-          <Button variant="outline" size="icon" className="absolute bottom-36 left-1/2 z-10 size-8 -translate-x-1/2 rounded-full bg-background shadow-md" onClick={toBottom} title="Scroll to the end">
+          <Button variant="outline" size="icon" className="absolute bottom-36 left-1/2 z-10 size-8 -translate-x-1/2 rounded-full bg-background shadow-md" onClick={toBottom} title={t("Scroll to the end")}>
             <ArrowDown />
           </Button>
         )}
@@ -423,15 +424,15 @@ export function ChatPage({ arg }: { arg: string }) {
               placeholder={
                 conv
                   ? columns.length > 1
-                    ? `Reply to all ${columns.length} models`
-                    : "Reply"
+                    ? t("Reply to all {n} models", { n: columns.length })
+                    : t("Reply")
                   : choice.ids.length > 1
-                    ? `Ask ${choice.ids.length} models at once`
-                    : (placeholders[zone] ?? "Ask anything")
+                    ? t("Ask {n} models at once", { n: choice.ids.length })
+                    : t(placeholders[zone] ?? "Ask anything")
               }
             />
             <p className="mt-1.5 hidden text-center text-[11px] text-muted-foreground/70 md:block">
-              {conv && streaming ? "Enter to queue · sent when the answer is done · ↑ edits the last queued" : "Enter to send · Shift+Enter for a new line · runs on your Mac"}
+              {conv && streaming ? t("Enter to queue · sent when the answer is done · ↑ edits the last queued") : t("Enter to send · Shift+Enter for a new line · runs on your Mac")}
             </p>
           </div>
         </div>
@@ -478,22 +479,22 @@ function Header({
   return (
     <>
       <header className="flex h-11 shrink-0 items-center gap-1 border-b px-2 md:px-4">
-        <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onList} title="Chats">
+        <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onList} title={t("Chats")}>
           <PanelLeft />
         </Button>
-        <h2 className="min-w-0 truncate px-1 text-sm font-medium">{conv ? conv.title : "New chat"}</h2>
+        <h2 className="min-w-0 truncate px-1 text-sm font-medium">{conv ? conv.title : t("New chat")}</h2>
         {conv && <ZoneBadge zone={zone} />}
         {conv && <Pending conv={conv} />}
         <span className="flex-1" />
         {conv && copyId && (
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground max-sm:hidden" title="Copy chat (as text, for a closer look)" onClick={() => copyChat(copyId)}>
+          <Button variant="ghost" size="icon-sm" className="text-muted-foreground max-sm:hidden" title={t("Copy chat (as text, for a closer look)")} onClick={() => copyChat(copyId)}>
             <Copy />
           </Button>
         )}
         {conv && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="text-muted-foreground" title="More">
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground" title={t("More")}>
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
@@ -518,7 +519,7 @@ function Header({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        <Button variant="ghost" size="icon-sm" className="text-muted-foreground md:hidden" onClick={onNew} title="New chat">
+        <Button variant="ghost" size="icon-sm" className="text-muted-foreground md:hidden" onClick={onNew} title={t("New chat")}>
           <MessageSquarePlus />
         </Button>
         {conv && <RenameDialog key={conv.id + renaming} conv={conv} open={renaming} onOpenChange={setRenaming} />}
@@ -553,7 +554,7 @@ function Pending({ conv }: { conv: Conversation }) {
   return (
     <span className="ml-1 inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 text-[11px] font-medium text-primary">
       <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-      {n === 1 ? "Needs your OK" : `${n} need your OK`}
+      {n === 1 ? t("Needs your OK") : t("{n} need your OK", { n })}
     </span>
   );
 }
@@ -563,19 +564,19 @@ function RenameDialog({ conv, open, onOpenChange }: { conv: Conversation; open: 
   const put = useApp((s) => s.put);
   const save = async () => {
     onOpenChange(false);
-    const t = name.trim();
-    if (!t || t === conv.title) return;
+    const title = name.trim();
+    if (!title || title === conv.title) return;
     try {
-      put(await api.rename(conv.root.id, t));
+      put(await api.rename(conv.root.id, title));
     } catch (e) {
-      toast.error("Could not rename", { description: errorText(e) });
+      toast.error(t("Could not rename"), { description: errorText(e) });
     }
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Rename chat</DialogTitle>
+          <DialogTitle>{t("Rename chat")}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -586,9 +587,9 @@ function RenameDialog({ conv, open, onOpenChange }: { conv: Conversation; open: 
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           <DialogFooter className="mt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("Cancel")}
             </Button>
-            <Button type="submit">Save</Button>
+            <Button type="submit">{t("Save")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -686,9 +687,9 @@ function Welcome({
         <div className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
           <MessagesSquare className="size-6" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">{missing ? "This chat is gone" : "What can I help with?"}</h2>
+        <h2 className="text-xl font-semibold tracking-tight">{missing ? t("This chat is gone") : t("What can I help with?")}</h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          {missing ? "It was deleted, or it is still loading. Start a new one below." : <>Ask {model || "a model"} anything. Tick more models in the picker to compare their answers side by side.</>}
+          {missing ? t("It was deleted, or it is still loading. Start a new one below.") : t("Ask {model} anything. Tick more models in the picker to compare their answers side by side.", { model: model || t("a model") })}
         </p>
       </div>
       <ZoneCards value={zone} onChange={onZone} />

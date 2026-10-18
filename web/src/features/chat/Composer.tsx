@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { ArrowUp, Brain, ListPlus, ScrollText, SlidersHorizontal, Square } from "lucide-react";
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, type ReactNode } from "react";
 import type { Model, Prompt } from "@/api/types";
@@ -79,7 +80,7 @@ export const Composer = forwardRef<
         ref={area}
         rows={1}
         value={value}
-        placeholder={placeholder ?? "Ask anything"}
+        placeholder={placeholder ?? t("Ask anything")}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -106,14 +107,14 @@ export const Composer = forwardRef<
                 size="sm"
                 pressed={settings.think}
                 onPressedChange={(think) => setSettings({ think })}
-                aria-label="Think"
+                aria-label={t("Think")}
                 className="h-7 gap-1 rounded-full border border-transparent px-2.5 text-[0.8rem] text-muted-foreground hover:text-foreground aria-pressed:border-primary/35 aria-pressed:bg-primary/12 aria-pressed:text-foreground [&_svg]:size-3.5 aria-pressed:[&_svg]:text-primary"
               >
                 <Brain /> Think
               </Toggle>
             </TooltipTrigger>
             <TooltipContent className="max-w-64">
-              {settings.think ? "Think is on: " : "Think is off: "}
+              {settings.think ? t("Think is on: ") : t("Think is off: ")}
               {thinkHint}
             </TooltipContent>
           </Tooltip>
@@ -122,11 +123,11 @@ export const Composer = forwardRef<
         {streaming && queueing && (
           <Button
             className="relative h-9 shrink-0 gap-1.5 rounded-full px-3.5 max-sm:w-9 max-sm:px-0"
-            title="Queue: sent when the answer is done (Enter)"
+            title={t("Queue: sent when the answer is done (Enter)")}
             disabled={!canSend || !value.trim()}
             onClick={send}
           >
-            <ListPlus className="size-4" /> <span className="max-sm:hidden">Queue</span>
+            <ListPlus className="size-4" /> <span className="max-sm:hidden">{t("Queue")}</span>
             {queued > 0 && (
               <span className="absolute -top-1.5 -right-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-foreground px-1 text-[10px] leading-none font-semibold text-background tabular-nums">
                 {queued}
@@ -135,11 +136,11 @@ export const Composer = forwardRef<
           </Button>
         )}
         {streaming ? (
-          <Button size="icon" variant="secondary" className="size-9 shrink-0 rounded-full" title="Stop" onClick={onStop}>
+          <Button size="icon" variant="secondary" className="size-9 shrink-0 rounded-full" title={t("Stop")} onClick={onStop}>
             <Square className="size-3.5 fill-current" />
           </Button>
         ) : (
-          <Button size="icon" className="size-9 shrink-0 rounded-full" title="Send (Enter)" disabled={!canSend || !value.trim()} onClick={send}>
+          <Button size="icon" className="size-9 shrink-0 rounded-full" title={t("Send (Enter)")} disabled={!canSend || !value.trim()} onClick={send}>
             <ArrowUp className="size-4.5" />
           </Button>
         )}
@@ -160,12 +161,12 @@ function SystemPicker({
   keepText?: string;
 }) {
   const value = settings.system === "keep" && keepText == null ? "none" : settings.system;
-  const name = value === "none" ? "No system prompt" : value === "keep" ? "This chat's prompt" : (prompts.find((p) => p.id === value)?.name ?? "No system prompt");
+  const name = value === "none" ? t("No system prompt") : value === "keep" ? t("This chat's prompt") : (prompts.find((p) => p.id === value)?.name ?? t("No system prompt"));
   return (
     <Select value={value} onValueChange={(system) => setSettings({ system })}>
       <SelectTrigger
         size="sm"
-        title="System prompt (edit them on the Prompts page)"
+        title={t("System prompt (edit them on the Prompts page)")}
         className="h-7 max-w-44 border-0 bg-transparent text-[0.8rem] max-sm:px-1.5 max-sm:[&>svg:last-child]:hidden text-muted-foreground shadow-none hover:bg-muted hover:text-foreground dark:bg-transparent dark:hover:bg-muted [&_svg]:size-3.5"
       >
         <ScrollText />
@@ -177,12 +178,12 @@ function SystemPicker({
         {keepText != null && (
           <SelectItem value="keep">
             <span className="flex flex-col">
-              <span>This chat's prompt</span>
+              <span>{t("This chat's prompt")}</span>
               <span className="line-clamp-1 text-xs text-muted-foreground">{keepText}</span>
             </span>
           </SelectItem>
         )}
-        <SelectItem value="none">No system prompt</SelectItem>
+        <SelectItem value="none">{t("No system prompt")}</SelectItem>
         <SelectSeparator />
         {prompts.map((p) => (
           <SelectItem key={p.id} value={p.id}>
@@ -194,7 +195,7 @@ function SystemPicker({
         ))}
         <SelectSeparator />
         <a href="#/prompts" className="block px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground">
-          Edit prompts …
+          {t("Edit prompts …")}
         </a>
       </SelectContent>
     </Select>
@@ -213,7 +214,7 @@ function Tuning({ settings, setSettings, sampling }: { settings: Settings; setSe
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon-sm" className="relative text-muted-foreground" title="Temperature and length">
+        <Button variant="ghost" size="icon-sm" className="relative text-muted-foreground" title={t("Temperature and length")}>
           <SlidersHorizontal className="size-3.5" />
           {changed && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" aria-label="changed" />}
         </Button>
@@ -221,7 +222,7 @@ function Tuning({ settings, setSettings, sampling }: { settings: Settings; setSe
       <PopoverContent align="start" className="flex w-72 flex-col gap-4">
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs">Temperature</Label>
+            <Label className="text-xs">{t("Temperature")}</Label>
             {temp == null ? (
               <span className="text-xs text-muted-foreground tabular-nums">Auto{auto ? ` · ${fmt(auto.temperature)}` : ""}</span>
             ) : (
@@ -242,13 +243,13 @@ function Tuning({ settings, setSettings, sampling }: { settings: Settings; setSe
             onValueChange={([temperature]) => setSettings({ temperature })}
           />
           <p className="text-xs text-muted-foreground">
-            Auto is the model's recommendation {settings.think ? "for thinking" : "without thinking"}. A low temperature makes a thinking model go in circles.
+            {settings.think ? t("Auto is the model's recommendation for thinking. A low temperature makes a thinking model go in circles.") : t("Auto is the model's recommendation without thinking. A low temperature makes a thinking model go in circles.")}
           </p>
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
             <Label className="text-xs" htmlFor="chat-max-tokens">
-              Max tokens
+              {t("Max tokens")}
             </Label>
             {settings.maxTokens != null && (
               <button type="button" className={link} onClick={() => setSettings({ maxTokens: null })}>
@@ -269,7 +270,7 @@ function Tuning({ settings, setSettings, sampling }: { settings: Settings; setSe
               setSettings({ maxTokens: n > 0 ? Math.min(81920, n) : null });
             }}
           />
-          <p className="text-xs text-muted-foreground">The longest answer, thinking included.</p>
+          <p className="text-xs text-muted-foreground">{t("The longest answer, thinking included.")}</p>
         </div>
         {auto && (
           <p className="text-xs text-muted-foreground tabular-nums">
@@ -278,7 +279,7 @@ function Tuning({ settings, setSettings, sampling }: { settings: Settings; setSe
           </p>
         )}
         <Button variant="ghost" size="sm" className="self-start text-muted-foreground" disabled={!changed} onClick={() => setSettings({ temperature: null, maxTokens: null })}>
-          Reset to Auto
+          {t("Reset to Auto")}
         </Button>
       </PopoverContent>
     </Popover>

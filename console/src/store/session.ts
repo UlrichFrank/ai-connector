@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { api, onUnauthorized } from "@/api/client";
 import type { Info } from "@/api/types";
+import { t } from "@/lib/i18n";
 import { useLive } from "./live";
 
 /** loading /api/info; signin without a session; ready once signed in; unreachable when /api/info does not answer. */
@@ -53,7 +54,7 @@ export const useSession = create<SessionState>((set, get) => {
     signIn: async (password, device, user) => {
       await api.login(password, device, user);
       const info = await api.info();
-      if (!signedIn(info)) throw new Error("Signed in, but this browser did not keep the session. Is the server served over HTTPS?");
+      if (!signedIn(info)) throw new Error(t("Signed in, but this browser did not keep the session. Is the server served over HTTPS?"));
       ready(info);
     },
 
@@ -66,7 +67,7 @@ export const useSession = create<SessionState>((set, get) => {
     expire: () => {
       if (get().phase !== "ready") return;
       useLive.getState().stop();
-      set({ phase: "signin", note: "You were signed out. Sign in again to continue." });
+      set({ phase: "signin", note: t("You were signed out. Sign in again to continue.") });
     },
   };
 });
