@@ -257,3 +257,67 @@
 @media (prefers-reduced-motion: reduce) {
   .dot.live { animation: none; }
 }
+
+/* Wall Display embed mode: the iPad panel (wall-display2) shows the house's pages in a transparent web view over its
+   own dark gradient, this app in an iframe of the start page. Gated on html[data-embed="wall-display"] (the panel
+   injects it, index.html also sets it for the "WallDisplay/" user agent); normal browsers are unaffected.
+   As in home-portal's index.css. */
+/* The panel's own design tokens. The app injects them at document start (<style id="wall-display-tokens">); these
+   literals are the fallback, at zero specificity so the injected ones win. */
+:where(:root[data-embed="wall-display"]) {
+  --wd-backdrop: radial-gradient(1400px circle at top right, rgba(255, 255, 255, .18), transparent 50%), linear-gradient(to bottom right, rgba(255, 158, 102, .55), rgba(184, 89, 158, .55)), #000;
+  --wd-surface: rgba(28, 28, 30, .38);
+  --wd-surface-filter: blur(24px) saturate(180%);
+  --wd-surface-raised: rgba(44, 44, 46, .55);
+  --wd-stroke: rgba(255, 255, 255, .08);
+  --wd-stroke-active: rgba(255, 255, 255, .16);
+  --wd-radius-card: 20px; --wd-radius-tile: 18px; --wd-radius-control: 12px;
+  --wd-page-padding: 20px; --wd-gap: 16px; --wd-card-padding: 18px; --wd-tile-padding: 16px;
+  --wd-text: #ffffff; --wd-text-secondary: rgba(235, 235, 245, .6); --wd-text-tertiary: rgba(235, 235, 245, .3);
+  --wd-accent: rgba(10, 132, 255, 1);
+  --wd-font: -apple-system, system-ui, sans-serif;
+  --wd-title-size: 34px; --wd-tile-title-size: 16px; --wd-tap-target: 44px;
+}
+/* Our tokens on the panel's: translucent surfaces, hairline strokes, no shadows, no tinted canvas. */
+:root[data-embed="wall-display"] {
+  color-scheme: dark;
+  --canvas: transparent;
+  --canvas-mesh: none;
+  --surface: var(--wd-surface);
+  --surface-2: var(--wd-surface-raised);
+  --sunken: var(--wd-surface-raised);
+  --surface-gradient: var(--wd-surface);
+  --surface-gradient-raised: var(--wd-surface);
+  --line: var(--wd-stroke);
+  --line-2: var(--wd-stroke);
+  --highlight: 0 0 #0000;
+  --elevation-1: 0 0 #0000; --elevation-2: 0 0 #0000; --elevation-3: 0 0 #0000;
+  --press: 0 0 #0000; --inset-track: 0 0 #0000; --ico-hl: transparent;
+  --ink: var(--wd-text); --ink-2: var(--wd-text-secondary); --ink-3: var(--wd-text-secondary); --ink-4: var(--wd-text-tertiary);
+  --teal: var(--wd-accent); --teal-ink: var(--wd-accent); --teal-fg: #ffffff;
+  --teal-soft: color-mix(in srgb, var(--wd-accent) 16%, transparent); --focus: color-mix(in srgb, var(--wd-accent) 40%, transparent);
+  --r-lg: var(--wd-radius-card); --r-md: var(--wd-radius-tile); --r-sm: var(--wd-radius-control);
+}
+:root[data-embed="wall-display"] :is(html, body, #root) { background: transparent; }
+:root[data-embed="wall-display"] body { font-family: var(--wd-font); }
+:root[data-embed="wall-display"] .top-bar { background: transparent; border-bottom-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* the sidebar: a translucent panel, no opaque fill */
+:root[data-embed="wall-display"] nav.bg-\[var\(--surface-2\)\] { background: var(--wd-surface); border-right-color: var(--wd-stroke); backdrop-filter: var(--wd-surface-filter); -webkit-backdrop-filter: var(--wd-surface-filter); }
+/* cards and dialogs: the panel's glass */
+:root[data-embed="wall-display"] :is(.card, [data-slot="card"], [data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"], [data-slot="popover-content"]) {
+  background: var(--wd-surface); border: 1px solid var(--wd-stroke); box-shadow: none;
+  backdrop-filter: var(--wd-surface-filter); -webkit-backdrop-filter: var(--wd-surface-filter);
+}
+:root[data-embed="wall-display"] :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"], [data-slot="popover-content"]) {
+  background: rgba(28, 28, 30, .82);
+}
+/* fields, buttons, segmented controls */
+:root[data-embed="wall-display"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], [data-slot="button"], .seg) {
+  border-radius: var(--wd-radius-control); box-shadow: none;
+}
+:root[data-embed="wall-display"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"], .seg) { background: var(--wd-surface-raised); border-color: var(--wd-stroke); }
+:root[data-embed="wall-display"] .seg button[aria-pressed="true"] { background: var(--wd-stroke-active); box-shadow: none; }
+:root[data-embed="wall-display"] .ico { background: transparent; box-shadow: none; }
+/* arm's length on a wall: targets at least 44pt */
+:root[data-embed="wall-display"] .seg button { height: 44px; min-width: 48px; }
+:root[data-embed="wall-display"] [data-slot="button"] { min-height: var(--wd-tap-target); }

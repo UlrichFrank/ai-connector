@@ -5,9 +5,12 @@ import App from "./App.tsx";
 
 // dark or light, as the system is (index.html sets it before the first paint): html.dark and html[data-theme]
 const dark = matchMedia("(prefers-color-scheme: dark)");
+// in the Wall Display panel (html[data-embed=wall-display]) always dark: it draws a dark gradient behind us
+const embedded = () => document.documentElement.dataset.embed === "wall-display";
 const theme = () => {
-  document.documentElement.classList.toggle("dark", dark.matches);
-  document.documentElement.dataset.theme = dark.matches ? "dark" : "light";
+  const on = embedded() || dark.matches;
+  document.documentElement.classList.toggle("dark", on);
+  document.documentElement.dataset.theme = on ? "dark" : "light";
 };
 theme();
 dark.addEventListener("change", theme);

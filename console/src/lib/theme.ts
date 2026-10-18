@@ -6,10 +6,12 @@ export type Theme = "light" | "dark";
 
 const dark = matchMedia("(prefers-color-scheme: dark)");
 const listeners = new Set<() => void>();
+// in the Wall Display panel (html[data-embed=wall-display]) always dark: it draws a dark gradient behind us
+const isDark = () => document.documentElement.dataset.embed === "wall-display" || dark.matches;
 
 function apply() {
-  document.documentElement.classList.toggle("dark", dark.matches);
-  document.documentElement.dataset.theme = dark.matches ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", isDark());
+  document.documentElement.dataset.theme = isDark() ? "dark" : "light";
   listeners.forEach((l) => l());
 }
 
@@ -21,6 +23,6 @@ export function initTheme() {
 export function useTheme(): Theme {
   return useSyncExternalStore(
     (l) => (listeners.add(l), () => listeners.delete(l)),
-    () => (dark.matches ? "dark" : "light"),
+    () => (isDark() ? "dark" : "light"),
   );
 }
