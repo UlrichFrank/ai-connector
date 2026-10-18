@@ -69,6 +69,14 @@ export function restartCommand(os: InstallOS): string {
   return os === "windows" ? `& "${WINDOWS_EXE}" worker` : `${UNIX_BIN} worker`;
 }
 
+/**
+ * How to start it at every login (and now): a launchd agent, a systemd user unit or a scheduled task, with the server
+ * and the token from the file the first start kept (never on the service's command line). `--uninstall` undoes it.
+ */
+export function loginCommand(os: InstallOS): string {
+  return `${restartCommand(os)} --install`;
+}
+
 /** The OS of this browser, for the tab the dialog opens on. */
 export function guessOS(ua: string): InstallOS {
   return /Windows/.test(ua) ? "windows" : "unix";

@@ -6,7 +6,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { guessOS, installCommand, maskToken, psq, restartCommand, serverUrl, shq, UNIX_BIN, unixInstallCommand, windowsInstallCommand } from "./install.ts";
+import { guessOS, installCommand, loginCommand, maskToken, psq, restartCommand, serverUrl, shq, UNIX_BIN, unixInstallCommand, windowsInstallCommand } from "./install.ts";
 
 const shells = ["sh", "bash", "zsh"].filter((sh) => {
   try {
@@ -89,9 +89,11 @@ test("windows: one script block that downloads windows-amd64 and starts the work
   assert.equal(installCommand("windows", "https://ai.example.com/", "to'k"), c);
 });
 
-test("restart and OS guess", () => {
+test("restart, start at login and OS guess", () => {
   assert.equal(restartCommand("unix"), `${UNIX_BIN} worker`);
   assert.equal(restartCommand("windows"), `& "$env:LOCALAPPDATA\\ai-connector\\ai-connector.exe" worker`);
+  assert.equal(loginCommand("unix"), `${UNIX_BIN} worker --install`);
+  assert.equal(loginCommand("windows"), `& "$env:LOCALAPPDATA\\ai-connector\\ai-connector.exe" worker --install`);
   assert.equal(guessOS("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"), "windows");
   assert.equal(guessOS("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"), "unix");
 });

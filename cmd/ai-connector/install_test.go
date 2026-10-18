@@ -301,6 +301,129 @@ func TestApplyEnv(t *testing.T) {
 	}
 }
 
+// TestInstallWorker: `ai-connector worker --install` under names of its own, hub and token never in the service.
+func TestInstallWorker(t *testing.T) {
+	def := "/Users/me/.config/mlxlab/worker.json"
+	k := workerKind(def, def, "")
+	if k.label != "de.rnd7.ai-connector.worker" || k.unit != "ai-connector-worker.service" || k.task != "ai-connector worker" ||
+		k.log != "ai-connector-worker.log" || !slices.Equal(k.args, []string{"worker"}) {
+		t.Fatalf("%+v", k)
+	}
+
+	// macOS: the default worker, no flags in the plist
+	s, ran := testService(t, "darwin", nil)
+	s.kind = &k
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(s.home, "Library", "LaunchAgents", "de.rnd7.ai-connector.worker.plist")
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plist := string(b)
+	for _, want := range []string{"<string>de.rnd7.ai-connector.worker</string>",
+		"<string>/Applications/AI &amp; Co/ai-connector</string>\n\t\t<string>worker</string>\n\t</array>",
+		filepath.Join(s.home, "Library", "Logs", "ai-connector-worker.log"), "<key>KeepAlive</key>"} {
+		if !strings.Contains(plist, want) {
+			t.Errorf("the plist lacks %q:\n%s", want, plist)
+		}
+	}
+	if strings.Contains(plist, "--token") || strings.Contains(plist, "--hub") || strings.Contains(plist, "TOKEN") {
+		t.Fatalf("hub or token in the plist:\n%s", plist)
+	}
+	if got := strings.Join(*ran, "\n"); got != "launchctl bootout gui/501/de.rnd7.ai-connector.worker\nlaunchctl bootstrap gui/501 "+p {
+		t.Fatalf("ran %q", got)
+	}
+	if !strings.Contains(s.describe(), "ai-connector worker starts at login") {
+		t.Fatal(s.describe())
+	}
+
+	// a second worker (--config, --state): names of its own, the paths on its command line
+	k2 := workerKind("/data/my cfg/worker-local.json", def, "/data/state")
+	if k2.label != "de.rnd7.ai-connector.worker.local" || k2.unit != "ai-connector-worker-local.service" ||
+		k2.task != "ai-connector worker local" || k2.log != "ai-connector-worker-local.log" ||
+		!slices.Equal(k2.args, []string{"worker", "--config", "/data/my cfg/worker-local.json", "--state", "/data/state"}) {
+		t.Fatalf("%+v", k2)
+	}
+	s, _ = testService(t, "darwin", nil)
+	s.kind = &k2
+	if c := s.content(); !strings.Contains(c, "<string>worker</string>\n\t\t<string>--config</string>\n\t\t<string>/data/my cfg/worker-local.json</string>\n\t\t<string>--state</string>\n\t\t<string>/data/state</string>\n\t</array>") ||
+		!strings.Contains(c, "<string>de.rnd7.ai-connector.worker.local</string>") {
+		t.Fatal(c)
+	}
+
+	// Linux
+	s, ran = testService(t, "linux", nil)
+	s.kind = &k2
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	b, err = os.ReadFile(filepath.Join(s.home, ".config", "systemd", "user", "ai-connector-worker-local.service"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit := string(b)
+	for _, want := range []string{`ExecStart="/Applications/AI & Co/ai-connector" worker "--config" "/data/my cfg/worker-local.json" "--state" "/data/state"` + "\n",
+		"Description=ai-connector worker", "Restart=always"} {
+		if !strings.Contains(unit, want) {
+			t.Errorf("the unit lacks %q:\n%s", want, unit)
+		}
+	}
+	if got := strings.Join(*ran, "\n"); got != "systemctl --user daemon-reload\nsystemctl --user enable ai-connector-worker-local.service\nsystemctl --user restart ai-connector-worker-local.service" {
+		t.Fatalf("ran %q", got)
+	}
+
+	// Windows: the task refused, the Run key's value, started now
+	s, ran = testService(t, "windows", map[string]bool{"schtasks /Create": true})
+	s.kind = &k2
+	s.exe = `C:\ai\ai-connector.exe`
+	s.env = [][2]string{{"MLXLAB_HOME", `D:\AI files`}}
+	s.startNow = func(exe string, args []string) error {
+		*ran = append(*ran, "start "+exe+" "+strings.Join(args, " "))
+		return nil
+	}
+	cmd := `"C:\ai\ai-connector.exe" worker --config "/data/my cfg/worker-local.json" --state /data/state --env "MLXLAB_HOME=D:\AI files"`
+	if s.command() != cmd {
+		t.Fatalf("command %s", s.command())
+	}
+	if err := s.install(); err != nil {
+		t.Fatal(err)
+	}
+	if got := (*ran)[len(*ran)-2]; got != `reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ai-connector worker local /t REG_SZ /d `+cmd+` /f` {
+		t.Fatalf("ran %q", *ran)
+	}
+	if got := (*ran)[len(*ran)-1]; got != `start C:\ai\ai-connector.exe worker --config /data/my cfg/worker-local.json --state /data/state --env MLXLAB_HOME=D:\AI files` {
+		t.Fatalf("ran %q", *ran)
+	}
+	*ran = nil
+	_ = s.uninstall()
+	if got := strings.Join(*ran, "\n"); !strings.Contains(got, "schtasks /Delete /TN ai-connector worker local /F") || !strings.Contains(got, "/v ai-connector worker local /f") {
+		t.Fatalf("ran %q", got)
+	}
+}
+
+func TestWorkerSuffix(t *testing.T) {
+	for in, want := range map[string]string{"/x/worker-local.json": "local", "/x/Pi.json": "pi", "/x/worker_Studio 2.json": "studio-2",
+		"/x/hub.example.org.json": "hub-example-org", "/x/second": "second"} {
+		if got := workerSuffix(in); got != want {
+			t.Errorf("workerSuffix(%q) = %q, want %q", in, got, want)
+		}
+	}
+	// a name that says nothing: by the path, distinct per folder
+	a, b := workerSuffix("/a/worker.json"), workerSuffix("/b/worker.json")
+	if len(a) != 8 || a == b || workerSuffix("/a/worker.json") != a {
+		t.Fatalf("%q %q", a, b)
+	}
+	if workerLock("/x/worker.json") != "/x/worker.lock" || workerLock("/x/second") != "/x/second.lock" {
+		t.Fatal(workerLock("/x/worker.json"))
+	}
+	// the default file, however it is spelled: the plain names
+	if k := workerKind("/u/.config/mlxlab/../mlxlab/worker.json", "/u/.config/mlxlab/worker.json", ""); k.label != "de.rnd7.ai-connector.worker" {
+		t.Fatal(k.label)
+	}
+}
+
 func TestInstallElsewhere(t *testing.T) {
 	s, _ := testService(t, "plan9", nil)
 	if err := s.install(); err == nil {

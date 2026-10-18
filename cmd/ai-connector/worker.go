@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -98,6 +100,96 @@ func saveWorker(file string, cfg workerConfig) error {
 		return err
 	}
 	return os.Chmod(file, 0o600) // an older file keeps its mode with WriteFile
+}
+
+// workerLock is the instance lock of the worker with the config file file, beside it (worker.json → worker.lock):
+// one `ai-connector worker` per file, so a terminal copy and the one started at login do not both dial the hub with
+// the same token (instance.go).
+func workerLock(file string) string {
+	return strings.TrimSuffix(file, filepath.Ext(file)) + ".lock"
+}
+
+// takeWorkerLock waits until no other worker with file runs and takes its lock (nil, nil: stopped while waiting).
+func takeWorkerLock(file string) (*os.File, error) {
+	path := workerLock(file)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	waited := false
+	lock, err := waitInstance(ctx, path, 5*time.Second, func(pid int) {
+		who := "another mlxlab worker runs"
+		if pid > 0 {
+			who += fmt.Sprintf(" (pid %d)", pid)
+		}
+		fmt.Printf("%s with %s: waiting until it ends (`ai-connector worker --install` replaces it)\n", who, file)
+		waited = true
+	})
+	if errors.Is(err, context.Canceled) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if waited {
+		fmt.Println("the other mlxlab worker ended: this one takes over")
+	}
+	return lock, nil
+}
+
+// workerKind is the start at login of `ai-connector worker` with the config file file (def: the default one,
+// <config dir>/worker.json) and the --state dir ("": not given). Another file than the default one is a second
+// worker on this computer: its service has names of its own (workerSuffix) and runs with --config FILE; --state DIR
+// goes on its command line too (both as absolute paths). Hub and token never: they are in the file (0600).
+func workerKind(file, def, state string) serviceKind {
+	k := serviceKind{label: "de.rnd7.ai-connector.worker", unit: "ai-connector-worker.service", task: "ai-connector worker",
+		log: "ai-connector-worker.log", what: "ai-connector worker", desc: "ai-connector worker (this computer's models for its server)",
+		args: []string{"worker"}}
+	if absPath(file) != absPath(def) {
+		sfx := workerSuffix(file)
+		k.label += "." + sfx
+		k.unit = "ai-connector-worker-" + sfx + ".service"
+		k.task += " " + sfx
+		k.log = "ai-connector-worker-" + sfx + ".log"
+		k.what += " --config " + file
+		k.args = append(k.args, "--config", absPath(file))
+	}
+	if state != "" {
+		k.args = append(k.args, "--state", absPath(state))
+	}
+	return k
+}
+
+// workerSuffix names a second worker's service after its config file: worker-local.json → "local", Pi.json → "pi"
+// (lower case, a-z 0-9 -); a name that says nothing (worker.json in another folder) → the first 8 hex digits of the
+// SHA-256 of the file's absolute path.
+func workerSuffix(file string) string {
+	name := strings.ToLower(strings.TrimSuffix(filepath.Base(file), filepath.Ext(file)))
+	for _, p := range []string{"worker-", "worker_", "worker."} {
+		name = strings.TrimPrefix(name, p)
+	}
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case b.Len() > 0 && !strings.HasSuffix(b.String(), "-"):
+			b.WriteByte('-')
+		}
+	}
+	if s := strings.TrimRight(b.String(), "-"); s != "" && s != "worker" {
+		return s
+	}
+	sum := sha256.Sum256([]byte(absPath(file)))
+	return hex.EncodeToString(sum[:4])
+}
+
+func absPath(p string) string {
+	if a, err := filepath.Abs(p); err == nil {
+		return a
+	}
+	return filepath.Clean(p)
 }
 
 // worker serves handler to the hub until Ctrl-C (or SIGTERM), printing every change of the connection.

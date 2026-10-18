@@ -195,6 +195,7 @@ The web app, the terminal UI and the iOS app all talk to the hub, so a job start
 ```bash
 make                    # → bin/ai-connector
 bin/ai-connector worker --hub https://mlxlab.example.org --token …   # serve this Mac to the hub (remembered; make worker)
+bin/ai-connector worker --install   # start it at login (hub and token from worker.json; --uninstall)
 bin/ai-connector serve        # standalone on http://127.0.0.1:8484, no hub (development)
 bin/ai-connector              # the TUI, a client of the hub (mlxlab tui --server URL)
 bin/ai-connector list         # the models, and which are already on this Mac
@@ -289,6 +290,18 @@ Pi): `--config <file>` (`$MLXLAB_WORKER_CONFIG`) keeps its hub and token in anot
 sessions (`agents/`, `agents.json`). The models, `envs/`, `lib/`, `tools/`, `mcp.json`, the voices and trained styles
 stay shared in `~/.config/mlxlab` — nothing is downloaded twice. Defaults: `worker.json` and the config dir itself, as
 before. `make local-up` runs such a second worker ([docs/local.md](docs/local.md)).
+
+**Starts at login:** `ai-connector worker --install` (with `--hub`/`--token` or `$MLXLAB_HUB`/`$MLXLAB_WORKER_TOKEN`,
+else what the config file has; neither → it refuses) keeps hub and token in the config file (0600) and installs a
+launchd agent `de.rnd7.ai-connector.worker` (log `~/Library/Logs/ai-connector-worker.log`), a systemd user unit
+`ai-connector-worker.service` or a scheduled task "ai-connector worker" (the Run key when Windows refuses it), as
+`ai-connector vboard --install` does. The service runs `ai-connector worker` — no token on its command line or in its
+file, only `--config`/`--state` when they were given (absolute paths). Another `--config` is a second worker with
+names of its own from the file's name: `worker-local.json` → `de.rnd7.ai-connector.worker.local`,
+`ai-connector-worker-local.service`, "ai-connector worker local" (a name that says nothing, like `worker.json` in
+another folder: 8 hex digits of the path's SHA-256). One worker runs per config file (a lock, `worker.lock` beside
+`worker.json`): a second one waits; `--install` stops the running copy, the service takes over. `--uninstall` (with
+the same `--config`) stops and removes it.
 
 ## iOS app
 
