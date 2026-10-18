@@ -295,6 +295,7 @@
   --press: 0 0 #0000; --inset-track: 0 0 #0000; --ico-hl: transparent;
   --ink: var(--wd-text); --ink-2: var(--wd-text-secondary); --ink-3: var(--wd-text-secondary); --ink-4: var(--wd-text-tertiary);
   --teal: var(--wd-accent); --teal-ink: var(--wd-accent); --teal-fg: #ffffff;
+  --ink-gradient: linear-gradient(var(--wd-accent), var(--wd-accent)); --ink-gradient-fg: #ffffff;
   --teal-soft: color-mix(in srgb, var(--wd-accent) 16%, transparent); --focus: color-mix(in srgb, var(--wd-accent) 40%, transparent);
   --r-lg: var(--wd-radius-card); --r-md: var(--wd-radius-tile); --r-sm: var(--wd-radius-control);
 }
