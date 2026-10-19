@@ -45,16 +45,27 @@ const standaloneFile = "standalone.json"
 
 type standaloneState struct {
 	WorkerToken string `json:"workerToken"`
+	// ClientToken: the token of the local apps (LocalClient)
+	ClientToken string `json:"clientToken,omitempty"`
+}
+
+func (s *Server) readStandalone() standaloneState {
+	var st standaloneState
+	if b, err := os.ReadFile(filepath.Join(s.cfg.Data, standaloneFile)); err == nil {
+		_ = json.Unmarshal(b, &st)
+	}
+	return st
+}
+
+func (s *Server) writeStandalone(st standaloneState) error {
+	b, _ := json.MarshalIndent(st, "", "  ")
+	return os.WriteFile(filepath.Join(s.cfg.Data, standaloneFile), b, 0o600)
 }
 
 // LocalWorker is the token of this machine as the standalone hub's worker: the one made before while the hub still
 // knows it, else a new worker (name, owner) — the owner is the one of the connector, so Claude Code runs here.
 func (s *Server) LocalWorker(name, owner string) (string, error) {
-	file := filepath.Join(s.cfg.Data, standaloneFile)
-	var st standaloneState
-	if b, err := os.ReadFile(file); err == nil {
-		_ = json.Unmarshal(b, &st)
-	}
+	st := s.readStandalone()
 	if st.WorkerToken != "" {
 		if w, ok := s.workers.lookup(st.WorkerToken); ok && w.Owner == owner {
 			return st.WorkerToken, nil
@@ -65,8 +76,28 @@ func (s *Server) LocalWorker(name, owner string) (string, error) {
 		return "", err
 	}
 	st.WorkerToken = token
-	b, _ := json.MarshalIndent(st, "", "  ")
-	if err := os.WriteFile(file, b, 0o600); err != nil {
+	if err := s.writeStandalone(st); err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+// LocalClient is the client token of the apps on this machine (EDDy, scripts): they find it with the hub's address
+// in the discovery file (cmd/ai-connector/localai.go) and use the OpenAI API with it. Kept like the worker token:
+// the one made before while the hub still knows it (it may have been removed in the console), else a new client.
+func (s *Server) LocalClient(name, owner string) (string, error) {
+	st := s.readStandalone()
+	if st.ClientToken != "" {
+		if c, ok := s.clients.lookup(st.ClientToken); ok && c.Owner == owner {
+			return st.ClientToken, nil
+		}
+	}
+	token, _, err := s.clients.add(name, owner)
+	if err != nil {
+		return "", err
+	}
+	st.ClientToken = token
+	if err := s.writeStandalone(st); err != nil {
 		return "", err
 	}
 	return token, nil

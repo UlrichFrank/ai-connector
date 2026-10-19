@@ -225,6 +225,14 @@ func vboardCommand(args []string) error {
 		go func() { _ = http.Serve(cl, s.Handler()) }()
 	}
 	go logConnector(ctx, s)
+	// the apps on this computer use the same models through the hub (localai.go)
+	if clientToken, err := s.LocalClient("local apps", standaloneOwner); err != nil {
+		fmt.Fprintf(os.Stderr, "local apps: %v\n", err)
+	} else if err := writeLocalAI(root, localAI{URL: "http://" + l.Addr().String(), Token: clientToken, PID: os.Getpid()}); err != nil {
+		fmt.Fprintf(os.Stderr, "local apps: %v\n", err)
+	} else {
+		defer removeLocalAI(root, os.Getpid())
+	}
 
 	_, mgr := setup(root, own)
 	// downloads on request (vboard's Download), and the small models vboard needs at once

@@ -75,3 +75,30 @@ func TestEnsureConnectorChecksItsSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestLocalClientKeepsItsToken(t *testing.T) {
+	dir := t.TempDir()
+	s, _ := newHub(t, dir)
+	worker, err := s.LocalWorker("this-mac", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tok, err := s.LocalClient("local apps", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, ok := s.clients.lookup(tok); !ok || c.Owner != "local" || c.Name != "local apps" {
+		t.Fatalf("client %+v %v", c, ok)
+	}
+	// a hub opened again on the same files keeps the client, and the worker beside it
+	s2, _ := newHub(t, dir)
+	if again, _ := s2.LocalClient("local apps", "local"); again != tok {
+		t.Fatal("a new hub on the same data made another client")
+	}
+	if w, _ := s2.LocalWorker("this-mac", "local"); w != worker {
+		t.Fatal("the client token replaced the worker token")
+	}
+	if n := len(s2.clients.list()); n != 1 {
+		t.Fatalf("%d clients, want 1", n)
+	}
+}
