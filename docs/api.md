@@ -70,6 +70,22 @@ domain `local.`, the instance name `MLXLAB_MDNS_NAME` (default `AI Connector`), 
 built-in server (loopback only) never announces. In Kubernetes the multicast reaches the LAN only with `hostNetwork`
 (docs/deploy.md, `mdns.enabled`).
 
+## Local apps (the discovery file)
+
+Apps on the same computer as `ai-connector vboard` (EDDy, scripts) use its models without any setup: while it runs,
+it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, so only the same user reads it):
+
+```json
+{ "url": "http://127.0.0.1:52817", "token": "aic_…", "pid": 4711 }
+```
+
+* `url`: the built-in hub on a loopback port (a new one at every start); the OpenAI API below with `token` as client
+  token (the client "local apps", owner `local`: Claude Code runs as this computer's user).
+* The token stays the same across restarts (kept in `<config>/vboard/standalone.json`); removing the client in the
+  console makes a new one at the next start.
+* The file is written once the hub listens and removed when it ends; a file left by a crash names a port nobody
+  answers on — apps treat a refused connection as "no local AI".
+
 ## OpenAI-compatible API (client or device token)
 
 Model ids are the catalogue ids the workers list (`GET /api/models`): built-in ones (`qwen3.6-35b-a3b`,
