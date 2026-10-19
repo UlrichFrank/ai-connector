@@ -174,7 +174,7 @@ func (c *Catalog) OfKind(k Kind) []*Model {
 const gb = int64(1) << 30
 
 // NewCatalog builds the catalogue: the vboard models (chat, embedder, classifier), local MLX chat models (LM
-// Studio, the Hugging Face cache), FLUX.2 klein, Qwen-Image, the SeedVR2 upscalers, the BiRefNet cutouts and LTX-2.5.
+// Studio, the Hugging Face cache), FLUX.2 klein, Z-Image Turbo, Qwen-Image, the SeedVR2 upscalers, the BiRefNet cutouts and LTX-2.5.
 func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	_, hub := llm.LocalRoots()
 	c := &Catalog{HFHub: hub}
@@ -254,6 +254,9 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		}
 		add(m)
 	}
+
+	// Z-Image Turbo through mflux: mflux's 4-bit pack, the image generator for 16 GB Macs (zimage.go)
+	add(zImageTurbo(store, hub))
 
 	// Qwen-Image through mflux: the 20B MMDiT 2512 (text to image) and Edit 2511 (editing with reference images) with
 	// the Qwen2.5-VL 7B text encoder, and the second generation 2.1 (7B transformer, Qwen3-VL encoder). mflux keeps

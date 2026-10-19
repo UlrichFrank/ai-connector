@@ -196,7 +196,8 @@ func TestSetupModelsRecommended(t *testing.T) {
 
 // audioCatalog is the catalogue's music, sound and speech models and the upscalers (nothing here), and FLUX.2 klein 4B.
 func audioCatalog() *Catalog {
-	ms := []*Model{{ID: "flux2-klein-4b", Name: "FLUX.2 [klein] 4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"}}
+	ms := []*Model{{ID: "flux2-klein-4b", Name: "FLUX.2 [klein] 4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"},
+		zImageTurbo(&models.Store{Dir: "/nonexistent"}, "")}
 	ms = append(ms, seedvr2Catalog(&models.Store{Dir: "/nonexistent"}, "")...)
 	ms = append(ms, musicModels()...)
 	ms = append(ms, soundModels()...)
@@ -302,7 +303,7 @@ func TestSetupModelsRecommendedAudio(t *testing.T) {
 		{64 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b"}},
 		{32 * gb, []string{"ace-step-1.5-turbo", "flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b"}},
 		{24 * gb, []string{"flux2-klein-4b", "kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b", "stable-audio-3-small"}},
-		{16 * gb, []string{"kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b", "stable-audio-3-small"}},
+		{16 * gb, []string{"kokoro-82m", "moss-soundeffect", "qwen3-forced-aligner", "seedvr2-3b", "stable-audio-3-small", "z-image-turbo"}},
 	} {
 		var got []string
 		roles := map[string]bool{}

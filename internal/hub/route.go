@@ -48,6 +48,8 @@ var peaks = []struct {
 	{"ace-step-", 10},
 	{"flux2-klein-4b", 15},
 	{"flux2-klein-base-4b", 15},
+	// Z-Image Turbo, mflux's 4-bit pack: estimated from its 5.5 GB of weights at 1024² (not measured yet)
+	{"z-image-turbo", 9},
 	// Qwen-Image q8 (the bf16 text encoder stays loaded): 2512 measured 40.1 GB at 512², 8 steps (M-series, 64 GB);
 	// 1024² and the edit model's reference tokens add a little. 2.1: estimated from mflux's notes (46 GB bf16).
 	{"qwen-image-2512", 42},

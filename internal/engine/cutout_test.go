@@ -37,7 +37,7 @@ func TestCutoutCatalog(t *testing.T) {
 	if ms[0].side != 1024 || ms[1].side != 2048 || ms[2].side != 1024 {
 		t.Errorf("sides %d %d %d", ms[0].side, ms[1].side, ms[2].side)
 	}
-	if recommendedOf("image/cutout", 16*gb) != "birefnet" || recommendedOf(string(Image), 16*gb) != "flux2-klein-4b" {
+	if recommendedOf("image/cutout", 16*gb) != "birefnet" || recommendedOf(string(Image), 32*gb) != "flux2-klein-4b" {
 		t.Error("recommended")
 	}
 	// the code, the config and the weights; not the README, the handler or the requirements

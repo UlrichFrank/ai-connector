@@ -242,7 +242,7 @@ func recommendedOf(role string, mem int64) string {
 	case string(Classify):
 		return "laya-typed-decisions"
 	case string(Image):
-		return "flux2-klein-4b"
+		return RecommendedImage(mem)
 	case string(Image) + "/" + TaskUpscale:
 		return "seedvr2-3b"
 	case string(Image) + "/" + TaskCutout:
