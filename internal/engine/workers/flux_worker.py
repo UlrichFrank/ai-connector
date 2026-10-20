@@ -1,8 +1,9 @@
-# mlxlab's mflux worker (FLUX.2 klein, Qwen-Image, SeedVR2): keeps one mflux model loaded and answers requests.
+# mlxlab's mflux worker (FLUX.2 klein, Z-Image Turbo, Qwen-Image, SeedVR2): keeps one mflux model loaded and answers
+# requests.
 #
 # Protocol: one JSON request per line on stdin; events as JSON lines on file descriptor 3 (stdout and stderr stay
 # free for the libraries' own output, which mlxlab shows as log lines).
-#   request: {"model": "flux2-klein-4b" | "qwen-image" | "qwen-image-edit" | "qwen-image-2.1", "path": "/dir", "quantize": 8, "prompt": "…", "width": 1024, "height": 1024, "steps": 4,
+#   request: {"model": "flux2-klein-4b" | "z-image-turbo" | "qwen-image" | "qwen-image-edit" | "qwen-image-2.1", "path": "/dir", "quantize": 8, "prompt": "…", "width": 1024, "height": 1024, "steps": 4,
 #             "seed": 1, "guidance": 1.0, "images": ["ref.png"], "negativePrompt": "…", "output": "/path/out.png"}
 #   upscale: {"model": "seedvr2-3b" | "seedvr2-7b", "upscale": true, "path": "/dir", "quantize": 0, "image": "in.png",
 #             "scale": 2, "maxSide": 4096, "seed": 1, "output": "/path/out.png"}
@@ -68,6 +69,13 @@ def model_class(name, edit):
         from mflux.models.qwen21.variants.txt2img.qwen_image_21 import QwenImage21
 
         return QwenImage21
+    if name == "z-image-turbo":
+        # mflux's 4-bit pack: loaded as stored (no quantize); the Turbo model sets the guidance to 0 itself
+        if edit:
+            raise ValueError("Z-Image Turbo makes pictures from text only")
+        from mflux.models.z_image import ZImage
+
+        return ZImage
     return Flux2KleinEdit if edit else Flux2Klein
 
 
@@ -99,7 +107,7 @@ def model_for(req):
         loaded["key"], loaded["model"] = None, None
         mx.clear_cache()
         q = req.get("quantize")
-        emit(type="status", text=f"loading {req['model']} ({'bf16' if not q else str(q) + '-bit'}) …")
+        emit(type="status", text=f"loading {req['model']} ({'as stored' if not q else str(q) + '-bit'}) …")
         t0 = time.time()
         config = None if req.get("upscale") else ModelConfig.from_name(req["model"])
         model = cls(model_config=config, model_path=req.get("path"), quantize=q or None)
