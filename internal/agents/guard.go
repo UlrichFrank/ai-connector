@@ -20,7 +20,7 @@ import (
 //     unless the allow-list names them, the user's own settings files ignored), with --tools naming only the
 //     built-in tools of the allow-list.
 //   - The default allow-list reads only the session's folder (Read(./**) …).
-//   - --disallowedTools denies reading and editing the control tree (<agents>/.ctl), the rest of the config folder
+//   - Deny rules (permissions.deny of the session's --settings file) deny reading and editing the control tree (<agents>/.ctl), the rest of the config folder
 //     (worker.json with the worker token, agents.json, other sessions), ~/.claude*, ~/.ssh and /proc; of the
 //     agents' own Claude Code config folder (<agents>/.claude-home, home.go) everything but the session's own
 //     project folder, where Claude Code saves the large tool results the model is to read.
@@ -98,7 +98,7 @@ func absRule(p string) string {
 	return "//" + strings.TrimPrefix(filepath.ToSlash(p), "/")
 }
 
-// denyRules are the --disallowedTools of a session: no reading or editing of the control tree, the rest of the
+// denyRules are the deny rules of a session (its --settings file): no reading or editing of the control tree, the rest of the
 // config folder, other sessions' folders, Claude Code's own files (the user's ~/.claude* entirely; of the agents'
 // config folder all but the session's own project folder, where its saved tool results are), ssh keys and /proc
 // (the process environment holds the MCP secrets).

@@ -67,7 +67,8 @@ func hookCommand(file string) string {
 
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-func startTTY(s *Session, args []string) (driver, error) {
+// startTTY starts Claude Code on a terminal, with the session's settings (its deny rules) and the hooks.
+func startTTY(s *Session, args []string, settings map[string]any) (driver, error) {
 	hooks := filepath.Join(s.ctl, "hooks.jsonl")
 	_ = os.Remove(hooks)
 	if err := os.WriteFile(hooks, nil, 0o600); err != nil {
@@ -77,11 +78,15 @@ func startTTY(s *Session, args []string) (driver, error) {
 	for _, ev := range hookEvents {
 		h[ev] = []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": hookCommand(hooks)}}}}
 	}
-	settings := filepath.Join(s.ctl, "settings.json")
-	if err := writeJSONFile(settings, map[string]any{"hooks": h}); err != nil {
+	settings["hooks"] = h
+	file := filepath.Join(s.ctl, "settings.json")
+	if err := writeJSONFile(file, settings); err != nil {
 		return nil, err
 	}
-	args = append([]string{"--settings", settings}, args...)
+	args = append([]string{"--settings", file}, args...)
+	if err := checkArgs(s.m.command(), args); err != nil {
+		return nil, err
+	}
 	p, err := startPTY(s.m.command(), args, s.cwd, s.m.environ(append([]string{"TERM=xterm-256color"}, s.env...)...), 120, 40)
 	if err != nil {
 		return nil, err
