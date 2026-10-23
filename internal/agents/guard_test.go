@@ -21,6 +21,8 @@ type started struct {
 	MCPExpanded string            `json:"mcpExpanded"`
 	Env         map[string]string `json:"env"`
 	ClaudeEnv   map[string]string `json:"claudeEnv"` // CLAUDE_CONFIG_DIR & co. as set
+	System      string            `json:"system"`    // the system prompt as read at the start
+	Deny        []string          `json:"deny"`      // the deny rules (--settings, --disallowedTools)
 }
 
 func (s started) flag(name string) (string, bool) {
@@ -34,6 +36,9 @@ func (s started) flag(name string) (string, bool) {
 	}
 	return "", false
 }
+
+// denied are the start's deny rules, joined like --disallowedTools.
+func (s started) denied() (string, bool) { return strings.Join(s.Deny, ","), len(s.Deny) > 0 }
 
 // guardedManager is a fake manager in a config folder like ~/.config/mlxlab (with a worker.json), whose claude
 // logs how it was started.
@@ -105,7 +110,7 @@ func TestSessionGuard(t *testing.T) {
 		strings.Contains(allowed, "Read,") {
 		t.Fatalf("--allowedTools %q", allowed)
 	}
-	deny, _ := s.flag("--disallowedTools")
+	deny, _ := s.denied()
 	for _, want := range []string{
 		"Read(" + absRule(filepath.Join(m.Root, ".ctl")) + "/**)", "Edit(" + absRule(filepath.Join(m.Root, ".ctl")) + "/**)",
 		"Read(" + absRule(filepath.Join(m.Home, "worker.json")) + ")", "Read(" + absRule(filepath.Join(m.Home, "agents.json")) + ")",
@@ -133,7 +138,7 @@ func TestSessionGuard(t *testing.T) {
 	if tools, _ := all[len(all)-1].flag("--tools"); tools != "Read,Glob,Grep,WebSearch,WebFetch,TodoWrite" {
 		t.Fatalf("--tools without MCP %q", tools)
 	}
-	deny2, _ := all[len(all)-1].flag("--disallowedTools")
+	deny2, _ := all[len(all)-1].denied()
 	if !strings.Contains(deny2, "Read("+own+"/**)") || strings.Contains(deny2, absRule(filepath.Join(m.Root, res2.Session))+"/**)") {
 		t.Fatalf("second session's deny rules: %s", deny2)
 	}
@@ -153,7 +158,7 @@ func TestPersonSessionTools(t *testing.T) {
 	if tools, _ := all[0].flag("--tools"); tools != "default" {
 		t.Fatalf("--tools %q", tools)
 	}
-	if deny, _ := all[0].flag("--disallowedTools"); !strings.Contains(deny, "/.ctl/**)") {
+	if deny, _ := all[0].denied(); !strings.Contains(deny, "/.ctl/**)") {
 		t.Fatalf("deny %s", deny)
 	}
 }

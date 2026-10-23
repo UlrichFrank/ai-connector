@@ -474,9 +474,9 @@ id is kept per conversation (`<config>/agents/resume.json`): a closed, stopped o
 conversation restarts its process (resumed).
 
 * **json** (default; for the APIs) — `claude -p --input-format stream-json --output-format stream-json --verbose
-  --include-partial-messages --restricted --tools <built-in tools of the allow-list>[,ToolSearch] --model <m> --strict-mcp-config
-  --mcp-config <file> --allowedTools <list> --disallowedTools <deny rules> --permission-prompts none
-  [--append-system-prompt …] [--effort <level>] [--resume <id>]` with `CLAUDE_CONFIG_DIR=<agents>/.claude-home`
+  --include-partial-messages --settings <file with the deny rules> --restricted --tools <built-in tools of the allow-list>[,ToolSearch]
+  --model <m> --strict-mcp-config --mcp-config <file> --allowedTools <list> --permission-prompts none
+  [--append-system-prompt-file <file>] [--effort <level>] [--resume <id>]` with `CLAUDE_CONFIG_DIR=<agents>/.claude-home`
   ("Claude Code's own files" below; see "Security" below), kept running. A turn is a line
   `{"type":"user","message":{"role":"user","content":"…"}}` on its stdin; the answer is read from stdout
   (`stream_event` `content_block_delta`/`text_delta` → text; `tool_use` blocks of `assistant` messages and
@@ -486,6 +486,12 @@ conversation restarts its process (resumed).
   process stays for the next turn (SIGINT if the request cannot be written; the process is killed if the turn has not
   ended 10 s later — the next turn then resumes the conversation). `--permission-prompts none` (used when `claude
   --help` lists it): a tool outside the allow-list is refused at once instead of waiting for an answer nobody gives.
+  **Nothing unbounded on the command line** (Windows' CreateProcess takes 32 767 characters, Linux 128 KB per
+  argument): the deny rules (they grow with the folders around) are in the `--settings` file, the system prompt in
+  `system.md` for `--append-system-prompt-file` (hidden in `--help`, which names it as `--append-system-prompt[-file]`;
+  removed when the process ends). A Claude Code without it gets a system prompt up to 8 KB as
+  `--append-system-prompt`, a longer one in front of the first turn's message (`<system>…</system>`). A command line
+  over 32 KB on Windows fails with a clear error instead of "The filename or extension is too long".
 * **tty** — an interactive `claude` in a pseudo terminal (unix: `github.com/creack/pty`; **not on Windows yet**:
   the job fails with "tty sessions are not supported on Windows yet"), kept running and **attachable from the
   browser**. API turns are typed into it (a bracketed paste, then Enter); the answer comes from Claude Code's hooks:
@@ -573,7 +579,7 @@ turn each; the model asked for the text of the board's last item):
 
 Each session works in **its own folder** `<config>/agents/<session id>/` (the same id for the same owner and key,
 so `--resume` finds the conversation, which Claude Code keeps per folder); its control files (`mcp.json`,
-`settings.json`, `hooks.jsonl`, mode 0600; no secrets) are in `<config>/agents/.ctl/<session id>/`, outside that
+`settings.json`, `system.md`, `hooks.jsonl`, mode 0600; no secrets) are in `<config>/agents/.ctl/<session id>/`, outside that
 folder and denied to the session (see "Security").
 `<config>` is `~/.config/mlxlab` (`$MLXLAB_HOME`).
 
@@ -613,14 +619,14 @@ Code's credentials and ssh keys would then leak to everyone who sees the board, 
   and the value is in the environment of that Claude Code process only (Claude Code expands `${VAR}` in MCP
   headers; checked with Claude Code 2.1.288 against an MCP endpoint that recorded the header). The control folder
   `<config>/agents/.ctl/<id>/` (mode 0700, files 0600) then holds `mcp.json` without secrets, `settings.json`
-  (the tty hooks) and `hooks.jsonl`.
+  (the deny rules; a tty session's hooks), `system.md` (the system prompt while the process runs) and `hooks.jsonl`.
 * **Confined file tools.** Claude Code runs `--restricted` (when its `--help` lists it): the file tools stay in
   the working folder, command-running tools and WebFetch exist only when `--tools` names them, the user's own
   settings files are ignored. `--tools` names only the built-in tools of the allow-list, plus `ToolSearch` with MCP
   servers (a person's own tty session: `default`, the person answers the prompts). The default allow-list reads only
   `./**`. Checked with Claude Code 2.1.288 (haiku): a session asked to `Grep` a folder outside its own is refused
   ("… is outside …; --restricted confines the file tools to the working directory").
-* **Explicit deny rules** (`--disallowedTools`, `Read(…)`, `Edit(…)`, `Glob(…)` and `Grep(…)`; deny beats allow): the control tree
+* **Explicit deny rules** (`permissions.deny` of the `--settings` file, `Read(…)`, `Edit(…)`, `Glob(…)` and `Grep(…)`; deny beats allow): the control tree
   `<agents>/.ctl/**`, `<agents>/resume.json`, the other sessions' folders, every other entry of the config folder
   (`worker.json` with the worker token, `agents.json`, `client.json`, `history.json`, `outputs/`, `models/`, …),
   `~/.config/mlxlab/**` when the session is not inside it, `~/.claude*` (credentials, settings, transcripts; and

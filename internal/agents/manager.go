@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -471,10 +472,15 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 		}
 	}
 	args = append(args, "--model", s.opts.Model, "--strict-mcp-config", "--mcp-config", mcpFile,
-		"--allowedTools", strings.Join(allowed, ","), "--disallowedTools", strings.Join(m.denyRules(s), ","))
-	if s.opts.System != "" {
-		args = append(args, "--append-system-prompt", s.opts.System)
+		"--allowedTools", strings.Join(allowed, ","))
+	// the deny rules go into the session's --settings file: they grow with the folders around (other sessions, the
+	// config folder) and would not fit on Windows' command line (checkArgs)
+	settings := map[string]any{"permissions": map[string]any{"deny": m.denyRules(s)}}
+	sys, preamble, err := m.systemArgs(s, resume != "")
+	if err != nil {
+		return nil, err
 	}
+	args = append(args, sys...)
 	if s.opts.Effort != "" && m.has("--effort") {
 		args = append(args, "--effort", s.opts.Effort)
 	}
@@ -482,9 +488,71 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 		args = append(args, "--resume", resume)
 	}
 	if s.opts.Driver == DriverTTY {
-		return startTTY(s, args)
+		return startTTY(s, args, settings)
 	}
-	return startJSON(s, args)
+	file := filepath.Join(s.ctl, "settings.json")
+	if err := writeJSONFile(file, settings); err != nil {
+		return nil, err
+	}
+	return startJSON(s, append([]string{"--settings", file}, args...), preamble)
+}
+
+// maxInlineArg: the longest text that goes on the command line itself; longer ones go through a file or stdin.
+// Windows' CreateProcess takes 32767 characters for the whole command line (Linux 128 KB for one argument).
+const maxInlineArg = 8 << 10
+
+// maxCommandLine: what Windows allows for the whole command line, with room for quoting.
+const maxCommandLine = 32000
+
+// systemFile is where the session's system prompt is written for --append-system-prompt-file (in its private
+// control folder; removed when the process ends).
+func (s *Session) systemFile() string { return filepath.Join(s.ctl, "system.md") }
+
+// hasSystemFile: this claude takes --append-system-prompt-file (a hidden option: --help names it only as
+// "--append-system-prompt[-file]").
+func (m *Manager) hasSystemFile() bool {
+	return m.has("--append-system-prompt-file") || m.has("--append-system-prompt[-file]")
+}
+
+// systemArgs are the arguments for the session's system prompt. It never goes on the command line when long (the
+// limit above): a file for --append-system-prompt-file, or, for a claude without it, the preamble of the first
+// turn's message (json driver; a resumed conversation has it already).
+func (m *Manager) systemArgs(s *Session, resumed bool) (args []string, preamble string, err error) {
+	file := s.systemFile()
+	_ = os.Remove(file)
+	sys := s.opts.System
+	switch {
+	case sys == "":
+		return nil, "", nil
+	case m.hasSystemFile():
+		if err := os.WriteFile(file, []byte(sys), 0o600); err != nil {
+			return nil, "", err
+		}
+		return []string{"--append-system-prompt-file", file}, "", nil
+	case len(sys) <= maxInlineArg:
+		return []string{"--append-system-prompt", sys}, "", nil
+	case s.opts.Driver == DriverTTY:
+		return nil, "", fmt.Errorf("the system prompt (%d KB) is too long for this Claude Code's command line: update Claude Code (it takes --append-system-prompt-file)", len(sys)>>10)
+	case resumed:
+		return nil, "", nil
+	}
+	return nil, sys, nil
+}
+
+// goos is runtime.GOOS (a test sets it).
+var goos = runtime.GOOS
+
+// checkArgs: the command line fits (on Windows, where a longer one fails with "The filename or extension is too
+// long").
+func checkArgs(cmd string, args []string) error {
+	n := len(cmd) + 3
+	for _, a := range args {
+		n += len(a) + 3
+	}
+	if n > maxCommandLine && goos == "windows" {
+		return fmt.Errorf("the command line for claude is %d KB, more than Windows allows (32 KB)", n>>10)
+	}
+	return nil
 }
 
 // mcpName keeps letters, digits, - and _ (Claude Code's tool names are mcp__<server>__<tool>).
@@ -611,6 +679,7 @@ func (s *Session) shut() {
 	if drv != nil {
 		drv.close()
 	}
+	_ = os.Remove(s.systemFile()) // read when the process started; written anew for the next one
 }
 
 // remove ends a session; a one-off one also loses its folders.

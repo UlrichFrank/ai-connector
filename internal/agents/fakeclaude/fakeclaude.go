@@ -5,8 +5,8 @@
 // stops on an interrupt control request ("slow"), an early exit ("die"), and the result with usage and the
 // session's total cost — many turns on one process. Without -p it is an interactive "terminal" that runs the hooks
 // of its --settings file like Claude Code (SessionStart, UserPromptSubmit, Pre/PostToolUse, Stop) for each line
-// typed. Every start is logged to $AGENTS_FAKE_LOG, and its arguments, MCP config and environment as JSON to
-// $AGENTS_FAKE_ARGS.
+// typed. Every start is logged to $AGENTS_FAKE_LOG, and its arguments, MCP config, system prompt, deny rules and
+// environment as JSON to $AGENTS_FAKE_ARGS.
 package fakeclaude
 
 import (
@@ -81,8 +81,29 @@ func fakeClaude(args []string) int {
 				env[k] = v
 			}
 		}
+		// the system prompt as Claude Code reads it at the start: --append-system-prompt-file or --append-system-prompt
+		system := opt["--append-system-prompt"]
+		if f := opt["--append-system-prompt-file"]; f != "" {
+			b, err := os.ReadFile(f)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Append system prompt file not found: %s\n", f)
+				return 1
+			}
+			system = string(b)
+		}
+		// the deny rules: --disallowedTools and those of the --settings file
+		var settings struct {
+			Permissions struct{ Deny []string }
+		}
+		if b, err := os.ReadFile(opt["--settings"]); err == nil {
+			json.Unmarshal(b, &settings)
+		}
+		deny := settings.Permissions.Deny
+		if d := opt["--disallowedTools"]; d != "" {
+			deny = append(deny, strings.Split(d, ",")...)
+		}
 		b, _ := json.Marshal(map[string]any{"args": args, "mcpRaw": string(raw), "mcpExpanded": os.ExpandEnv(string(raw)), "env": env,
-			"claudeEnv": claudeEnv()})
+			"claudeEnv": claudeEnv(), "system": system, "deny": deny})
 		f, _ := os.OpenFile(log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		f.Write(append(b, '\n'))
 		f.Close()

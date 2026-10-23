@@ -58,15 +58,18 @@ func startFakeClaudeMac(t *testing.T, base, token string) *claudeMac {
 	return m
 }
 
-// starts are the fake's starts: its arguments, MCP config (as written and as expanded) and AIC_MCP_ environment.
+// starts are the fake's starts: its arguments, MCP config (as written and as expanded), system prompt and AIC_MCP_
+// environment.
 func (m *claudeMac) starts(t *testing.T) []struct {
 	Args                []string
 	McpRaw, McpExpanded string
+	System              string // as read at the start (--append-system-prompt-file)
 } {
 	t.Helper()
 	var out []struct {
 		Args                []string
 		McpRaw, McpExpanded string
+		System              string // as read at the start (--append-system-prompt-file)
 	}
 	f, err := os.Open(m.args)
 	if err != nil {
@@ -79,6 +82,7 @@ func (m *claudeMac) starts(t *testing.T) []struct {
 		var s struct {
 			Args                []string
 			McpRaw, McpExpanded string
+			System              string // as read at the start (--append-system-prompt-file)
 		}
 		if err := json.Unmarshal(sc.Bytes(), &s); err != nil {
 			t.Fatal(err)
@@ -308,7 +312,7 @@ func TestVboardAgentChat(t *testing.T) {
 	if len(st) != 1 {
 		t.Fatalf("starts %d", len(st))
 	}
-	sp := argOf(st[0].Args, "--append-system-prompt")
+	sp := st[0].System
 	if !strings.Contains(sp, `working for Anna on the vboard board`) || !strings.Contains(sp, `MCP server "vboard"`) ||
 		!strings.Contains(sp, `pass boardId "b_0123456789abcdef"`) || !strings.Contains(sp, "Anna (role on the board: owner)") {
 		t.Fatalf("system prompt %q", sp)

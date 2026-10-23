@@ -56,7 +56,7 @@ func TestClaudeHome(t *testing.T) {
 	if st, err := os.Stat(home); err != nil || runtime.GOOS != "windows" && st.Mode().Perm() != 0o700 {
 		t.Fatalf(".claude-home %v %v", st, err)
 	}
-	denyFlag, _ := s.flag("--disallowedTools")
+	denyFlag, _ := s.denied()
 	deny := strings.Split(denyFlag, ",")
 	for _, p := range []string{".claude.json", "custom.json", "backups", "settings.json", ".credentials.json", filepath.Join("projects", other)} {
 		r := absRule(filepath.Join(home, p))
@@ -90,7 +90,7 @@ func TestClaudeHome(t *testing.T) {
 		if len(tty.ClaudeEnv) != 0 {
 			t.Fatalf("tty environment %v", tty.ClaudeEnv)
 		}
-		d, _ := tty.flag("--disallowedTools")
+		d, _ := tty.denied()
 		if !strings.Contains(","+d+",", ",Read("+absRule(home)+"/**),") || !strings.Contains(d, "Read(~/.claude*/**)") {
 			t.Fatalf("tty deny %s", d)
 		}
@@ -116,7 +116,7 @@ func TestClaudeHomeUserConfigDir(t *testing.T) {
 		s.ClaudeEnv["CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS"] != "30000" {
 		t.Fatalf("environment %v", s.ClaudeEnv)
 	}
-	if d, _ := s.flag("--disallowedTools"); !strings.Contains(d, "Read("+absRule(userDir)+"/**)") {
+	if d, _ := s.denied(); !strings.Contains(d, "Read("+absRule(userDir)+"/**)") {
 		t.Fatalf("the user's config folder is not denied: %s", d)
 	}
 }
@@ -135,7 +135,7 @@ func TestClaudeConfigUser(t *testing.T) {
 	if len(s.ClaudeEnv) != 0 {
 		t.Fatalf("environment %v", s.ClaudeEnv)
 	}
-	if d, _ := s.flag("--disallowedTools"); !strings.Contains(d, "Read("+absRule(filepath.Join(m.Root, ".claude-home"))+"/**)") {
+	if d, _ := s.denied(); !strings.Contains(d, "Read("+absRule(filepath.Join(m.Root, ".claude-home"))+"/**)") {
 		t.Fatalf(".claude-home not denied: %s", d)
 	}
 }

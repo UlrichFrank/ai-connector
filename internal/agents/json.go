@@ -39,7 +39,8 @@ type jsonDriver struct {
 	done   chan struct{}
 	stderr *tail
 
-	wmu sync.Mutex // writes to stdin
+	wmu      sync.Mutex // writes to stdin
+	preamble string     // goes before the first turn's message (systemArgs)
 
 	mu       sync.Mutex
 	claudeID string
@@ -48,13 +49,18 @@ type jsonDriver struct {
 	reqs     int
 }
 
-func startJSON(s *Session, args []string) (driver, error) {
+// startJSON starts the process; a preamble (the system prompt of a claude that takes no file for it) goes before
+// the first turn's message.
+func startJSON(s *Session, args []string, preamble string) (driver, error) {
 	m := s.m
 	full := append([]string{"-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
 		"--include-partial-messages"}, args...)
 	if m.has("--permission-prompts") {
 		// nobody answers permission prompts of a headless session: a tool outside the allow-list is refused at once
 		full = append(full, "--permission-prompts", "none")
+	}
+	if err := checkArgs(m.command(), full); err != nil {
+		return nil, err
 	}
 	cmd := exec.Command(m.command(), full...)
 	cmd.Dir = s.cwd
@@ -68,7 +74,7 @@ func startJSON(s *Session, args []string) (driver, error) {
 		return nil, err
 	}
 	d := &jsonDriver{cmd: cmd, stdin: stdin, lines: make(chan map[string]any, 1024), done: make(chan struct{}),
-		stderr: &tail{max: 8 << 10}}
+		stderr: &tail{max: 8 << 10}, preamble: preamble}
 	cmd.Stderr = d.stderr
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("starting claude: %w", err)
@@ -138,6 +144,10 @@ func (d *jsonDriver) turn(ctx context.Context, text string, emit func(Event)) (R
 // turnContent runs a turn whose user message has this content: a text, or content blocks (images.go).
 func (d *jsonDriver) turnContent(ctx context.Context, content any, emit func(Event)) (Result, error) {
 	start := time.Now()
+	if d.preamble != "" { // one turn at a time (Session.turnMu)
+		content = withPreamble(d.preamble, content)
+		d.preamble = ""
+	}
 	if err := d.send(map[string]any{"type": "user", "message": map[string]any{"role": "user", "content": content}}); err != nil {
 		return Result{}, d.ended(err)
 	}
@@ -189,6 +199,18 @@ func (d *jsonDriver) turnContent(ctx context.Context, content any, emit func(Eve
 			return t.result(), ctx.Err()
 		}
 	}
+}
+
+// withPreamble puts the system prompt before a user message's content (a text, or content blocks).
+func withPreamble(preamble string, content any) any {
+	head := "<system>\n" + preamble + "\n</system>\n\n"
+	switch c := content.(type) {
+	case string:
+		return head + c
+	case []map[string]any:
+		return append([]map[string]any{{"type": "text", "text": head}}, c...)
+	}
+	return content
 }
 
 // ended explains a process that is gone.
