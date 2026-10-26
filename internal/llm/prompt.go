@@ -130,7 +130,8 @@ func renderQwen35(msgs []Message, tools []Tool, think bool) string {
 		case "system":
 			// only as the first message (above)
 		case "user":
-			b.WriteString("<|im_start|>user\n" + content + "<|im_end|>\n")
+			// images: a placeholder after each tag (the engine runs them when the model has a vision tower)
+			b.WriteString("<|im_start|>user\n" + strings.TrimSpace(userContent(m)) + "<|im_end|>\n")
 		case "assistant":
 			reasoning, rest := splitThought(content)
 			reasoning = strings.TrimSpace(reasoning)

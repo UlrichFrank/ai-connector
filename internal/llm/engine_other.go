@@ -19,6 +19,8 @@ type Engine struct {
 type Stats struct {
 	PromptTokens, CachedTokens, Tokens int
 	Prefill, FirstToken, Total         time.Duration
+	Images                             int
+	Vision                             time.Duration
 }
 
 func (s Stats) TokensPerSecond() float64  { return 0 }
@@ -35,5 +37,11 @@ func (e *Engine) Memory() (active, peak int) { return 0, 0 }
 func (e *Engine) Defaults() Defaults         { return ModelDefaults(e.Cfg, GenerationConfig{}) }
 
 func (e *Engine) Generate(context.Context, string, Options, func(string)) (Stats, error) {
+	return Stats{}, mlx.ErrUnsupported
+}
+
+func (e *Engine) Images() bool { return false }
+
+func (e *Engine) GenerateImages(context.Context, string, []Image, Options, func(string)) (Stats, error) {
 	return Stats{}, mlx.ErrUnsupported
 }

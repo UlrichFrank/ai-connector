@@ -307,3 +307,61 @@ func checkSafetensors(path string) error {
 	}
 	return nil
 }
+
+// HasVision: the model in dir has a vision tower the engine runs (vision_config and its weights; an mlx-lm conversion
+// keeps the config but drops the weights).
+func HasVision(dir string) bool {
+	raw, err := os.ReadFile(filepath.Join(dir, "config.json"))
+	if err != nil {
+		return false
+	}
+	if cfg, err := ParseConfig(raw); err != nil || cfg.Vision == nil {
+		return false
+	}
+	const probe = "vision_tower.patch_embed.proj.weight"
+	if raw, err := os.ReadFile(filepath.Join(dir, "model.safetensors.index.json")); err == nil {
+		var idx struct {
+			WeightMap map[string]string `json:"weight_map"`
+		}
+		if json.Unmarshal(raw, &idx) == nil && len(idx.WeightMap) > 0 {
+			_, ok := idx.WeightMap[probe]
+			return ok
+		}
+	}
+	files, err := WeightFiles(dir)
+	if err != nil {
+		return false
+	}
+	for _, f := range files {
+		if names, err := tensorNames(f); err == nil && names[probe] {
+			return true
+		}
+	}
+	return false
+}
+
+// tensorNames are the tensors a safetensors file's header names.
+func tensorNames(path string) (map[string]bool, error) {
+	fh, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer fh.Close()
+	var n uint64
+	if err := binary.Read(fh, binary.LittleEndian, &n); err != nil || n == 0 || n > 100<<20 {
+		return nil, fmt.Errorf("%s: not a safetensors file", filepath.Base(path))
+	}
+	hdr := make([]byte, n)
+	if _, err := io.ReadFull(fh, hdr); err != nil {
+		return nil, err
+	}
+	var tensors map[string]json.RawMessage
+	if err := json.Unmarshal(hdr, &tensors); err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(tensors))
+	for k := range tensors {
+		out[k] = true
+	}
+	return out, nil
+}

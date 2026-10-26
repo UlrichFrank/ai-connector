@@ -44,10 +44,10 @@ A worker offers only what it can run, and the server routes a job only to a work
 Linux worker needs glibc (it loads OpenBLAS at run time; Ubuntu, Debian, Fedora — not Alpine/musl). Windows workers
 build and pass vet but have not run on Windows yet.
 
-**Images in chats**: chat models that can see (`images: true` in the model lists: Claude Code; LM Studio vision
-models such as the Qwen3.6 MLX checkpoints; Ollama models with the `vision` capability) take images — OpenAI
-`image_url` parts with data URLs, or screenshots pasted into vboard's chat; others refuse them (docs/api.md, "Images
-in chats").
+**Images in chats**: chat models that can see (`images: true` in the model lists: Claude Code; the built-in Qwen3.5/3.6
+models, their vision tower in Go on MLX; LM Studio vision models; Ollama models with the `vision` capability) take
+images — OpenAI `image_url` parts with data URLs, or screenshots pasted into vboard's chat; others refuse them
+(docs/api.md, "Images in chats").
 
 ### Using it from other apps
 

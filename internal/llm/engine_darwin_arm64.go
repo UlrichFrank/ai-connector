@@ -29,15 +29,19 @@ type Engine struct {
 	// the sampling settings of config.json's model type and generation_config.json
 	defaults Defaults
 
-	// the prompt cache: the state after the last prompt (a follow-up round of the same conversation extends it)
-	prompt []int
-	snap   *cache
+	// the prompt cache: the state after the last prompt (a follow-up round of the same conversation extends it) and
+	// where its images were (their tokens are the same for every image: the checksums tell them apart)
+	prompt      []int
+	promptSpans []imageSpan
+	snap        *cache
 }
 
 // Stats describe one generation.
 type Stats struct {
 	PromptTokens, CachedTokens, Tokens int
 	Prefill, FirstToken, Total         time.Duration
+	Images                             int           // images run through the vision tower (not taken from the cache)
+	Vision                             time.Duration // the time that took (part of Prefill)
 }
 
 // TokensPerSecond is the decoding speed (after the first token).
@@ -187,9 +191,31 @@ const (
 
 // Generate continues prompt (the rendered conversation) and passes the text on as it comes (whole UTF-8 characters).
 func (e *Engine) Generate(ctx context.Context, prompt string, o Options, onText func(string)) (Stats, error) {
+	return e.GenerateImages(ctx, prompt, nil, o, onText)
+}
+
+// Images: the model has a vision tower the engine runs (GenerateImages takes images).
+func (e *Engine) Images() bool { return e.md != nil && e.md.vision != nil }
+
+// ErrNoImages: the model sees no images.
+var ErrNoImages = errors.New("the model does not take images")
+
+// GenerateImages is Generate for a prompt with images: Render's placeholders, one per image of images in the same
+// order (PromptImages).
+func (e *Engine) GenerateImages(ctx context.Context, prompt string, images []Image, o Options, onText func(string)) (Stats, error) {
 	var st Stats
 	start := time.Now()
 	ids := e.tok.Encode(prompt)
+	var spans []imageSpan
+	if len(images) > 0 {
+		if !e.Images() {
+			return st, ErrNoImages
+		}
+		var err error
+		if ids, spans, err = e.Cfg.Vision.expandImages(ids, images); err != nil {
+			return st, err
+		}
+	}
 	st.PromptTokens = len(ids)
 	if len(ids) == 0 {
 		return st, errors.New("empty prompt")
@@ -217,23 +243,11 @@ func (e *Engine) Generate(ctx context.Context, prompt string, o Options, onText 
 			old := mlx.SetWiredLimit(e.wired)
 			defer mlx.SetWiredLimit(old)
 		}
-		c, rest := e.startFrom(ids)
-		st.CachedTokens = len(ids) - len(rest)
-		defer c.free()
-		// the prompt, in chunks (bounded memory); the state after it is kept for the next round
-		var logits array
-		for len(rest) > 0 {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			n := min(prefillChunk, len(rest))
-			logits = e.md.forward(idsArray(rest[:n]), c)
-			rest = rest[n:]
-			if len(rest) > 0 {
-				mlx.Eval(c.arrays()...)
-				mlx.FreeTemps()
-			}
+		c, logits, err := e.prefill(ctx, ids, spans, &st)
+		if err != nil {
+			return err
 		}
+		defer c.free()
 		s := newSampler(o)
 		defer s.free()
 		y := mlx.Keep(s.next(logits))
@@ -242,7 +256,7 @@ func (e *Engine) Generate(ctx context.Context, prompt string, o Options, onText 
 		if e.snap != nil {
 			e.snap.free()
 		}
-		e.snap, e.prompt = c.snapshot(), ids
+		e.snap, e.prompt, e.promptSpans = c.snapshot(), ids, withoutData(spans)
 		mlx.FreeTemps()
 		defer func() { mlx.Free(y) }()
 		for i := 0; ; i++ {
@@ -288,25 +302,110 @@ func (e *Engine) Generate(ctx context.Context, prompt string, o Options, onText 
 	return st, err
 }
 
+// prefill runs the prompt's tokens the cache does not hold, in chunks (bounded memory), each image through the vision
+// tower when its first token comes: the cache after the prompt and the logits of its last token.
+func (e *Engine) prefill(ctx context.Context, ids []int, spans []imageSpan, st *Stats) (c *cache, logits array, err error) {
+	c, rest := e.startFrom(ids, spans)
+	st.CachedTokens = len(ids) - len(rest)
+	done := false
+	defer func() {
+		if !done {
+			c.free()
+		}
+	}()
+	var pos [][3]int
+	nextPos := 0
+	if len(spans) > 0 {
+		pos, nextPos = e.Cfg.Vision.ropePositions(len(ids), spans)
+	}
+	feats := map[int]array{} // the images' features (kept while the prompt runs)
+	defer func() {
+		for _, f := range feats {
+			mlx.Free(f)
+		}
+	}()
+	// the prompt, in chunks (bounded memory)
+	for len(rest) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, logits, err
+		}
+		n := min(prefillChunk, len(rest))
+		from := len(ids) - len(rest)
+		var mm *multimodal
+		if pos != nil {
+			mm = &multimodal{pos: pos[from : from+n], next: nextPos}
+			if from+n < len(ids) {
+				mm.next = pos[from+n][0]
+			}
+			for k, sp := range spans {
+				lo, hi := max(sp.from, from), min(sp.from+sp.n, from+n)
+				if lo >= hi {
+					continue
+				}
+				f, ok := feats[k]
+				if !ok {
+					t0 := time.Now()
+					px, err := e.Cfg.Vision.PrepareImage(sp.data)
+					if err != nil {
+						return nil, logits, fmt.Errorf("%s: %w", sp.id, err)
+					}
+					f = mlx.Keep(e.md.vision.encode(px, e.md.embed.scales.Dtype()))
+					feats[k] = f
+					mlx.Eval(f)
+					mlx.FreeTemps()
+					st.Images++
+					st.Vision += time.Since(t0)
+				}
+				mm.feats = append(mm.feats, placed{feats: f, at: lo - from, from: lo - sp.from, to: hi - sp.from})
+			}
+		}
+		logits = e.md.forwardMM(idsArray(rest[:n]), c, mm)
+		rest = rest[n:]
+		if len(rest) > 0 {
+			mlx.Eval(c.arrays()...)
+			mlx.FreeTemps()
+		}
+	}
+	done = true
+	return c, logits, nil
+}
+
 // startFrom picks up the cached state when the prompt continues the last one (a new round of the same
 // conversation): the cache and the tokens still to run. A model with only attention layers can also cut the cache
 // back to a shorter common prefix; the recurrent state of the gated delta-net layers cannot be cut.
-func (e *Engine) startFrom(ids []int) (*cache, []int) {
+func (e *Engine) startFrom(ids []int, spans []imageSpan) (*cache, []int) {
 	if e.snap != nil {
 		common := 0
 		for common < len(ids) && common < len(e.prompt) && ids[common] == e.prompt[common] {
 			common++
 		}
+		// the same tokens with another image are another prompt from that image on
+		for k, sp := range e.promptSpans {
+			if sp.from < common && (k >= len(spans) || spans[k].sum != sp.sum || spans[k].from != sp.from) {
+				common = sp.from
+				break
+			}
+		}
 		switch {
 		case common == len(e.prompt) && common < len(ids):
 			return e.snap.snapshot(), ids[common:]
-		case !e.Cfg.Hybrid() && common > 0 && common < len(ids):
+		case !e.Cfg.Hybrid() && len(e.promptSpans) == 0 && common > 0 && common < len(ids):
 			c := e.snap.snapshot()
-			c.offset = common
+			c.offset, c.pos = common, common
 			return c, ids[common:]
 		}
 	}
 	return &cache{}, ids
+}
+
+// withoutData: the spans without the images' bytes (what the prompt cache keeps).
+func withoutData(spans []imageSpan) []imageSpan {
+	out := make([]imageSpan, len(spans))
+	for i, sp := range spans {
+		sp.data = nil
+		out[i] = sp
+	}
+	return out
 }
 
 func (c *cache) arrays() []array {

@@ -169,11 +169,14 @@ message's text names each by a **tag** where it belongs — `[image-1]`, `[image
 there, the tag kept in the text so the answer can refer to it.
 
 * **Which models.** A chat model says so with `images: true` in the catalogue (`GET /api/models`, `GET /v1/models`,
-  `engine.Model.Images`): the Claude Code models (`claude-code/*`); runtime models when the runtime says they see —
+  `engine.Model.Images`): the Claude Code models (`claude-code/*`); the built-in MLX chat models with a vision tower —
+  the catalogue's Qwen3.5/3.6 (`qwen3.5-4b`, `qwen3.5-9b`, `qwen3.6-35b-a3b`, `qwen3.6-27b`) and a local MLX
+  checkpoint whose config has `vision_config` and whose weights have the tower (`llm.HasVision`); runtime models when
+  the runtime says they see —
   LM Studio's `/api/v0/models` type `"vlm"` (or a `"vision"` capability; LM Studio 0.4 lists the Qwen3.5/3.6 MLX
   checkpoints with their vision tower so, e.g. `lmstudio/qwen/qwen3.6-27b`, `lmstudio/qwen3.6-35b-a3b`), Ollama's
-  `/api/show` capability `"vision"`. Not the built-in MLX chat models (their decoder drops the vision tower), not
-  llama.cpp/vLLM models (they do not say), not embed/classify models.
+  `/api/show` capability `"vision"`. Not Qwen3 (text) checkpoints, not llama.cpp/vLLM models (they do not say), not
+  embed/classify models.
 * **`/v1/chat/completions`**: `image_url` parts with **data URLs** (`data:image/png|jpeg|webp|gif;base64,…`; the
   URL may also be the part's `image_url` string itself) become the message's images, numbered per message
   (`image-1` …); the text parts and the tags are joined with newlines in the parts' order (`[{"text":"what colour
@@ -194,6 +197,20 @@ there, the tag kept in the text so the answer can refer to it.
   end). Checked end to end with LM Studio and `qwen/qwen3.6-27b` (MLX, 4-bit): a 64×64 red PNG, "What colour is
   [image-1]?" → "Red" (`MLXLAB_IMAGES_LIVE=lmstudio/qwen/qwen3.6-27b go test ./internal/engine -run
   TestRuntimeImagesLive`).
+* **Built-in MLX chat models** (`internal/llm`, vision.go and vision_darwin_arm64.go): Qwen3-VL's vision tower in Go
+  on MLX, as Qwen3.5/3.6 have it. An image is scaled so both sides are multiples of 32 px and its area lies between
+  64 Ki and 2 Mi pixels (transformers' `smart_resize`, bicubic like PIL; alpha over white), cut into 16×16 patches;
+  every 2×2 patches become one **image token** — a 357×463 crop 154 tokens, a full-HD frame 2040. The prompt has
+  `<|vision_start|><|image_pad|><|vision_end|>` after the image's tag; the image's tokens get 3D rotary positions
+  (row and column in the picture, interleaved MRoPE), the text after it goes on after its larger side. The tower runs
+  in **float32**: in bf16 (the checkpoint's type, as mlx-vlm runs it) a few patches with activations in the
+  thousands come out wrong. Its weights are read and widened on the first image (~1.3 GB for the 4B/9B, ~1.8 GB for
+  the 35B), not at load. Measured with `qwen3.5-4b` on an M2 Pro: a player crop 0.1–0.2 s in the tower, a full-HD
+  frame ~4 s plus ~7 s for its 2040 prompt tokens, peak ~4.5 GB in all. The prompt cache tells images apart by their
+  SHA-256 (the same tokens with another image are another prompt); a tool round of the same turn runs no image
+  again. Parity with mlx-vlm 0.7.10: `TestVisionParity` (tokens equal, logits' cosine 0.998, same top token) and
+  `TestVisionStages` (the tower equal to mlx-vlm's in float32), both with `MLXLAB_LLM_DIR` and reference files from
+  mlx-vlm (see the tests). `mlxlab run --image FILE <chat model> <question>` asks about one image.
 * **Claude Code**: see "Agents (Claude Code)", Images.
 * **vboard**: the connector advertises `images` per agent and passes them on ("How the vboard connector works").
 

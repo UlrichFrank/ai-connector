@@ -41,7 +41,27 @@ type Config struct {
 	QuantOverride   map[string][2]int
 
 	EOS []int
+
+	// Vision: the vision tower of a vision-language checkpoint (Qwen3.5/3.6 with vision_config); nil: text only.
+	Vision *VisionConfig
+	// MRoPE: the rotary frequencies that turn with an image token's row (H) and column (W) instead of its place in
+	// the sequence (T); text tokens have the same position on all three. Interleaved: frequency j is H for j%3 == 1
+	// and j < 3·sections[1], W for j%3 == 2 and j < 3·sections[2], else T (Qwen3-VL's apply_interleaved_mrope).
+	MRoPESections [3]int
 }
+
+// VisionConfig is the vision tower (Qwen3-VL's): patches of PatchSize² pixels (an image counts as TemporalPatch
+// identical frames), a ViT of Depth blocks, and a merger that folds MergeSize² neighbouring patches into one token
+// of the decoder's width.
+type VisionConfig struct {
+	Depth, Hidden, Heads, Intermediate, OutHidden   int
+	PatchSize, TemporalPatch, MergeSize, InChannels int
+	NumPositions                                    int // learned position embeddings: a square grid of this many
+	ImageToken, VisionStart, VisionEnd              int // token ids
+}
+
+// Factor is the side of the pixel square one image token covers (patch × merge: 32).
+func (v *VisionConfig) Factor() int { return v.PatchSize * v.MergeSize }
 
 // Hybrid: the model has gated delta-net layers.
 func (c *Config) Hybrid() bool { return c.FullAttnInterval > 0 && c.LinearVHeads > 0 }
@@ -74,8 +94,7 @@ func (c *Config) Quant(path string) (groupSize, bits int) {
 // Supported model types.
 var supportedTypes = map[string]bool{"qwen3": true, "qwen3_moe": true, "qwen3_5": true, "qwen3_5_moe": true}
 
-// ParseConfig reads config.json (a text model's, or a vision-language model's with text_config: its vision tower is
-// not used).
+// ParseConfig reads config.json (a text model's, or a vision-language model's with text_config and vision_config).
 func ParseConfig(raw []byte) (*Config, error) {
 	var top map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &top); err != nil {
@@ -129,6 +148,8 @@ func ParseConfig(raw []byte) (*Config, error) {
 		PartialRotary *float64 `json:"partial_rotary_factor"`
 		Type          string   `json:"type"`
 		RopeType      string   `json:"rope_type"`
+		MRoPESection  []int    `json:"mrope_section"`
+		Interleaved   bool     `json:"mrope_interleaved"`
 	}
 	if get("rope_parameters", &rope) || get("rope_scaling", &rope) {
 		if rope.RopeTheta != nil {
@@ -139,6 +160,9 @@ func ParseConfig(raw []byte) (*Config, error) {
 		}
 		if t := rope.Type + rope.RopeType; t != "" && t != "default" {
 			return nil, fmt.Errorf("config.json: RoPE scaling %q is not supported", t)
+		}
+		if len(rope.MRoPESection) == 3 && rope.Interleaved {
+			copy(c.MRoPESections[:], rope.MRoPESection)
 		}
 	}
 	get("tie_word_embeddings", &c.TieEmbeddings)
@@ -215,6 +239,16 @@ func ParseConfig(raw []byte) (*Config, error) {
 	if c.GroupSize == 0 || c.Bits == 0 {
 		return nil, fmt.Errorf("config.json: quantization without group_size/bits")
 	}
+	if vr, ok := top["vision_config"]; ok && strings.HasPrefix(modelType, "qwen3_5") {
+		v, err := parseVision(vr, top)
+		if err != nil {
+			return nil, err
+		}
+		if v != nil && c.MRoPESections == [3]int{} {
+			return nil, fmt.Errorf("config.json: a vision tower without interleaved mrope_section")
+		}
+		c.Vision = v
+	}
 	switch {
 	case c.Hidden == 0 || c.Layers == 0 || c.Heads == 0 || c.Vocab == 0:
 		return nil, fmt.Errorf("config.json: hidden_size, num_hidden_layers, num_attention_heads or vocab_size missing")
@@ -235,4 +269,51 @@ func (c *Config) ToolFormat() string {
 		return "xml"
 	}
 	return "json"
+}
+
+// parseVision reads vision_config and the image tokens' ids (nil: a vision_config the engine does not run — the
+// model is then text only).
+func parseVision(raw json.RawMessage, top map[string]json.RawMessage) (*VisionConfig, error) {
+	var vc struct {
+		Depth         int    `json:"depth"`
+		Hidden        int    `json:"hidden_size"`
+		Heads         int    `json:"num_heads"`
+		Intermediate  int    `json:"intermediate_size"`
+		OutHidden     int    `json:"out_hidden_size"`
+		PatchSize     int    `json:"patch_size"`
+		TemporalPatch int    `json:"temporal_patch_size"`
+		MergeSize     int    `json:"spatial_merge_size"`
+		InChannels    int    `json:"in_channels"`
+		NumPositions  int    `json:"num_position_embeddings"`
+		Act           string `json:"hidden_act"`
+		Deepstack     []int  `json:"deepstack_visual_indexes"`
+	}
+	if err := json.Unmarshal(raw, &vc); err != nil {
+		return nil, fmt.Errorf("config.json vision_config: %w", err)
+	}
+	if len(vc.Deepstack) > 0 || (vc.Act != "" && vc.Act != "gelu_pytorch_tanh") {
+		return nil, nil // Qwen3-VL's deepstack features: not in Qwen3.5/3.6
+	}
+	v := &VisionConfig{Depth: vc.Depth, Hidden: vc.Hidden, Heads: vc.Heads, Intermediate: vc.Intermediate, OutHidden: vc.OutHidden,
+		PatchSize: vc.PatchSize, TemporalPatch: vc.TemporalPatch, MergeSize: vc.MergeSize, InChannels: vc.InChannels, NumPositions: vc.NumPositions}
+	for key, dst := range map[string]*int{"image_token_id": &v.ImageToken, "vision_start_token_id": &v.VisionStart, "vision_end_token_id": &v.VisionEnd} {
+		if r, ok := top[key]; ok {
+			_ = json.Unmarshal(r, dst)
+		}
+	}
+	side := 0
+	for side*side < v.NumPositions {
+		side++
+	}
+	switch {
+	case v.Depth == 0 || v.Hidden == 0 || v.Heads == 0 || v.Intermediate == 0 || v.OutHidden == 0 || v.Hidden%v.Heads != 0:
+		return nil, fmt.Errorf("config.json vision_config: depth, hidden_size, num_heads, intermediate_size or out_hidden_size missing")
+	case v.PatchSize == 0 || v.TemporalPatch == 0 || v.MergeSize == 0 || v.InChannels != 3:
+		return nil, fmt.Errorf("config.json vision_config: patch_size, temporal_patch_size, spatial_merge_size or in_channels")
+	case side*side != v.NumPositions:
+		return nil, fmt.Errorf("config.json vision_config: num_position_embeddings %d is not a square", v.NumPositions)
+	case v.ImageToken == 0 || v.VisionStart == 0 || v.VisionEnd == 0:
+		return nil, fmt.Errorf("config.json: image_token_id, vision_start_token_id or vision_end_token_id missing")
+	}
+	return v, nil
 }

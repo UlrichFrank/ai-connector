@@ -100,26 +100,30 @@ func (b *ChatBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	if err := b.load(ctx, m, emit); err != nil {
 		return err
 	}
+	if llm.HasImages(r.Messages) && !b.eng.Images() {
+		return fmt.Errorf("%s does not take images", m.Name)
+	}
 	if r.Zone != "" {
 		return b.runAgent(ctx, r, outDir, emit)
 	}
 	if len(r.Tools) > 0 {
 		return b.runRound(ctx, r, emit)
 	}
-	prompt := llm.Render(b.eng.Format, withNow(r.Messages, time.Now()), nil, r.Think)
+	msgs := withNow(r.Messages, time.Now())
+	prompt := llm.Render(b.eng.Format, msgs, nil, r.Think)
 	if r.Think {
 		emit(Event{Type: "text", Text: "<think>"}) // the prompt opened the thought
 	}
 	emit.Status("answering …")
 	o := chatOptions(b.eng.Defaults(), r)
-	st, err := b.eng.Generate(ctx, prompt, o, func(s string) { emit(Event{Type: "text", Text: s}) })
+	st, err := b.eng.GenerateImages(ctx, prompt, llm.PromptImages(msgs), o, func(s string) { emit(Event{Type: "text", Text: s}) })
 	b.stats(st, o, emit)
 	return err
 }
 
 // runAgent answers with tools (internal/agent): the model may call the zone's tools, round after round.
 func (b *ChatBackend) runAgent(ctx context.Context, r Request, outDir string, emit Emit) error {
-	g := &engineGen{eng: b.eng, opts: chatOptions(b.eng.Defaults(), r)}
+	g := &engineGen{eng: b.eng, opts: chatOptions(b.eng.Defaults(), r), images: llm.PromptImages(r.Messages)}
 	cfg := *b.Agent
 	if cfg.Guard == nil {
 		// the guard's default: the chat's own model as the judge (already loaded, no extra memory). The Laya
@@ -138,7 +142,7 @@ var errClientTools = errors.New("a chat has either a zone (tools on the worker) 
 
 // runRound answers with the caller's tools (Request.Tools): one round, the calls returned in result.toolCalls.
 func (b *ChatBackend) runRound(ctx context.Context, r Request, emit Emit) error {
-	g := &engineGen{eng: b.eng, opts: chatOptions(b.eng.Defaults(), r)}
+	g := &engineGen{eng: b.eng, opts: chatOptions(b.eng.Defaults(), r), images: llm.PromptImages(r.Messages)}
 	emit.Status("answering …")
 	_, calls, err := agent.Round(ctx, g, withNow(r.Messages, time.Now()), r.Tools, r.Think,
 		func(ev agent.Event) { emit(Event{Type: ev.Type, Text: ev.Text, File: ev.File, Data: ev.Data}) })
@@ -197,10 +201,12 @@ func chatOptions(d llm.Defaults, r Request) llm.Options {
 }
 
 // engineGen is the loaded model as the agent's generator; it adds up the rounds' statistics (the prompt and speed
-// of the last round, the tokens of all).
+// of the last round, the tokens and images of all). images are the request's (the rounds add none: every prompt
+// has the same ones).
 type engineGen struct {
 	eng    *llm.Engine
 	opts   llm.Options
+	images []llm.Image
 	sum    llm.Stats
 	rounds int
 }
@@ -208,17 +214,20 @@ type engineGen struct {
 func (g *engineGen) Format() string { return g.eng.Format }
 
 func (g *engineGen) Generate(ctx context.Context, prompt string, onText func(string)) error {
-	st, err := g.eng.Generate(ctx, prompt, g.opts, onText)
+	st, err := g.eng.GenerateImages(ctx, prompt, g.images, g.opts, onText)
 	g.rounds++
-	tokens := g.sum.Tokens + st.Tokens
+	tokens, images, vision := g.sum.Tokens+st.Tokens, g.sum.Images+st.Images, g.sum.Vision+st.Vision
 	g.sum = st
-	g.sum.Tokens = tokens
+	g.sum.Tokens, g.sum.Images, g.sum.Vision = tokens, images, vision
 	return err
 }
 
 // stats reports a generation (or a chat's rounds).
 func (b *ChatBackend) stats(st llm.Stats, o llm.Options, emit Emit) {
 	active, peak := b.eng.Memory()
+	if st.Images > 0 {
+		emit.Log(fmt.Sprintf("%d images through the vision tower in %.1f s", st.Images, st.Vision.Seconds()))
+	}
 	emit(Event{Type: "stats", Data: map[string]any{
 		// what the answer ran with (a request that left them unset got the model's defaults)
 		"maxTokens": o.MaxTokens, "temperature": o.Temperature,
@@ -226,6 +235,7 @@ func (b *ChatBackend) stats(st llm.Stats, o llm.Options, emit Emit) {
 		"prefillSeconds": st.Prefill.Seconds(), "prefillPerSecond": st.PrefillPerSecond(),
 		"firstTokenSeconds": st.FirstToken.Seconds(), "tokensPerSecond": st.TokensPerSecond(),
 		"activeGB": float64(active) / (1 << 30), "peakGB": float64(peak) / (1 << 30),
+		"images": st.Images, "visionSeconds": st.Vision.Seconds(),
 	}})
 	emit.Log(fmt.Sprintf("%d prompt tokens (%d cached) in %.1f s, %d tokens at %.1f tokens/s",
 		st.PromptTokens, st.CachedTokens, st.Prefill.Seconds(), st.Tokens, st.TokensPerSecond()))

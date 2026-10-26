@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -37,7 +38,7 @@ func (o *runOptions) flags(fs *flag.FlagSet) {
 	fs.IntVar(&o.frames, "frames", 0, "video frames, 8k+1")
 	fs.IntVar(&o.fps, "fps", 0, "video frame rate")
 	fs.IntVar(&o.quantize, "q", 0, "image model precision: 4, 8, -1 = bf16")
-	fs.StringVar(&o.image, "image", "", "reference image (edit) or first frame (video)")
+	fs.StringVar(&o.image, "image", "", "reference image (edit), first frame (video) or an image to ask a chat model about")
 	fs.Float64Var(&o.temp, "temp", 0.3, "chat temperature")
 	fs.IntVar(&o.maxTokens, "max-tokens", 2048, "chat: most tokens to write")
 	fs.BoolVar(&o.think, "think", false, "chat: let the model think first")
@@ -78,6 +79,18 @@ func (o *runOptions) run(mgr *jobs.Manager, args []string) error {
 	switch md.Kind {
 	case engine.Chat:
 		r.Messages = []llm.Message{{Role: "user", Content: text}}
+		if o.image != "" {
+			data, err := os.ReadFile(o.image)
+			if err != nil {
+				return err
+			}
+			mime := http.DetectContentType(data)
+			if mime == "application/octet-stream" && strings.EqualFold(filepath.Ext(o.image), ".webp") {
+				mime = "image/webp"
+			}
+			r.Images = nil
+			r.Messages[0].Images = []llm.Image{{ID: "image-1", MIME: mime, Data: data}}
+		}
 		r.Temperature, r.MaxTokens, r.Think = float32(o.temp), o.maxTokens, o.think
 	case engine.Embed:
 		r.Texts = strings.Split(text, "|")

@@ -78,7 +78,7 @@ var (
 	cPutAlongAxis                                                                    func(res *uintptr, a, idx, vals uintptr, axis int32, s uintptr) int32
 	cCategorical                                                                     func(res *uintptr, logits uintptr, axis int32, key, s uintptr) int32
 	cRandomSeed                                                                      func(seed uint64) int32
-	cSigmoid, cExp, cLog, cNegative, cSquare, cSqrt, cRsqrt, cCopy                   unaryFn
+	cSigmoid, cExp, cLog, cNegative, cSquare, cSqrt, cRsqrt, cCopy, cErf             unaryFn
 	cQuantizedMatmul                                                                 func(res *uintptr, x, w, scales, biases uintptr, transpose bool, gs, bits uint64, mode string, s uintptr) int32
 	cGatherQMM                                                                       func(res *uintptr, x, w, scales, biases, lhs, rhs uintptr, transpose bool, gs, bits uint64, mode string, sorted bool, s uintptr) int32
 	cDequantize                                                                      func(res *uintptr, w, scales, biases uintptr, gs, bits uint64, mode string, globalScale uintptr, dtype uint64, s uintptr) int32
@@ -106,6 +106,7 @@ var (
 	cContiguous                                                                      func(res *uintptr, a uintptr, colMajor bool, s uintptr) int32
 	cRepeat                                                                          func(res *uintptr, a uintptr, repeats, axis int32, s uintptr) int32
 	cRMSNorm                                                                         func(res *uintptr, x, w uintptr, eps float32, s uintptr) int32
+	cLayerNorm                                                                       func(res *uintptr, x, w, b uintptr, eps float32, s uintptr) int32
 	cRoPE                                                                            func(res *uintptr, x uintptr, dims int32, traditional bool, base uint64, scale float32, offset int32, freqs, s uintptr) int32
 	cSDPA                                                                            func(res *uintptr, q, k, v uintptr, scale float32, maskMode string, mask, sinks, s uintptr) int32
 
@@ -241,7 +242,7 @@ func bind(lib uintptr) (err error) {
 		reg(f, "mlx_"+name)
 	}
 	for name, f := range map[string]*unaryFn{"sigmoid": &cSigmoid, "exp": &cExp, "log": &cLog, "negative": &cNegative,
-		"square": &cSquare, "sqrt": &cSqrt, "rsqrt": &cRsqrt, "copy": &cCopy} {
+		"square": &cSquare, "sqrt": &cSqrt, "rsqrt": &cRsqrt, "copy": &cCopy, "erf": &cErf} {
 		reg(f, "mlx_"+name)
 	}
 	reg(&cCategorical, "mlx_random_categorical")
@@ -275,6 +276,7 @@ func bind(lib uintptr) (err error) {
 	reg(&cContiguous, "mlx_contiguous")
 	reg(&cRepeat, "mlx_repeat_axis")
 	reg(&cRMSNorm, "mlx_fast_rms_norm")
+	reg(&cLayerNorm, "mlx_fast_layer_norm")
 	reg(&cRoPE, "mlx_fast_rope")
 	reg(&cSDPA, "mlx_fast_scaled_dot_product_attention")
 	reg(&cDeviceNewType, "mlx_device_new_type")

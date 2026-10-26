@@ -208,6 +208,7 @@ func Square(a Array) Array   { return un(cSquare, a) }
 func Sqrt(a Array) Array     { return un(cSqrt, a) }
 func Rsqrt(a Array) Array    { return un(cRsqrt, a) }
 func Copy(a Array) Array     { return un(cCopy, a) }
+func Erf(a Array) Array      { return un(cErf, a) }
 
 // SiLU is x·sigmoid(x).
 func SiLU(a Array) Array { return Mul(a, Sigmoid(a)) }
@@ -427,6 +428,13 @@ func Repeat(a Array, repeats, axis int) Array {
 func RMSNorm(x, w Array, eps float32) Array {
 	r := cArrayNew()
 	check(cRMSNorm(&r, x.h, w.h, eps, stream))
+	return wrap(r)
+}
+
+// LayerNorm over the last axis with weight and bias (either may be the zero Array).
+func LayerNorm(x, w, b Array, eps float32) Array {
+	r := cArrayNew()
+	check(cLayerNorm(&r, x.h, w.h, b.h, eps, stream))
 	return wrap(r)
 }
 

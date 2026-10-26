@@ -37,8 +37,9 @@ type Model struct {
 	// Styles: a song model that can learn a style from the user's tracks (a LoRA, see styles.go); its requests
 	// take a style.
 	Styles bool `json:"styles,omitempty"`
-	// Images: a chat model that takes images with the messages (llm.Message.Images): Claude Code, and the models a
-	// local runtime says can see (LM Studio type "vlm", Ollama capability "vision"). The built-in MLX chat cannot.
+	// Images: a chat model that takes images with the messages (llm.Message.Images): Claude Code, the built-in MLX
+	// chat models with a vision tower (the catalogue's Qwen3.5/3.6, llm.HasVision), and the models a local runtime
+	// says can see (LM Studio type "vlm", Ollama capability "vision").
 	Images bool `json:"images,omitempty"`
 	// Audio: what a music, sound or speech model takes (audiocaps.go; vboard's generators)
 	Audio *AudioCaps `json:"audio,omitempty"`
@@ -185,8 +186,9 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 	for i := range llm.Catalogue {
 		ch := llm.Catalogue[i]
 		known[strings.ToLower(ch.Repo)] = true
+		// the catalogue's checkpoints carry Qwen3.5/3.6's vision tower: they see images
 		m := &Model{ID: ch.Short, Name: ch.Name, Kind: Chat, Backend: "mlx-go", About: ch.About, Size: ch.Size(), chat: &ch,
-			Sampling: ptr(llm.DefaultsFor(""))}
+			Sampling: ptr(llm.DefaultsFor("")), Images: true}
 		if ch, err := finder.Resolve(ch.Short, false); err == nil && ch.Dir != "" {
 			m.Here, m.Where = true, ch.Where+" ("+ch.Dir+")"
 			m.Sampling = ptr(llm.DefaultsFor(ch.Dir))
@@ -206,7 +208,7 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		known[strings.ToLower(l.Name)] = true
 		short := l.Name[strings.LastIndex(l.Name, "/")+1:]
 		add(&Model{ID: strings.ToLower(short), Name: short, Kind: Chat, Backend: "mlx-go", About: l.Name + ", found in " + l.Where, Size: dirSize(l.Dir),
-			Here: true, Where: l.Where + " (" + l.Dir + ")", dir: l.Dir, Sampling: ptr(llm.DefaultsFor(l.Dir))})
+			Here: true, Where: l.Where + " (" + l.Dir + ")", dir: l.Dir, Sampling: ptr(llm.DefaultsFor(l.Dir)), Images: llm.HasVision(l.Dir)})
 	}
 
 	// the embedder and the classifier of vboard (pure Go, Accelerate / Metal)

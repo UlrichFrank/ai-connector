@@ -88,6 +88,8 @@ type model struct {
 	attnScale float32
 
 	qScale, kScale array // the gated delta-net's q/k scales as RMSNorm weights
+
+	vision *visionTower // nil: text only
 }
 
 // loadModel maps the checkpoint's safetensors files (MLX loads them lazily) and wires the layers.
@@ -103,7 +105,11 @@ func loadModel(dir string, cfg *Config) (*model, error) {
 			return nil, fmt.Errorf("%s: %w", filepath.Base(f), err)
 		}
 		for k, v := range m {
-			if strings.HasPrefix(k, "vision_tower") || strings.HasPrefix(k, "model.visual") || strings.Contains(k, "mtp.") {
+			drop := strings.HasPrefix(k, "model.visual") || strings.Contains(k, "mtp.")
+			if strings.HasPrefix(k, "vision_tower") && cfg.Vision == nil {
+				drop = true
+			}
+			if drop {
 				mlx.Free(v)
 				continue
 			}
@@ -196,6 +202,7 @@ func (md *model) wire() (err error) {
 	if fused == nil {
 		fused = newFused()
 	}
+	md.vision = md.wireVision()
 	if c.Hybrid() {
 		// derived constants, kept with the weights (evaluated by materialize, freed with the model)
 		dt := md.embed.scales.Dtype()
@@ -222,10 +229,14 @@ func (md *model) wire() (err error) {
 	return nil
 }
 
-// materialize loads every weight into memory (so the first answer does not wait for the disk).
+// materialize loads every weight into memory (so the first answer does not wait for the disk) — the vision tower's
+// only with the first image.
 func (md *model) materialize() {
 	all := make([]array, 0, len(md.weights))
-	for _, a := range md.weights {
+	for k, a := range md.weights {
+		if strings.HasPrefix(k, "vision_tower.") || strings.HasPrefix(k, "vboard.vision.") {
+			continue
+		}
 		all = append(all, a)
 		if len(all) == 256 {
 			mlx.Eval(all...)
@@ -246,10 +257,12 @@ type layerCache struct {
 	conv, state  array // [1, K−1, convDim], [1, Hv, Dv, Dk] (float32)
 }
 
-// cache is the whole model's state after offset tokens.
+// cache is the whole model's state after offset tokens; pos is the rotary position of the next token (offset, unless
+// the prompt had images: an image's tokens advance it by its larger side only).
 type cache struct {
 	layers []layerCache
 	offset int
+	pos    int
 }
 
 const kvStep = 256
@@ -262,7 +275,7 @@ func (c *cache) free() {
 		mlx.Free(l.state)
 	}
 	c.layers = nil
-	c.offset = 0
+	c.offset, c.pos = 0, 0
 }
 
 // keep takes the step's new arrays out of the temporaries (releasing the ones they replace).
@@ -286,7 +299,7 @@ func (c *cache) keep(next []layerCache) {
 // snapshot copies the state (the prompt cache: a later conversation that starts with the same tokens continues from
 // here). Arrays are immutable, so a copy is a second handle.
 func (c *cache) snapshot() *cache {
-	s := &cache{offset: c.offset, layers: make([]layerCache, len(c.layers))}
+	s := &cache{offset: c.offset, pos: c.pos, layers: make([]layerCache, len(c.layers))}
 	for i, l := range c.layers {
 		for _, pair := range [][2]*array{{&l.keys, &s.layers[i].keys}, {&l.values, &s.layers[i].values}, {&l.conv, &s.layers[i].conv}, {&l.state, &s.layers[i].state}} {
 			if pair[0].Valid() {
@@ -299,24 +312,63 @@ func (c *cache) snapshot() *cache {
 
 // ---------- forward ----------
 
+// multimodal is what a forward pass takes besides its tokens when the prompt has images: image features in place of
+// the image tokens' embeddings, and every token's MRoPE position.
+type multimodal struct {
+	feats []placed
+	pos   [][3]int // one per token of the step
+	next  int      // the position after the step
+}
+
+// placed: rows from…to of an image's features replace the embeddings of the step's tokens at…
+type placed struct {
+	feats        array
+	at, from, to int
+}
+
+// rope is how a step's queries and keys turn: by MLX's RoPE from offset on, or by per-token angles (cos, sin:
+// [L, ropeDims/2], float32) when the step has image tokens.
+type rope struct {
+	offset   int
+	cos, sin array
+}
+
 // forward runs tokens (after the cache's offset) through the model and returns the logits of the last position
 // ([1, vocab], float32), updating the cache.
-func (md *model) forward(ids array, c *cache) array {
+func (md *model) forward(ids array, c *cache) array { return md.forwardMM(ids, c, nil) }
+
+// forwardMM is forward with images (mm may be nil).
+func (md *model) forwardMM(ids array, c *cache, mm *multimodal) array {
 	L := ids.Dim(1)
 	e := md.embed
 	h := mlx.Dequantize(mlx.Take(e.w, ids, 0), mlx.Take(e.scales, ids, 0), mlx.Take(e.biases, ids, 0), e.gs, e.bits)
+	rp := rope{offset: c.pos}
+	next := c.pos + L
+	if mm != nil {
+		for _, f := range mm.feats {
+			rows := mlx.ExpandDims(mlx.AsType(mlx.SliceAxis(f.feats, 0, f.from, f.to), h.Dtype()), 0)
+			h = mlx.SliceUpdate(h, rows, []int{0, f.at, 0}, []int{1, f.at + f.to - f.from, md.cfg.Hidden})
+		}
+		if p0, ok := textRun(mm.pos); ok {
+			rp.offset = p0
+		} else {
+			cos, sin := mropeTables(mm.pos, md.ropeDims, float64(md.cfg.RopeTheta), md.cfg.MRoPESections)
+			rp.cos, rp.sin = mlx.FromFloat32(cos, L, md.ropeDims/2), mlx.FromFloat32(sin, L, md.ropeDims/2)
+		}
+		next = mm.next
+	}
 	if len(c.layers) == 0 {
 		c.layers = make([]layerCache, len(md.layers))
 	}
-	next := make([]layerCache, len(md.layers))
+	nextCache := make([]layerCache, len(md.layers))
 	eps := md.cfg.RMSEps
 	for i, l := range md.layers {
 		x := mlx.RMSNorm(h, l.inNorm, eps)
 		var r array
 		if l.delta != nil {
-			r = md.deltaNet(l.delta, x, c.layers[i], &next[i])
+			r = md.deltaNet(l.delta, x, c.layers[i], &nextCache[i])
 		} else {
-			r = md.attention(l.attn, x, c.layers[i], c.offset, &next[i])
+			r = md.attention(l.attn, x, c.layers[i], c.offset, rp, &nextCache[i])
 		}
 		h = mlx.Add(h, r)
 		x = mlx.RMSNorm(h, l.postNorm, eps)
@@ -326,15 +378,16 @@ func (md *model) forward(ids array, c *cache) array {
 			h = mlx.Add(h, l.mlp.apply(x))
 		}
 	}
-	c.keep(next)
+	c.keep(nextCache)
 	c.offset += L
+	c.pos = next
 	last := mlx.SliceAxis(h, 1, L-1, L)
 	last = mlx.RMSNorm(last, md.norm, eps)
 	logits := md.head.apply(last) // [1, 1, vocab]
 	return mlx.AsType(mlx.Reshape(logits, 1, md.cfg.Vocab), mlx.Float32)
 }
 
-func (md *model) attention(a *attention, x array, lc layerCache, offset int, out *layerCache) array {
+func (md *model) attention(a *attention, x array, lc layerCache, offset int, rp rope, out *layerCache) array {
 	c := md.cfg
 	L := x.Dim(1)
 	D := c.HeadDim
@@ -352,8 +405,7 @@ func (md *model) attention(a *attention, x array, lc layerCache, offset int, out
 	q = mlx.Transpose(mlx.RMSNorm(q, a.qNorm, c.RMSEps), 0, 2, 1, 3)
 	k = mlx.Transpose(mlx.RMSNorm(k, a.kNorm, c.RMSEps), 0, 2, 1, 3)
 	v = mlx.Transpose(v, 0, 2, 1, 3)
-	q = mlx.RoPE(q, md.ropeDims, false, c.RopeTheta, 1, offset)
-	k = mlx.RoPE(k, md.ropeDims, false, c.RopeTheta, 1, offset)
+	q, k = md.rotate(q, rp), md.rotate(k, rp)
 
 	// the cache grows in steps of kvStep positions
 	keys, values := lc.keys, lc.values
@@ -378,6 +430,35 @@ func (md *model) attention(a *attention, x array, lc layerCache, offset int, out
 		o = fused.sigmoidMul.Call(o, gate)[0]
 	}
 	return a.o.apply(o)
+}
+
+// rotate turns the first ropeDims features of x ([1, heads, L, D]) by the step's positions; the angles of per-token
+// positions rotate feature i with i + ropeDims/2, as MLX's RoPE does (not traditional).
+func (md *model) rotate(x array, rp rope) array {
+	if !rp.cos.Valid() {
+		return mlx.RoPE(x, md.ropeDims, false, md.cfg.RopeTheta, 1, rp.offset)
+	}
+	dt := x.Dtype()
+	half := md.ropeDims / 2
+	xf := mlx.AsType(mlx.SliceAxis(x, -1, 0, md.ropeDims), mlx.Float32)
+	x1, x2 := mlx.SliceAxis(xf, -1, 0, half), mlx.SliceAxis(xf, -1, half, md.ropeDims)
+	r1 := mlx.Sub(mlx.Mul(x1, rp.cos), mlx.Mul(x2, rp.sin))
+	r2 := mlx.Add(mlx.Mul(x2, rp.cos), mlx.Mul(x1, rp.sin))
+	parts := []array{mlx.AsType(r1, dt), mlx.AsType(r2, dt)}
+	if D := x.Dim(-1); D > md.ropeDims {
+		parts = append(parts, mlx.SliceAxis(x, -1, md.ropeDims, D))
+	}
+	return mlx.Concatenate(parts, -1)
+}
+
+// textRun: the positions are text's — the same on all three axes and consecutive — and the first one.
+func textRun(pos [][3]int) (int, bool) {
+	for i, p := range pos {
+		if p[0] != p[1] || p[0] != p[2] || p[0] != pos[0][0]+i {
+			return 0, false
+		}
+	}
+	return pos[0][0], true
 }
 
 func (md *model) deltaNet(d *deltaNet, x array, lc layerCache, out *layerCache) array {
