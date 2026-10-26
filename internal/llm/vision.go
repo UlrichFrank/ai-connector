@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -27,6 +28,9 @@ import (
 const (
 	MinImagePixels = 65536
 	MaxImagePixels = 1 << 21
+	// MaxSourcePixels: the largest image read at all (its header is checked before the pixels are decoded: a few MB
+	// of PNG can unpack to gigapixels)
+	MaxSourcePixels = 50_000_000
 )
 
 // Pixels is an image ready for the vision tower.
@@ -55,11 +59,23 @@ func (v *VisionConfig) imageGrid(w, h int) (gridH, gridW int, err error) {
 // ImageGrid is the patch grid of an image, from its header alone (the prompt's token count; the pixels are read only
 // for an image the prompt cache does not hold).
 func (v *VisionConfig) ImageGrid(data []byte) (gridH, gridW int, err error) {
-	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	cfg, err := imageSize(data)
 	if err != nil {
-		return 0, 0, fmt.Errorf("reading the image: %w", err)
+		return 0, 0, err
 	}
 	return v.imageGrid(cfg.Width, cfg.Height)
+}
+
+// imageSize is the image's size from its header, at most MaxSourcePixels.
+func imageSize(data []byte) (image.Config, error) {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return cfg, fmt.Errorf("reading the image: %w", err)
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 || int64(cfg.Width)*int64(cfg.Height) > MaxSourcePixels {
+		return cfg, fmt.Errorf("an image of %d×%d pixels: at most %d megapixels", cfg.Width, cfg.Height, MaxSourcePixels/1_000_000)
+	}
+	return cfg, nil
 }
 
 // smartResize is transformers' smart_resize: the size closest to h×w with both sides multiples of factor and the
@@ -87,20 +103,29 @@ func smartResize(h, w, factor, minPixels, maxPixels int) (int, int, error) {
 	return hb, wb, nil
 }
 
-// PrepareImage decodes an image (PNG, JPEG, WebP, GIF: its first frame), scales it (smartResize, bicubic like PIL)
-// and cuts it into patches. Transparent pixels are laid over white.
+// PrepareImage decodes an image (PNG, JPEG, WebP, GIF: its first frame on the canvas), scales it (smartResize,
+// bicubic like PIL) and cuts it into patches. Transparent pixels are laid over white. The size is the header's (as
+// ImageGrid's): a GIF frame smaller than its canvas is placed on the canvas.
 func (v *VisionConfig) PrepareImage(data []byte) (*Pixels, error) {
+	cfg, err := imageSize(data)
+	if err != nil {
+		return nil, err
+	}
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("reading the image: %w", err)
 	}
-	b := img.Bounds()
-	gh, gw, err := v.imageGrid(b.Dx(), b.Dy())
+	if canvas := image.Rect(0, 0, cfg.Width, cfg.Height); img.Bounds() != canvas {
+		c := image.NewNRGBA(canvas)
+		draw.Draw(c, canvas, img, image.Point{}, draw.Src)
+		img = c
+	}
+	gh, gw, err := v.imageGrid(cfg.Width, cfg.Height)
 	if err != nil {
 		return nil, err
 	}
 	P, M := v.PatchSize, v.MergeSize
-	rgb := resizeBicubic(toRGB(img), b.Dx(), b.Dy(), gw*P, gh*P)
+	rgb := resizeBicubic(toRGB(img), cfg.Width, cfg.Height, gw*P, gh*P)
 	W := gw * P
 	px := &Pixels{GridH: gh, GridW: gw, Patches: make([]float32, 0, gh*gw*P*P*3)}
 	for bh := 0; bh < gh/M; bh++ {

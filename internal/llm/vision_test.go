@@ -2,8 +2,11 @@ package llm
 
 import (
 	"bytes"
+	"encoding/binary"
+	"hash/crc32"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/png"
 	"slices"
 	"strings"
@@ -222,5 +225,41 @@ func TestMRoPEAxis(t *testing.T) {
 	plain, _ := mropeTables([][3]int{{5, 0, 0}}, 64, 1e7, [3]int{})
 	if !slices.Equal(cos, plain) {
 		t.Fatal("text positions differ from ordinary RoPE")
+	}
+}
+
+func TestImageLimits(t *testing.T) {
+	v := visionConfig(t)
+	// a PNG whose header claims 100000×100000 pixels: refused from the header, the pixels are never decoded
+	data := pngOf(t, 8, 8, func(x, y int) color.Color { return color.White })
+	ihdr := data[8+8 : 8+8+13] // signature, length + "IHDR", then width, height, …
+	binary.BigEndian.PutUint32(ihdr[0:], 100000)
+	binary.BigEndian.PutUint32(ihdr[4:], 100000)
+	binary.BigEndian.PutUint32(data[8+8+13:], crc32.ChecksumIEEE(data[8+4:8+8+13]))
+	if _, _, err := v.ImageGrid(data); err == nil || !strings.Contains(err.Error(), "megapixels") {
+		t.Fatalf("ImageGrid: %v", err)
+	}
+	if _, err := v.PrepareImage(data); err == nil || !strings.Contains(err.Error(), "megapixels") {
+		t.Fatalf("PrepareImage: %v", err)
+	}
+
+	// a GIF whose first frame is smaller than its canvas: the pixels have the header's grid
+	pal := color.Palette{color.Black, color.White}
+	frame := image.NewPaletted(image.Rect(0, 0, 40, 30), pal)
+	var b bytes.Buffer
+	if err := gif.EncodeAll(&b, &gif.GIF{Image: []*image.Paletted{frame}, Delay: []int{0},
+		Config: image.Config{ColorModel: pal, Width: 600, Height: 400}}); err != nil {
+		t.Fatal(err)
+	}
+	gh, gw, err := v.ImageGrid(b.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	px, err := v.PrepareImage(b.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if px.GridH != gh || px.GridW != gw {
+		t.Fatalf("header grid %d×%d, pixels %d×%d", gh, gw, px.GridH, px.GridW)
 	}
 }

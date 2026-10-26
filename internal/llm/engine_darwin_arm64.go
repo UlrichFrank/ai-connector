@@ -349,6 +349,9 @@ func (e *Engine) prefill(ctx context.Context, ids []int, spans []imageSpan, st *
 					if err != nil {
 						return nil, logits, fmt.Errorf("%s: %w", sp.id, err)
 					}
+					if px.GridH != sp.gridH || px.GridW != sp.gridW {
+						return nil, logits, fmt.Errorf("%s: the image's size changed between reading its header and its pixels", sp.id)
+					}
 					f = mlx.Keep(e.md.vision.encode(px, e.md.embed.scales.Dtype()))
 					feats[k] = f
 					mlx.Eval(f)
