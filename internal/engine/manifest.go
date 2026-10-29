@@ -38,7 +38,9 @@ type Manifest struct {
 	Gated         bool     `json:"gated,omitempty"`
 	Size          ByteSize `json:"size"`
 	// Memory: the GB the runtime takes at its peak, where the size misleads (the router's need; docs/models.md)
-	Memory float64  `json:"memory,omitempty"`
+	Memory float64 `json:"memory,omitempty"`
+	// Images: a chat model that takes images with the messages
+	Images bool     `json:"images,omitempty"`
 	Tasks  []string `json:"tasks,omitempty"`
 	// Source: one repository, downloaded when the store has Here of it verified (or the Hugging Face cache has
 	// HereCache); Sources: several (music, sound, speech), downloaded when the store has every file of each but the
@@ -184,7 +186,7 @@ func ParseManifest(data []byte) (*Manifest, error) {
 func (mf *Manifest) check() error {
 	be, ok := manifestBackends[mf.Backend]
 	generic := false
-	if rt := runtimeManifest(mf.Backend); !ok && rt != nil && rt.Generic {
+	if rt := runtimeManifest(mf.Backend); !ok && rt != nil && (rt.Generic || rt.Server != nil) {
 		ok, generic = true, true
 		be = manifestBackend{kind: mf.Kind, tasks: mf.Tasks}
 		if !slices.Contains(rt.Kinds, mf.Kind) {
@@ -198,6 +200,8 @@ func (mf *Manifest) check() error {
 		return fmt.Errorf("backend %q is neither one of %s nor a generic runtime", mf.Backend, strings.Join(backendNames(), ", "))
 	case mf.Kind != be.kind:
 		return fmt.Errorf("backend %s runs %s models, not %q", mf.Backend, be.kind, mf.Kind)
+	case mf.Images && mf.Kind != Chat:
+		return fmt.Errorf("images is for chat models (that take images with the messages)")
 	case len(mf.Params) > 0 && !generic:
 		return fmt.Errorf("params are for the models of a generic runtime")
 	case mf.Licence == "":
@@ -252,7 +256,7 @@ func backendNames() []string {
 func (mf *Manifest) model(store *models.Store, hub string) *Model {
 	ra := mf.RuntimeArgs
 	m := &Model{ID: mf.ID, Name: mf.Name, Kind: mf.Kind, Backend: mf.Backend, About: mf.About, Size: int64(mf.Size), Memory: mf.Memory,
-		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults, Params: mf.Params,
+		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults, Params: mf.Params, Images: mf.Images,
 		mflux: ra.Mflux, loader: ra.Loader, editLoader: ra.EditLoader, hq: ra.HQ, side: ra.Side, runtime: ra.Runtime, workerModel: ra.WorkerModel, maxSeconds: ra.MaxSeconds}
 	if ra.LoRA != nil {
 		m.lora = &musicLoRA{file: ra.LoRA.File, trigger: ra.LoRA.Trigger, scale: ra.LoRA.Scale}

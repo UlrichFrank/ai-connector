@@ -42,6 +42,7 @@ type goldenEnv struct {
 	Python   string   `json:"python"`
 	Packages []string `json:"packages,omitempty"`
 	Index    string   `json:"index,omitempty"`
+	IndexPkg []string `json:"indexPackages,omitempty"`
 	Build    bool     `json:"build,omitempty"`
 }
 
@@ -121,7 +122,7 @@ func goldenOf(t *testing.T, m *Model) goldenModel {
 			if !ok {
 				continue
 			}
-			g := goldenEnv{Name: env.Name, Python: env.Python, Packages: env.Packages, Index: env.Index, Build: build}
+			g := goldenEnv{Name: env.Name, Python: env.Python, Packages: env.Packages, Index: env.Index, IndexPkg: env.IndexPackages, Build: build}
 			if p == "darwin-arm64" {
 				rt.Env = &g
 			} else {

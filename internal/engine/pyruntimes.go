@@ -37,15 +37,36 @@ type RuntimeManifest struct {
 	Kinds   []Kind `json:"kinds,omitempty"`
 	Output  string `json:"output,omitempty"`
 	Heavy   bool   `json:"heavy,omitempty"` // one heavy model in memory at a time (the queue unloads the others first)
+	// Server: a program that serves an OpenAI-compatible API, started by the worker with the model (ServerBackend);
+	// its program comes from Envs (a Python package's script) or Tools (archives of a release, by platform)
+	Server *ServerSpec              `json:"server,omitempty"`
+	Tools  map[string][]ToolArchive `json:"tools,omitempty"`
 
 	dir string // a local runtime's directory (its script is there)
+}
+
+// ServerSpec is how a server runtime starts: Start is the program and its arguments, with {model} (the model's
+// file or folder), {dir} (its folder) and {port}; Health a path that answers 200 once the model is loaded; Model what
+// a request names as the model ("" the {model} path).
+type ServerSpec struct {
+	Start  []string `json:"start"`
+	Health string   `json:"health"`
+	Model  string   `json:"model,omitempty"`
+}
+
+// ToolArchive is an archive of a program's release (.tar.gz or .zip), pinned by its SHA-256.
+type ToolArchive struct {
+	URL    string `json:"url"`
+	SHA256 string `json:"sha256"`
 }
 
 // RuntimeEnv is a runtime's environment on one platform.
 type RuntimeEnv struct {
 	Python   string   `json:"python"`
 	Packages []string `json:"packages,omitempty"`
-	Index    string   `json:"index,omitempty"`
+	// Index: a package index for the packages IndexPackages names only (installed from it alone; the rest from PyPI)
+	Index         string   `json:"index,omitempty"`
+	IndexPackages []string `json:"indexPackages,omitempty"`
 }
 
 // Platforms a runtime can have an environment for.
@@ -64,12 +85,26 @@ func ParseRuntime(data []byte) (*RuntimeManifest, error) {
 	switch {
 	case !manifestID.MatchString(rt.Name):
 		return nil, fmt.Errorf("name %q: lower case letters, digits, '.', '_' and '-'", rt.Name)
-	case len(rt.Envs) == 0:
-		return nil, fmt.Errorf("%s: envs (one per platform) are needed", rt.Name)
+	case len(rt.Envs) == 0 && len(rt.Tools) == 0:
+		return nil, fmt.Errorf("%s: envs or tools (one per platform) are needed", rt.Name)
+	case rt.Server != nil && (len(rt.Server.Start) == 0 || rt.Server.Health == "" || len(rt.Kinds) == 0):
+		return nil, fmt.Errorf("%s: a server needs start, health and kinds", rt.Name)
+	case rt.Server != nil && rt.Generic:
+		return nil, fmt.Errorf("%s: a runtime is a server or generic, not both", rt.Name)
 	case rt.Build != "" && !runtimeBuilds[rt.Build]:
 		return nil, fmt.Errorf("%s: no build step %q", rt.Name, rt.Build)
 	case rt.Generic && (rt.Script == "" || len(rt.Kinds) == 0 || rt.Output == ""):
 		return nil, fmt.Errorf("%s: a generic runtime needs script, kinds and output", rt.Name)
+	}
+	for p, as := range rt.Tools {
+		if !contains(Platforms, p) {
+			return nil, fmt.Errorf("%s: platform %q is none of %s", rt.Name, p, strings.Join(Platforms, ", "))
+		}
+		for _, a := range as {
+			if !strings.HasPrefix(a.URL, "https://") || len(a.SHA256) != 64 {
+				return nil, fmt.Errorf("%s: %s: each tool archive needs an https url and its sha256", rt.Name, p)
+			}
+		}
 	}
 	for p, e := range rt.Envs {
 		if !contains(Platforms, p) {
@@ -77,6 +112,9 @@ func ParseRuntime(data []byte) (*RuntimeManifest, error) {
 		}
 		if e.Python == "" {
 			return nil, fmt.Errorf("%s: %s: python (the version) is needed", rt.Name, p)
+		}
+		if (e.Index == "") != (len(e.IndexPackages) == 0) {
+			return nil, fmt.Errorf("%s: %s: index and indexPackages go together (the packages taken from the index)", rt.Name, p)
 		}
 	}
 	return &rt, nil
@@ -137,7 +175,7 @@ func envFor(name, platform string) (pyenv.Env, bool) {
 	if !ok {
 		return pyenv.Env{}, false
 	}
-	return pyenv.Env{Name: name, Python: e.Python, Packages: e.Packages, Index: e.Index}, true
+	return pyenv.Env{Name: name, Python: e.Python, Packages: e.Packages, Index: e.Index, IndexPackages: e.IndexPackages}, true
 }
 
 // runtimeEnv is the runtime's environment on this machine (the zero Env where it has none: RuntimeRuns says).
@@ -146,10 +184,13 @@ func runtimeEnv(name string) pyenv.Env {
 	return e
 }
 
-// RuntimeRuns: the runtime has an environment for this machine.
+// RuntimeRuns: the runtime has an environment (or its tools) for this machine.
 func RuntimeRuns(name string) bool {
-	_, ok := envFor(name, Platform())
-	return ok
+	if _, ok := envFor(name, Platform()); ok {
+		return true
+	}
+	rt := runtimeManifest(name)
+	return rt != nil && len(rt.Tools[Platform()]) > 0
 }
 
 // Platform is this machine as the runtimes name it: darwin-arm64 (Apple silicon), else the system and its GPU —
@@ -260,7 +301,7 @@ func runtimeName(m *Model) string {
 		}
 		return "ltx-2-mlx"
 	}
-	if rt := runtimeManifest(m.Backend); rt != nil && rt.Generic {
+	if rt := runtimeManifest(m.Backend); rt != nil && (rt.Generic || rt.Server != nil) {
 		return m.Backend
 	}
 	return ""
@@ -294,6 +335,17 @@ func GenericRuntimes() []string {
 	var out []string
 	for _, n := range runtimeNames() {
 		if rt := runtimeManifest(n); rt.Generic && RuntimeRuns(n) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// ServerRuntimes are the server runtimes this machine can start (each gets a ServerBackend).
+func ServerRuntimes() []string {
+	var out []string
+	for _, n := range runtimeNames() {
+		if rt := runtimeManifest(n); rt.Server != nil && RuntimeRuns(n) {
 			out = append(out, n)
 		}
 	}
