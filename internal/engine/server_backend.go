@@ -35,6 +35,8 @@ type ServerBackend struct {
 	model string     // the model the server has
 	url   string     // its API base, …/v1
 	key   string     // the API key of this start ("" the server takes none)
+	base  string     // the server's address (http://127.0.0.1:port)
+	app   string     // the folder of its app (Server.App), "" none
 	lmu   sync.Mutex // logs
 	logs  []string
 	oa    OpenAIBackend
@@ -56,7 +58,7 @@ func (b *ServerBackend) stop() {
 		b.cmd.Process.Kill()
 		<-b.exit
 	}
-	b.cmd, b.model, b.url, b.key = nil, "", "", ""
+	b.cmd, b.model, b.url, b.key, b.base, b.app = nil, "", "", "", "", ""
 	b.state.set("")
 }
 
@@ -127,23 +129,33 @@ func (b *ServerBackend) files(ctx context.Context, m *Model, emit Emit) (string,
 	return dir, err
 }
 
-func (b *ServerBackend) program(ctx context.Context, rt *RuntimeManifest, emit Emit) (string, error) {
+// program is the server's program (a script of its environment, else found in its tools) and its app (Server.App in
+// its tools; "" none).
+func (b *ServerBackend) program(ctx context.Context, rt *RuntimeManifest, emit Emit) (prog, app string, err error) {
 	name := rt.Server.Start[0]
+	var tools string
+	if len(rt.Tools[Platform()]) > 0 {
+		if tools, err = ensureTools(ctx, b.Root, rt.Name, emit.Log); err != nil {
+			return "", "", err
+		}
+		if rt.Server.App != "" {
+			if app, err = findFile(tools, rt.Server.App); err != nil {
+				return "", "", err
+			}
+		}
+	}
 	if env, ok := envFor(rt.Name, Platform()); ok {
 		if err := env.Ensure(ctx, b.Root, emit.Log); err != nil {
-			return "", err
+			return "", "", err
 		}
-		return env.Bin(b.Root, name), nil
+		return env.Bin(b.Root, name), app, nil
 	}
-	dir, err := ensureTools(ctx, b.Root, rt.Name, emit.Log)
-	if err != nil {
-		return "", err
-	}
-	return findTool(dir, name)
+	prog, err = findTool(tools, name)
+	return prog, app, err
 }
 
 func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, model string, emit Emit) error {
-	prog, err := b.program(ctx, rt, emit)
+	prog, app, err := b.program(ctx, rt, emit)
 	if err != nil {
 		return err
 	}
@@ -156,11 +168,14 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	key := randomKey()
 	var args []string
 	for _, a := range rt.Server.Start[1:] {
-		args = append(args, expand(a, model, dir, strconv.Itoa(port)))
+		args = append(args, strings.ReplaceAll(expand(a, model, dir, strconv.Itoa(port)), "{app}", app))
 	}
 	emit(Event{Type: "status", Text: "starting " + rt.Name + " …"})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = dir
+	if app != "" {
+		cmd.Dir = filepath.Dir(app)
+	}
 	cmd.Env = append(cmd.Environ(), "HF_HUB_OFFLINE=1")
 	if rt.Server.KeyEnv != "" {
 		cmd.Env = append(cmd.Env, rt.Server.KeyEnv+"="+key)
@@ -226,7 +241,13 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 		b.stop()
 		return fmt.Errorf("port %d answers, but not from %s (process %v): not used", port, rt.Name, pids)
 	}
-	b.url += "/v1"
+	b.base = b.url
+	if app != "" {
+		b.app = filepath.Dir(app)
+	}
+	if p := rt.Server.Protocol; p == "" || p == "openai" {
+		b.url += "/v1"
+	}
 	emit.Log(rt.Name + " is ready")
 	return nil
 }

@@ -180,6 +180,21 @@ func writeFrom(p string, mode os.FileMode, open func() (io.ReadCloser, error)) e
 	return w.Close()
 }
 
+// findFile is the file name in dir: the one least deep (ComfyUI's main.py, not one of a folder inside it).
+func findFile(dir, name string) (string, error) {
+	var found string
+	filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && d.Name() == name && (found == "" || strings.Count(p, string(filepath.Separator)) < strings.Count(found, string(filepath.Separator))) {
+			found = p
+		}
+		return nil
+	})
+	if found == "" {
+		return "", fmt.Errorf("no %s in %s", name, dir)
+	}
+	return found, nil
+}
+
 // findTool is the program name in dir (its folder in the archive does not matter; Windows: name.exe).
 func findTool(dir, name string) (string, error) {
 	if runtime.GOOS == "windows" {

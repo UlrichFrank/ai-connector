@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -72,6 +73,12 @@ type Model struct {
 	repos       []hubRepo    // music: the repositories it needs
 	maxSeconds  float64      // music: the longest song it makes (0: no limit of its own)
 	lora        *musicLoRA
+
+	// comfyui: the workflow (API format), where the request's fields go in it ("prompt": "6.inputs.text"), and the
+	// model's files by ComfyUI's models folder ("checkpoints": ["v1-5-pruned-emaonly-fp16.safetensors"])
+	workflow json.RawMessage
+	inputs   map[string]string
+	folders  map[string][]string
 }
 
 // Catalog is the list of models: Models, built when the worker starts, and the models of local runtimes (Ollama,
