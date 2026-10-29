@@ -27,6 +27,7 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `sound` | `sound` | MOSS-SoundEffect | `workerModel` |
 | a generic runtime | its `kinds` | a new library's models ("Generic runtimes") | `workerModel`; `params` |
 | a server runtime | `chat` | mlx-lm, mlx-vlm, llama.cpp ("Server runtimes") | `workerModel` (a GGUF file); `images` |
+| `comfyui` | `image`, `video` | a ComfyUI workflow ("ComfyUI") | `workflow`, `inputs`, `folders` |
 
 ## The manifest
 
@@ -230,3 +231,37 @@ description allows:
 The model's tasks, voices and languages in `/api/models` follow from it, as for the catalogue's families; the aligner
 gives word timings as for every speech model. Tried: KittenTTS micro 0.8 (`docs/examples/models.d/kitten-tts-micro.json`,
 136 MB) — 10 s of English with the voice Bella in 6.5 s on an M2 Pro; the speech runtime installed by the worker.
+
+## ComfyUI
+
+ComfyUI is a server runtime of its own protocol (`server.protocol: "comfyui"`, `runtimes/comfyui.json`): its source
+is a pinned release archive (v0.40.0, by SHA-256), its requirements a pinned environment, and the worker starts its
+`main.py` (`server.app`) with that environment's python on a free port of 127.0.0.1. A model is a workflow:
+
+```json
+"runtimeArgs": {
+  "workflow": {"3": {"class_type": "KSampler", "inputs": {"seed": 0, "steps": 20, "cfg": 7, "…": "…"}},
+               "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"}},
+               "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["4", 1]}}, "…": {}},
+  "inputs": {"prompt": "6.inputs.text", "seed": "3.inputs.seed", "steps": "3.inputs.steps", "guidance": "3.inputs.cfg",
+             "width": "5.inputs.width", "height": "5.inputs.height"},
+  "folders": {"checkpoints": ["v1-5-pruned-emaonly-fp16.safetensors"]}
+}
+```
+
+| Key | |
+|---|---|
+| `workflow` | the workflow in ComfyUI's API format ("Export (API)" in its menu) |
+| `inputs` | where a request's field goes: `node.inputs.name`; the model's `defaults` under the request's fields; a seed the request lacks is drawn |
+| `folders` | the model's files (from its `source`, downloaded and verified into the store) by ComfyUI's models folder (`checkpoints`, `diffusion_models`, `text_encoders`, `vae`, `loras`, …): the worker links them there |
+
+The worker queues the filled workflow (`/prompt`), waits for its history (`/history`), fetches the first picture or
+video a node wrote (`/view`); a canceled job interrupts ComfyUI (`/interrupt`). One ComfyUI serves all its models
+(it loads what a workflow names); it is heavy and unloads like the others. ComfyUI takes no key: while it runs,
+another program of this machine can use it (127.0.0.1 only; the port is checked as for the other servers). Custom
+nodes are not installed: a workflow uses ComfyUI's own.
+
+Tried: Stable Diffusion 1.5 (fp16) as `docs/examples/models.d/sd15-comfyui.json` — the worker fetched ComfyUI, built
+its environment and fetched the 2.1 GB; 512², 20 steps in 19.7 s on an M2 Pro (MPS), a second job with 12 steps in
+8.1 s. Linux (CUDA, CPU; ROCm and Windows CUDA with PyTorch's wheels) has environments, untried; Windows with AMD has
+none yet (AMD's Windows wheels are not on a package index).

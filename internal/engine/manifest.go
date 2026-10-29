@@ -79,7 +79,11 @@ type Manifest struct {
 			Instruct     bool     `json:"instruct,omitempty"`     // takes an instruction (instruct)
 			Speed        bool     `json:"speed,omitempty"`        // honours speed itself
 		} `json:"speech,omitempty"`
-		LoRA *struct {
+		// ComfyUI: the workflow in API format, where the request's fields go in it, the model's files by models folder
+		Workflow json.RawMessage     `json:"workflow,omitempty"`
+		Inputs   map[string]string   `json:"inputs,omitempty"`
+		Folders  map[string][]string `json:"folders,omitempty"`
+		LoRA     *struct {
 			File    string  `json:"file"`
 			Trigger string  `json:"trigger"`
 			Scale   float64 `json:"scale"`
@@ -215,6 +219,19 @@ func (mf *Manifest) check() error {
 		if !slices.Contains(rt.Kinds, mf.Kind) {
 			return fmt.Errorf("runtime %s makes %v models, not %q", rt.Name, rt.Kinds, mf.Kind)
 		}
+		if rt.Server != nil && rt.Server.Protocol == "comfyui" {
+			ra := mf.RuntimeArgs
+			var wf map[string]any
+			if len(ra.Workflow) == 0 || json.Unmarshal(ra.Workflow, &wf) != nil || len(ra.Inputs) == 0 || len(ra.Folders) == 0 {
+				return fmt.Errorf("a ComfyUI model needs runtimeArgs.workflow (API format), inputs and folders")
+			}
+			for field, path := range ra.Inputs {
+				node, _, _ := strings.Cut(path, ".")
+				if _, ok := wf[node]; !ok {
+					return fmt.Errorf("input %s: the workflow has no node %q", field, node)
+				}
+			}
+		}
 	}
 	switch {
 	case mf.Name == "" || mf.About == "":
@@ -281,6 +298,7 @@ func (mf *Manifest) model(store *models.Store, hub string) *Model {
 	m := &Model{ID: mf.ID, Name: mf.Name, Kind: mf.Kind, Backend: mf.Backend, About: mf.About, Size: int64(mf.Size), Memory: mf.Memory,
 		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults, Params: mf.Params, Images: mf.Images,
 		mflux: ra.Mflux, loader: ra.Loader, editLoader: ra.EditLoader, hq: ra.HQ, side: ra.Side, runtime: ra.Runtime, workerModel: ra.WorkerModel, maxSeconds: ra.MaxSeconds}
+	m.workflow, m.inputs, m.folders = ra.Workflow, ra.Inputs, ra.Folders
 	if ra.LoRA != nil {
 		m.lora = &musicLoRA{file: ra.LoRA.File, trigger: ra.LoRA.Trigger, scale: ra.LoRA.Scale}
 	}

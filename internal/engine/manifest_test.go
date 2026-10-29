@@ -64,7 +64,7 @@ func TestParseManifest(t *testing.T) {
 	for _, c := range []struct{ from, to, want string }{
 		{`"id": "z-image-test"`, `"id": "Z Image"`, "id"},
 		{`"rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"`, `"rev": "main"`, "40 hex"},
-		{`"backend": "mflux"`, `"backend": "comfyui"`, "backend"},
+		{`"backend": "mflux"`, `"backend": "nosuch"`, "backend"},
 		{`"kind": "image"`, `"kind": "video"`, "runs image models"},
 		{`"licence": "Apache-2.0", `, ``, "licence"},
 		{`"size": "5.5 GB"`, `"size": "5.5 GiB"`, "unit"},

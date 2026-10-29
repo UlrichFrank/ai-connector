@@ -295,8 +295,12 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 		backends = append(backends, &engine.RuntimeBackend{Root: root, Store: store, Runtime: n})
 	}
 	// servers the worker starts with their model (mlx-lm, llama.cpp: runtimes/*.json with server)
-	for _, n := range engine.ServerRuntimes() {
+	for _, n := range engine.ServerRuntimes("openai") {
 		backends = append(backends, &engine.ServerBackend{Root: root, Store: store, Runtime: n})
+	}
+	// ComfyUI: workflows as models (runtimes/comfyui.json, Protocol comfyui)
+	for _, n := range engine.ServerRuntimes("comfyui") {
+		backends = append(backends, engine.NewComfyBackend(root, store, n))
 	}
 	runs := map[string]bool{}
 	for _, b := range backends {

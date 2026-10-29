@@ -55,6 +55,11 @@ type ServerSpec struct {
 	Health string   `json:"health"`
 	Model  string   `json:"model,omitempty"`
 	KeyEnv string   `json:"keyEnv,omitempty"`
+	// Protocol: how the worker asks it — "" or "openai" (ServerBackend), "comfyui" (workflows, ComfyBackend)
+	Protocol string `json:"protocol,omitempty"`
+	// App: a file of the runtime's tools the program runs ({app}, its folder the working directory): ComfyUI's
+	// main.py, run by the environment's python
+	App string `json:"app,omitempty"`
 }
 
 // ToolArchive is an archive of a program's release (.tar.gz or .zip), pinned by its SHA-256.
@@ -94,6 +99,8 @@ func ParseRuntime(data []byte) (*RuntimeManifest, error) {
 		return nil, fmt.Errorf("%s: a server needs start, health and kinds", rt.Name)
 	case rt.Server != nil && strings.Contains(strings.Join(rt.Server.Start, " "), "{key}"):
 		return nil, fmt.Errorf("%s: no key in the arguments (every user of the machine can read them): keyEnv", rt.Name)
+	case rt.Server != nil && rt.Server.Protocol != "" && rt.Server.Protocol != "openai" && rt.Server.Protocol != "comfyui":
+		return nil, fmt.Errorf("%s: protocol %q is none of openai, comfyui", rt.Name, rt.Server.Protocol)
 	case rt.Server != nil && rt.Generic:
 		return nil, fmt.Errorf("%s: a runtime is a server or generic, not both", rt.Name)
 	case rt.Build != "" && !runtimeBuilds[rt.Build]:
@@ -189,13 +196,19 @@ func runtimeEnv(name string) pyenv.Env {
 	return e
 }
 
-// RuntimeRuns: the runtime has an environment (or its tools) for this machine.
+// RuntimeRuns: the runtime has what it needs on this machine: its environment, its tools, or both where it names both.
 func RuntimeRuns(name string) bool {
-	if _, ok := envFor(name, Platform()); ok {
-		return true
-	}
 	rt := runtimeManifest(name)
-	return rt != nil && len(rt.Tools[Platform()]) > 0
+	if rt == nil {
+		return false
+	}
+	_, env := envFor(name, Platform())
+	tools := len(rt.Tools[Platform()]) > 0
+	switch {
+	case len(rt.Envs) > 0 && len(rt.Tools) > 0:
+		return env && tools
+	}
+	return env || tools
 }
 
 // Platform is this machine as the runtimes name it: darwin-arm64 (Apple silicon), else the system and its GPU —
@@ -346,11 +359,16 @@ func GenericRuntimes() []string {
 	return out
 }
 
-// ServerRuntimes are the server runtimes this machine can start (each gets a ServerBackend).
-func ServerRuntimes() []string {
+// ServerRuntimes are the server runtimes this machine can start that speak protocol ("openai": a ServerBackend each,
+// "comfyui": a ComfyBackend each).
+func ServerRuntimes(protocol string) []string {
 	var out []string
 	for _, n := range runtimeNames() {
-		if rt := runtimeManifest(n); rt.Server != nil && RuntimeRuns(n) {
+		rt := runtimeManifest(n)
+		if rt.Server == nil || !RuntimeRuns(n) {
+			continue
+		}
+		if p := rt.Server.Protocol; p == protocol || (p == "" && protocol == "openai") {
 			out = append(out, n)
 		}
 	}
