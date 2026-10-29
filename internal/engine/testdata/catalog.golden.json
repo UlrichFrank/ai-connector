@@ -1,0 +1,3759 @@
+{
+  "models": [
+    {
+      "api": {
+        "id": "qwen3.5-4b",
+        "name": "Qwen3.5-4B (4-bit)",
+        "kind": "chat",
+        "backend": "mlx-go",
+        "about": "dense 4B, for Macs with 8–15 GB",
+        "size": 3054395348,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        },
+        "sampling": {
+          "think": {
+            "maxTokens": 32768,
+            "temperature": 1,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          },
+          "noThink": {
+            "maxTokens": 4096,
+            "temperature": 0.7,
+            "topK": 20,
+            "topP": 0.8,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          }
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/Qwen3.5-4B-4bit",
+          "rev": "0e7ffd5c629ef7719d4cbc04069232580bfa9d9c",
+          "files": [
+            {
+              "path": "config.json",
+              "size": 3366,
+              "sha256": "f3efc81b2ea8d96a45301037d3ccccbcccdef44a961845c87f286aaddbc6eaaa"
+            },
+            {
+              "path": "tokenizer.json",
+              "size": 19989343,
+              "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+            },
+            {
+              "path": "model.safetensors.index.json",
+              "size": 101944,
+              "sha256": "52e534c41f7b97708329c85f762e5882bf48bd5955a422c6ae74eba321e6048a"
+            },
+            {
+              "path": "model.safetensors",
+              "size": 3034300695,
+              "sha256": "5fb9acd0246866381cf8c5c354c6db1019f6498eec4ccb4f5edcc71ffeacb2db"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3.5-4B-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "chat"
+    },
+    {
+      "api": {
+        "id": "qwen3.5-9b",
+        "name": "Qwen3.5-9B (4-bit)",
+        "kind": "chat",
+        "backend": "mlx-go",
+        "about": "dense 9B, for Macs with 16–35 GB",
+        "size": 5970337338,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        },
+        "sampling": {
+          "think": {
+            "maxTokens": 32768,
+            "temperature": 1,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          },
+          "noThink": {
+            "maxTokens": 4096,
+            "temperature": 0.7,
+            "topK": 20,
+            "topP": 0.8,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          }
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/Qwen3.5-9B-4bit",
+          "rev": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
+          "files": [
+            {
+              "path": "config.json",
+              "size": 3331,
+              "sha256": "a96942cb6a8a1d3f1d17514d81a1925d04362a6a3233b389d13012211baaa9f8"
+            },
+            {
+              "path": "tokenizer.json",
+              "size": 19989343,
+              "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+            },
+            {
+              "path": "model.safetensors.index.json",
+              "size": 123592,
+              "sha256": "dd023913fb87cfdae27fb11dcf695117c925833796ccac3c64117d6652d8ff1e"
+            },
+            {
+              "path": "model-00001-of-00002.safetensors",
+              "size": 5349771222,
+              "sha256": "a68b87558c6ef43f74c2bd63ce7e9092ceddc3101f3def0030774bae5f42aadd"
+            },
+            {
+              "path": "model-00002-of-00002.safetensors",
+              "size": 600449850,
+              "sha256": "b0a770bf8469c7f3f18756a0e0283f1c1174344a83e059a4e483f6af4907352d"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3.5-9B-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "chat"
+    },
+    {
+      "api": {
+        "id": "qwen3.6-35b-a3b",
+        "name": "Qwen3.6-35B-A3B (4-bit)",
+        "kind": "chat",
+        "backend": "mlx-go",
+        "about": "Mixture of Experts, 35B with 3B active: fast and strong, for Macs with 36 GB or more",
+        "size": 20422432960,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        },
+        "sampling": {
+          "think": {
+            "maxTokens": 32768,
+            "temperature": 1,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          },
+          "noThink": {
+            "maxTokens": 4096,
+            "temperature": 0.7,
+            "topK": 20,
+            "topP": 0.8,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          }
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/Qwen3.6-35B-A3B-4bit",
+          "rev": "38740b847e4cb78f352aba30aa41c76e08e6eb46",
+          "files": [
+            {
+              "path": "config.json",
+              "size": 23591,
+              "sha256": "a822a9e48b0aafbe3144ec37d4fb067e178ed96615ce6e4420b3149893cc5767"
+            },
+            {
+              "path": "tokenizer.json",
+              "size": 19989343,
+              "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+            },
+            {
+              "path": "model.safetensors.index.json",
+              "size": 215755,
+              "sha256": "0b28df60e33753a14e816d3b31577ae2c93884c58430a4a6de6ae9ea483842ea"
+            },
+            {
+              "path": "model-00001-of-00004.safetensors",
+              "size": 5288196018,
+              "sha256": "09f3e6ecb0b7af6e6a38bc8169a134c821b0924c2679b2bb8f4426ad38d032b8"
+            },
+            {
+              "path": "model-00002-of-00004.safetensors",
+              "size": 5368472749,
+              "sha256": "31dcdb1c49eebdb1505bd14e3cb33f9cf900bd2546b638f2464694ae763a033f"
+            },
+            {
+              "path": "model-00003-of-00004.safetensors",
+              "size": 5368324139,
+              "sha256": "3e66de06a1f03dade16a612a368cfce4a4c9caa4efd7d28185454384082cec03"
+            },
+            {
+              "path": "model-00004-of-00004.safetensors",
+              "size": 4377211365,
+              "sha256": "a5d0cf03519c26f8b506df6b0ba60526e5c08c8cea22d0c21ce92950e58a5422"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3.6-35B-A3B-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "chat"
+    },
+    {
+      "api": {
+        "id": "qwen3.6-27b",
+        "name": "Qwen3.6-27B (4-bit)",
+        "kind": "chat",
+        "backend": "mlx-go",
+        "about": "dense 27B: careful but slow, on request, for 32 GB or more",
+        "size": 16074753796,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        },
+        "sampling": {
+          "think": {
+            "maxTokens": 32768,
+            "temperature": 1,
+            "topK": 20,
+            "topP": 0.95,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          },
+          "noThink": {
+            "maxTokens": 4096,
+            "temperature": 0.7,
+            "topK": 20,
+            "topP": 0.8,
+            "minP": 0,
+            "presencePenalty": 1.5,
+            "repetitionPenalty": 0
+          }
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/Qwen3.6-27B-4bit",
+          "rev": "c000ac2c2057d94be3fa931000c31723aac53282",
+          "files": [
+            {
+              "path": "config.json",
+              "size": 4573,
+              "sha256": "ede24666ac51e6d5ab948a8a1e6c72fc6effd941ba3aabb6dd942eb517c78043"
+            },
+            {
+              "path": "tokenizer.json",
+              "size": 19989343,
+              "sha256": "87a7830d63fcf43bf241c3c5242e96e62dd3fdc29224ca26fed8ea333db72de4"
+            },
+            {
+              "path": "model.safetensors.index.json",
+              "size": 218281,
+              "sha256": "13b840162b4cb35c66fef7df072f7dbb4717908204364f5e5d9f9655a2758fa8"
+            },
+            {
+              "path": "model-00001-of-00003.safetensors",
+              "size": 5343268752,
+              "sha256": "2689680915661f040c50c35244d08b336def279e509e1ca11873f8dd1b0e7ce0"
+            },
+            {
+              "path": "model-00002-of-00003.safetensors",
+              "size": 5354185100,
+              "sha256": "a46183727b2c5cd16613fd8395f5e9e7cc4ad679644558cc87c9406fe334463d"
+            },
+            {
+              "path": "model-00003-of-00003.safetensors",
+              "size": 5357087747,
+              "sha256": "ac23bf70b1f239a040921d6f93770d74176fd435dbf44e42317053d06c68d702"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3.6-27B-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "chat"
+    },
+    {
+      "api": {
+        "id": "flux2-klein-4b",
+        "name": "FLUX.2 [klein] 4b",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "FLUX.2 [klein] 4B, distilled (4 steps), Apache 2.0: text to image and editing with reference images",
+        "size": 17179869184,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 4,
+          "guidance": 1,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "black-forest-labs/FLUX.2-klein-4B",
+          "rev": "e7b7dc27f91deacad38e78976d1f2b499d76a294"
+        }
+      ],
+      "runtime": {
+        "mflux": "flux2-klein-4b",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "flux2-klein-9b",
+        "name": "FLUX.2 [klein] 9b",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "FLUX.2 [klein] 9B, distilled (4 steps), non-commercial licence (gated: HF_TOKEN)",
+        "size": 37580963840,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "licence": "FLUX Non-Commercial License",
+        "nonCommercial": true,
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 4,
+          "guidance": 1,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "black-forest-labs/FLUX.2-klein-9B",
+          "rev": "92196c8e11f7b6cf2b7493e037d8c5345c559216"
+        }
+      ],
+      "runtime": {
+        "mflux": "flux2-klein-9b",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9B",
+      "downloadable": true,
+      "licence": "FLUX Non-Commercial License",
+      "nonCommercial": true,
+      "fitsGB": [
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "flux2-klein-base-4b",
+        "name": "FLUX.2 [klein] base-4b",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "FLUX.2 [klein] 4B base, undistilled (50 steps, guidance 4): slower, more varied",
+        "size": 17179869184,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 50,
+          "guidance": 4,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "black-forest-labs/FLUX.2-klein-base-4B",
+          "rev": "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+        }
+      ],
+      "runtime": {
+        "mflux": "flux2-klein-base-4b",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4B",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "z-image-turbo",
+        "name": "Z-Image Turbo",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "Z-Image Turbo, 6B, Apache 2.0: text to image in 9 steps, good at text in pictures; mflux's 4-bit pack (5.5 GB), for Macs with 16 GB. No editing with reference images",
+        "size": 5905580032,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "generate"
+        ],
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 9,
+          "quantize": -1
+        }
+      },
+      "sources": [
+        {
+          "repo": "filipstrand/Z-Image-Turbo-mflux-4bit",
+          "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b",
+          "include": [
+            "transformer/",
+            "text_encoder/",
+            "vae/",
+            "tokenizer/"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "z-image-turbo",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/filipstrand/Z-Image-Turbo-mflux-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "qwen-image-2512",
+        "name": "Qwen-Image 2512",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "Qwen-Image 2512, 20B, Apache 2.0: text to image with true CFG; strong at text in pictures (also Chinese). Slow (two passes per step) and soft compared with FLUX; edits need Qwen-Image-Edit",
+        "size": 57982058496,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "generate"
+        ],
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 20,
+          "guidance": 4,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "Qwen/Qwen-Image-2512",
+          "rev": "25468b98e3276ca6700de15c6628e51b7de54a26",
+          "include": [
+            "transformer/",
+            "vae/",
+            "text_encoder/",
+            "tokenizer/",
+            "model_index.json"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "qwen-image",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/Qwen/Qwen-Image-2512",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "qwen-image-edit-2511",
+        "name": "Qwen-Image-Edit 2511",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "Qwen-Image-Edit 2511, 20B, Apache 2.0: edits one to a few reference images following the prompt (needs at least one; several can be combined) and keeps what the prompt leaves alone. Slow (two passes per step)",
+        "size": 57982058496,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "edit"
+        ],
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 30,
+          "guidance": 4,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "Qwen/Qwen-Image-Edit-2511",
+          "rev": "6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9",
+          "include": [
+            "transformer/",
+            "vae/",
+            "text_encoder/",
+            "tokenizer/",
+            "model_index.json"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "qwen-image-edit",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/Qwen/Qwen-Image-Edit-2511",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "qwen-image-2.1",
+        "name": "Qwen-Image 2.1",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "Qwen-Image 2.1, 7B transformer with a Qwen3-VL text encoder: text to image, 40 steps without guidance. Qwen Research Licence: non-commercial only",
+        "size": 33285996544,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Qwen Research License",
+        "nonCommercial": true,
+        "tasks": [
+          "generate"
+        ],
+        "defaults": {
+          "model": "",
+          "width": 1024,
+          "height": 1024,
+          "steps": 40,
+          "guidance": 1,
+          "quantize": 8
+        }
+      },
+      "sources": [
+        {
+          "repo": "Qwen/Qwen-Image-2.1",
+          "rev": "d26bb61231c349cf6b7896fa83353113880e1ba3",
+          "include": [
+            "transformer/",
+            "vae/",
+            "text_encoder/",
+            "processor/",
+            "model_index.json"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "qwen-image-2.1",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "downloadable": true,
+      "licence": "Qwen Research License",
+      "nonCommercial": true,
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image"
+    },
+    {
+      "api": {
+        "id": "seedvr2-3b",
+        "name": "SeedVR2 3B",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "SeedVR2 3B (ByteDance), Apache 2.0: upscales an image 2× or 4× (at most 4096 px) and adds detail without repainting it; one step, seconds to a minute",
+        "size": 7284343622,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "upscale"
+        ],
+        "defaults": {
+          "model": "",
+          "quantize": -1,
+          "scale": 2
+        }
+      },
+      "sources": [
+        {
+          "repo": "numz/SeedVR2_comfyUI",
+          "rev": "09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+          "include": [
+            "seedvr2_ema_3b_fp16.safetensors",
+            "ema_vae_fp16.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "seedvr2-3b",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/numz/SeedVR2_comfyUI",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image/upscale"
+    },
+    {
+      "api": {
+        "id": "seedvr2-7b",
+        "name": "SeedVR2 7B",
+        "kind": "image",
+        "backend": "mflux",
+        "about": "SeedVR2 7B (ByteDance), Apache 2.0: the larger upscaler, finer detail; slower and about 17 GB",
+        "size": 16980659238,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "upscale"
+        ],
+        "defaults": {
+          "model": "",
+          "quantize": -1,
+          "scale": 2
+        }
+      },
+      "sources": [
+        {
+          "repo": "numz/SeedVR2_comfyUI",
+          "rev": "09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+          "include": [
+            "seedvr2_ema_7b_fp16.safetensors",
+            "ema_vae_fp16.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "mflux": "seedvr2-7b",
+        "env": {
+          "name": "mflux",
+          "python": "3.12",
+          "packages": [
+            "mflux==0.20.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/numz/SeedVR2_comfyUI",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image/upscale"
+    },
+    {
+      "api": {
+        "id": "birefnet",
+        "name": "BiRefNet",
+        "kind": "image",
+        "backend": "cutout",
+        "about": "BiRefNet (ZhengPeng7), MIT: removes the background of an image — a soft alpha matte, edges cleaned for a dark backdrop, glows and shadows kept on a plain background; 1024² inside, 1–3 s an image on a Mac, 450 MB",
+        "size": 444566195,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "tasks": [
+          "cutout"
+        ],
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "repo": "ZhengPeng7/BiRefNet",
+          "rev": "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+          "include": [
+            "birefnet.py",
+            "BiRefNet_config.py",
+            "config.json",
+            "model.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "side": 1024,
+        "env": {
+          "name": "cutout",
+          "python": "3.12",
+          "packages": [
+            "torch==2.14.1",
+            "torchvision==0.29.1",
+            "transformers==5.19.0",
+            "timm==1.0.30",
+            "kornia==0.8.3",
+            "einops==0.8.2",
+            "safetensors==0.8.0",
+            "numpy==2.5.4",
+            "pillow==12.3.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image/cutout"
+    },
+    {
+      "api": {
+        "id": "birefnet-hr-matting",
+        "name": "BiRefNet HR matting",
+        "kind": "image",
+        "backend": "cutout",
+        "about": "BiRefNet HR matting (ZhengPeng7), MIT: trained for soft alpha (hair, fur, smoke) at 2048² inside; finer edges for large pictures; slower (about 4–5 s on a Mac) and far more GPU memory (MPS took up to 26 GB)",
+        "size": 444566444,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "tasks": [
+          "cutout"
+        ],
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "repo": "ZhengPeng7/BiRefNet_HR-matting",
+          "rev": "5d6b6f8adcb5b417c871b1d84ceaae9871355b7f",
+          "include": [
+            "birefnet.py",
+            "BiRefNet_config.py",
+            "config.json",
+            "model.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "side": 2048,
+        "env": {
+          "name": "cutout",
+          "python": "3.12",
+          "packages": [
+            "torch==2.14.1",
+            "torchvision==0.29.1",
+            "transformers==5.19.0",
+            "timm==1.0.30",
+            "kornia==0.8.3",
+            "einops==0.8.2",
+            "safetensors==0.8.0",
+            "numpy==2.5.4",
+            "pillow==12.3.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet_HR-matting",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image/cutout"
+    },
+    {
+      "api": {
+        "id": "birefnet-lite",
+        "name": "BiRefNet lite",
+        "kind": "image",
+        "backend": "cutout",
+        "about": "BiRefNet lite (ZhengPeng7), MIT: the small backbone (Swin-T), 180 MB — quicker, for the CPU or a small GPU; coarser edges than BiRefNet",
+        "size": 177727234,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "tasks": [
+          "cutout"
+        ],
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "repo": "ZhengPeng7/BiRefNet_lite",
+          "rev": "aa62cd87eafb9cc43056d08ef3615a14628b831d",
+          "include": [
+            "birefnet.py",
+            "BiRefNet_config.py",
+            "config.json",
+            "model.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "side": 1024,
+        "env": {
+          "name": "cutout",
+          "python": "3.12",
+          "packages": [
+            "torch==2.14.1",
+            "torchvision==0.29.1",
+            "transformers==5.19.0",
+            "timm==1.0.30",
+            "kornia==0.8.3",
+            "einops==0.8.2",
+            "safetensors==0.8.0",
+            "numpy==2.5.4",
+            "pillow==12.3.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet_lite",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "image/cutout"
+    },
+    {
+      "api": {
+        "id": "ltx-2.5-q4",
+        "name": "LTX-2.5 (q4)",
+        "kind": "video",
+        "backend": "ltx",
+        "about": "LTX-2.5 22B audio+video, int4 (Gemma 4 text encoder): distilled two-stage, fits 32 GB",
+        "size": 32212254720,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "defaults": {
+          "model": "",
+          "width": 704,
+          "height": 448,
+          "frames": 97,
+          "fps": 24
+        }
+      },
+      "sources": [
+        {
+          "repo": "dgrauet/ltx-2.5-mlx-q4",
+          "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+          "ignore": [
+            "transformer-dev.safetensors",
+            "*distilled-lora*",
+            ".gitattributes"
+          ]
+        }
+      ],
+      "runtime": {
+        "env": {
+          "name": "ltx-2-mlx",
+          "python": "3.12",
+          "packages": [
+            "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+            "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q4",
+      "downloadable": true,
+      "licence": "LTX-2 Community License",
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "video"
+    },
+    {
+      "api": {
+        "id": "ltx-2.5-q8",
+        "name": "LTX-2.5 (q8)",
+        "kind": "video",
+        "backend": "ltx",
+        "about": "LTX-2.5 22B audio+video, int8: better quality, wants 64 GB",
+        "size": 48318382080,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "defaults": {
+          "model": "",
+          "width": 704,
+          "height": 448,
+          "frames": 97,
+          "fps": 24
+        }
+      },
+      "sources": [
+        {
+          "repo": "dgrauet/ltx-2.5-mlx-q8",
+          "rev": "746ca9aacb697d2c739f544d68b584214dedcc75",
+          "ignore": [
+            "transformer-dev.safetensors",
+            "*distilled-lora*",
+            ".gitattributes"
+          ]
+        }
+      ],
+      "runtime": {
+        "env": {
+          "name": "ltx-2-mlx",
+          "python": "3.12",
+          "packages": [
+            "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+            "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q8",
+      "downloadable": true,
+      "licence": "LTX-2 Community License",
+      "fitsGB": [
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "video"
+    },
+    {
+      "api": {
+        "id": "ltx-2.5-hq-q4",
+        "name": "LTX-2.5 HQ (q4)",
+        "kind": "video",
+        "backend": "ltx",
+        "about": "LTX-2.5 HQ 22B audio+video, int4: the open dev model with real CFG (res_2s sampler, 15 steps) at half size, then the distilled LoRA refines at full size — the closest local thing to Lightricks' hosted LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); fits 32 GB at small sizes. Shares the folder of LTX-2.5 (q4): adds the dev transformer and the distilled LoRA",
+        "size": 50465865728,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "defaults": {
+          "model": "",
+          "width": 640,
+          "height": 384,
+          "steps": 15,
+          "guidance": 3,
+          "frames": 97,
+          "fps": 24
+        }
+      },
+      "sources": [
+        {
+          "repo": "dgrauet/ltx-2.5-mlx-q4",
+          "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+          "ignore": [
+            ".gitattributes"
+          ]
+        }
+      ],
+      "runtime": {
+        "hq": true,
+        "env": {
+          "name": "ltx-2-mlx",
+          "python": "3.12",
+          "packages": [
+            "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+            "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q4",
+      "downloadable": true,
+      "licence": "LTX-2 Community License",
+      "fitsGB": [
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "video"
+    },
+    {
+      "api": {
+        "id": "ltx-2.5-hq-q8",
+        "name": "LTX-2.5 HQ (q8)",
+        "kind": "video",
+        "backend": "ltx",
+        "about": "LTX-2.5 HQ 22B audio+video, int8: the open dev model with real CFG (res_2s sampler, 15 steps) at half size, then the distilled LoRA refines at full size — the closest local thing to Lightricks' hosted LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); wants 48 GB or more. Shares the folder of LTX-2.5 (q8): adds the dev transformer and the distilled LoRA",
+        "size": 69793218560,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "defaults": {
+          "model": "",
+          "width": 640,
+          "height": 384,
+          "steps": 15,
+          "guidance": 3,
+          "frames": 97,
+          "fps": 24
+        }
+      },
+      "sources": [
+        {
+          "repo": "dgrauet/ltx-2.5-mlx-q8",
+          "rev": "746ca9aacb697d2c739f544d68b584214dedcc75",
+          "ignore": [
+            ".gitattributes"
+          ]
+        }
+      ],
+      "runtime": {
+        "hq": true,
+        "env": {
+          "name": "ltx-2-mlx",
+          "python": "3.12",
+          "packages": [
+            "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+            "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q8",
+      "downloadable": true,
+      "licence": "LTX-2 Community License",
+      "fitsGB": [
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "video"
+    },
+    {
+      "api": {
+        "id": "ace-step-1.5-turbo",
+        "name": "ACE-Step 1.5 turbo",
+        "kind": "music",
+        "backend": "music",
+        "about": "ACE-Step 1.5 (MIT): songs with vocals in 50+ languages, on MLX — about 11 s for 30 s; remix, replace a part, extend",
+        "size": 10580131840,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "styles": true,
+        "audio": {
+          "maxSeconds": 600,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "main",
+          "repo": "ACE-Step/Ace-Step1.5",
+          "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+        }
+      ],
+      "runtime": {
+        "runtime": "acestep",
+        "workerModel": "ace-step-1.5-turbo",
+        "env": {
+          "name": "acestep",
+          "python": "3.12",
+          "packages": [
+            "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "ace-step-1.5-xl-turbo",
+        "name": "ACE-Step 1.5 XL turbo",
+        "kind": "music",
+        "backend": "music",
+        "about": "ACE-Step 1.5 with the 4B XL DiT: better sound, about 21 s for 30 s, 28 GB peak",
+        "size": 31499223040,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "styles": true,
+        "audio": {
+          "maxSeconds": 600,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "main",
+          "repo": "ACE-Step/Ace-Step1.5",
+          "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+        },
+        {
+          "key": "xl-turbo",
+          "repo": "ACE-Step/acestep-v15-xl-turbo",
+          "rev": "d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee"
+        }
+      ],
+      "runtime": {
+        "runtime": "acestep",
+        "workerModel": "ace-step-1.5-xl-turbo",
+        "env": {
+          "name": "acestep",
+          "python": "3.12",
+          "packages": [
+            "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "ace-step-1.5-base",
+        "name": "ACE-Step 1.5 base",
+        "kind": "music",
+        "backend": "music",
+        "about": "ACE-Step 1.5 base (50 steps, CFG 7.5): slower, follows the style and tempo more closely; also adds an instrument track and pulls out stems",
+        "size": 15602810880,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend",
+          "lego",
+          "extract"
+        ],
+        "styles": true,
+        "audio": {
+          "maxSeconds": 600,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 50,
+          "guidance": 7.5,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "main",
+          "repo": "ACE-Step/Ace-Step1.5",
+          "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+        },
+        {
+          "key": "base",
+          "repo": "ACE-Step/acestep-v15-base",
+          "rev": "e432212fec32b8965a14ffa57ae653438d6abd14"
+        }
+      ],
+      "runtime": {
+        "runtime": "acestep",
+        "workerModel": "ace-step-1.5-base",
+        "env": {
+          "name": "acestep",
+          "python": "3.12",
+          "packages": [
+            "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "ace-step-1.5-xl-base",
+        "name": "ACE-Step 1.5 XL base",
+        "kind": "music",
+        "backend": "music",
+        "about": "ACE-Step 1.5 with the undistilled 4B XL DiT (50 steps, CFG 7.5): the slowest ACE-Step, follows the style most closely",
+        "size": 30534533120,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "styles": true,
+        "audio": {
+          "maxSeconds": 600,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 50,
+          "guidance": 7.5,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "main",
+          "repo": "ACE-Step/Ace-Step1.5",
+          "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+        },
+        {
+          "key": "xl-base",
+          "repo": "ACE-Step/acestep-v15-xl-base",
+          "rev": "220c1166efbdd9583eafcb12eb160594bbfcb241"
+        }
+      ],
+      "runtime": {
+        "runtime": "acestep",
+        "workerModel": "ace-step-1.5-xl-base",
+        "env": {
+          "name": "acestep",
+          "python": "3.12",
+          "packages": [
+            "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "ace-step-1.5-xl-turbo-techno",
+        "name": "ACE-Step 1.5 XL turbo + techno LoRA",
+        "kind": "music",
+        "backend": "music",
+        "about": "ACE-Step 1.5 XL turbo with a community techno LoRA (RyanOnTheInside, rank 64, trained on 15 tracks): driving, dark and minimal techno; the LoRA states no licence",
+        "size": 31666995200,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "audio": {
+          "maxSeconds": 600,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "main",
+          "repo": "ACE-Step/Ace-Step1.5",
+          "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+        },
+        {
+          "key": "xl-turbo",
+          "repo": "ACE-Step/acestep-v15-xl-turbo",
+          "rev": "d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee"
+        },
+        {
+          "key": "lora",
+          "repo": "ryanontheinside/techno-acestep1.5-xl-v1",
+          "rev": "5154315313eb08bf9ff4d685b611706bfb4a2832",
+          "include": [
+            "adapter_config.json",
+            "techno-xl-v1.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "acestep",
+        "workerModel": "ace-step-1.5-xl-turbo",
+        "loraFile": "techno-xl-v1.safetensors",
+        "loraTrigger": "roti-t3kn0",
+        "loraScale": 1,
+        "env": {
+          "name": "acestep",
+          "python": "3.12",
+          "packages": [
+            "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ACE-Step/Ace-Step1.5",
+      "downloadable": true,
+      "licence": "MIT (the LoRA states no licence)",
+      "fitsGB": [
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "stable-audio-3-small",
+        "name": "Stable Audio 3 Small (music)",
+        "kind": "music",
+        "backend": "music",
+        "about": "Stable Audio 3 Small-Music (433M), pure MLX: instrumental only (no vocals; lyrics are ignored), up to 2 min, a few seconds per song; the tempo goes in the style (\"128 BPM\"). Remix, replace a part, extend. Restricted licence: Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+        "size": 1919942656,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "audio": {
+          "maxSeconds": 120,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 8,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "weights",
+          "repo": "stabilityai/stable-audio-3-optimized",
+          "rev": "da6edc54ddba10bfd79a077102ded687f80e882b",
+          "include": [
+            "MLX/t5gemma_f16.npz",
+            "MLX/dit_sm-music_f16.npz",
+            "MLX/same_s_decoder_f32.npz",
+            "MLX/same_s_encoder_f32.npz"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "stableaudio3",
+        "workerModel": "sm-music",
+        "maxSeconds": 120,
+        "env": {
+          "name": "stableaudio3",
+          "python": "3.12",
+          "packages": [
+            "mlx==0.32.3",
+            "numpy==2.5.3",
+            "sentencepiece==0.2.2"
+          ],
+          "build": true
+        }
+      },
+      "repoURL": "https://huggingface.co/stabilityai/stable-audio-3-optimized",
+      "downloadable": true,
+      "licence": "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "stable-audio-3-medium",
+        "name": "Stable Audio 3 Medium",
+        "kind": "music",
+        "backend": "music",
+        "about": "Stable Audio 3 Medium (1.4B), pure MLX: instrumental only (no vocals; lyrics are ignored), up to 6 min 20 s, better sound than Small; the tempo goes in the style (\"128 BPM\"). Remix, replace a part, extend. Restricted licence: Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+        "size": 6883901440,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+        "tasks": [
+          "cover",
+          "repaint",
+          "extend"
+        ],
+        "styles": true,
+        "audio": {
+          "maxSeconds": 380,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 8,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "weights",
+          "repo": "stabilityai/stable-audio-3-optimized",
+          "rev": "da6edc54ddba10bfd79a077102ded687f80e882b",
+          "include": [
+            "MLX/t5gemma_f16.npz",
+            "MLX/dit_medium_f16.npz",
+            "MLX/same_l_decoder_f32.npz",
+            "MLX/same_l_encoder_f32.npz"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "stableaudio3",
+        "workerModel": "medium",
+        "maxSeconds": 380,
+        "env": {
+          "name": "stableaudio3",
+          "python": "3.12",
+          "packages": [
+            "mlx==0.32.3",
+            "numpy==2.5.3",
+            "sentencepiece==0.2.2"
+          ],
+          "build": true
+        }
+      },
+      "repoURL": "https://huggingface.co/stabilityai/stable-audio-3-optimized",
+      "downloadable": true,
+      "licence": "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "minimax-music3-8bit",
+        "name": "MiniMax Music 3 (8-bit)",
+        "kind": "music",
+        "backend": "music",
+        "about": "MiniMax Music 3 (8B song LM + 2.4B flow matching): lyrics and a music description to a full song with vocals, up to 5 min, pure MLX (8-bit). Slow: about 6 min for 30 s on an M1 Max, 20 GB peak. The length is a ceiling (the model may end the song earlier); describe genre, BPM, key, vocals and arrangement. MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+        "size": 13363585426,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+        "audio": {
+          "maxSeconds": 300,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 30,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "weights",
+          "repo": "mikoy92/MiniMax-Music3-MLX-8bit",
+          "rev": "a21ab36ebe882b9fcb927bb23c5a914a41efcb96"
+        }
+      ],
+      "runtime": {
+        "runtime": "minimax3",
+        "workerModel": "8bit",
+        "maxSeconds": 300,
+        "env": {
+          "name": "minimax3",
+          "python": "3.12",
+          "packages": [
+            "minimax-music3-mlx @ git+https://github.com/mikolaj92/minimax-music3-mlx@b7699bc5995296403780f32500c2450e3a0ee2a1",
+            "mlx==0.32.3",
+            "mlx-lm==0.32.0",
+            "numpy==2.5.3",
+            "soundfile==0.14.0",
+            "safetensors==0.8.0",
+            "transformers==5.18.0",
+            "tokenizers==0.23.2",
+            "huggingface_hub==1.33.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mikoy92/MiniMax-Music3-MLX-8bit",
+      "downloadable": true,
+      "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "minimax-music3-4bit",
+        "name": "MiniMax Music 3 (4-bit)",
+        "kind": "music",
+        "backend": "music",
+        "about": "MiniMax Music 3 with the song LM and the flow DiT in 4 bits: for Macs with 16–32 GB; rougher than the 8-bit one. MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+        "size": 7960010136,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+        "audio": {
+          "maxSeconds": 300,
+          "lyrics": true,
+          "instrumental": true,
+          "bpm": true
+        },
+        "defaults": {
+          "model": "",
+          "steps": 30,
+          "duration": 60
+        }
+      },
+      "sources": [
+        {
+          "key": "weights",
+          "repo": "mikoy92/MiniMax-Music3-MLX-4bit",
+          "rev": "1d9d9ca4885323e0785c777abb13d25cb37ce4d8"
+        }
+      ],
+      "runtime": {
+        "runtime": "minimax3",
+        "workerModel": "4bit",
+        "maxSeconds": 300,
+        "env": {
+          "name": "minimax3",
+          "python": "3.12",
+          "packages": [
+            "minimax-music3-mlx @ git+https://github.com/mikolaj92/minimax-music3-mlx@b7699bc5995296403780f32500c2450e3a0ee2a1",
+            "mlx==0.32.3",
+            "mlx-lm==0.32.0",
+            "numpy==2.5.3",
+            "soundfile==0.14.0",
+            "safetensors==0.8.0",
+            "transformers==5.18.0",
+            "tokenizers==0.23.2",
+            "huggingface_hub==1.33.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mikoy92/MiniMax-Music3-MLX-4bit",
+      "downloadable": true,
+      "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "levo2-large",
+        "name": "LeVo 2 large (Q6_K)",
+        "kind": "music",
+        "backend": "music",
+        "about": "Tencent's LeVo 2 / SongGeneration v2, lyrics to song with clear vocals, ggml on Metal: about 5–7 min for 30 s. Research use only",
+        "size": 5221908480,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "audio": {
+          "maxSeconds": 270,
+          "lyrics": true,
+          "instrumental": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 30
+        }
+      },
+      "sources": [
+        {
+          "key": "levo2",
+          "repo": "ckadirt/LeVo2-GGUF",
+          "rev": "9d7b5746fdc74fdc80f85295e7b6c783be3703da",
+          "include": [
+            "LeVo2-v2-large-Q6_K.gguf*",
+            "LeVo2-v2-flow-Q6_K.gguf*",
+            "LeVo2-v2-vae-F16.gguf*"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "levo2",
+        "workerModel": "levo2-large",
+        "env": {
+          "name": "levo2",
+          "python": "3.12",
+          "build": true
+        }
+      },
+      "repoURL": "https://huggingface.co/ckadirt/LeVo2-GGUF",
+      "downloadable": true,
+      "licence": "research use only",
+      "nonCommercial": true,
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "levo2-medium",
+        "name": "LeVo 2 medium (Q6_K)",
+        "kind": "music",
+        "backend": "music",
+        "about": "LeVo 2 with the smaller language model: faster (about 4 min for 30 s), vocals less reliable. Research use only",
+        "size": 3229614080,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "audio": {
+          "maxSeconds": 270,
+          "lyrics": true,
+          "instrumental": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 30
+        }
+      },
+      "sources": [
+        {
+          "key": "levo2",
+          "repo": "ckadirt/LeVo2-GGUF",
+          "rev": "9d7b5746fdc74fdc80f85295e7b6c783be3703da",
+          "include": [
+            "LeVo2-v2-medium-Q6_K.gguf*",
+            "LeVo2-v2-flow-Q6_K.gguf*",
+            "LeVo2-v2-vae-F16.gguf*"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "levo2",
+        "workerModel": "levo2-medium",
+        "env": {
+          "name": "levo2",
+          "python": "3.12",
+          "build": true
+        }
+      },
+      "repoURL": "https://huggingface.co/ckadirt/LeVo2-GGUF",
+      "downloadable": true,
+      "licence": "research use only",
+      "nonCommercial": true,
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "heartmula-3b",
+        "name": "HeartMuLa 3B",
+        "kind": "music",
+        "backend": "music",
+        "about": "HeartMuLa (Apache-2.0), lyrics and tags to song, PyTorch on the GPU (MPS): slow, about 5 min for 30 s",
+        "size": 22548578304,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "audio": {
+          "maxSeconds": 240,
+          "lyrics": true,
+          "instrumental": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 30
+        }
+      },
+      "sources": [
+        {
+          "key": "gen",
+          "repo": "HeartMuLa/HeartMuLaGen",
+          "rev": "9906b2bcd4598772a32cad4aec0760170fe0d177",
+          "include": [
+            "*.json"
+          ]
+        },
+        {
+          "key": "mula",
+          "repo": "HeartMuLa/HeartMuLa-oss-3B-happy-new-year",
+          "rev": "41f6fc68490e11dc43fdabaa6b5767946408c903",
+          "include": [
+            "*.json",
+            "*.safetensors"
+          ]
+        },
+        {
+          "key": "codec",
+          "repo": "HeartMuLa/HeartCodec-oss-20260123",
+          "rev": "f889dab0532cfa4bf459f2a3367eb6d346b8eeda",
+          "include": [
+            "*.json",
+            "*.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "heartmula",
+        "workerModel": "heartmula-3b",
+        "env": {
+          "name": "heartmula",
+          "python": "3.12",
+          "packages": [
+            "heartlib @ git+https://github.com/HeartMuLa/heartlib@a18c8cb54a55b4c24d48a2842542f81da7dedcd2"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/HeartMuLa/HeartMuLaGen",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "yue2-3b",
+        "name": "YuE2 3B (8-bit)",
+        "kind": "music",
+        "backend": "music",
+        "about": "YuE2 (m-a-p), lyrics to song with vocals, pure MLX; plans an ABC score first, so the lyrics set the length (fewer lines: a shorter song). About 1.5 min for 30 s. Non-commercial (CC BY-NC 4.0)",
+        "size": 4750049280,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "tasks": [
+          "restyle"
+        ],
+        "audio": {
+          "maxSeconds": 240,
+          "lyrics": true,
+          "instrumental": true
+        },
+        "defaults": {
+          "model": "",
+          "duration": 30
+        }
+      },
+      "sources": [
+        {
+          "key": "yue2",
+          "repo": "ahmadw/YuE2-3B-MLX",
+          "rev": "fe0a9050fd658257b486b880422d8872ee1f81e3",
+          "include": [
+            "*.py",
+            "8bit/"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "yue2",
+        "workerModel": "yue2-3b-8bit",
+        "env": {
+          "name": "yue2",
+          "python": "3.12",
+          "packages": [
+            "mlx==0.32.3",
+            "numpy==2.5.3",
+            "tiktoken==0.14.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/ahmadw/YuE2-3B-MLX",
+      "downloadable": true,
+      "licence": "CC BY-NC 4.0",
+      "nonCommercial": true,
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "music"
+    },
+    {
+      "api": {
+        "id": "kokoro-82m",
+        "name": "Kokoro 82M",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "hexgrad's Kokoro 82M (bf16): small and fast, 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi and Chinese — no German; word timings for English",
+        "size": 355467264,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "presets",
+          "speed",
+          "language"
+        ],
+        "audio": {
+          "voices": [
+            {
+              "id": "af_heart",
+              "name": "Heart",
+              "language": "en"
+            },
+            {
+              "id": "af_alloy",
+              "name": "Alloy",
+              "language": "en"
+            },
+            {
+              "id": "af_aoede",
+              "name": "Aoede",
+              "language": "en"
+            },
+            {
+              "id": "af_bella",
+              "name": "Bella",
+              "language": "en"
+            },
+            {
+              "id": "af_jessica",
+              "name": "Jessica",
+              "language": "en"
+            },
+            {
+              "id": "af_kore",
+              "name": "Kore",
+              "language": "en"
+            },
+            {
+              "id": "af_nicole",
+              "name": "Nicole",
+              "language": "en"
+            },
+            {
+              "id": "af_nova",
+              "name": "Nova",
+              "language": "en"
+            },
+            {
+              "id": "af_river",
+              "name": "River",
+              "language": "en"
+            },
+            {
+              "id": "af_sarah",
+              "name": "Sarah",
+              "language": "en"
+            },
+            {
+              "id": "af_sky",
+              "name": "Sky",
+              "language": "en"
+            },
+            {
+              "id": "am_adam",
+              "name": "Adam",
+              "language": "en"
+            },
+            {
+              "id": "am_echo",
+              "name": "Echo",
+              "language": "en"
+            },
+            {
+              "id": "am_eric",
+              "name": "Eric",
+              "language": "en"
+            },
+            {
+              "id": "am_fenrir",
+              "name": "Fenrir",
+              "language": "en"
+            },
+            {
+              "id": "am_liam",
+              "name": "Liam",
+              "language": "en"
+            },
+            {
+              "id": "am_michael",
+              "name": "Michael",
+              "language": "en"
+            },
+            {
+              "id": "am_onyx",
+              "name": "Onyx",
+              "language": "en"
+            },
+            {
+              "id": "am_puck",
+              "name": "Puck",
+              "language": "en"
+            },
+            {
+              "id": "am_santa",
+              "name": "Santa",
+              "language": "en"
+            },
+            {
+              "id": "bf_alice",
+              "name": "Alice (British)",
+              "language": "en"
+            },
+            {
+              "id": "bf_emma",
+              "name": "Emma (British)",
+              "language": "en"
+            },
+            {
+              "id": "bf_isabella",
+              "name": "Isabella (British)",
+              "language": "en"
+            },
+            {
+              "id": "bf_lily",
+              "name": "Lily (British)",
+              "language": "en"
+            },
+            {
+              "id": "bm_daniel",
+              "name": "Daniel (British)",
+              "language": "en"
+            },
+            {
+              "id": "bm_fable",
+              "name": "Fable (British)",
+              "language": "en"
+            },
+            {
+              "id": "bm_george",
+              "name": "George (British)",
+              "language": "en"
+            },
+            {
+              "id": "bm_lewis",
+              "name": "Lewis (British)",
+              "language": "en"
+            },
+            {
+              "id": "ef_dora",
+              "name": "Dora",
+              "language": "es"
+            },
+            {
+              "id": "em_alex",
+              "name": "Alex",
+              "language": "es"
+            },
+            {
+              "id": "em_santa",
+              "name": "Santa",
+              "language": "es"
+            },
+            {
+              "id": "ff_siwis",
+              "name": "Siwis",
+              "language": "fr"
+            },
+            {
+              "id": "hf_alpha",
+              "name": "Alpha",
+              "language": "hi"
+            },
+            {
+              "id": "hf_beta",
+              "name": "Beta",
+              "language": "hi"
+            },
+            {
+              "id": "hm_omega",
+              "name": "Omega",
+              "language": "hi"
+            },
+            {
+              "id": "hm_psi",
+              "name": "Psi",
+              "language": "hi"
+            },
+            {
+              "id": "if_sara",
+              "name": "Sara",
+              "language": "it"
+            },
+            {
+              "id": "im_nicola",
+              "name": "Nicola",
+              "language": "it"
+            },
+            {
+              "id": "pf_dora",
+              "name": "Dora",
+              "language": "pt"
+            },
+            {
+              "id": "pm_alex",
+              "name": "Alex",
+              "language": "pt"
+            },
+            {
+              "id": "pm_santa",
+              "name": "Santa",
+              "language": "pt"
+            },
+            {
+              "id": "zf_xiaobei",
+              "name": "Xiaobei",
+              "language": "zh"
+            },
+            {
+              "id": "zf_xiaoni",
+              "name": "Xiaoni",
+              "language": "zh"
+            },
+            {
+              "id": "zf_xiaoxiao",
+              "name": "Xiaoxiao",
+              "language": "zh"
+            },
+            {
+              "id": "zf_xiaoyi",
+              "name": "Xiaoyi",
+              "language": "zh"
+            },
+            {
+              "id": "zm_yunjian",
+              "name": "Yunjian",
+              "language": "zh"
+            },
+            {
+              "id": "zm_yunxi",
+              "name": "Yunxi",
+              "language": "zh"
+            },
+            {
+              "id": "zm_yunxia",
+              "name": "Yunxia",
+              "language": "zh"
+            },
+            {
+              "id": "zm_yunyang",
+              "name": "Yunyang",
+              "language": "zh"
+            }
+          ],
+          "languages": [
+            "en",
+            "es",
+            "fr",
+            "it",
+            "pt",
+            "hi",
+            "zh"
+          ],
+          "maxChars": 5000,
+          "words": true
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "mlx-community/Kokoro-82M-bf16",
+          "rev": "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
+          "include": [
+            "config.json",
+            "kokoro-v1_0.safetensors",
+            "voices/*.safetensors"
+          ]
+        }
+      ],
+      "runtime": {
+        "workerModel": "kokoro",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Kokoro-82M-bf16",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "qwen3-tts-1.7b",
+        "name": "Qwen3-TTS 1.7B",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Qwen3-TTS 12Hz 1.7B (bf16): 9 preset voices that follow an instruction (emotion, style), cloning from a sample, voices designed from a description; 10 languages incl. German. Each part (CustomVoice, Base, VoiceDesign, 4 GB each) is fetched when first used",
+        "size": 12884901888,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "clone",
+          "design",
+          "presets",
+          "instruct",
+          "speed",
+          "language"
+        ],
+        "audio": {
+          "voices": [
+            {
+              "id": "Vivian",
+              "name": "Vivian",
+              "language": "zh"
+            },
+            {
+              "id": "Serena",
+              "name": "Serena",
+              "language": "zh"
+            },
+            {
+              "id": "Uncle_Fu",
+              "name": "Uncle Fu",
+              "language": "zh"
+            },
+            {
+              "id": "Dylan",
+              "name": "Dylan",
+              "language": "zh"
+            },
+            {
+              "id": "Eric",
+              "name": "Eric",
+              "language": "zh"
+            },
+            {
+              "id": "Ryan",
+              "name": "Ryan",
+              "language": "en"
+            },
+            {
+              "id": "Aiden",
+              "name": "Aiden",
+              "language": "en"
+            },
+            {
+              "id": "Ono_Anna",
+              "name": "Ono Anna",
+              "language": "ja"
+            },
+            {
+              "id": "Sohee",
+              "name": "Sohee",
+              "language": "ko"
+            }
+          ],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "de",
+            "fr",
+            "ru",
+            "pt",
+            "es",
+            "it"
+          ],
+          "instruct": true,
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "custom",
+          "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
+          "rev": "52f4770fd9726457eae3d3b6aa92047a25a10776"
+        },
+        {
+          "key": "base",
+          "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16",
+          "rev": "a6eb4f68e4b056f1215157bb696209bc82a6db48"
+        },
+        {
+          "key": "design",
+          "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
+          "rev": "7d3824abff87e49756bb0f83fb5411de75d160c4"
+        }
+      ],
+      "runtime": {
+        "workerModel": "qwen3-tts",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "qwen3-tts-0.6b",
+        "name": "Qwen3-TTS 0.6B",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Qwen3-TTS 12Hz 0.6B (bf16): the small one, faster; presets with instruct and cloning, no voice design",
+        "size": 4896849920,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "clone",
+          "presets",
+          "instruct",
+          "speed",
+          "language"
+        ],
+        "audio": {
+          "voices": [
+            {
+              "id": "Vivian",
+              "name": "Vivian",
+              "language": "zh"
+            },
+            {
+              "id": "Serena",
+              "name": "Serena",
+              "language": "zh"
+            },
+            {
+              "id": "Uncle_Fu",
+              "name": "Uncle Fu",
+              "language": "zh"
+            },
+            {
+              "id": "Dylan",
+              "name": "Dylan",
+              "language": "zh"
+            },
+            {
+              "id": "Eric",
+              "name": "Eric",
+              "language": "zh"
+            },
+            {
+              "id": "Ryan",
+              "name": "Ryan",
+              "language": "en"
+            },
+            {
+              "id": "Aiden",
+              "name": "Aiden",
+              "language": "en"
+            },
+            {
+              "id": "Ono_Anna",
+              "name": "Ono Anna",
+              "language": "ja"
+            },
+            {
+              "id": "Sohee",
+              "name": "Sohee",
+              "language": "ko"
+            }
+          ],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "de",
+            "fr",
+            "ru",
+            "pt",
+            "es",
+            "it"
+          ],
+          "instruct": true,
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "custom",
+          "repo": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-bf16",
+          "rev": "6415d95f88be018ff9e46813119dc3bc12261328"
+        },
+        {
+          "key": "base",
+          "repo": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+          "rev": "1eccf1cb2519b5a4e8a95b5f0544f3303568164f"
+        }
+      ],
+      "runtime": {
+        "workerModel": "qwen3-tts",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-bf16",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "chatterbox-v3",
+        "name": "Chatterbox Multilingual v3",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Resemble AI's Chatterbox Multilingual v3 (23 languages): clones a voice from a few seconds; instruct sets the emotion exaggeration (0–2 or calm … dramatic)",
+        "size": 3145728000,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "tasks": [
+          "clone",
+          "presets",
+          "instruct",
+          "speed",
+          "language"
+        ],
+        "audio": {
+          "voices": [
+            {
+              "id": "default",
+              "name": "Default",
+              "language": "en"
+            }
+          ],
+          "languages": [
+            "ar",
+            "da",
+            "de",
+            "el",
+            "en",
+            "es",
+            "fi",
+            "fr",
+            "he",
+            "hi",
+            "it",
+            "ja",
+            "ko",
+            "ms",
+            "nl",
+            "no",
+            "pl",
+            "pt",
+            "ru",
+            "sv",
+            "sw",
+            "tr",
+            "zh"
+          ],
+          "instruct": true,
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "mlx-community/chatterbox-multilingual-v3",
+          "rev": "03565773edd72e949572557597af8063bb49a18a"
+        },
+        {
+          "key": "conds",
+          "repo": "mlx-community/chatterbox-fp16",
+          "rev": "4923fcca09086356aeab5191a2348c5a17a23694",
+          "include": [
+            "conds.safetensors"
+          ]
+        },
+        {
+          "key": "s3tok",
+          "repo": "mlx-community/S3TokenizerV2",
+          "rev": "e0c9886f0e1c35ae85b1f27277416fb19fc72bec",
+          "include": [
+            "model.safetensors",
+            "config.json"
+          ]
+        }
+      ],
+      "runtime": {
+        "workerModel": "chatterbox",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/chatterbox-multilingual-v3",
+      "downloadable": true,
+      "licence": "MIT",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "voxcpm2",
+        "name": "VoxCPM2",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "OpenBMB's VoxCPM2 2B (bf16), 48 kHz studio quality, 30 languages: cloning, voices designed from a description, instruct as a style",
+        "size": 4959764480,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "clone",
+          "design",
+          "instruct",
+          "speed"
+        ],
+        "audio": {
+          "instruct": true,
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "mlx-community/VoxCPM2-bf16",
+          "rev": "a7fb80d9056983135a54ca3f71fcc5a637ccddf5"
+        }
+      ],
+      "runtime": {
+        "workerModel": "voxcpm2",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/VoxCPM2-bf16",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "higgs-audio-v3",
+        "name": "Higgs Audio v3 TTS 4B",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Boson AI's Higgs Audio v3 4B: expressive, clones from a sample; instruct becomes control tags (emotions, whisper, shout, speed) or put tags like \u003c|emotion:amusement|\u003e into the text. Non-commercial",
+        "size": 9154068480,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Boson Higgs Audio v3 Research and Non-Commercial License",
+        "nonCommercial": true,
+        "tasks": [
+          "clone",
+          "instruct",
+          "speed"
+        ],
+        "audio": {
+          "instruct": true,
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "bosonai/higgs-tts-3-4b",
+          "rev": "239f63fb7b02b1aa085f98d9efae5e35cc5523e8",
+          "include": [
+            "*.json",
+            "*.safetensors",
+            "*.jinja",
+            "LICENSE"
+          ]
+        }
+      ],
+      "runtime": {
+        "workerModel": "higgs",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/bosonai/higgs-tts-3-4b",
+      "downloadable": true,
+      "licence": "Boson Higgs Audio v3 Research and Non-Commercial License",
+      "nonCommercial": true,
+      "fitsGB": [
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "voxtral-tts",
+        "name": "Voxtral 4B TTS",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Mistral's Voxtral 4B TTS (bf16): 20 natural preset voices in 9 languages (de_male, de_female …); no cloning. Non-commercial",
+        "size": 8042577920,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "CC BY-NC 4.0",
+        "nonCommercial": true,
+        "tasks": [
+          "presets",
+          "speed",
+          "language"
+        ],
+        "audio": {
+          "voices": [
+            {
+              "id": "casual_male",
+              "name": "casual male",
+              "language": "en"
+            },
+            {
+              "id": "casual_female",
+              "name": "casual female",
+              "language": "en"
+            },
+            {
+              "id": "cheerful_female",
+              "name": "cheerful female",
+              "language": "en"
+            },
+            {
+              "id": "neutral_male",
+              "name": "neutral male",
+              "language": "en"
+            },
+            {
+              "id": "neutral_female",
+              "name": "neutral female",
+              "language": "en"
+            },
+            {
+              "id": "fr_male",
+              "name": "FR male",
+              "language": "fr"
+            },
+            {
+              "id": "fr_female",
+              "name": "FR female",
+              "language": "fr"
+            },
+            {
+              "id": "es_male",
+              "name": "ES male",
+              "language": "es"
+            },
+            {
+              "id": "es_female",
+              "name": "ES female",
+              "language": "es"
+            },
+            {
+              "id": "de_male",
+              "name": "DE male",
+              "language": "de"
+            },
+            {
+              "id": "de_female",
+              "name": "DE female",
+              "language": "de"
+            },
+            {
+              "id": "it_male",
+              "name": "IT male",
+              "language": "it"
+            },
+            {
+              "id": "it_female",
+              "name": "IT female",
+              "language": "it"
+            },
+            {
+              "id": "pt_male",
+              "name": "PT male",
+              "language": "pt"
+            },
+            {
+              "id": "pt_female",
+              "name": "PT female",
+              "language": "pt"
+            },
+            {
+              "id": "nl_male",
+              "name": "NL male",
+              "language": "nl"
+            },
+            {
+              "id": "nl_female",
+              "name": "NL female",
+              "language": "nl"
+            },
+            {
+              "id": "ar_male",
+              "name": "AR male",
+              "language": "ar"
+            },
+            {
+              "id": "hi_male",
+              "name": "HI male",
+              "language": "hi"
+            },
+            {
+              "id": "hi_female",
+              "name": "HI female",
+              "language": "hi"
+            }
+          ],
+          "languages": [
+            "en",
+            "fr",
+            "es",
+            "de",
+            "it",
+            "pt",
+            "nl",
+            "ar",
+            "hi"
+          ],
+          "maxChars": 5000
+        },
+        "defaults": {
+          "model": "",
+          "speed": 1
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
+          "rev": "dd85c02adbae551f5bb29ded35ee60ccdfb90927"
+        }
+      ],
+      "runtime": {
+        "workerModel": "voxtral",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
+      "downloadable": true,
+      "licence": "CC BY-NC 4.0",
+      "nonCommercial": true,
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech"
+    },
+    {
+      "api": {
+        "id": "qwen3-asr",
+        "name": "Qwen3-ASR 1.7B (transcribe)",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Qwen3-ASR 1.7B (8-bit): speech to text in 30 languages; a job with an audio file gives its transcript (the voice library uses it for samples)",
+        "size": 2474639360,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "transcribe"
+        ],
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "key": "asr",
+          "repo": "mlx-community/Qwen3-ASR-1.7B-8bit",
+          "rev": "a8379a2e2f9e313c9292cdf1af4055ab56d50d55"
+        }
+      ],
+      "runtime": {
+        "workerModel": "asr",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-8bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech/transcribe"
+    },
+    {
+      "api": {
+        "id": "qwen3-forced-aligner",
+        "name": "Qwen3-ForcedAligner 0.6B (word timings)",
+        "kind": "speech",
+        "backend": "speech",
+        "about": "Qwen3-ForcedAligner 0.6B (8-bit): when each word of a clip is said, for every speech model, in English, German, French, Spanish, Italian, Portuguese, Russian and Chinese (subtitles, the word being spoken); every clip uses it once it is on disk (it makes nothing itself)",
+        "size": 1276116992,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "tasks": [
+          "align"
+        ],
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "key": "align",
+          "repo": "mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
+          "rev": "0e1a68e91d815300c7c9754b2a7639378b23db15"
+        }
+      ],
+      "runtime": {
+        "workerModel": "align",
+        "env": {
+          "name": "speech",
+          "python": "3.12",
+          "packages": [
+            "mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@543792553ba62fe7cdb9e0b22c505bfa899c0f09",
+            "mlx==0.32.3",
+            "numpy==2.3.5",
+            "transformers==5.18.0",
+            "mistral-common[audio]==1.12.0",
+            "torch==2.14.1",
+            "misaki[en,zh]==0.9.4",
+            "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "speech/align"
+    },
+    {
+      "api": {
+        "id": "ltx-2.5-avatar",
+        "name": "LTX-2.5 avatar",
+        "kind": "avatar",
+        "backend": "avatar",
+        "about": "LTX-2.5 22B (int4 pack) with the portrait as first frame and the speech as a frozen audio latent: lip-synced clips of up to ~6.5 s, longer speech is chained at pauses (sizes snap to 64, at most ~640×640)",
+        "size": 32212254720,
+        "here": false,
+        "where": "",
+        "gated": true,
+        "licence": "LTX-2 Community License",
+        "defaults": {
+          "model": "",
+          "prompt": "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera",
+          "width": 512,
+          "height": 640,
+          "frames": 161,
+          "fps": 24
+        }
+      },
+      "sources": [
+        {
+          "repo": "dgrauet/ltx-2.5-mlx-q4",
+          "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+          "ignore": [
+            "transformer-dev.safetensors",
+            "*distilled-lora*",
+            ".gitattributes"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "ltx-a2v"
+      },
+      "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q4",
+      "downloadable": false,
+      "licence": "LTX-2 Community License",
+      "fitsGB": [
+        128,
+        192,
+        512
+      ],
+      "role": "avatar"
+    },
+    {
+      "api": {
+        "id": "longcat-avatar-1.5-q8",
+        "name": "LongCat Avatar 1.5 (q8)",
+        "kind": "avatar",
+        "backend": "avatar",
+        "about": "LongCat-Video-Avatar 1.5 (13.6B, 8-bit DiT, 8 DMD steps), experimental MLX port: head and body motion from a portrait and speech; very slow (~10 min per second of video at 256×432, sizes scaled down to that area)",
+        "size": 32212254720,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "defaults": {
+          "model": "",
+          "prompt": "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera",
+          "width": 256,
+          "height": 432,
+          "frames": 93,
+          "fps": 25
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/LongCat-Video-Avatar-1.5-q8-dmd-merged",
+          "rev": "d06d5f6bbbb7224e8f14f7533002d098ec3f3a31",
+          "ignore": [
+            ".gitattributes",
+            "README.md"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "longcat"
+      },
+      "repoURL": "https://huggingface.co/mlx-community/LongCat-Video-Avatar-1.5-q8-dmd-merged",
+      "downloadable": false,
+      "licence": "MIT",
+      "fitsGB": [
+        128,
+        192,
+        512
+      ],
+      "role": "avatar"
+    },
+    {
+      "api": {
+        "id": "longcat-avatar-1.5-q4",
+        "name": "LongCat Avatar 1.5 (q4)",
+        "kind": "avatar",
+        "backend": "avatar",
+        "about": "LongCat-Video-Avatar 1.5, 4-bit DiT: smaller, a little rougher",
+        "size": 24696061952,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "MIT",
+        "defaults": {
+          "model": "",
+          "prompt": "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera",
+          "width": 256,
+          "height": 432,
+          "frames": 93,
+          "fps": 25
+        }
+      },
+      "sources": [
+        {
+          "repo": "mlx-community/LongCat-Video-Avatar-1.5-q4-dmd-merged",
+          "rev": "5d5b5d61ce6c206930a94c760f6941aff03f9389",
+          "ignore": [
+            ".gitattributes",
+            "README.md"
+          ]
+        }
+      ],
+      "runtime": {
+        "runtime": "longcat"
+      },
+      "repoURL": "https://huggingface.co/mlx-community/LongCat-Video-Avatar-1.5-q4-dmd-merged",
+      "downloadable": false,
+      "licence": "MIT",
+      "fitsGB": [
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "avatar"
+    },
+    {
+      "api": {
+        "id": "moss-soundeffect",
+        "name": "MOSS-SoundEffect (4-bit)",
+        "kind": "sound",
+        "backend": "sound",
+        "about": "MOSS-SoundEffect (OpenMOSS), a description to a sound effect or ambience (nature, city, animals, actions), pure MLX, 24 kHz mono, 1–30 s; about 8–20 s for 8 s of sound, 6 GB (up to 11 GB for the process)",
+        "size": 7046430720,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "licence": "Apache-2.0",
+        "audio": {
+          "maxSeconds": 30
+        },
+        "defaults": {
+          "model": "",
+          "duration": 8
+        }
+      },
+      "sources": [
+        {
+          "key": "model",
+          "repo": "mlx-community/MOSS-SoundEffect-MLX-4bit",
+          "rev": "6ad2b5f42c7e14c7d15581727832e8b283e3fce7",
+          "include": [
+            "mlx-4bit/*.json",
+            "mlx-4bit/*.safetensors",
+            "mlx-4bit/*.txt",
+            "mlx-4bit/*.jinja"
+          ]
+        },
+        {
+          "key": "codec",
+          "repo": "appautomaton/openmoss-audio-tokenizer-mlx",
+          "rev": "3b22b5958c15f807e3ca8faae2cc3b7cc4b74552",
+          "include": [
+            "mlx-int8/"
+          ]
+        }
+      ],
+      "runtime": {
+        "workerModel": "moss-soundeffect",
+        "env": {
+          "name": "sound",
+          "python": "3.13",
+          "packages": [
+            "mlx-speech @ git+https://github.com/appautomaton/mlx-speech@4577ad28e6bef2ae2a11b8fa76a6cdb23bb2a9cc",
+            "mlx==0.32.2",
+            "numpy==2.4.4",
+            "safetensors==0.7.0",
+            "soundfile==0.13.1",
+            "tokenizers==0.22.2",
+            "huggingface-hub==1.8.0"
+          ]
+        }
+      },
+      "repoURL": "https://huggingface.co/mlx-community/MOSS-SoundEffect-MLX-4bit",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "sound"
+    },
+    {
+      "api": {
+        "id": "qwen3-embedding-0.6b",
+        "name": "Qwen/Qwen3-Embedding-0.6B",
+        "kind": "embed",
+        "backend": "go",
+        "about": "Qwen3-Embedding-0.6B: compares texts (cosine similarity), as vboard's \"Group by theme\"",
+        "size": 1203010848,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "repo": "Qwen/Qwen3-Embedding-0.6B",
+          "rev": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+          "files": [
+            {
+              "path": "config.json",
+              "size": 727,
+              "sha256": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9"
+            },
+            {
+              "path": "tokenizer.json",
+              "size": 11423705,
+              "sha256": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a"
+            },
+            {
+              "path": "model.safetensors",
+              "size": 1191586416,
+              "sha256": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B",
+      "downloadable": true,
+      "licence": "Apache-2.0",
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "embed"
+    },
+    {
+      "api": {
+        "id": "laya-typed-decisions",
+        "name": "typed-decisions",
+        "kind": "classify",
+        "backend": "go",
+        "about": "Laya typed-decisions: answers a choice question about each text, as vboard's \"Sort into frames\"",
+        "size": 846195379,
+        "here": false,
+        "where": "",
+        "gated": false,
+        "defaults": {
+          "model": ""
+        }
+      },
+      "sources": [
+        {
+          "repo": "convaiinnovations/laya",
+          "rev": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+          "subdir": "typed-decisions",
+          "files": [
+            {
+              "path": "typed-decisions/rl_agent_config.json",
+              "size": 847,
+              "sha256": "ebf0cd524d92342a6be5e48e9fca3d7c2babfb5a56ccd79d2171ef5d8c7f7be8"
+            },
+            {
+              "path": "typed-decisions/encoder/config.json",
+              "size": 2084,
+              "sha256": "5268d24ad3b77c8151de5dcb0762ba4391619aad9ab0bda33e36fb083cfeae6d"
+            },
+            {
+              "path": "typed-decisions/tokenizer/tokenizer.json",
+              "size": 3583228,
+              "sha256": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30"
+            },
+            {
+              "path": "typed-decisions/model.safetensors",
+              "size": 842609220,
+              "sha256": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e"
+            }
+          ]
+        }
+      ],
+      "runtime": {},
+      "repoURL": "https://huggingface.co/convaiinnovations/laya",
+      "downloadable": true,
+      "fitsGB": [
+        8,
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        192,
+        512
+      ],
+      "role": "classify"
+    }
+  ],
+  "recommended": {
+    "avatar": {},
+    "chat": {
+      "128GB": "qwen3.6-35b-a3b",
+      "16GB": "qwen3.5-4b",
+      "192GB": "qwen3.6-35b-a3b",
+      "24GB": "qwen3.5-4b",
+      "32GB": "qwen3.5-9b",
+      "48GB": "qwen3.5-9b",
+      "512GB": "qwen3.6-35b-a3b",
+      "64GB": "qwen3.6-35b-a3b",
+      "8GB": "qwen3.5-4b",
+      "96GB": "qwen3.6-35b-a3b"
+    },
+    "classify": {
+      "128GB": "laya-typed-decisions",
+      "16GB": "laya-typed-decisions",
+      "192GB": "laya-typed-decisions",
+      "24GB": "laya-typed-decisions",
+      "32GB": "laya-typed-decisions",
+      "48GB": "laya-typed-decisions",
+      "512GB": "laya-typed-decisions",
+      "64GB": "laya-typed-decisions",
+      "8GB": "laya-typed-decisions",
+      "96GB": "laya-typed-decisions"
+    },
+    "embed": {
+      "128GB": "qwen3-embedding-0.6b",
+      "16GB": "qwen3-embedding-0.6b",
+      "192GB": "qwen3-embedding-0.6b",
+      "24GB": "qwen3-embedding-0.6b",
+      "32GB": "qwen3-embedding-0.6b",
+      "48GB": "qwen3-embedding-0.6b",
+      "512GB": "qwen3-embedding-0.6b",
+      "64GB": "qwen3-embedding-0.6b",
+      "8GB": "qwen3-embedding-0.6b",
+      "96GB": "qwen3-embedding-0.6b"
+    },
+    "image": {
+      "128GB": "flux2-klein-4b",
+      "16GB": "z-image-turbo",
+      "192GB": "flux2-klein-4b",
+      "24GB": "flux2-klein-4b",
+      "32GB": "flux2-klein-4b",
+      "48GB": "flux2-klein-4b",
+      "512GB": "flux2-klein-4b",
+      "64GB": "flux2-klein-4b",
+      "8GB": "z-image-turbo",
+      "96GB": "flux2-klein-4b"
+    },
+    "image/cutout": {
+      "128GB": "birefnet",
+      "16GB": "birefnet",
+      "192GB": "birefnet",
+      "24GB": "birefnet",
+      "32GB": "birefnet",
+      "48GB": "birefnet",
+      "512GB": "birefnet",
+      "64GB": "birefnet",
+      "8GB": "birefnet",
+      "96GB": "birefnet"
+    },
+    "image/upscale": {
+      "128GB": "seedvr2-3b",
+      "16GB": "seedvr2-3b",
+      "192GB": "seedvr2-3b",
+      "24GB": "seedvr2-3b",
+      "32GB": "seedvr2-3b",
+      "48GB": "seedvr2-3b",
+      "512GB": "seedvr2-3b",
+      "64GB": "seedvr2-3b",
+      "8GB": "seedvr2-3b",
+      "96GB": "seedvr2-3b"
+    },
+    "music": {
+      "128GB": "ace-step-1.5-turbo",
+      "16GB": "stable-audio-3-small",
+      "192GB": "ace-step-1.5-turbo",
+      "24GB": "stable-audio-3-small",
+      "32GB": "ace-step-1.5-turbo",
+      "48GB": "ace-step-1.5-turbo",
+      "512GB": "ace-step-1.5-turbo",
+      "64GB": "ace-step-1.5-turbo",
+      "8GB": "stable-audio-3-small",
+      "96GB": "ace-step-1.5-turbo"
+    },
+    "sound": {
+      "128GB": "moss-soundeffect",
+      "16GB": "moss-soundeffect",
+      "192GB": "moss-soundeffect",
+      "24GB": "moss-soundeffect",
+      "32GB": "moss-soundeffect",
+      "48GB": "moss-soundeffect",
+      "512GB": "moss-soundeffect",
+      "64GB": "moss-soundeffect",
+      "8GB": "moss-soundeffect",
+      "96GB": "moss-soundeffect"
+    },
+    "speech": {
+      "128GB": "kokoro-82m",
+      "16GB": "kokoro-82m",
+      "192GB": "kokoro-82m",
+      "24GB": "kokoro-82m",
+      "32GB": "kokoro-82m",
+      "48GB": "kokoro-82m",
+      "512GB": "kokoro-82m",
+      "64GB": "kokoro-82m",
+      "8GB": "kokoro-82m",
+      "96GB": "kokoro-82m"
+    },
+    "speech/align": {
+      "128GB": "qwen3-forced-aligner",
+      "16GB": "qwen3-forced-aligner",
+      "192GB": "qwen3-forced-aligner",
+      "24GB": "qwen3-forced-aligner",
+      "32GB": "qwen3-forced-aligner",
+      "48GB": "qwen3-forced-aligner",
+      "512GB": "qwen3-forced-aligner",
+      "64GB": "qwen3-forced-aligner",
+      "8GB": "qwen3-forced-aligner",
+      "96GB": "qwen3-forced-aligner"
+    },
+    "speech/transcribe": {},
+    "video": {
+      "128GB": "ltx-2.5-q4",
+      "16GB": "ltx-2.5-q4",
+      "192GB": "ltx-2.5-q4",
+      "24GB": "ltx-2.5-q4",
+      "32GB": "ltx-2.5-q4",
+      "48GB": "ltx-2.5-q4",
+      "512GB": "ltx-2.5-q4",
+      "64GB": "ltx-2.5-q4",
+      "8GB": "ltx-2.5-q4",
+      "96GB": "ltx-2.5-q4"
+    }
+  }
+}
