@@ -22,41 +22,6 @@ const TaskUpscale = "upscale"
 // UpscaleMax is the longest side an upscale makes (a larger scale is cut to it, the aspect ratio kept).
 const UpscaleMax = 4096
 
-const (
-	seedvr2Repo = "numz/SeedVR2_comfyUI"
-	seedvr2Rev  = "09ced71023636e9bc8cdf9cdecfb2625d1e691e8"
-	seedvr2VAE  = "ema_vae_fp16.safetensors" // 501 MB
-)
-
-// seedvr2Models are the upscalers (sizes: the transformer and the VAE in fp16, what mflux loads).
-var seedvr2Models = []struct {
-	id, name, file, about string
-	size                  int64
-}{
-	{"seedvr2-3b", "SeedVR2 3B", "seedvr2_ema_3b_fp16.safetensors",
-		"SeedVR2 3B (ByteDance), Apache 2.0: upscales an image 2× or 4× (at most 4096 px) and adds detail without " +
-			"repainting it; one step, seconds to a minute", 6783018808 + 501324814},
-	{"seedvr2-7b", "SeedVR2 7B", "seedvr2_ema_7b_fp16.safetensors",
-		"SeedVR2 7B (ByteDance), Apache 2.0: the larger upscaler, finer detail; slower and about 17 GB", 16479334424 + 501324814},
-}
-
-// seedvr2Catalog adds the upscalers: here when the store has both files verified, or the Hugging Face cache has them.
-func seedvr2Catalog(store *models.Store, hub string) []*Model {
-	var out []*Model
-	for _, s := range seedvr2Models {
-		m := &Model{ID: s.id, Name: s.name, Kind: Image, Backend: "mflux", About: s.about, Size: s.size, repo: seedvr2Repo,
-			rev: seedvr2Rev, mflux: s.id, files: []string{s.file, seedvr2VAE}, Tasks: []string{TaskUpscale},
-			Licence: "Apache-2.0", Defaults: Request{Scale: 2, Quantize: -1}}
-		if d := filepath.Join(store.Dir, filepath.FromSlash(seedvr2Repo), seedvr2Rev); hasAll(d, s.file+".sha256", seedvr2VAE+".sha256") {
-			m.Here, m.Where = true, d
-		} else if d := hfSnapshot(hub, seedvr2Repo, seedvr2Rev); d != "" && hasAll(d, s.file, seedvr2VAE) {
-			m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
-		}
-		out = append(out, m)
-	}
-	return out
-}
-
 // upscale runs SeedVR2 on one image. mflux takes the shorter side's new length; the worker script reads the image's
 // size and works it out as UpscaleSize does. mflux tiles the VAE (encode and decode in 512 px tiles) by default, so
 // a 4096² result does not need the memory of a 4096² decode.

@@ -1,0 +1,29 @@
+{
+  "id": "flux2-klein-base-4b",
+  "name": "FLUX.2 [klein] base-4b",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 30,
+  "about": "FLUX.2 [klein] 4B base, undistilled (50 steps, guidance 4): slower, more varied",
+  "licence": "Apache-2.0",
+  "size": "16 GB",
+  "source": {
+    "repo": "black-forest-labs/FLUX.2-klein-base-4B",
+    "rev": "a3b4f4849157f664bdbc776fd7453c2783562f4d"
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 50,
+    "guidance": 4,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "flux2-klein-base-4b"
+  }
+}

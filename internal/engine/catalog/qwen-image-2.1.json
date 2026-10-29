@@ -1,0 +1,40 @@
+{
+  "id": "qwen-image-2.1",
+  "name": "Qwen-Image 2.1",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 70,
+  "about": "Qwen-Image 2.1, 7B transformer with a Qwen3-VL text encoder: text to image, 40 steps without guidance. Qwen Research Licence: non-commercial only",
+  "licence": "Qwen Research License",
+  "nonCommercial": true,
+  "size": "31 GB",
+  "tasks": [
+    "generate"
+  ],
+  "source": {
+    "repo": "Qwen/Qwen-Image-2.1",
+    "rev": "d26bb61231c349cf6b7896fa83353113880e1ba3",
+    "files": [
+      "transformer/",
+      "vae/",
+      "text_encoder/",
+      "processor/",
+      "model_index.json"
+    ]
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 40,
+    "guidance": 1,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "qwen-image-2.1"
+  }
+}

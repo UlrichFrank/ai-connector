@@ -1,0 +1,39 @@
+{
+  "id": "qwen-image-2512",
+  "name": "Qwen-Image 2512",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 50,
+  "about": "Qwen-Image 2512, 20B, Apache 2.0: text to image with true CFG; strong at text in pictures (also Chinese). Slow (two passes per step) and soft compared with FLUX; edits need Qwen-Image-Edit",
+  "licence": "Apache-2.0",
+  "size": "54 GB",
+  "tasks": [
+    "generate"
+  ],
+  "source": {
+    "repo": "Qwen/Qwen-Image-2512",
+    "rev": "25468b98e3276ca6700de15c6628e51b7de54a26",
+    "files": [
+      "transformer/",
+      "vae/",
+      "text_encoder/",
+      "tokenizer/",
+      "model_index.json"
+    ]
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 20,
+    "guidance": 4,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "qwen-image"
+  }
+}

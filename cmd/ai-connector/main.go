@@ -251,6 +251,10 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	finder := &llm.Finder{Store: store, LMStudio: lms, HFCache: hf, Mem: llm.MemBytes(),
 		Verifier: &llm.Verifier{Path: filepath.Join(store.Dir, "verified.json")}}
 	cat := engine.NewCatalog(store, finder)
+	// this machine's own models: manifests in <config dir>/models.d (docs/models.md)
+	for _, err := range cat.AddLocal(filepath.Join(root, "models.d"), store) {
+		fmt.Fprintln(os.Stderr, "mlxlab: models.d:", err)
+	}
 	text := &engine.TextBackend{Store: store}
 	// the tools allowed always (approvals.json): the chats ask it, the web API changes it
 	always := approvals.Open(own)
