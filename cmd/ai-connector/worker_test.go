@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -82,7 +83,7 @@ func TestWorkerSavesFromEnv(t *testing.T) {
 		t.Fatalf("worker.json: %v %v", fi, err)
 	}
 	again, save, err := resolveWorker("", "", env(nil), file)
-	if err != nil || save || again != cfg {
+	if err != nil || save || !reflect.DeepEqual(again, cfg) {
 		t.Fatalf("later run: %+v save=%v err=%v", again, save, err)
 	}
 }
@@ -251,5 +252,20 @@ func TestSetupState(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "history.json")); err == nil {
 		t.Fatal("history.json written to the config dir")
+	}
+}
+
+func TestIdleSettings(t *testing.T) {
+	defer func(i string, p []string) { idleUnload, pinned = i, p }(idleUnload, pinned)
+	idleUnload, pinned = "", nil
+	if d, p := idleSettings(env(nil)); d != defaultIdleUnload || p != nil {
+		t.Errorf("default: %v %v", d, p)
+	}
+	idleUnload, pinned = "1h", []string{"qwen3.6-35b-a3b"}
+	if d, p := idleSettings(env(nil)); d != time.Hour || len(p) != 1 {
+		t.Errorf("from the file: %v %v", d, p)
+	}
+	if d, p := idleSettings(env(map[string]string{"MLXLAB_IDLE_UNLOAD": "off", "MLXLAB_PIN": "a, b"})); d != 0 || len(p) != 2 || p[1] != "b" {
+		t.Errorf("from the environment: %v %v", d, p)
 	}
 }

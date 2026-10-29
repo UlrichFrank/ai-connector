@@ -26,10 +26,50 @@ type workerConfig struct {
 	// AllowLocalRuntimes: the worker reads <config dir>/runtimes.d, Python runtimes of this machine's own
 	// (docs/models.md) — code nobody reviewed, so off unless set here
 	AllowLocalRuntimes bool `json:"allowLocalRuntimes,omitempty"`
+	// IdleUnload: a model with no job for this long leaves memory ("10m", "1h"; "0" never; "" the default, 10 min);
+	// Pin: models that stay loaded (MLXLAB_IDLE_UNLOAD and MLXLAB_PIN, a comma list, override them)
+	IdleUnload string   `json:"idleUnload,omitempty"`
+	Pin        []string `json:"pin,omitempty"`
 }
 
-// allowLocalRuntimes is the worker's AllowLocalRuntimes (set before setup).
-var allowLocalRuntimes bool
+// allowLocalRuntimes, idleUnload and pinned are the worker's settings from its file (set before setup).
+var (
+	allowLocalRuntimes bool
+	idleUnload         string
+	pinned             []string
+)
+
+// defaultIdleUnload is how long a model without a job stays in memory.
+const defaultIdleUnload = 10 * time.Minute
+
+// idleSettings are the idle time and the pinned models: the environment's, else the worker file's, else the default.
+func idleSettings(getenv func(string) string) (time.Duration, []string) {
+	idle, pins := defaultIdleUnload, pinned
+	s := idleUnload
+	if v := getenv("MLXLAB_IDLE_UNLOAD"); v != "" {
+		s = v
+	}
+	switch s {
+	case "":
+	case "0", "off", "never":
+		idle = 0
+	default:
+		if d, err := time.ParseDuration(s); err == nil {
+			idle = d
+		} else {
+			fmt.Fprintf(os.Stderr, "mlxlab: idle unload %q: %v (the default %s is used)\n", s, err, defaultIdleUnload)
+		}
+	}
+	if v := getenv("MLXLAB_PIN"); v != "" {
+		pins = nil
+		for _, p := range strings.Split(v, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				pins = append(pins, p)
+			}
+		}
+	}
+	return idle, pins
+}
 
 // workerFile is the worker's config file (hub and token): --config, else $MLXLAB_WORKER_CONFIG, else
 // <config dir>/worker.json. A second worker on the same Mac (another hub) keeps its own file this way.
@@ -81,7 +121,7 @@ func resolveWorker(flagHub, flagToken string, getenv func(string) string, file s
 		Hub:   strings.TrimRight(pick(flagHub, "MLXLAB_HUB", saved.Hub), "/"),
 		Token: pick(flagToken, "MLXLAB_WORKER_TOKEN", saved.Token),
 		// set in the file only (saving keeps it)
-		AllowLocalRuntimes: saved.AllowLocalRuntimes,
+		AllowLocalRuntimes: saved.AllowLocalRuntimes, IdleUnload: saved.IdleUnload, Pin: saved.Pin,
 	}
 	if cfg.Hub == "" {
 		return cfg, false, errors.New("no hub: mlxlab worker --hub https://… --token … (or MLXLAB_HUB)")
