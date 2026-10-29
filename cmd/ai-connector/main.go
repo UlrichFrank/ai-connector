@@ -278,14 +278,14 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 		runs    bool
 		backend engine.Backend
 	}{
-		{engine.RuntimeRuns("cutout"), &engine.CutoutBackend{Root: root, Store: store}},
-		{engine.RuntimeRuns("mflux"), &engine.FluxBackend{Root: root, Store: store}},
-		{engine.RuntimeRuns("ltx-2-mlx"), &engine.LTXBackend{Root: root, Store: store}},
-		{engine.RuntimeRuns("acestep") || engine.RuntimeRuns("stableaudio3"), &engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()}},
-		{engine.RuntimeRuns("speech"), speech},
-		{engine.RuntimeRuns("sound"), &engine.SoundBackend{Root: root, Store: store}},
+		{engine.BackendRuns("cutout"), &engine.CutoutBackend{Root: root, Store: store}},
+		{engine.BackendRuns("mflux"), &engine.FluxBackend{Root: root, Store: store}},
+		{engine.BackendRuns("ltx"), &engine.LTXBackend{Root: root, Store: store}},
+		{engine.BackendRuns("music"), &engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()}},
+		{engine.BackendRuns("speech"), speech},
+		{engine.BackendRuns("sound"), &engine.SoundBackend{Root: root, Store: store}},
 		// the avatar says its text with the speech backend
-		{engine.RuntimeRuns("ltx-2-mlx") || engine.RuntimeRuns("longcat-avatar"), &engine.AvatarBackend{Root: root, Store: store, Speaker: speech}},
+		{engine.BackendRuns("avatar"), &engine.AvatarBackend{Root: root, Store: store, Speaker: speech}},
 	} {
 		if b.runs {
 			backends = append(backends, b.backend)

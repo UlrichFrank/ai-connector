@@ -40,7 +40,7 @@ func (b *FluxBackend) upscale(ctx context.Context, m *Model, r Request, outDir s
 	}
 	m.Here, m.Where = true, dir
 	if b.w == nil {
-		b.w = &pyWorker{env: MfluxEnv, script: "flux_worker.py"}
+		b.w = &pyWorker{env: MfluxEnv(), script: "flux_worker.py"}
 	}
 	if err := b.w.start(ctx, b.Root, emit); err != nil {
 		return err

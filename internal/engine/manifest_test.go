@@ -147,6 +147,9 @@ func TestManifestSpeechFamily(t *testing.T) {
 	if f := speechFamilies["kitten-test"]; f == nil || f.modelType != "kitten_tts" || f.preset("de") != "Leo" {
 		t.Errorf("family %+v", f)
 	}
+	if p := SpeechPresets(&Catalog{Models: []*Model{m}})["kitten-test"]; len(p) != 2 {
+		t.Errorf("/api/voices presets of a models.d family: %v", p)
+	}
 	bad := strings.Replace(kitten, `"workerModel": "kitten-test", "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Leo"],
 	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`, `"workerModel": "nobody"`, 1)
 	if _, err := ParseManifest([]byte(strings.Replace(bad, `"kitten-test"`, `"nobody-test"`, 1))); err == nil || !strings.Contains(err.Error(), "runtimeArgs.speech") {

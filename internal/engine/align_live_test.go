@@ -29,7 +29,7 @@ func TestAlignLive(t *testing.T) {
 			t.Log(ev.Text)
 		}
 	}
-	if _, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo, emit); err != nil {
+	if _, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo(), emit); err != nil {
 		t.Fatal(err)
 	}
 	if !b.alignerHere() {

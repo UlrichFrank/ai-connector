@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/philipparndt/ai-connector/internal/models"
+	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
 // Cutouts: one image in, the same image with its background transparent out (an RGBA PNG; vboard's "Remove
@@ -27,9 +28,9 @@ const TaskCutout = "cutout"
 // most 15 MB; a JPEG would lose the transparency).
 const CutoutMaxPNG = 15 << 20
 
-// CutoutEnv is the cutout worker's runtime: PyTorch and what BiRefNet's own code (birefnet.py, loaded with
+// CutoutEnv() is the cutout worker's runtime: PyTorch and what BiRefNet's own code (birefnet.py, loaded with
 // trust_remote_code) imports — timm, kornia, einops, torchvision.
-var CutoutEnv = runtimeEnv("cutout") // runtimes/cutout.json
+func CutoutEnv() pyenv.Env { return runtimeEnv("cutout") } // runtimes/cutout.json
 
 // cutoutCatalog is the catalogue's BiRefNet models (catalog/birefnet*.json): the files the worker loads (its code, its
 // config and the weights), side: what the model sees.
@@ -82,7 +83,7 @@ func (b *CutoutBackend) Run(ctx context.Context, m *Model, r Request, outDir str
 	}
 	m.Here, m.Where = true, dir
 	if b.w == nil {
-		b.w = &pyWorker{env: CutoutEnv, script: "birefnet_worker.py"}
+		b.w = &pyWorker{env: CutoutEnv(), script: "birefnet_worker.py"}
 	}
 	if err := b.w.start(ctx, b.Root, emit); err != nil {
 		return err

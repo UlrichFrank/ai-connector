@@ -37,8 +37,8 @@ type musicRuntime struct {
 	build  func(ctx context.Context, root string, emit Emit) ([]string, error)
 }
 
-// musicBuilds are the song runtimes' build steps (a runtime manifest names them: build).
-var musicBuilds = map[string]func(ctx context.Context, root string, emit Emit) ([]string, error){"levo2": buildLeVo2, "sa3": fetchSA3}
+// runtimeBuildFns are the runtimes' build steps (a runtime manifest names them: build).
+var runtimeBuildFns = map[string]func(ctx context.Context, root string, emit Emit) ([]string, error){"levo2": buildLeVo2, "sa3": fetchSA3}
 
 // MusicRuntimes are the song runtimes (runtimes/<name>.json, each verified on an M1 Max): their environment on this
 // machine (the zero Env where they have none: RuntimeRuns), script and build step.
@@ -46,7 +46,7 @@ func MusicRuntimes() map[string]*musicRuntime {
 	out := map[string]*musicRuntime{}
 	for _, n := range []string{"yue2", "acestep", "levo2", "heartmula", "stableaudio3", "minimax3"} {
 		rt := runtimeManifest(n)
-		out[n] = &musicRuntime{name: n, script: rt.Script, env: runtimeEnv(n), build: musicBuilds[rt.Build]}
+		out[n] = &musicRuntime{name: n, script: rt.Script, env: runtimeEnv(n), build: runtimeBuildFns[rt.Build]}
 	}
 	return out
 }

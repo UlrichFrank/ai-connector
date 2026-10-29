@@ -692,7 +692,7 @@ func (s *Server) listVoices(w http.ResponseWriter, r *http.Request) {
 	for i, v := range vs {
 		out[i] = s.voiceView(v)
 	}
-	writeJSON(w, map[string]any{"voices": out, "presets": engine.SpeechPresets()})
+	writeJSON(w, map[string]any{"voices": out, "presets": engine.SpeechPresets(s.Jobs.Catalog)})
 }
 
 // addVoice: multipart (name, sample, optional transcript and language) clones a voice; JSON {name, description,

@@ -28,8 +28,8 @@ import (
 // "transcribe" jobs), and Qwen3-ForcedAligner for the words' timings of every clip (when it is on disk). Every model
 // runs in one Python worker (workers/speech.py) on mlx-audio.
 
-// SpeechEnv is the speech runtime, pinned (verified on an M1 Max, 64 GB).
-var SpeechEnv = runtimeEnv("speech") // runtimes/speech.json
+// SpeechEnv() is the speech runtime, pinned (verified on an M1 Max, 64 GB).
+func SpeechEnv() pyenv.Env { return runtimeEnv("speech") } // runtimes/speech.json
 
 // speechFamily is what a model family can do with a request; see speechFamilies.
 type speechFamily struct {
@@ -55,7 +55,7 @@ var voxtralPresets = []string{"casual_male", "casual_female", "cheerful_female",
 	"fr_male", "fr_female", "es_male", "es_female", "de_male", "de_female", "it_male", "it_female", "pt_male",
 	"pt_female", "nl_male", "nl_female", "ar_male", "hi_male", "hi_female"}
 
-// kokoroVoices are Kokoro v1.0's voices (voices/*.safetensors of the weights), Japanese left out (see SpeechEnv).
+// kokoroVoices are Kokoro v1.0's voices (voices/*.safetensors of the weights), Japanese left out (see SpeechEnv()).
 // The first letter is the language, the second f(emale) or m(ale).
 var kokoroVoices = []string{"af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole",
 	"af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
@@ -122,10 +122,15 @@ var speechFamilies = map[string]*speechFamily{
 // speechTool: the worker model is a tool of the speech models (the transcriber, the aligner), not a voice.
 func speechTool(workerModel string) bool { return workerModel == "asr" || workerModel == "align" }
 
-// SpeechPresets are the preset voices of each speech model (GET /api/voices).
-func SpeechPresets() map[string][]string {
+// SpeechPresets are the preset voices of each speech model (GET /api/voices): the built-in ones, and those of the
+// catalogue c (a machine's own in models.d; nil: none).
+func SpeechPresets(c *Catalog) map[string][]string {
+	all := speechModels()
+	if c != nil {
+		all = append(all, c.OfKind(Speech)...)
+	}
 	out := map[string][]string{}
-	for _, m := range speechModels() {
+	for _, m := range all {
 		if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
 			out[m.ID] = append([]string{}, f.presets...)
 		}
@@ -133,12 +138,12 @@ func SpeechPresets() map[string][]string {
 	return out
 }
 
-// asrRepo is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
-var asrRepo = builtinRepo("qwen3-asr", "asr")
+// asrRepo() is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
+func asrRepo() hubRepo { return builtinRepo("qwen3-asr", "asr") }
 
-// alignRepo is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
+// alignRepo() is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
 // in its languages (alignLangs) once it is on disk — a model of its own, fetched by its download, never by a clip.
-var alignRepo = builtinRepo("qwen3-forced-aligner", "align")
+func alignRepo() hubRepo { return builtinRepo("qwen3-forced-aligner", "align") }
 
 // alignLangs are the languages Qwen3-ForcedAligner times (its config's support_languages; not Japanese and Korean:
 // mlx-audio splits their words with nagisa / soynlp, which the speech runtime does not have). workers/speech.py
@@ -366,7 +371,7 @@ func (b *SpeechBackend) Transcribe(ctx context.Context, file, language string) (
 }
 
 func (b *SpeechBackend) transcribe(ctx context.Context, file, language string, emit Emit) (string, error) {
-	dir, err := b.fetchRepo(ctx, "Qwen3-ASR", asrRepo, emit)
+	dir, err := b.fetchRepo(ctx, "Qwen3-ASR", asrRepo(), emit)
 	if err != nil {
 		return "", err
 	}
@@ -402,7 +407,7 @@ func (b *SpeechBackend) fetchRepo(ctx context.Context, name string, hr hubRepo, 
 
 func (b *SpeechBackend) worker(ctx context.Context, emit Emit) error {
 	if b.w == nil {
-		env := SpeechEnv
+		env := SpeechEnv()
 		if b.env != nil {
 			env = *b.env
 		}
@@ -478,7 +483,7 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	}
 	// the words' timings: Qwen3-ForcedAligner when it is on disk and times the language (never fetched for a clip)
 	if slices.Contains(alignLangs, lang) && b.alignerHere() {
-		if dir, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo, emit); err == nil {
+		if dir, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo(), emit); err == nil {
 			dirs["align"] = dir
 		} else {
 			emit.Log("no word timings: " + err.Error())
@@ -538,7 +543,7 @@ func (b *SpeechBackend) alignerHere() bool {
 	if b.hasAligner != nil {
 		return b.hasAligner()
 	}
-	return b.Store != nil && reposHere(b.Store, []hubRepo{alignRepo})
+	return b.Store != nil && reposHere(b.Store, []hubRepo{alignRepo()})
 }
 
 // stretchWords moves the words' timings with the clip's speed change (the wav stretched to 1/speed of its length).

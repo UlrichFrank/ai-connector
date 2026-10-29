@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/philipparndt/ai-connector/internal/models"
+	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-// MfluxEnv is the pinned mflux runtime.
-var MfluxEnv = runtimeEnv("mflux") // runtimes/mflux.json
+// MfluxEnv() is the pinned mflux runtime.
+func MfluxEnv() pyenv.Env { return runtimeEnv("mflux") } // runtimes/mflux.json
 
 // FluxBackend runs FLUX.2 klein, Qwen-Image and the SeedVR2 upscaler through mflux in a Python worker that stays alive
 // between jobs (the model stays loaded: the next image starts at once).
@@ -90,7 +91,7 @@ func (b *FluxBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	}
 	m.Here, m.Where = true, dir
 	if b.w == nil {
-		b.w = &pyWorker{env: MfluxEnv, script: "flux_worker.py"}
+		b.w = &pyWorker{env: MfluxEnv(), script: "flux_worker.py"}
 	}
 	if err := b.w.start(ctx, b.Root, emit); err != nil {
 		return err
