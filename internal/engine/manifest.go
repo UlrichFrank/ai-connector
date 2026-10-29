@@ -191,7 +191,23 @@ func needArg(name string, get func(*Manifest) string) func(*Manifest) error {
 var (
 	manifestID = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 	pinnedRev  = regexp.MustCompile(`^[0-9a-f]{40}$`)
+	// a Hugging Face repository: owner/name, nothing that walks out of the store's folder
+	hubRepoName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$`)
+	// an mflux class: only mflux's models may be imported by a manifest (models.d is data, not code)
+	mfluxClass = regexp.MustCompile(`^mflux\.models(\.[A-Za-z_][A-Za-z0-9_]*)+:[A-Za-z_][A-Za-z0-9_]*$`)
+	// a ComfyUI models folder (checkpoints, diffusion_models, text_encoders, vae, loras, …)
+	comfyFolder = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 )
+
+// localPaths: every path (or file pattern) stays inside its folder — relative, no "..".
+func localPaths(what string, ps ...string) error {
+	for _, p := range ps {
+		if !filepath.IsLocal(filepath.FromSlash(strings.TrimSuffix(p, "/"))) {
+			return fmt.Errorf("%s %q leaves its folder", what, p)
+		}
+	}
+	return nil
+}
 
 // ParseManifest reads one manifest and checks it.
 func ParseManifest(data []byte) (*Manifest, error) {
@@ -219,8 +235,19 @@ func (mf *Manifest) check() error {
 		if !slices.Contains(rt.Kinds, mf.Kind) {
 			return fmt.Errorf("runtime %s makes %v models, not %q", rt.Name, rt.Kinds, mf.Kind)
 		}
+		if rt.Server != nil && (mf.Source == nil || len(mf.Sources) > 0) {
+			return fmt.Errorf("a model of the server runtime %s needs one source (its files), not sources", rt.Name)
+		}
 		if rt.Server != nil && rt.Server.Protocol == "comfyui" {
 			ra := mf.RuntimeArgs
+			for folder, files := range ra.Folders {
+				if !comfyFolder.MatchString(folder) {
+					return fmt.Errorf("folders: %q is no ComfyUI models folder (checkpoints, vae, loras, …)", folder)
+				}
+				if err := localPaths("folders."+folder, files...); err != nil {
+					return err
+				}
+			}
 			var wf map[string]any
 			if len(ra.Workflow) == 0 || json.Unmarshal(ra.Workflow, &wf) != nil || len(ra.Inputs) == 0 || len(ra.Folders) == 0 {
 				return fmt.Errorf("a ComfyUI model needs runtimeArgs.workflow (API format), inputs and folders")
@@ -265,6 +292,39 @@ func (mf *Manifest) check() error {
 			return fmt.Errorf("each of sources needs a key of its own, a repo and a rev (a commit, 40 hex digits)")
 		}
 		keys[s.Key] = true
+		if !hubRepoName.MatchString(s.Repo) || strings.Contains(s.Repo, "..") {
+			return fmt.Errorf("source repo %q is no Hugging Face repository (owner/name)", s.Repo)
+		}
+		if err := localPaths("source file", s.Include...); err != nil {
+			return err
+		}
+	}
+	if s := mf.Source; s != nil {
+		if !hubRepoName.MatchString(s.Repo) || strings.Contains(s.Repo, "..") {
+			return fmt.Errorf("source.repo %q is no Hugging Face repository (owner/name)", s.Repo)
+		}
+		if err := localPaths("source file", append(append([]string{}, s.Files...), s.Ignore...)...); err != nil {
+			return err
+		}
+	}
+	if err := localPaths("here", mf.Here...); err != nil {
+		return err
+	}
+	if mf.HereCache != nil {
+		if err := localPaths("hereCache", (*mf.HereCache)...); err != nil {
+			return err
+		}
+	}
+	ra := mf.RuntimeArgs
+	if ra.WorkerModel != "" {
+		if err := localPaths("runtimeArgs.workerModel", ra.WorkerModel); err != nil {
+			return err
+		}
+	}
+	for _, c := range []string{ra.Loader, ra.EditLoader} {
+		if c != "" && !mfluxClass.MatchString(c) {
+			return fmt.Errorf("loader %q is no mflux class (mflux.models.…:Class)", c)
+		}
 	}
 	for _, t := range mf.Tasks {
 		if !slices.Contains(be.tasks, t) {

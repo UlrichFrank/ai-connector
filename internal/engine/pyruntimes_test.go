@@ -128,7 +128,9 @@ func TestLocalGenericRuntime(t *testing.T) {
 	envs := `{"python": "3.12"}`
 	var all []string
 	for _, p := range Platforms {
-		all = append(all, `"`+p+`": `+envs)
+		if !strings.HasPrefix(p, "windows") { // no generic runtime on Windows (fd 3)
+			all = append(all, `"`+p+`": `+envs)
+		}
 	}
 	os.WriteFile(filepath.Join(d, "runtime.json"), []byte(`{"name": "echo-test", "script": "echo.py", "generic": true,
 	  "kinds": ["image"], "output": "txt", "envs": {`+strings.Join(all, ", ")+`}}`), 0o644)
