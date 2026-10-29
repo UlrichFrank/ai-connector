@@ -321,7 +321,8 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	// Claude Code, when it is installed here (internal/agents): its jobs run beside the queue
 	backends = append(backends, claudeBackend(root, own, cat))
 	mgr := jobs.New(cat, backends, own)
-	// a model with no job for a while leaves memory (the machine is someone's too), but the pinned ones
+	// when the worker says so: a model with no job for a while leaves memory (the machine is someone's too), but the
+	// pinned ones
 	idle, pins := idleSettings(os.Getenv)
 	go mgr.WatchIdle(idle, pins, nil)
 	mgr.Approvals = always

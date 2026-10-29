@@ -258,7 +258,8 @@ is a pinned release archive (v0.40.0, by SHA-256), its requirements a pinned env
 The worker queues the filled workflow (`/prompt`), waits for its history (`/history`), fetches the first picture or
 video a node wrote (`/view`); a canceled job interrupts ComfyUI (`/interrupt`). One ComfyUI serves all its models
 (it loads what a workflow names); it is heavy and unloads like the others. ComfyUI takes no key: while it runs,
-another program of this machine can use it (127.0.0.1 only; the port is checked as for the other servers). Custom
+another program of this machine can use it (127.0.0.1 only; the port is checked as for the other servers) — so not
+for a machine several people log into. Its folder (with its outputs) is the worker's user's only (0700). Custom
 nodes are not installed: a workflow uses ComfyUI's own.
 
 Tried: Stable Diffusion 1.5 (fp16) as `docs/examples/models.d/sd15-comfyui.json` — the worker fetched ComfyUI, built

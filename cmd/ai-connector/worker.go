@@ -26,7 +26,7 @@ type workerConfig struct {
 	// AllowLocalRuntimes: the worker reads <config dir>/runtimes.d, Python runtimes of this machine's own
 	// (docs/models.md) — code nobody reviewed, so off unless set here
 	AllowLocalRuntimes bool `json:"allowLocalRuntimes,omitempty"`
-	// IdleUnload: a model with no job for this long leaves memory ("10m", "1h"; "0" never; "" the default, 10 min);
+	// IdleUnload: a model with no job for this long leaves memory ("10m", "1h"; "0" or "" never, the default);
 	// Pin: models that stay loaded (MLXLAB_IDLE_UNLOAD and MLXLAB_PIN, a comma list, override them)
 	IdleUnload string   `json:"idleUnload,omitempty"`
 	Pin        []string `json:"pin,omitempty"`
@@ -39,8 +39,9 @@ var (
 	pinned             []string
 )
 
-// defaultIdleUnload is how long a model without a job stays in memory.
-const defaultIdleUnload = 10 * time.Minute
+// defaultIdleUnload is how long a model without a job stays in memory: 0, never — unloading changes what users of an
+// existing worker get (a cold start after a pause), so a worker turns it on (idleUnload, MLXLAB_IDLE_UNLOAD).
+const defaultIdleUnload time.Duration = 0
 
 // idleSettings are the idle time and the pinned models: the environment's, else the worker file's, else the default.
 func idleSettings(getenv func(string) string) (time.Duration, []string) {
@@ -57,7 +58,7 @@ func idleSettings(getenv func(string) string) (time.Duration, []string) {
 		if d, err := time.ParseDuration(s); err == nil {
 			idle = d
 		} else {
-			fmt.Fprintf(os.Stderr, "mlxlab: idle unload %q: %v (the default %s is used)\n", s, err, defaultIdleUnload)
+			fmt.Fprintf(os.Stderr, "mlxlab: idle unload %q: %v (models stay loaded)\n", s, err)
 		}
 	}
 	if v := getenv("MLXLAB_PIN"); v != "" {
