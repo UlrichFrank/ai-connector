@@ -149,8 +149,9 @@ type Manager struct {
 	busy           bool // the worker is on a job (until it is saved)
 	beside         int  // jobs running beside the queue (until they are saved)
 
-	current  string               // the backend of the queue's running job ("" none)
-	lastUsed map[string]time.Time // per backend: when its last job ended (or it was first seen loaded)
+	current   string                   // the backend of the queue's running job ("" none)
+	lastUsed  map[string]time.Time     // per backend: when its last job ended (or it was used or first seen loaded)
+	unloading map[string]chan struct{} // backends being unloaded for idleness: closed when done (idle.go)
 }
 
 const maxLogs = 400
@@ -801,6 +802,7 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 		j.State, j.Started, j.Status = Running, time.Now(), "starting …"
 		md := m.Catalog.Find(j.Model)
 		b := m.Backends[md.Backend]
+		m.waitUnloaded(md.Backend) // an idle unload of its backend ends first
 		if !beside {
 			m.current = md.Backend
 		}
