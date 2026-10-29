@@ -972,7 +972,11 @@
               "numpy==2.5.4",
               "pillow==12.3.0"
             ],
-            "index": "https://download.pytorch.org/whl/rocm6.4"
+            "index": "https://download.pytorch.org/whl/rocm6.4",
+            "indexPackages": [
+              "torch",
+              "torchvision"
+            ]
           }
         }
       },
@@ -1086,7 +1090,11 @@
               "numpy==2.5.4",
               "pillow==12.3.0"
             ],
-            "index": "https://download.pytorch.org/whl/rocm6.4"
+            "index": "https://download.pytorch.org/whl/rocm6.4",
+            "indexPackages": [
+              "torch",
+              "torchvision"
+            ]
           }
         }
       },
@@ -1200,7 +1208,11 @@
               "numpy==2.5.4",
               "pillow==12.3.0"
             ],
-            "index": "https://download.pytorch.org/whl/rocm6.4"
+            "index": "https://download.pytorch.org/whl/rocm6.4",
+            "indexPackages": [
+              "torch",
+              "torchvision"
+            ]
           }
         }
       },

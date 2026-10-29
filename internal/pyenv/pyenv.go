@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -23,9 +24,11 @@ type Env struct {
 	Name     string
 	Python   string   // e.g. "3.12"
 	Packages []string // pip requirement specs, pinned
-	// Index: a package index to take packages from besides PyPI, preferred where it has them (PyTorch's CUDA or ROCm
-	// wheels: https://download.pytorch.org/whl/cu128); "" PyPI only
-	Index string
+	// Index: a package index for the packages IndexPackages names (PyTorch's CUDA or ROCm wheels:
+	// https://download.pytorch.org/whl/rocm6.4); they are installed from it alone, first, and the others from PyPI
+	// alone — the indexes never compete for a name (no dependency confusion). "" PyPI only.
+	Index         string
+	IndexPackages []string // package names, e.g. torch, torchvision
 }
 
 // ErrNoUV: uv is not installed.
@@ -34,7 +37,7 @@ var ErrNoUV = errors.New("uv is needed for this model, and there is no standalon
 func (e Env) hash() string {
 	spec := e.Python + "\n" + strings.Join(e.Packages, "\n")
 	if e.Index != "" { // an environment without one keeps the directory it always had
-		spec += "\nindex " + e.Index
+		spec += "\nindex " + e.Index + " " + strings.Join(e.IndexPackages, " ")
 	}
 	h := sha256.Sum256([]byte(spec))
 	return hex.EncodeToString(h[:4])
@@ -76,16 +79,41 @@ func (e Env) Ensure(ctx context.Context, root string, log func(string)) error {
 		return fmt.Errorf("uv venv: %w", err)
 	}
 	if len(e.Packages) > 0 { // a worker that needs only the standard library has none
-		args := []string{"pip", "install", "--python", e.Bin(root, "python")}
-		if e.Index != "" {
-			args = append(args, "--index-url", e.Index, "--extra-index-url", "https://pypi.org/simple", "--index-strategy", "unsafe-best-match")
+		from, rest := e.split()
+		install := func(index string, pkgs []string) error {
+			if len(pkgs) == 0 {
+				return nil
+			}
+			args := []string{"pip", "install", "--python", e.Bin(root, "python")}
+			if index != "" {
+				args = append(args, "--index-url", index)
+			}
+			return Stream(ctx, uvCommand(ctx, uv, append(args, pkgs...)...), log)
 		}
-		args = append(args, e.Packages...)
-		if err := Stream(ctx, uvCommand(ctx, uv, args...), log); err != nil {
+		if err := install(e.Index, from); err != nil {
+			return fmt.Errorf("uv pip install (%s): %w", e.Index, err)
+		}
+		if err := install("", rest); err != nil {
 			return fmt.Errorf("uv pip install: %w", err)
 		}
 	}
 	return os.WriteFile(filepath.Join(dir, ".mlxlab-ready"), []byte(strings.Join(e.Packages, "\n")+"\n"), 0o644)
+}
+
+// split parts the packages into those from Index (IndexPackages) and the others (PyPI).
+func (e Env) split() (from, rest []string) {
+	if e.Index == "" {
+		return nil, e.Packages
+	}
+	for _, p := range e.Packages {
+		name := strings.ToLower(strings.TrimSpace(strings.FieldsFunc(p, func(r rune) bool { return strings.ContainsRune("=<>!~[@ ;", r) })[0]))
+		if slices.Contains(e.IndexPackages, name) {
+			from = append(from, p)
+		} else {
+			rest = append(rest, p)
+		}
+	}
+	return from, rest
 }
 
 // uvCommand runs uv with the system's certificates (macOS keychain, Windows store, Linux CA bundle) instead of
