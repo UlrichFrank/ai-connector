@@ -157,7 +157,11 @@ def tts_model(req):
         emit(type="status", text=f"loading {os.path.basename(os.path.dirname(dirs['model'].rstrip('/')))} …")
         t0 = time.time()
         # the model type is given: mlx-audio would guess it from the folder's name parts (and gets Higgs wrong)
-        loaded["model"] = load_model(Path(path), model_type=MODEL_TYPES[req["family"]], model_name_parts=[])
+        # a family a model's manifest describes brings its model type along (modelType)
+        model_type = MODEL_TYPES.get(req["family"]) or req.get("modelType")
+        if not model_type:
+            raise ValueError(f"unknown family {req['family']!r}")
+        loaded["model"] = load_model(Path(path), model_type=model_type, model_name_parts=[])
         loaded["key"] = key
         trim()
         emit(type="log", text=f"loaded in {time.time() - t0:.1f} s ({footprint() / 2**30:.1f} GB in use)")
@@ -280,6 +284,18 @@ def gen_kwargs(req, model):
         kw["max_new_tokens"] = 2048
     elif fam == "voxtral":
         kw["voice"] = v.get("preset") or "neutral_female"
+    elif req.get("modelType"):
+        # a family a model's manifest describes: mlx-audio's usual keywords, as far as the manifest says it takes them
+        if mode == "clone":
+            kw.update(ref_audio=v["ref_audio"], ref_text=v.get("ref_text") or None)
+        elif v.get("preset"):
+            kw["voice"] = v["preset"]
+        if req.get("langCode") and lang:
+            kw["lang_code"] = lang
+        if req.get("takesInstruct") and instruct:
+            kw["instruct"] = instruct
+        if req.get("speed"):
+            kw["speed"] = float(req["speed"])
     else:
         raise ValueError(f"unknown family {fam!r}")
     return kw

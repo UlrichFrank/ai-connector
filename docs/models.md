@@ -23,7 +23,7 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `ltx` | `video` | LTX-2.5 | `hq`: the two-stage HQ pipeline of the dev transformer |
 | `avatar` | `avatar` | LTX-2.5 avatar, LongCat Avatar | `runtime`: `ltx-a2v` or `longcat` |
 | `music` | `music` | ACE-Step, Stable Audio 3, MiniMax Music 3, LeVo 2, HeartMuLa, YuE2 | `runtime` (the song runtime), `workerModel`; `maxSeconds`, `lora` {`file`, `trigger`, `scale`} |
-| `speech` | `speech` | Kokoro, Qwen3-TTS, Chatterbox, VoxCPM2, Higgs, Voxtral, Qwen3-ASR, Qwen3-ForcedAligner | `workerModel` (the family; its tasks, voices and languages come from it) |
+| `speech` | `speech` | Kokoro, Qwen3-TTS, Chatterbox, VoxCPM2, Higgs, Voxtral, Qwen3-ASR, Qwen3-ForcedAligner | `workerModel` (the family; its tasks, voices and languages come from it); a family the catalogue does not know: `speech` ("A speech family of its own") |
 | `sound` | `sound` | MOSS-SoundEffect | `workerModel` |
 | a generic runtime | its `kinds` | a new library's models ("Generic runtimes") | `workerModel`; `params` |
 | a server runtime | `chat` | mlx-lm, mlx-vlm, llama.cpp ("Server runtimes") | `workerModel` (a GGUF file); `images` |
@@ -204,3 +204,29 @@ request names as the model (default: the `{model}` path).
 Tried here: Qwen3 0.6B through mlx-lm and through llama.cpp (the Mac build, fetched by the worker), SmolVLM 256M
 through mlx-vlm with a picture (`docs/examples/models.d`). The Linux and Windows archives are pinned with their
 checksums but have not been run here.
+
+## A speech family of its own
+
+mlx-audio knows more text-to-speech models than the catalogue has families for (`speech.py`'s own code for Kokoro,
+Qwen3-TTS, Chatterbox, …). A model of another one describes its family in `runtimeArgs.speech`, and `speech.py` runs
+it on its general path — mlx-audio's `load_model` with the model type, and `generate` with the keywords the
+description allows:
+
+```json
+"runtimeArgs": {"workerModel": "kitten",
+  "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Jasper", "Luna", "Leo"], "defaultVoice": "Leo",
+             "speaks": ["en"], "speed": true}}
+```
+
+| Key | |
+|---|---|
+| `modelType` | mlx-audio's `model_type` (the folder under `mlx_audio/tts/models`) — required |
+| `voices`, `defaultVoice` | its preset voices (`voice`), the one taken when a request names none (default: the first) |
+| `languages` | the languages it must be told (`lang_code`); `speaks`: those it speaks when not told |
+| `clone` | it speaks with a voice of the library made from a sample (`ref_audio`, `ref_text`) |
+| `instruct` | it takes an instruction (`instruct`) |
+| `speed` | it honours `speed` itself (else the clip is time-stretched afterwards) |
+
+The model's tasks, voices and languages in `/api/models` follow from it, as for the catalogue's families; the aligner
+gives word timings as for every speech model. Tried: KittenTTS micro 0.8 (`docs/examples/models.d/kitten-tts-micro.json`,
+136 MB) — 10 s of English with the voice Bella in 6.5 s on an M2 Pro; the speech runtime installed by the worker.

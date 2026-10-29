@@ -67,7 +67,19 @@ type Manifest struct {
 		Runtime     string  `json:"runtime,omitempty"`
 		WorkerModel string  `json:"workerModel,omitempty"`
 		MaxSeconds  float64 `json:"maxSeconds,omitempty"`
-		LoRA        *struct {
+		// Speech: a speech family mlx-audio knows but the catalogue does not (workerModel names it): speech.py runs it
+		// on its general path
+		Speech *struct {
+			ModelType    string   `json:"modelType"`              // mlx-audio's model_type
+			Voices       []string `json:"voices,omitempty"`       // its preset voices
+			DefaultVoice string   `json:"defaultVoice,omitempty"` // "" the first
+			Languages    []string `json:"languages,omitempty"`    // the languages it must be told (lang_code)
+			Speaks       []string `json:"speaks,omitempty"`       // the languages it speaks when not told them
+			Clone        bool     `json:"clone,omitempty"`        // speaks with a voice made from a sample (ref_audio)
+			Instruct     bool     `json:"instruct,omitempty"`     // takes an instruction (instruct)
+			Speed        bool     `json:"speed,omitempty"`        // honours speed itself
+		} `json:"speech,omitempty"`
+		LoRA *struct {
 			File    string  `json:"file"`
 			Trigger string  `json:"trigger"`
 			Scale   float64 `json:"scale"`
@@ -141,7 +153,18 @@ var manifestBackends = map[string]manifestBackend{
 			return nil
 		},
 		add: func(m *Model) { withStyles([]*Model{m}) }},
-	"speech": {kind: Speech, check: needArg("workerModel", func(mf *Manifest) string { return mf.RuntimeArgs.WorkerModel }),
+	"speech": {kind: Speech, check: func(mf *Manifest) error {
+		wm, sp := mf.RuntimeArgs.WorkerModel, mf.RuntimeArgs.Speech
+		switch {
+		case wm == "":
+			return fmt.Errorf("runtimeArgs.workerModel is needed")
+		case speechFamilies[wm] == nil && (sp == nil || sp.ModelType == ""):
+			return fmt.Errorf("%s is no family the catalogue knows: describe it in runtimeArgs.speech (modelType, voices, …)", wm)
+		case sp != nil && speechFamilies[wm] != nil && speechFamilies[wm].modelType == "":
+			return fmt.Errorf("%s is a family of the catalogue: no runtimeArgs.speech", wm)
+		}
+		return nil
+	},
 		add: func(m *Model) {
 			if len(m.Tasks) == 0 {
 				m.Tasks = speechTasks(m)
@@ -266,6 +289,10 @@ func (mf *Manifest) model(store *models.Store, hub string) *Model {
 	}
 	for _, s := range mf.Sources {
 		m.repos = append(m.repos, hubRepo{key: s.Key, repo: s.Repo, rev: s.Rev, include: s.Include})
+	}
+	if sp := ra.Speech; sp != nil && speechFamilies[ra.WorkerModel] == nil {
+		speechFamilies[ra.WorkerModel] = manifestFamily(ra.WorkerModel, sp.ModelType, sp.Voices, sp.DefaultVoice, sp.Languages, sp.Speaks,
+			sp.Clone, sp.Instruct, sp.Speed)
 	}
 	if add := manifestBackends[mf.Backend].add; add != nil {
 		add(m)
