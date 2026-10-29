@@ -38,6 +38,7 @@ func (s *Server) directModel(w http.ResponseWriter, id string, kind engine.Kind)
 		directError(w, http.StatusNotFound, "model", m.ID+": backend "+m.Backend+" is not available")
 		return nil, nil
 	}
+	s.Jobs.Touch(m.Backend) // used beside the queue: not idle
 	return m, b
 }
 
