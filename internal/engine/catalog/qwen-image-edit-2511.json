@@ -35,6 +35,7 @@
     "quantize": 8
   },
   "runtimeArgs": {
-    "mflux": "qwen-image-edit"
+    "mflux": "qwen-image-edit",
+    "editLoader": "mflux.models.qwen.variants.edit.qwen_image_edit:QwenImageEdit"
   }
 }

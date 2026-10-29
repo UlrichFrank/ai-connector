@@ -8,6 +8,7 @@
 #   upscale: {"model": "seedvr2-3b" | "seedvr2-7b", "upscale": true, "path": "/dir", "quantize": 0, "image": "in.png",
 #             "scale": 2, "maxSide": 4096, "seed": 1, "output": "/path/out.png"}
 #   events:  {"type": "status"|"progress"|"result"|"error", …}
+import importlib
 import json
 import os
 import sys
@@ -48,35 +49,23 @@ class Progress:
         emit(type="status", text="decoding …")
 
 
-def model_class(name, edit):
-    # FLUX.2 klein: Flux2Klein, with reference images Flux2KleinEdit (it needs at least one). Qwen-Image: one class
-    # per model, the edit model only edits and the others only draw.
-    if name == "qwen-image":
-        if edit:
-            raise ValueError("Qwen-Image makes pictures from text only (editing: qwen-image-edit)")
-        from mflux.models.qwen.variants.txt2img.qwen_image import QwenImage
+def load(spec):
+    # "module:Class", as the model's manifest names it (runtimeArgs.loader / editLoader)
+    module, _, name = spec.partition(":")
+    return getattr(importlib.import_module(module), name)
 
-        return QwenImage
-    if name == "qwen-image-edit":
-        if not edit:
-            raise ValueError("Qwen-Image-Edit needs at least one reference image")
-        from mflux.models.qwen.variants.edit.qwen_image_edit import QwenImageEdit
 
-        return QwenImageEdit
-    if name == "qwen-image-2.1":
-        if edit:
-            raise ValueError("Qwen-Image 2.1 makes pictures from text only")
-        from mflux.models.qwen21.variants.txt2img.qwen_image_21 import QwenImage21
-
-        return QwenImage21
-    if name == "z-image-turbo":
-        # mflux's 4-bit pack: loaded as stored (no quantize); the Turbo model sets the guidance to 0 itself
-        if edit:
-            raise ValueError("Z-Image Turbo makes pictures from text only")
-        from mflux.models.z_image import ZImage
-
-        return ZImage
-    return Flux2KleinEdit if edit else Flux2Klein
+def model_class(req, edit):
+    # the class the model's manifest names for text to image (loader) and for editing with reference images
+    # (editLoader); a model with only one does only that. None named: FLUX.2 klein's (Flux2Klein, Flux2KleinEdit).
+    loader, edit_loader = req.get("loader"), req.get("editLoader")
+    if not loader and not edit_loader:
+        return Flux2KleinEdit if edit else Flux2Klein
+    if edit and not edit_loader:
+        raise ValueError(f"{req['model']} makes pictures from text only")
+    if not edit and not loader:
+        raise ValueError(f"{req['model']} needs at least one reference image")
+    return load(edit_loader if edit else loader)
 
 
 def seedvr2(name):
@@ -101,7 +90,7 @@ def upscale_resolution(path, scale, max_side):
 
 def model_for(req):
     edit = bool(req.get("images"))
-    cls = seedvr2(req["model"]) if req.get("upscale") else model_class(req["model"], edit)
+    cls = seedvr2(req["model"]) if req.get("upscale") else model_class(req, edit)
     key = (req["model"], req.get("path"), req.get("quantize"), edit)
     if loaded["key"] != key:
         loaded["key"], loaded["model"] = None, None

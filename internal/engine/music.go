@@ -37,32 +37,18 @@ type musicRuntime struct {
 	build  func(ctx context.Context, root string, emit Emit) ([]string, error)
 }
 
-// MusicRuntimes are the song runtimes, pinned (each verified on an M1 Max).
+// musicBuilds are the song runtimes' build steps (a runtime manifest names them: build).
+var musicBuilds = map[string]func(ctx context.Context, root string, emit Emit) ([]string, error){"levo2": buildLeVo2, "sa3": fetchSA3}
+
+// MusicRuntimes are the song runtimes (runtimes/<name>.json, each verified on an M1 Max): their environment on this
+// machine (the zero Env where they have none: RuntimeRuns), script and build step.
 func MusicRuntimes() map[string]*musicRuntime {
-	return map[string]*musicRuntime{
-		// the pure-MLX port of YuE2 (huggingface.co/ahmadw/YuE2-3B-MLX): its inference code comes with the weights
-		"yue2": {name: "yue2", script: "yue2_worker.py", env: pyenv.Env{Name: "yue2", Python: "3.12",
-			Packages: []string{"mlx==0.32.3", "numpy==2.5.3", "tiktoken==0.14.0"}}},
-		// ACE-Step 1.5 (github.com/ace-step/ACE-Step-1.5, MIT): MLX diffusion and MLX language model on the Mac;
-		// lego and extract run on PyTorch/MPS (the MLX path got them wrong)
-		"acestep": {name: "acestep", script: "acestep_worker.py", env: pyenv.Env{Name: "acestep", Python: "3.12",
-			Packages: []string{"ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"}}},
-		// LeVo 2 / SongGeneration v2 through its ggml port (github.com/ckadirt/LeVo2.cpp), built once with Metal;
-		// the worker (standard library only) runs its two programs: lyrics → tokens → song
-		"levo2": {name: "levo2", script: "levo2_worker.py", env: pyenv.Env{Name: "levo2", Python: "3.12"}, build: buildLeVo2},
-		// HeartMuLa (github.com/HeartMuLa/heartlib, Apache-2.0) on PyTorch/MPS: bf16 language model, fp32 codec
-		"heartmula": {name: "heartmula", script: "heartmula_worker.py", env: pyenv.Env{Name: "heartmula", Python: "3.12",
-			Packages: []string{"heartlib @ git+https://github.com/HeartMuLa/heartlib@a18c8cb54a55b4c24d48a2842542f81da7dedcd2"}}},
-		// Stable Audio 3 (github.com/Stability-AI/stable-audio-3): its own pure-MLX runtime (optimized/mlx, no
-		// PyTorch), fetched once at a pinned commit; the worker imports it
-		"stableaudio3": {name: "stableaudio3", script: "stableaudio3.py", env: pyenv.Env{Name: "stableaudio3", Python: "3.12",
-			Packages: []string{"mlx==0.32.3", "numpy==2.5.3", "sentencepiece==0.2.2"}}, build: fetchSA3},
-		// MiniMax Music 3 through the pure-MLX port github.com/mikolaj92/minimax-music3-mlx (Apache-2.0), pinned;
-		// its own quantised weights (mikoy92/MiniMax-Music3-MLX-8bit, -4bit)
-		"minimax3": {name: "minimax3", script: "minimax3.py", env: pyenv.Env{Name: "minimax3", Python: "3.12",
-			Packages: append([]string{"minimax-music3-mlx @ git+https://github.com/mikolaj92/minimax-music3-mlx@" + minimax3Commit},
-				minimax3Pins...)}},
+	out := map[string]*musicRuntime{}
+	for _, n := range []string{"yue2", "acestep", "levo2", "heartmula", "stableaudio3", "minimax3"} {
+		rt := runtimeManifest(n)
+		out[n] = &musicRuntime{name: n, script: rt.Script, env: runtimeEnv(n), build: musicBuilds[rt.Build]}
 	}
+	return out
 }
 
 // musicLoRA is a LoRA a song model applies (merged into its DiT): the file in the repository keyed "lora", its

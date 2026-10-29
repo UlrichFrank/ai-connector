@@ -36,6 +36,7 @@
     "quantize": 8
   },
   "runtimeArgs": {
-    "mflux": "qwen-image-2.1"
+    "mflux": "qwen-image-2.1",
+    "loader": "mflux.models.qwen21.variants.txt2img.qwen_image_21:QwenImage21"
   }
 }

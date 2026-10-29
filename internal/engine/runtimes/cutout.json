@@ -1,0 +1,64 @@
+{
+  "name": "cutout",
+  "notes": "BiRefNet on PyTorch: CUDA, else Apple's MPS, else the CPU. ROCm: PyTorch's ROCm wheels (not tried on a Radeon yet). Windows: none until the worker protocol has an event channel there (fd 3 is Unix only)",
+  "script": "birefnet_worker.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "torch==2.14.1",
+        "torchvision==0.29.1",
+        "transformers==5.19.0",
+        "timm==1.0.30",
+        "kornia==0.8.3",
+        "einops==0.8.2",
+        "safetensors==0.8.0",
+        "numpy==2.5.4",
+        "pillow==12.3.0"
+      ]
+    },
+    "linux-cuda": {
+      "python": "3.12",
+      "packages": [
+        "torch==2.14.1",
+        "torchvision==0.29.1",
+        "transformers==5.19.0",
+        "timm==1.0.30",
+        "kornia==0.8.3",
+        "einops==0.8.2",
+        "safetensors==0.8.0",
+        "numpy==2.5.4",
+        "pillow==12.3.0"
+      ]
+    },
+    "linux-cpu": {
+      "python": "3.12",
+      "packages": [
+        "torch==2.14.1",
+        "torchvision==0.29.1",
+        "transformers==5.19.0",
+        "timm==1.0.30",
+        "kornia==0.8.3",
+        "einops==0.8.2",
+        "safetensors==0.8.0",
+        "numpy==2.5.4",
+        "pillow==12.3.0"
+      ]
+    },
+    "linux-rocm": {
+      "python": "3.12",
+      "packages": [
+        "torch==2.14.1",
+        "torchvision==0.29.1",
+        "transformers==5.19.0",
+        "timm==1.0.30",
+        "kornia==0.8.3",
+        "einops==0.8.2",
+        "safetensors==0.8.0",
+        "numpy==2.5.4",
+        "pillow==12.3.0"
+      ],
+      "index": "https://download.pytorch.org/whl/rocm6.4"
+    }
+  }
+}

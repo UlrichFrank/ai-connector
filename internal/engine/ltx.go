@@ -19,13 +19,8 @@ import (
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-const ltxCommit = "e42136350c43fc02fe3a6cc76ee66a33dd77e6f9"
-
 // LTXEnv is the pinned ltx-2-mlx runtime (github.com/dgrauet/ltx-2-mlx, MIT; LTX-2.5 packs since 0.15).
-var LTXEnv = pyenv.Env{Name: "ltx-2-mlx", Python: "3.12", Packages: []string{
-	"ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@" + ltxCommit + "#subdirectory=packages/ltx-core-mlx",
-	"ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@" + ltxCommit + "#subdirectory=packages/ltx-pipelines-mlx",
-}}
+var LTXEnv = runtimeEnv("ltx-2-mlx") // runtimes/ltx-2-mlx.json
 
 // LTXBackend runs LTX-2.5 through ltx-2-mlx, one process per video (the pipeline loads and frees its parts stage by
 // stage anyway: Gemma, the transformer, the upscaler, the decoders): the distilled two-stage pipeline, or for the HQ

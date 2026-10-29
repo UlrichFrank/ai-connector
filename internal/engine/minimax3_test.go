@@ -93,7 +93,7 @@ func TestMiniMax3Catalog(t *testing.T) {
 	if _, err := workerFiles.ReadFile("workers/minimax3.py"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(rt.env.Packages[0], "@"+minimax3Commit) || len(minimax3Commit) != 40 {
+	if c := packageCommit("minimax3", "minimax-music3-mlx"); !strings.Contains(rt.env.Packages[0], "@"+c) || len(c) != 40 {
 		t.Errorf("the port is not pinned to a commit: %v", rt.env.Packages[0])
 	}
 	for _, p := range rt.env.Packages[1:] {

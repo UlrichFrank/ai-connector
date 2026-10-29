@@ -1,0 +1,23 @@
+{
+  "name": "longcat-avatar",
+  "notes": "github.com/xocialize/longcat-avatar-mlx pinned; the worker gets the commit as its argument",
+  "script": "avatar_longcat.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "longcat-video-avatar-mlx @ git+https://github.com/xocialize/longcat-avatar-mlx@e2e1e8701424cef0e601281b62e228e5289ed032",
+        "mlx==0.32.3",
+        "mlx-arsenal==0.16.0",
+        "transformers==5.18.0",
+        "tokenizers==0.23.2",
+        "librosa==1.0.0",
+        "soundfile==0.14.0",
+        "pillow==12.3.0",
+        "pyloudnorm==0.2.0",
+        "numpy==2.5.3",
+        "safetensors==0.8.0"
+      ]
+    }
+  }
+}

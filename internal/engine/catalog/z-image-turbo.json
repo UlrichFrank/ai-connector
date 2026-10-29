@@ -33,6 +33,7 @@
     "quantize": -1
   },
   "runtimeArgs": {
-    "mflux": "z-image-turbo"
+    "mflux": "z-image-turbo",
+    "loader": "mflux.models.z_image:ZImage"
   }
 }

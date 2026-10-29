@@ -379,6 +379,8 @@
       ],
       "runtime": {
         "mflux": "flux2-klein-4b",
+        "loader": "mflux.models.flux2.variants:Flux2Klein",
+        "editLoader": "mflux.models.flux2.variants:Flux2KleinEdit",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -432,6 +434,8 @@
       ],
       "runtime": {
         "mflux": "flux2-klein-9b",
+        "loader": "mflux.models.flux2.variants:Flux2Klein",
+        "editLoader": "mflux.models.flux2.variants:Flux2KleinEdit",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -484,6 +488,8 @@
       ],
       "runtime": {
         "mflux": "flux2-klein-base-4b",
+        "loader": "mflux.models.flux2.variants:Flux2Klein",
+        "editLoader": "mflux.models.flux2.variants:Flux2KleinEdit",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -545,6 +551,7 @@
       ],
       "runtime": {
         "mflux": "z-image-turbo",
+        "loader": "mflux.models.z_image:ZImage",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -610,6 +617,7 @@
       ],
       "runtime": {
         "mflux": "qwen-image",
+        "loader": "mflux.models.qwen.variants.txt2img.qwen_image:QwenImage",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -670,6 +678,7 @@
       ],
       "runtime": {
         "mflux": "qwen-image-edit",
+        "editLoader": "mflux.models.qwen.variants.edit.qwen_image_edit:QwenImageEdit",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -731,6 +740,7 @@
       ],
       "runtime": {
         "mflux": "qwen-image-2.1",
+        "loader": "mflux.models.qwen21.variants.txt2img.qwen_image_21:QwenImage21",
         "env": {
           "name": "mflux",
           "python": "3.12",
@@ -916,6 +926,54 @@
             "numpy==2.5.4",
             "pillow==12.3.0"
           ]
+        },
+        "envs": {
+          "linux-cpu": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-cuda": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-rocm": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ],
+            "index": "https://download.pytorch.org/whl/rocm6.4"
+          }
         }
       },
       "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet",
@@ -982,6 +1040,54 @@
             "numpy==2.5.4",
             "pillow==12.3.0"
           ]
+        },
+        "envs": {
+          "linux-cpu": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-cuda": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-rocm": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ],
+            "index": "https://download.pytorch.org/whl/rocm6.4"
+          }
         }
       },
       "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet_HR-matting",
@@ -1048,6 +1154,54 @@
             "numpy==2.5.4",
             "pillow==12.3.0"
           ]
+        },
+        "envs": {
+          "linux-cpu": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-cuda": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ]
+          },
+          "linux-rocm": {
+            "name": "cutout",
+            "python": "3.12",
+            "packages": [
+              "torch==2.14.1",
+              "torchvision==0.29.1",
+              "transformers==5.19.0",
+              "timm==1.0.30",
+              "kornia==0.8.3",
+              "einops==0.8.2",
+              "safetensors==0.8.0",
+              "numpy==2.5.4",
+              "pillow==12.3.0"
+            ],
+            "index": "https://download.pytorch.org/whl/rocm6.4"
+          }
         }
       },
       "repoURL": "https://huggingface.co/ZhengPeng7/BiRefNet_lite",
@@ -3362,7 +3516,15 @@
         }
       ],
       "runtime": {
-        "runtime": "ltx-a2v"
+        "runtime": "ltx-a2v",
+        "env": {
+          "name": "ltx-2-mlx",
+          "python": "3.12",
+          "packages": [
+            "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+            "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+          ]
+        }
       },
       "repoURL": "https://huggingface.co/dgrauet/ltx-2.5-mlx-q4",
       "downloadable": false,
@@ -3407,7 +3569,24 @@
         }
       ],
       "runtime": {
-        "runtime": "longcat"
+        "runtime": "longcat",
+        "env": {
+          "name": "longcat-avatar",
+          "python": "3.12",
+          "packages": [
+            "longcat-video-avatar-mlx @ git+https://github.com/xocialize/longcat-avatar-mlx@e2e1e8701424cef0e601281b62e228e5289ed032",
+            "mlx==0.32.3",
+            "mlx-arsenal==0.16.0",
+            "transformers==5.18.0",
+            "tokenizers==0.23.2",
+            "librosa==1.0.0",
+            "soundfile==0.14.0",
+            "pillow==12.3.0",
+            "pyloudnorm==0.2.0",
+            "numpy==2.5.3",
+            "safetensors==0.8.0"
+          ]
+        }
       },
       "repoURL": "https://huggingface.co/mlx-community/LongCat-Video-Avatar-1.5-q8-dmd-merged",
       "downloadable": false,
@@ -3451,7 +3630,24 @@
         }
       ],
       "runtime": {
-        "runtime": "longcat"
+        "runtime": "longcat",
+        "env": {
+          "name": "longcat-avatar",
+          "python": "3.12",
+          "packages": [
+            "longcat-video-avatar-mlx @ git+https://github.com/xocialize/longcat-avatar-mlx@e2e1e8701424cef0e601281b62e228e5289ed032",
+            "mlx==0.32.3",
+            "mlx-arsenal==0.16.0",
+            "transformers==5.18.0",
+            "tokenizers==0.23.2",
+            "librosa==1.0.0",
+            "soundfile==0.14.0",
+            "pillow==12.3.0",
+            "pyloudnorm==0.2.0",
+            "numpy==2.5.3",
+            "safetensors==0.8.0"
+          ]
+        }
       },
       "repoURL": "https://huggingface.co/mlx-community/LongCat-Video-Avatar-1.5-q4-dmd-merged",
       "downloadable": false,

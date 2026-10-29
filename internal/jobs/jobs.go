@@ -180,6 +180,14 @@ func (m *Manager) Submit(r engine.Request) (*Job, error) {
 	}
 	r.Model = md.ID
 	r.Folder = CleanFolder(r.Folder)
+	// a model's params (a generic runtime's): checked before the job is queued, the defaults filled in
+	if len(r.Params) > 0 || len(md.Params) > 0 {
+		p, err := engine.CheckParams(md, r.Params)
+		if err != nil {
+			return nil, err
+		}
+		r.Params = p
+	}
 	if err := m.checkImages(md, &r); err != nil {
 		return nil, err
 	}
