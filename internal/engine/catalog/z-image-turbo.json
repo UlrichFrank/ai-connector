@@ -7,6 +7,7 @@
   "about": "Z-Image Turbo, 6B, Apache 2.0: text to image in 9 steps, good at text in pictures; mflux's 4-bit pack (5.5 GB), for Macs with 16 GB. No editing with reference images",
   "licence": "Apache-2.0",
   "size": "5.5 GB",
+  "memory": 9,
   "tasks": [
     "generate"
   ],

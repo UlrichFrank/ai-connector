@@ -1,0 +1,37 @@
+{
+  "id": "moss-soundeffect",
+  "name": "MOSS-SoundEffect (4-bit)",
+  "kind": "sound",
+  "backend": "sound",
+  "order": 10,
+  "about": "MOSS-SoundEffect (OpenMOSS), a description to a sound effect or ambience (nature, city, animals, actions), pure MLX, 24 kHz mono, 1–30 s; about 8–20 s for 8 s of sound, 6 GB (up to 11 GB for the process)",
+  "licence": "Apache-2.0",
+  "size": "6720 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/MOSS-SoundEffect-MLX-4bit",
+      "rev": "6ad2b5f42c7e14c7d15581727832e8b283e3fce7",
+      "include": [
+        "mlx-4bit/*.json",
+        "mlx-4bit/*.safetensors",
+        "mlx-4bit/*.txt",
+        "mlx-4bit/*.jinja"
+      ]
+    },
+    {
+      "key": "codec",
+      "repo": "appautomaton/openmoss-audio-tokenizer-mlx",
+      "rev": "3b22b5958c15f807e3ca8faae2cc3b7cc4b74552",
+      "include": [
+        "mlx-int8/"
+      ]
+    }
+  ],
+  "defaults": {
+    "duration": 8
+  },
+  "runtimeArgs": {
+    "workerModel": "moss-soundeffect"
+  }
+}

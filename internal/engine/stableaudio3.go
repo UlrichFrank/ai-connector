@@ -21,10 +21,6 @@ import (
 // sa3Commit is the pinned commit of github.com/Stability-AI/stable-audio-3 (2026-09-29).
 const sa3Commit = "3a82c807b69cf4b7c5c05270011a5d5e47abac18"
 
-// sa3Licence is the weights' licence (the pickers show it). Free for individuals and organisations below $1M annual
-// revenue; the text encoder (T5Gemma) also carries Google's Gemma terms.
-const sa3Licence = "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)"
-
 // sa3Source is where the code is fetched from (tests point it elsewhere).
 var sa3Source = "https://codeload.github.com/Stability-AI/stable-audio-3/tar.gz/" + sa3Commit
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -52,34 +51,10 @@ var soundEnv = pyenv.Env{Name: "sound", Python: "3.13", Packages: []string{
 }}
 
 // soundModels are the catalogue's sound effect models.
-func soundModels() []*Model {
-	return []*Model{
-		{ID: "moss-soundeffect", Name: "MOSS-SoundEffect (4-bit)", Kind: Sound, Backend: "sound", workerModel: "moss-soundeffect",
-			repos: []hubRepo{
-				{key: "model", repo: "mlx-community/MOSS-SoundEffect-MLX-4bit", rev: "6ad2b5f42c7e14c7d15581727832e8b283e3fce7", // not the torch code (mlx-4bit/__init__.py is empty, which the store cannot fetch)
-					include: []string{"mlx-4bit/*.json", "mlx-4bit/*.safetensors", "mlx-4bit/*.txt", "mlx-4bit/*.jinja"}},
-				{key: "codec", repo: "appautomaton/openmoss-audio-tokenizer-mlx", rev: "3b22b5958c15f807e3ca8faae2cc3b7cc4b74552", include: []string{"mlx-int8/"}},
-			},
-			About: "MOSS-SoundEffect (OpenMOSS), a description to a sound effect or ambience (nature, city, animals, actions), " +
-				"pure MLX, 24 kHz mono, 1–30 s; about 8–20 s for 8 s of sound, 6 GB (up to 11 GB for the process)",
-			Licence: "Apache-2.0", Size: 6720 << 20, Defaults: Request{Duration: soundDefaultSeconds},
-			Audio: &AudioCaps{MaxSeconds: soundMaxSeconds}},
-	}
-}
+func soundModels() []*Model { return builtinModels("sound", nil, "") }
 
 // soundReposHere: the store has every file of every repository (from the cached file lists, no network).
-func soundReposHere(store *models.Store, repos []hubRepo) bool {
-	for _, hr := range repos {
-		if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
-			return false
-		}
-		hm, err := store.FromHub(context.Background(), hr.repo, hr.repo, hr.rev, soundKeep(hr))
-		if err != nil || store.Missing(hm) > 0 {
-			return false
-		}
-	}
-	return true
-}
+func soundReposHere(store *models.Store, repos []hubRepo) bool { return reposHere(store, repos) }
 
 // soundKeep is the file filter of a repository (nil: every file).
 func soundKeep(hr hubRepo) func(string) bool {

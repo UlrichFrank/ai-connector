@@ -1,0 +1,29 @@
+{
+  "id": "qwen3-tts-0.6b",
+  "name": "Qwen3-TTS 0.6B",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 30,
+  "about": "Qwen3-TTS 12Hz 0.6B (bf16): the small one, faster; presets with instruct and cloning, no voice design",
+  "licence": "Apache-2.0",
+  "size": "4670 MB",
+  "sources": [
+    {
+      "key": "custom",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-bf16",
+      "rev": "6415d95f88be018ff9e46813119dc3bc12261328"
+    },
+    {
+      "key": "base",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+      "rev": "1eccf1cb2519b5a4e8a95b5f0544f3303568164f",
+      "optional": true
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "qwen3-tts"
+  }
+}

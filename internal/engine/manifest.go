@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/philipparndt/ai-connector/internal/models"
 )
@@ -35,19 +37,45 @@ type Manifest struct {
 	NonCommercial bool     `json:"nonCommercial,omitempty"`
 	Gated         bool     `json:"gated,omitempty"`
 	Size          ByteSize `json:"size"`
-	Tasks         []string `json:"tasks,omitempty"`
-	Source        struct {
+	// Memory: the GB the runtime takes at its peak, where the size misleads (the router's need; docs/models.md)
+	Memory float64  `json:"memory,omitempty"`
+	Tasks  []string `json:"tasks,omitempty"`
+	// Source: one repository, downloaded when the store has Here of it verified (or the Hugging Face cache has
+	// HereCache); Sources: several (music, sound, speech), downloaded when the store has every file of each but the
+	// optional ones
+	Source *struct {
 		Repo   string   `json:"repo"`
 		Rev    string   `json:"rev"`
 		Files  []string `json:"files,omitempty"`
 		Ignore []string `json:"ignore,omitempty"`
-	} `json:"source"`
-	Here         []string `json:"here"`
-	SharedFolder bool     `json:"sharedFolder,omitempty"`
-	Defaults     Request  `json:"defaults"`
+	} `json:"source,omitempty"`
+	Sources      []ManifestSource `json:"sources,omitempty"`
+	Here         []string         `json:"here,omitempty"`
+	HereCache    *[]string        `json:"hereCache,omitempty"`
+	DeclaredSize bool             `json:"declaredSize,omitempty"`
+	Defaults     Request          `json:"defaults"`
 	RuntimeArgs  struct {
-		Mflux string `json:"mflux,omitempty"`
+		Mflux       string  `json:"mflux,omitempty"`
+		HQ          bool    `json:"hq,omitempty"`
+		Side        int     `json:"side,omitempty"`
+		Runtime     string  `json:"runtime,omitempty"`
+		WorkerModel string  `json:"workerModel,omitempty"`
+		MaxSeconds  float64 `json:"maxSeconds,omitempty"`
+		LoRA        *struct {
+			File    string  `json:"file"`
+			Trigger string  `json:"trigger"`
+			Scale   float64 `json:"scale"`
+		} `json:"lora,omitempty"`
 	} `json:"runtimeArgs"`
+}
+
+// ManifestSource is one repository of a model with several.
+type ManifestSource struct {
+	Key      string   `json:"key"`
+	Repo     string   `json:"repo"`
+	Rev      string   `json:"rev"`
+	Include  []string `json:"include,omitempty"`
+	Optional bool     `json:"optional,omitempty"` // fetched when first used: not needed for the model to be here
 }
 
 // ByteSize is a size in a manifest: bytes, or "5.5 GB" / "501 MB" (binary units).
@@ -79,49 +107,114 @@ func (b *ByteSize) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// manifestBackend is what a manifest of a backend must say, and what the backend adds to its models.
+type manifestBackend struct {
+	kind  Kind
+	tasks []string                 // the tasks a manifest may name
+	check func(mf *Manifest) error // the runtime arguments it needs
+	add   func(m *Model)           // what the backend derives from the model (tasks, audio capabilities, styles)
+}
+
+var manifestBackends = map[string]manifestBackend{
+	"mflux": {kind: Image, tasks: []string{"generate", "edit", TaskUpscale},
+		check: needArg("mflux", func(mf *Manifest) string { return mf.RuntimeArgs.Mflux })},
+	"cutout": {kind: Image, tasks: []string{TaskCutout},
+		check: func(mf *Manifest) error {
+			if mf.RuntimeArgs.Side <= 0 {
+				return fmt.Errorf("runtimeArgs.side (the side the model sees) is needed")
+			}
+			return nil
+		}},
+	"ltx":    {kind: Video},
+	"avatar": {kind: Avatar, check: needArg("runtime", func(mf *Manifest) string { return mf.RuntimeArgs.Runtime })},
+	"music": {kind: Music, tasks: []string{"cover", "repaint", "extend", "lego", "extract", "restyle"},
+		check: func(mf *Manifest) error {
+			if MusicRuntimes()[mf.RuntimeArgs.Runtime] == nil || mf.RuntimeArgs.WorkerModel == "" {
+				return fmt.Errorf("runtimeArgs.runtime (one of the song runtimes) and runtimeArgs.workerModel are needed")
+			}
+			return nil
+		},
+		add: func(m *Model) { withStyles([]*Model{m}) }},
+	"speech": {kind: Speech, check: needArg("workerModel", func(mf *Manifest) string { return mf.RuntimeArgs.WorkerModel }),
+		add: func(m *Model) {
+			if len(m.Tasks) == 0 {
+				m.Tasks = speechTasks(m)
+			}
+			m.Audio = speechCaps(m)
+		}},
+	"sound": {kind: Sound, check: needArg("workerModel", func(mf *Manifest) string { return mf.RuntimeArgs.WorkerModel }),
+		add: func(m *Model) { m.Audio = &AudioCaps{MaxSeconds: soundMaxSeconds} }},
+}
+
+func needArg(name string, get func(*Manifest) string) func(*Manifest) error {
+	return func(mf *Manifest) error {
+		if get(mf) == "" {
+			return fmt.Errorf("runtimeArgs.%s is needed", name)
+		}
+		return nil
+	}
+}
+
 var (
 	manifestID = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 	pinnedRev  = regexp.MustCompile(`^[0-9a-f]{40}$`)
-	imageTasks = []string{"generate", "edit", TaskUpscale, TaskCutout}
 )
-
-// manifestBackends are the backends a manifest may name (the families moved out of Go so far).
-var manifestBackends = map[string]Kind{"mflux": Image}
 
 // ParseManifest reads one manifest and checks it.
 func ParseManifest(data []byte) (*Manifest, error) {
-	var m Manifest
+	var mf Manifest
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
-	if err := dec.Decode(&m); err != nil {
+	if err := dec.Decode(&mf); err != nil {
 		return nil, err
 	}
-	switch kind, ok := manifestBackends[m.Backend]; {
-	case !manifestID.MatchString(m.ID):
-		return nil, fmt.Errorf("id %q: lower case letters, digits, '.', '_' and '-'", m.ID)
-	case m.Name == "" || m.About == "":
-		return nil, fmt.Errorf("%s: name and about are needed", m.ID)
-	case !ok:
-		return nil, fmt.Errorf("%s: backend %q is not one a manifest can name (%s)", m.ID, m.Backend, strings.Join(backendNames(), ", "))
-	case m.Kind != kind:
-		return nil, fmt.Errorf("%s: backend %s runs %s models, not %q", m.ID, m.Backend, kind, m.Kind)
-	case m.Licence == "":
-		return nil, fmt.Errorf("%s: the licence is needed", m.ID)
-	case m.Size <= 0:
-		return nil, fmt.Errorf("%s: the size is needed", m.ID)
-	case m.Source.Repo == "" || !pinnedRev.MatchString(m.Source.Rev):
-		return nil, fmt.Errorf("%s: source.repo and source.rev (a commit, 40 hex digits) are needed", m.ID)
-	case len(m.Here) == 0:
-		return nil, fmt.Errorf("%s: here (the files that make it downloaded) is needed", m.ID)
-	case m.Backend == "mflux" && m.RuntimeArgs.Mflux == "":
-		return nil, fmt.Errorf("%s: runtimeArgs.mflux (mflux's name for the model) is needed", m.ID)
+	if !manifestID.MatchString(mf.ID) {
+		return nil, fmt.Errorf("id %q: lower case letters, digits, '.', '_' and '-'", mf.ID)
 	}
-	for _, t := range m.Tasks {
-		if !slices.Contains(imageTasks, t) {
-			return nil, fmt.Errorf("%s: task %q is none of %s", m.ID, t, strings.Join(imageTasks, ", "))
+	if err := mf.check(); err != nil {
+		return nil, fmt.Errorf("%s: %w", mf.ID, err)
+	}
+	return &mf, nil
+}
+
+func (mf *Manifest) check() error {
+	be, ok := manifestBackends[mf.Backend]
+	switch {
+	case mf.Name == "" || mf.About == "":
+		return fmt.Errorf("name and about are needed")
+	case !ok:
+		return fmt.Errorf("backend %q is not one a manifest can name (%s)", mf.Backend, strings.Join(backendNames(), ", "))
+	case mf.Kind != be.kind:
+		return fmt.Errorf("backend %s runs %s models, not %q", mf.Backend, be.kind, mf.Kind)
+	case mf.Licence == "":
+		return fmt.Errorf("the licence is needed")
+	case mf.Size <= 0:
+		return fmt.Errorf("the size is needed")
+	case (mf.Source == nil) == (len(mf.Sources) == 0):
+		return fmt.Errorf("source (one repository) or sources (several) is needed, not both")
+	case mf.Source != nil && (mf.Source.Repo == "" || !pinnedRev.MatchString(mf.Source.Rev)):
+		return fmt.Errorf("source.repo and source.rev (a commit, 40 hex digits) are needed")
+	case mf.Source != nil && len(mf.Here) == 0:
+		return fmt.Errorf("here (the files that make it downloaded) is needed")
+	case len(mf.Sources) > 0 && (len(mf.Here) > 0 || mf.HereCache != nil):
+		return fmt.Errorf("a model of several sources is here when each has all its files: no here")
+	}
+	keys := map[string]bool{}
+	for _, s := range mf.Sources {
+		if s.Key == "" || keys[s.Key] || s.Repo == "" || !pinnedRev.MatchString(s.Rev) {
+			return fmt.Errorf("each of sources needs a key of its own, a repo and a rev (a commit, 40 hex digits)")
+		}
+		keys[s.Key] = true
+	}
+	for _, t := range mf.Tasks {
+		if !slices.Contains(be.tasks, t) {
+			return fmt.Errorf("task %q is none of %s's (%s)", t, mf.Backend, strings.Join(be.tasks, ", "))
 		}
 	}
-	return &m, nil
+	if be.check != nil {
+		return be.check(mf)
+	}
+	return nil
 }
 
 func backendNames() []string {
@@ -133,25 +226,74 @@ func backendNames() []string {
 	return out
 }
 
-// model makes the catalogue's model of a manifest, here when the store has the files of Here (verified) or the
-// Hugging Face cache has them.
+// model makes the catalogue's model of a manifest and finds out whether its files are here (store nil: not looked
+// for).
 func (mf *Manifest) model(store *models.Store, hub string) *Model {
-	m := &Model{ID: mf.ID, Name: mf.Name, Kind: mf.Kind, Backend: mf.Backend, About: mf.About, Size: int64(mf.Size),
+	ra := mf.RuntimeArgs
+	m := &Model{ID: mf.ID, Name: mf.Name, Kind: mf.Kind, Backend: mf.Backend, About: mf.About, Size: int64(mf.Size), Memory: mf.Memory,
 		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults,
-		repo: mf.Source.Repo, rev: mf.Source.Rev, files: mf.Source.Files, ignore: mf.Source.Ignore, mflux: mf.RuntimeArgs.Mflux}
+		mflux: ra.Mflux, hq: ra.HQ, side: ra.Side, runtime: ra.Runtime, workerModel: ra.WorkerModel, maxSeconds: ra.MaxSeconds}
+	if ra.LoRA != nil {
+		m.lora = &musicLoRA{file: ra.LoRA.File, trigger: ra.LoRA.Trigger, scale: ra.LoRA.Scale}
+	}
+	if s := mf.Source; s != nil {
+		m.repo, m.rev, m.files, m.ignore = s.Repo, s.Rev, s.Files, s.Ignore
+	}
+	for _, s := range mf.Sources {
+		m.repos = append(m.repos, hubRepo{key: s.Key, repo: s.Repo, rev: s.Rev, include: s.Include})
+	}
+	if add := manifestBackends[mf.Backend].add; add != nil {
+		add(m)
+	}
+	if store != nil {
+		mf.findHere(m, store, hub)
+	}
+	return m
+}
+
+func (mf *Manifest) findHere(m *Model, store *models.Store, hub string) {
+	if len(mf.Sources) > 0 {
+		var need []hubRepo
+		for i, s := range mf.Sources {
+			if !s.Optional {
+				need = append(need, m.repos[i])
+			}
+		}
+		if reposHere(store, need) {
+			m.Here, m.Where = true, store.Dir
+		}
+		return
+	}
 	verified := make([]string, len(mf.Here))
 	for i, p := range mf.Here {
 		verified[i] = p + ".sha256"
 	}
-	if d := filepath.Join(store.Dir, filepath.FromSlash(mf.Source.Repo), mf.Source.Rev); hasAll(d, verified...) {
+	cache := mf.Here
+	if mf.HereCache != nil {
+		cache = *mf.HereCache
+	}
+	if d := filepath.Join(store.Dir, filepath.FromSlash(m.repo), m.rev); hasAll(d, verified...) {
 		m.Here, m.Where = true, d
-		if !mf.SharedFolder {
+		if !mf.DeclaredSize {
 			m.Size = dirSize(d)
 		}
-	} else if d := hfSnapshot(hub, mf.Source.Repo, mf.Source.Rev); d != "" && hasAll(d, mf.Here...) {
+	} else if d := hfSnapshot(hub, m.repo, m.rev); len(cache) > 0 && d != "" && hasAll(d, cache...) {
 		m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
 	}
-	return m
+}
+
+// reposHere: the store has every file of every repository (from the cached file lists, no network).
+func reposHere(store *models.Store, repos []hubRepo) bool {
+	for _, hr := range repos {
+		if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
+			return false
+		}
+		hm, err := store.FromHub(context.Background(), hr.repo, hr.repo, hr.rev, hr.keep())
+		if err != nil || store.Missing(hm) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // readManifests reads every *.json of a directory, by name; a file that does not parse or pass the checks is left
@@ -178,25 +320,61 @@ func readManifests(fsys fs.FS, dir string) ([]*Manifest, []error) {
 	return out, errs
 }
 
-// byOrder sorts manifests as the pickers list them: by order, then by id.
+// byOrder sorts manifests as the pickers list them: by kind (Kinds), then order, then id.
 func byOrder(ms []*Manifest) {
+	kind := map[Kind]int{}
+	for i, k := range Kinds {
+		kind[k] = i
+	}
 	sort.SliceStable(ms, func(i, j int) bool {
-		if ms[i].Order != ms[j].Order {
-			return ms[i].Order < ms[j].Order
+		a, b := ms[i], ms[j]
+		switch {
+		case a.Kind != b.Kind:
+			return kind[a.Kind] < kind[b.Kind]
+		case a.Order != b.Order:
+			return a.Order < b.Order
 		}
-		return ms[i].ID < ms[j].ID
+		return a.ID < b.ID
 	})
 }
 
-// builtinManifests are the catalogue's manifests, in order. They are checked by the tests, so an error here is a
-// broken build.
-func builtinManifests() []*Manifest {
+var builtin = sync.OnceValue(func() []*Manifest {
 	ms, errs := readManifests(catalogFiles, "catalog")
 	if len(errs) > 0 {
 		panic(fmt.Sprintf("the embedded catalogue: %v", errs))
 	}
 	byOrder(ms)
 	return ms
+})
+
+// builtinManifests are the catalogue's manifests, in order. The tests check them, so an error here is a broken build.
+func builtinManifests() []*Manifest { return builtin() }
+
+// builtinModels are the catalogue's models of a backend, in order (store nil: none is here).
+func builtinModels(backend string, store *models.Store, hub string) []*Model {
+	var out []*Model
+	for _, mf := range builtinManifests() {
+		if mf.Backend == backend {
+			out = append(out, mf.model(store, hub))
+		}
+	}
+	return out
+}
+
+// builtinRepo is the repository key of the catalogue's model id (a tool the code fetches itself: the transcriber,
+// the aligner).
+func builtinRepo(id, key string) hubRepo {
+	for _, mf := range builtinManifests() {
+		if mf.ID != id {
+			continue
+		}
+		for _, s := range mf.Sources {
+			if s.Key == key {
+				return hubRepo{key: s.Key, repo: s.Repo, rev: s.Rev, include: s.Include}
+			}
+		}
+	}
+	panic("the catalogue has no " + id + " with a source " + key)
 }
 
 // AddLocal adds the models of the manifests in dir (<config dir>/models.d) the catalogue does not have yet. It

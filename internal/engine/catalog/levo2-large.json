@@ -1,0 +1,30 @@
+{
+  "id": "levo2-large",
+  "name": "LeVo 2 large (Q6_K)",
+  "kind": "music",
+  "backend": "music",
+  "order": 100,
+  "about": "Tencent's LeVo 2 / SongGeneration v2, lyrics to song with clear vocals, ggml on Metal: about 5–7 min for 30 s. Research use only",
+  "licence": "research use only",
+  "nonCommercial": true,
+  "size": "4980 MB",
+  "sources": [
+    {
+      "key": "levo2",
+      "repo": "ckadirt/LeVo2-GGUF",
+      "rev": "9d7b5746fdc74fdc80f85295e7b6c783be3703da",
+      "include": [
+        "LeVo2-v2-large-Q6_K.gguf*",
+        "LeVo2-v2-flow-Q6_K.gguf*",
+        "LeVo2-v2-vae-F16.gguf*"
+      ]
+    }
+  ],
+  "defaults": {
+    "duration": 30
+  },
+  "runtimeArgs": {
+    "runtime": "levo2",
+    "workerModel": "levo2-large"
+  }
+}

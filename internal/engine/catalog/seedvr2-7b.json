@@ -22,7 +22,7 @@
     "seedvr2_ema_7b_fp16.safetensors",
     "ema_vae_fp16.safetensors"
   ],
-  "sharedFolder": true,
+  "declaredSize": true,
   "defaults": {
     "quantize": -1,
     "scale": 2

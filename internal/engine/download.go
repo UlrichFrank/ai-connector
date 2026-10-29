@@ -163,24 +163,12 @@ func Downloadable(m *Model) bool {
 	return m.chat != nil || m.pinned != nil || m.repo != "" || len(m.repos) > 0
 }
 
-// licences of the catalogue models that do not state theirs (the pickers show it).
+// licences of the catalogue models that do not state theirs (the pickers show it); the manifests state theirs.
 var licences = map[string]struct {
 	name          string
 	nonCommercial bool
 }{
-	"qwen3-embedding-0.6b":         {"Apache-2.0", false},
-	"flux2-klein-4b":               {"Apache-2.0", false},
-	"flux2-klein-base-4b":          {"Apache-2.0", false},
-	"flux2-klein-9b":               {"FLUX Non-Commercial License", true},
-	"ace-step-1.5-turbo":           {"MIT", false},
-	"ace-step-1.5-xl-turbo":        {"MIT", false},
-	"ace-step-1.5-base":            {"MIT", false},
-	"ace-step-1.5-xl-base":         {"MIT", false},
-	"ace-step-1.5-xl-turbo-techno": {"MIT (the LoRA states no licence)", false},
-	"heartmula-3b":                 {"Apache-2.0", false},
-	"yue2-3b":                      {"CC BY-NC 4.0", true},
-	"levo2-large":                  {"research use only", true},
-	"levo2-medium":                 {"research use only", true},
+	"qwen3-embedding-0.6b": {"Apache-2.0", false},
 }
 
 func licenceOf(m *Model) (string, bool) {

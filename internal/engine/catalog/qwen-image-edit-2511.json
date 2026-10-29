@@ -7,6 +7,7 @@
   "about": "Qwen-Image-Edit 2511, 20B, Apache 2.0: edits one to a few reference images following the prompt (needs at least one; several can be combined) and keeps what the prompt leaves alone. Slow (two passes per step)",
   "licence": "Apache-2.0",
   "size": "54 GB",
+  "memory": 44,
   "tasks": [
     "edit"
   ],

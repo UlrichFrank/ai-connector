@@ -165,7 +165,7 @@ func TestSetupModelsRecommended(t *testing.T) {
 		cs = append(cs, &Model{ID: c.Short, Name: c.Name, Kind: Chat, Backend: "mlx-go", Size: c.Size(), chat: &c})
 	}
 	cs = append(cs, &Model{ID: "claude-code/sonnet", Kind: Chat, Backend: BackendClaudeCode, Here: true},
-		&Model{ID: "flux2-klein-4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"})
+		&Model{ID: "flux2-klein-4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f", Licence: "Apache-2.0"})
 	d := &Downloads{Catalog: &Catalog{Models: cs}, Store: &models.Store{Dir: t.TempDir()}, Free: func() int64 { return 500 * gb }}
 	for _, x := range []struct {
 		mem        int64

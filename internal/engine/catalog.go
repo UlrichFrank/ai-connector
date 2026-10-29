@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,10 +19,13 @@ type Model struct {
 	Kind    Kind   `json:"kind"`
 	Backend string `json:"backend"`
 	About   string `json:"about"`
-	Size    int64  `json:"size"`  // bytes to download (or on disk, when here)
-	Here    bool   `json:"here"`  // the files are on this machine
-	Where   string `json:"where"` // where they are ("" while not here)
-	Gated   bool   `json:"gated"` // Hugging Face wants a token and an accepted licence
+	Size    int64  `json:"size"` // bytes to download (or on disk, when here)
+	// Memory: the GB its runtime takes at its peak, where that is known better than from the size (the server's
+	// router reckons with it; 0: from the size)
+	Memory float64 `json:"memory,omitempty"`
+	Here   bool    `json:"here"`  // the files are on this machine
+	Where  string  `json:"where"` // where they are ("" while not here)
+	Gated  bool    `json:"gated"` // Hugging Face wants a token and an accepted licence
 	// Licence is the weights' licence ("Apache-2.0", "CC BY-NC 4.0", …); NonCommercial: not for commercial use
 	// (the pickers show it).
 	Licence       string `json:"licence,omitempty"`
@@ -229,131 +231,14 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		add(m)
 	}
 
-	// the image models of mflux (FLUX.2 klein, Z-Image Turbo, Qwen-Image, SeedVR2): manifests, catalog/*.json
-	// (docs/models.md)
+	// every other model: manifests, catalog/*.json (docs/models.md) — images (mflux, BiRefNet), video (LTX-2.5),
+	// avatars, songs, speech, sound effects; here when the store (or the Hugging Face cache) has their files
 	for _, mf := range builtinManifests() {
 		add(mf.model(store, hub))
 	}
 
-	// BiRefNet through PyTorch: cuts an image's background away (cutout.go)
-	for _, m := range cutoutCatalog(store, hub) {
-		add(m)
-	}
-
-	// LTX-2.5 through ltx-2-mlx: the distilled pipeline, and the HQ pipeline of the dev transformer (ltxModels)
-	for _, m := range ltxModels(store) {
-		add(m)
-	}
-
-	// talking avatars (avatar.go)
-	for _, m := range avatarModels(store) {
-		add(m)
-	}
-
-	// songs: here when the store has every file of every repository
-	for _, m := range musicModels() {
-		here := true
-		for _, hr := range m.repos {
-			if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
-				here = false
-				break
-			}
-			var keep func(string) bool
-			if len(hr.include) > 0 {
-				inc := hr.include
-				keep = func(p string) bool { return models.Matches(p, inc...) }
-			}
-			hm, err := store.FromHub(context.Background(), m.Name, hr.repo, hr.rev, keep) // from the cached list
-			if err != nil || store.Missing(hm) > 0 {
-				here = false
-				break
-			}
-		}
-		if here {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
-	// speech (mlx-audio): here when the store has the repositories it needs first
-	for _, m := range speechModels() {
-		if reposHere(store, coreRepos(m)) {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
-	// sound effects: here when the store has every file of every repository
-	for _, m := range soundModels() {
-		if soundReposHere(store, m.repos) {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
 	sortByKind(c.Models)
 	return c
-}
-
-// ltxPack is an LTX-2.5 pack of ltx-2-mlx (dgrauet/ltx-2.5-mlx-*) at a pinned revision.
-type ltxPack struct{ quant, repo, rev string }
-
-var (
-	ltxQ4 = ltxPack{"q4", "dgrauet/ltx-2.5-mlx-q4", "e9a20add8c5937fcab635fb8e7a52926487a5776"}
-	ltxQ8 = ltxPack{"q8", "dgrauet/ltx-2.5-mlx-q8", "746ca9aacb697d2c739f544d68b584214dedcc75"}
-)
-
-// ltxModels are the LTX-2.5 video models: the distilled two-stage pipeline (8 + 3 steps, no CFG) and the HQ one, the
-// open dev model (the closest local thing to Lightricks' hosted LTX-2.5 Pro): stage 1 at half size with the dev
-// transformer, the res_2s sampler and real CFG, stage 2 at full size with the distilled LoRA fused in. The two of a
-// quantisation share one folder of the store: the HQ model downloads only the dev transformer and the LoRA on top.
-func ltxModels(store *models.Store) []*Model {
-	var out []*Model
-	for _, l := range []struct {
-		id    string
-		pack  ltxPack
-		hq    bool
-		about string
-		size  int64
-	}{
-		{"ltx-2.5-q4", ltxQ4, false, "LTX-2.5 22B audio+video, int4 (Gemma 4 text encoder): distilled two-stage, fits 32 GB", 30 * gb},
-		{"ltx-2.5-q8", ltxQ8, false, "LTX-2.5 22B audio+video, int8: better quality, wants 64 GB", 45 * gb},
-		{"ltx-2.5-hq-q4", ltxQ4, true, ltxHQAbout("int4", "fits 32 GB at small sizes"), 47 * gb},
-		{"ltx-2.5-hq-q8", ltxQ8, true, ltxHQAbout("int8", "wants 48 GB or more"), 65 * gb},
-	} {
-		name := "LTX-2.5 (" + l.pack.quant + ")"
-		// the distilled pipeline loads neither the dev transformer nor the distilled LoRA
-		ignore := []string{"transformer-dev.safetensors", "*distilled-lora*", ".gitattributes"}
-		// here: the store has the verified weights the pipeline loads
-		weights := []string{"transformer-distilled.safetensors.sha256", "text_encoder.safetensors.sha256"}
-		d := Request{Width: 704, Height: 448, FPS: 24, Frames: 97}
-		if l.hq {
-			name = "LTX-2.5 HQ (" + l.pack.quant + ")"
-			// all of the pack, the distilled transformer too: --low-ram (the GPU watchdog's retry) streams it for
-			// stage 2 instead of fusing the LoRA
-			ignore = []string{".gitattributes"}
-			weights = []string{"transformer-dev.safetensors.sha256", "*distilled-lora*.safetensors.sha256",
-				"transformer-distilled.safetensors.sha256", "text_encoder.safetensors.sha256"}
-			// res_2s with CFG: 15 steps (upstream's HQ default) and CFG 3; a smaller size, it is much slower
-			d = Request{Width: 640, Height: 384, FPS: 24, Frames: 97, Steps: 15, Guidance: 3}
-		}
-		m := &Model{ID: l.id, Name: name, Kind: Video, Backend: "ltx", About: l.about, Size: l.size,
-			repo: l.pack.repo, rev: l.pack.rev, hq: l.hq, ignore: ignore, Defaults: d,
-			Gated: true} // the LTX-2 Community License, accepted on Hugging Face
-		if dir := filepath.Join(store.Dir, filepath.FromSlash(l.pack.repo), l.pack.rev); hasAll(dir, weights...) {
-			m.Here, m.Where, m.Size = true, dir, dirSize(dir)
-		}
-		out = append(out, m)
-	}
-	return out
-}
-
-func ltxHQAbout(quant, mem string) string {
-	return "LTX-2.5 HQ 22B audio+video, " + quant + ": the open dev model with real CFG (res_2s sampler, 15 steps) at " +
-		"half size, then the distilled LoRA refines at full size — the closest local thing to Lightricks' hosted " +
-		"LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× " +
-		"slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); " + mem + ". Shares the folder of LTX-2.5 (" + "q" + strings.TrimPrefix(quant, "int") +
-		"): adds the dev transformer and the distilled LoRA"
 }
 
 // hfSnapshot is a snapshot directory of repo in the Hugging Face cache (rev "" = the one refs/main names).

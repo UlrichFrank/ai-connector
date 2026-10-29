@@ -71,41 +71,7 @@ func frames4k1Up(n int) int { return max(5, (n-2)/4*4+5) }
 const avatarPrompt = "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera"
 
 // avatarModels are the avatar entries of the catalogue.
-func avatarModels(store *models.Store) []*Model {
-	var out []*Model
-	// LTX-2.5 through the pinned ltx-2-mlx (the pack of ltx-2.5-q4: no second download)
-	l := &Model{ID: "ltx-2.5-avatar", Name: "LTX-2.5 avatar", Kind: Avatar, Backend: "avatar", runtime: "ltx-a2v",
-		About: "LTX-2.5 22B (int4 pack) with the portrait as first frame and the speech as a frozen audio latent: " +
-			"lip-synced clips of up to ~6.5 s, longer speech is chained at pauses (sizes snap to 64, at most ~640×640)",
-		Size: 30 * gb, repo: "dgrauet/ltx-2.5-mlx-q4", rev: "e9a20add8c5937fcab635fb8e7a52926487a5776", Gated: true,
-		Licence:  "LTX-2 Community License",
-		ignore:   []string{"transformer-dev.safetensors", "*distilled-lora*", ".gitattributes"},
-		Defaults: Request{Width: 512, Height: 640, FPS: 24, Frames: 161, Prompt: avatarPrompt}}
-	if d := filepath.Join(store.Dir, filepath.FromSlash(l.repo), l.rev); hasAll(d, "transformer-distilled.safetensors.sha256", "audio_vae.safetensors.sha256") {
-		l.Here, l.Where, l.Size = true, d, dirSize(d)
-	}
-	out = append(out, l)
-	// LongCat-Video-Avatar 1.5, DMD-distilled (8 steps), the DiT quantised; bf16 (~50 GB peak) is left out
-	for _, v := range []struct {
-		id, repo, rev, about string
-		size                 int64
-	}{
-		{"longcat-avatar-1.5-q8", "mlx-community/LongCat-Video-Avatar-1.5-q8-dmd-merged", "d06d5f6bbbb7224e8f14f7533002d098ec3f3a31",
-			"LongCat-Video-Avatar 1.5 (13.6B, 8-bit DiT, 8 DMD steps), experimental MLX port: head and body motion from a portrait and speech; very slow (~10 min per second of video at 256×432, sizes scaled down to that area)", 30 * gb},
-		{"longcat-avatar-1.5-q4", "mlx-community/LongCat-Video-Avatar-1.5-q4-dmd-merged", "5d5b5d61ce6c206930a94c760f6941aff03f9389",
-			"LongCat-Video-Avatar 1.5, 4-bit DiT: smaller, a little rougher", 23 * gb},
-	} {
-		m := &Model{ID: v.id, Name: "LongCat Avatar 1.5 (" + strings.TrimPrefix(v.id, "longcat-avatar-1.5-") + ")", Kind: Avatar,
-			Backend: "avatar", runtime: "longcat", About: v.about, Size: v.size, repo: v.repo, rev: v.rev, Licence: "MIT",
-			ignore:   []string{".gitattributes", "README.md"},
-			Defaults: Request{Width: 256, Height: 432, FPS: 25, Frames: 93, Prompt: avatarPrompt}}
-		if d := filepath.Join(store.Dir, filepath.FromSlash(v.repo), v.rev); hasAll(d, "dit/*.safetensors.sha256", "text_encoder/*.safetensors.sha256", "audio_encoder/*.sha256", "vae/*.sha256") {
-			m.Here, m.Where, m.Size = true, d, dirSize(d)
-		}
-		out = append(out, m)
-	}
-	return out
-}
+func avatarModels(store *models.Store) []*Model { return builtinModels("avatar", store, "") }
 
 // AvatarBackend makes talking avatars (models of kind Avatar).
 type AvatarBackend struct {

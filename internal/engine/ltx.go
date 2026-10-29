@@ -243,3 +243,10 @@ func (b *LTXBackend) renderOnce(ctx context.Context, p ltxRun, r Request, prompt
 	}
 	return nil
 }
+
+// ltxModels are the LTX-2.5 video models (catalog/ltx-2.5-*.json): the distilled two-stage pipeline (8 + 3 steps, no
+// CFG) and the HQ one, the open dev model (the closest local thing to Lightricks' hosted LTX-2.5 Pro): stage 1 at half
+// size with the dev transformer, the res_2s sampler and real CFG, stage 2 at full size with the distilled LoRA fused
+// in. The two of a quantisation share one folder of the store: the HQ model downloads only the dev transformer and
+// the LoRA on top.
+func ltxModels(store *models.Store) []*Model { return builtinModels("ltx", store, "") }

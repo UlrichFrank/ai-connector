@@ -1,0 +1,38 @@
+{
+  "id": "birefnet-lite",
+  "name": "BiRefNet lite",
+  "kind": "image",
+  "backend": "cutout",
+  "order": 120,
+  "about": "BiRefNet lite (ZhengPeng7), MIT: the small backbone (Swin-T), 180 MB — quicker, for the CPU or a small GPU; coarser edges than BiRefNet",
+  "licence": "MIT",
+  "size": 177727234,
+  "tasks": [
+    "cutout"
+  ],
+  "source": {
+    "repo": "ZhengPeng7/BiRefNet_lite",
+    "rev": "aa62cd87eafb9cc43056d08ef3615a14628b831d",
+    "files": [
+      "birefnet.py",
+      "BiRefNet_config.py",
+      "config.json",
+      "model.safetensors"
+    ]
+  },
+  "here": [
+    "model.safetensors",
+    "birefnet.py"
+  ],
+  "hereCache": [
+    "birefnet.py",
+    "BiRefNet_config.py",
+    "config.json",
+    "model.safetensors"
+  ],
+  "declaredSize": true,
+  "defaults": {},
+  "runtimeArgs": {
+    "side": 1024
+  }
+}

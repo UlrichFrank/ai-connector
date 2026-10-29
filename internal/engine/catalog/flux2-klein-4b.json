@@ -7,6 +7,7 @@
   "about": "FLUX.2 [klein] 4B, distilled (4 steps), Apache 2.0: text to image and editing with reference images",
   "licence": "Apache-2.0",
   "size": "16 GB",
+  "memory": 15,
   "source": {
     "repo": "black-forest-labs/FLUX.2-klein-4B",
     "rev": "e7b7dc27f91deacad38e78976d1f2b499d76a294"

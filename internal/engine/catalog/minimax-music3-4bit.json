@@ -1,0 +1,27 @@
+{
+  "id": "minimax-music3-4bit",
+  "name": "MiniMax Music 3 (4-bit)",
+  "kind": "music",
+  "backend": "music",
+  "order": 90,
+  "about": "MiniMax Music 3 with the song LM and the flow DiT in 4 bits: for Macs with 16–32 GB; rougher than the 8-bit one. MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+  "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+  "size": 7960010136,
+  "memory": 16,
+  "sources": [
+    {
+      "key": "weights",
+      "repo": "mikoy92/MiniMax-Music3-MLX-4bit",
+      "rev": "1d9d9ca4885323e0785c777abb13d25cb37ce4d8"
+    }
+  ],
+  "defaults": {
+    "steps": 30,
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "minimax3",
+    "workerModel": "4bit",
+    "maxSeconds": 300
+  }
+}
