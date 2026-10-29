@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,6 +42,7 @@ func ensureTools(ctx context.Context, root, name string, log func(string)) (stri
 	}
 	ready := filepath.Join(dir, ".mlxlab-ready")
 	if _, err := os.Stat(ready); err == nil {
+		os.Chmod(dir, 0o700) // one made before it was the worker's user's only
 		return dir, nil
 	}
 	_ = os.RemoveAll(dir) // a half-made one
@@ -54,7 +56,15 @@ func ensureTools(ctx context.Context, root, name string, log func(string)) (stri
 		if err != nil {
 			return "", err
 		}
-		err = downloadTool(ctx, a, f)
+		// a connection that breaks is tried again (three times); a wrong checksum is not
+		for try := 1; ; try++ {
+			f.Truncate(0)
+			f.Seek(0, io.SeekStart)
+			if err = downloadTool(ctx, a, f); err == nil || errors.Is(err, errChecksum) || ctx.Err() != nil || try == 3 {
+				break
+			}
+			log(fmt.Sprintf("fetching again (%v) …", err))
+		}
 		f.Close()
 		if err == nil {
 			err = unpack(f.Name(), a.URL, dir)
@@ -85,7 +95,7 @@ func downloadTool(ctx context.Context, a ToolArchive, w io.Writer) error {
 		return err
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); got != a.SHA256 {
-		return fmt.Errorf("sha256 %s, want %s", got, a.SHA256)
+		return fmt.Errorf("%w: sha256 %s, want %s", errChecksum, got, a.SHA256)
 	}
 	return nil
 }
@@ -96,6 +106,18 @@ func unpack(file, url, dir string) error {
 		p := filepath.Join(dir, filepath.FromSlash(name))
 		if p != dir && !strings.HasPrefix(p, dir+string(filepath.Separator)) {
 			return "", fmt.Errorf("%s leaves the folder", name)
+		}
+		// nothing below a link unpacked before: a chain of links ("a" → ".", then "a/b" → "..") would lead out
+		rel, _ := filepath.Rel(dir, filepath.Dir(p))
+		at := dir
+		for _, part := range strings.Split(rel, string(filepath.Separator)) {
+			if part == "." || part == "" {
+				continue
+			}
+			at = filepath.Join(at, part)
+			if fi, err := os.Lstat(at); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+				return "", fmt.Errorf("%s lies below the link %s", name, at)
+			}
 		}
 		return p, nil
 	}
@@ -180,6 +202,8 @@ func writeFrom(p string, mode os.FileMode, open func() (io.ReadCloser, error)) e
 	}
 	return w.Close()
 }
+
+var errChecksum = errors.New("the archive is not the pinned one")
 
 // findFile is the file name in dir: the one least deep (ComfyUI's main.py, not one of a folder inside it).
 func findFile(dir, name string) (string, error) {

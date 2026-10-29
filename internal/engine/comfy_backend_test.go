@@ -71,7 +71,8 @@ func TestComfyBackend(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "app", "main.py"), []byte("raise SystemExit('not this one')"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.py"), []byte(`import http.server, json, os, sys, urllib.parse
 port = int(sys.argv[sys.argv.index("--port") + 1])
-queued = {}
+paths = open(sys.argv[sys.argv.index("--extra-model-paths-config") + 1]).read()
+queued = {"posts": []}
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, body, ctype="application/json"):
@@ -86,12 +87,15 @@ class H(http.server.BaseHTTPRequestHandler):
             return self.send(json.dumps({pid: {"status": {"status_str": "success"}, "outputs": out}}).encode())
         if u.path == "/view":
             q = urllib.parse.parse_qs(u.query)
-            linked = os.path.islink(os.path.join("models", "checkpoints", "sd.safetensors"))
-            return self.send(json.dumps({"file": q["filename"][0], "linked": linked, "workflow": queued.get("wf")}).encode(), "image/png")
+            return self.send(json.dumps({"file": q["filename"][0], "paths": paths, "noCustomNodes": "--disable-all-custom-nodes" in sys.argv,
+                "workflow": queued.get("wf")}).encode(), "image/png")
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        queued["wf"] = body["prompt"]
-        self.send(json.dumps({"prompt_id": "p1"}).encode())
+        if self.path == "/prompt":
+            queued["wf"] = body["prompt"]
+            return self.send(json.dumps({"prompt_id": "p1"}).encode())
+        queued["posts"].append(self.path)
+        self.send(b"{}")
 http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
 `), 0o644)
 
@@ -121,14 +125,19 @@ http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
 		t.Fatalf("files %v", files)
 	}
 	var got struct {
-		Linked   bool                      `json:"linked"`
-		Workflow map[string]map[string]any `json:"workflow"`
+		Paths         string                    `json:"paths"`
+		NoCustomNodes bool                      `json:"noCustomNodes"`
+		Workflow      map[string]map[string]any `json:"workflow"`
 	}
 	raw, _ := os.ReadFile(files[0])
 	json.Unmarshal(raw, &got)
 	in := func(node string) map[string]any { return got.Workflow[node]["inputs"].(map[string]any) }
-	if !got.Linked || in("6")["text"] != "a fox" || in("3")["seed"] != 5.0 {
+	// the model's folder of the store is ComfyUI's checkpoints path; nothing written into ComfyUI's folder
+	if !strings.Contains(got.Paths, "checkpoints: |\n    "+d+"\n") || !got.NoCustomNodes || in("6")["text"] != "a fox" || in("3")["seed"] != 5.0 {
 		t.Errorf("ComfyUI saw %s", raw)
+	}
+	if _, err := os.Stat(filepath.Join(app, "models")); err == nil {
+		t.Error("something was written into ComfyUI's models folder")
 	}
 	if b.Loaded() != "sd-test" {
 		t.Errorf("loaded %q", b.Loaded())

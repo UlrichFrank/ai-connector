@@ -55,6 +55,13 @@ func TestUnpack(t *testing.T) {
 	if l, _ := os.Readlink(filepath.Join(dir, "llama-b1", "libggml.dylib")); l != "libggml.0.dylib" {
 		t.Errorf("link %q", l)
 	}
+	// a chain of links: "a" → "." passes, then "b" below it must not
+	chain := tarGz(t, tar.Header{Name: "a", Typeflag: tar.TypeSymlink, Linkname: "."},
+		tar.Header{Name: "a/b", Typeflag: tar.TypeSymlink, Linkname: ".."},
+		tar.Header{Name: "a/b/x", Typeflag: tar.TypeReg, Mode: 0o644})
+	if err := unpack(chain, "x.tar.gz", t.TempDir()); err == nil || !strings.Contains(err.Error(), "below the link") {
+		t.Errorf("a chain of links: %v", err)
+	}
 	for _, bad := range []tar.Header{{Name: "../evil", Typeflag: tar.TypeReg, Mode: 0o644},
 		{Name: "a/link", Typeflag: tar.TypeSymlink, Linkname: "../../etc/passwd"},
 		{Name: "a/abs", Typeflag: tar.TypeSymlink, Linkname: "/etc/passwd"}} {
@@ -143,5 +150,47 @@ http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
 	b.Unload()
 	if b.running() || b.Loaded() != "" {
 		t.Error("still running after Unload")
+	}
+}
+
+// A server a dead worker left behind (its pid file) is ended before the next start; a pid now of another program is
+// left alone.
+func TestKillLeftover(t *testing.T) {
+	sleep, err := exec.LookPath("sleep")
+	if err != nil {
+		t.Skip("no sleep")
+	}
+	root := t.TempDir()
+	cmd := exec.Command(sleep, "60")
+	ownGroup(cmd)
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { cmd.Wait(); close(done) }()
+	writePidFile(root, "x", cmd.Process.Pid, "/somewhere/else/server")
+	killLeftover(root, "x", "/somewhere/else/server")
+	select {
+	case <-done:
+		t.Fatal("another program's pid was killed")
+	case <-time.After(200 * time.Millisecond):
+	}
+	writePidFile(root, "x", cmd.Process.Pid, sleep)
+	killLeftover(root, "x", sleep)
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the leftover server still runs")
+	}
+	if _, err := os.Stat(pidFile(root, "x")); err == nil {
+		t.Error("the pid file is still there")
+	}
+}
+
+func TestCleanEnv(t *testing.T) {
+	got := strings.Join(cleanEnv([]string{"PATH=/bin", "HF_TOKEN=x", "MLXLAB_WORKER_TOKEN=y", "OPENAI_API_KEY=z", "HOME=/h",
+		"MLXLAB_GPU=rocm", "AWS_SECRET_ACCESS_KEY=s", "LANG=de"}), " ")
+	if got != "PATH=/bin HOME=/h LANG=de" {
+		t.Errorf("%s", got)
 	}
 }
