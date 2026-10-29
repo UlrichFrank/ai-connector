@@ -229,45 +229,10 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		add(m)
 	}
 
-	// FLUX.2 klein through mflux (quantised when loaded)
-	for _, f := range []struct {
-		id, mflux, repo, rev, about string
-		steps                       int
-		guidance                    float64
-		size                        int64
-		gated                       bool
-	}{
-		{"flux2-klein-4b", "flux2-klein-4b", "black-forest-labs/FLUX.2-klein-4B", "e7b7dc27f91deacad38e78976d1f2b499d76a294", "FLUX.2 [klein] 4B, distilled (4 steps), Apache 2.0: text to image and editing with reference images", 4, 1, 16 * gb, false},
-		{"flux2-klein-9b", "flux2-klein-9b", "black-forest-labs/FLUX.2-klein-9B", "92196c8e11f7b6cf2b7493e037d8c5345c559216", "FLUX.2 [klein] 9B, distilled (4 steps), non-commercial licence (gated: HF_TOKEN)", 4, 1, 35 * gb, true},
-		{"flux2-klein-base-4b", "flux2-klein-base-4b", "black-forest-labs/FLUX.2-klein-base-4B", "a3b4f4849157f664bdbc776fd7453c2783562f4d", "FLUX.2 [klein] 4B base, undistilled (50 steps, guidance 4): slower, more varied", 50, 4, 16 * gb, false},
-	} {
-		m := &Model{ID: f.id, Name: "FLUX.2 [klein] " + strings.TrimPrefix(f.id, "flux2-klein-"), Kind: Image, Backend: "mflux", About: f.about,
-			Size: f.size, Gated: f.gated, repo: f.repo, rev: f.rev, mflux: f.mflux,
-			Defaults: Request{Width: 1024, Height: 1024, Steps: f.steps, Guidance: f.guidance, Quantize: 8}, Licence: "Apache-2.0"}
-		if f.id == "flux2-klein-9b" {
-			m.Licence, m.NonCommercial = "FLUX Non-Commercial License", true
-		}
-		if d := filepath.Join(store.Dir, filepath.FromSlash(f.repo), f.rev); hasAll(d, "transformer/*.safetensors.sha256", "vae/*.safetensors.sha256", "text_encoder/*.safetensors.sha256") {
-			m.Here, m.Where, m.Size = true, d, dirSize(d)
-		} else if d := hfSnapshot(hub, f.repo, f.rev); d != "" && hasAll(d, "transformer/*.safetensors", "vae/*.safetensors", "text_encoder/*.safetensors") {
-			m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
-		}
-		add(m)
-	}
-
-	// Z-Image Turbo through mflux: mflux's 4-bit pack, the image generator for 16 GB Macs (zimage.go)
-	add(zImageTurbo(store, hub))
-
-	// Qwen-Image through mflux: the 20B MMDiT 2512 (text to image) and Edit 2511 (editing with reference images) with
-	// the Qwen2.5-VL 7B text encoder, and the second generation 2.1 (7B transformer, Qwen3-VL encoder). mflux keeps
-	// the text encoder in bf16 (~16 GB) and quantises only the transformer and the VAE.
-	for _, q := range qwenImages {
-		add(q.model(store, hub))
-	}
-
-	// SeedVR2 through mflux: upscales an image (upscale.go)
-	for _, m := range seedvr2Catalog(store, hub) {
-		add(m)
+	// the image models of mflux (FLUX.2 klein, Z-Image Turbo, Qwen-Image, SeedVR2): manifests, catalog/*.json
+	// (docs/models.md)
+	for _, mf := range builtinManifests() {
+		add(mf.model(store, hub))
 	}
 
 	// BiRefNet through PyTorch: cuts an image's background away (cutout.go)
@@ -326,11 +291,7 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		add(m)
 	}
 
-	order := map[Kind]int{}
-	for i, k := range Kinds {
-		order[k] = i
-	}
-	sort.SliceStable(c.Models, func(i, j int) bool { return order[c.Models[i].Kind] < order[c.Models[j].Kind] })
+	sortByKind(c.Models)
 	return c
 }
 
@@ -393,55 +354,6 @@ func ltxHQAbout(quant, mem string) string {
 		"LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× " +
 		"slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); " + mem + ". Shares the folder of LTX-2.5 (" + "q" + strings.TrimPrefix(quant, "int") +
 		"): adds the dev transformer and the distilled LoRA"
-}
-
-// qwenImages are the Qwen-Image models (pinned revisions; sizes: what mflux loads of each repository).
-var qwenImages = []qwenImage{
-	{"qwen-image-2512", "Qwen-Image 2512", "qwen-image", "Qwen/Qwen-Image-2512", "25468b98e3276ca6700de15c6628e51b7de54a26",
-		"Qwen-Image 2512, 20B, Apache 2.0: text to image with true CFG; strong at text in pictures (also Chinese). " +
-			"Slow (two passes per step) and soft compared with FLUX; edits need Qwen-Image-Edit",
-		[]string{"generate"}, 20, 4, 54 * gb, "Apache-2.0", false},
-	{"qwen-image-edit-2511", "Qwen-Image-Edit 2511", "qwen-image-edit", "Qwen/Qwen-Image-Edit-2511", "6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9",
-		"Qwen-Image-Edit 2511, 20B, Apache 2.0: edits one to a few reference images following the prompt " +
-			"(needs at least one; several can be combined) and keeps what the prompt leaves alone. Slow (two passes per step)",
-		[]string{"edit"}, 30, 4, 54 * gb, "Apache-2.0", false},
-	{"qwen-image-2.1", "Qwen-Image 2.1", "qwen-image-2.1", "Qwen/Qwen-Image-2.1", "d26bb61231c349cf6b7896fa83353113880e1ba3",
-		"Qwen-Image 2.1, 7B transformer with a Qwen3-VL text encoder: text to image, 40 steps without guidance. " +
-			"Qwen Research Licence: non-commercial only",
-		[]string{"generate"}, 40, 1, 31 * gb, "Qwen Research License", true},
-}
-
-// qwenImage is a Qwen-Image model of the catalogue (run by mflux like FLUX).
-type qwenImage struct {
-	id, name, mflux, repo, rev, about string
-	tasks                             []string // "generate" (text to image) or "edit" (needs reference images)
-	steps                             int
-	guidance                          float64 // true CFG scale (1: off)
-	size                              int64
-	licence                           string
-	nonCommercial                     bool
-}
-
-// qwenFiles are the files of a Qwen-Image repository mflux loads: the weights and configs of the transformer, the
-// VAE and the text encoder, and the tokenizer (2.1 keeps it in processor/).
-func qwenFiles(mflux string) []string {
-	tok := "tokenizer/"
-	if mflux == "qwen-image-2.1" {
-		tok = "processor/"
-	}
-	return []string{"transformer/", "vae/", "text_encoder/", tok, "model_index.json"}
-}
-
-func (q qwenImage) model(store *models.Store, hub string) *Model {
-	m := &Model{ID: q.id, Name: q.name, Kind: Image, Backend: "mflux", About: q.about, Size: q.size, repo: q.repo, rev: q.rev,
-		mflux: q.mflux, files: qwenFiles(q.mflux), Tasks: q.tasks, Licence: q.licence, NonCommercial: q.nonCommercial,
-		Defaults: Request{Width: 1024, Height: 1024, Steps: q.steps, Guidance: q.guidance, Quantize: 8}}
-	if d := filepath.Join(store.Dir, filepath.FromSlash(q.repo), q.rev); hasAll(d, "transformer/*.safetensors.sha256", "vae/*.safetensors.sha256", "text_encoder/*.safetensors.sha256") {
-		m.Here, m.Where, m.Size = true, d, dirSize(d)
-	} else if d := hfSnapshot(hub, q.repo, q.rev); d != "" && hasAll(d, "transformer/*.safetensors", "vae/*.safetensors", "text_encoder/*.safetensors") {
-		m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
-	}
-	return m
 }
 
 // hfSnapshot is a snapshot directory of repo in the Hugging Face cache (rev "" = the one refs/main names).

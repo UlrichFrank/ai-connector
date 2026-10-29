@@ -18,7 +18,8 @@ import (
 
 func TestSeedVR2Catalog(t *testing.T) {
 	store := &models.Store{Dir: t.TempDir()}
-	ms := seedvr2Catalog(store, "")
+	ms := manifestModels(store, "", "seedvr2-")
+	seedvr2Rev := ms[0].rev
 	if len(ms) != 2 || ms[0].ID != "seedvr2-3b" || ms[1].ID != "seedvr2-7b" {
 		t.Fatalf("%+v", ms)
 	}
@@ -58,7 +59,7 @@ func TestSeedVR2Catalog(t *testing.T) {
 	for _, f := range []string{"seedvr2_ema_3b_fp16.safetensors.sha256", "ema_vae_fp16.safetensors.sha256"} {
 		os.WriteFile(filepath.Join(d, f), []byte("x"), 0o644)
 	}
-	ms = seedvr2Catalog(store, "")
+	ms = manifestModels(store, "", "seedvr2-")
 	if !ms[0].Here || ms[0].Where != d || ms[1].Here {
 		t.Fatalf("here: 3B %v %q, 7B %v", ms[0].Here, ms[0].Where, ms[1].Here)
 	}
@@ -129,7 +130,7 @@ for line in sys.stdin:
 
 	// the store has both files of the 3B (verified): nothing is fetched
 	store := &models.Store{Dir: filepath.Join(root, "models")}
-	dir := filepath.Join(store.Dir, "numz", "SeedVR2_comfyUI", seedvr2Rev)
+	dir := filepath.Join(store.Dir, "numz", "SeedVR2_comfyUI", manifestModel(t, store, "", "seedvr2-3b").rev)
 	os.MkdirAll(dir, 0o755)
 	var files []models.File
 	for _, f := range []string{"seedvr2_ema_3b_fp16.safetensors", "ema_vae_fp16.safetensors", "seedvr2_ema_7b_fp16.safetensors", "README.md"} {
@@ -142,7 +143,7 @@ for line in sys.stdin:
 	list, _ := json.Marshal(files)
 	os.WriteFile(filepath.Join(dir, ".files.json"), list, 0o644)
 
-	m := seedvr2Catalog(store, "")[0]
+	m := manifestModel(t, store, "", "seedvr2-3b")
 	be := &FluxBackend{Root: root, Store: store}
 	t.Cleanup(be.Unload)
 	src := filepath.Join(root, "in.png")

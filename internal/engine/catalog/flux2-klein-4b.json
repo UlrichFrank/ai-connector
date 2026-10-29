@@ -1,0 +1,29 @@
+{
+  "id": "flux2-klein-4b",
+  "name": "FLUX.2 [klein] 4b",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 10,
+  "about": "FLUX.2 [klein] 4B, distilled (4 steps), Apache 2.0: text to image and editing with reference images",
+  "licence": "Apache-2.0",
+  "size": "16 GB",
+  "source": {
+    "repo": "black-forest-labs/FLUX.2-klein-4B",
+    "rev": "e7b7dc27f91deacad38e78976d1f2b499d76a294"
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "guidance": 1,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "flux2-klein-4b"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "qwen-image-edit-2511",
+  "name": "Qwen-Image-Edit 2511",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 60,
+  "about": "Qwen-Image-Edit 2511, 20B, Apache 2.0: edits one to a few reference images following the prompt (needs at least one; several can be combined) and keeps what the prompt leaves alone. Slow (two passes per step)",
+  "licence": "Apache-2.0",
+  "size": "54 GB",
+  "tasks": [
+    "edit"
+  ],
+  "source": {
+    "repo": "Qwen/Qwen-Image-Edit-2511",
+    "rev": "6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9",
+    "files": [
+      "transformer/",
+      "vae/",
+      "text_encoder/",
+      "tokenizer/",
+      "model_index.json"
+    ]
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 30,
+    "guidance": 4,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "qwen-image-edit"
+  }
+}

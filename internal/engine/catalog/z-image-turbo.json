@@ -1,0 +1,37 @@
+{
+  "id": "z-image-turbo",
+  "name": "Z-Image Turbo",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 40,
+  "about": "Z-Image Turbo, 6B, Apache 2.0: text to image in 9 steps, good at text in pictures; mflux's 4-bit pack (5.5 GB), for Macs with 16 GB. No editing with reference images",
+  "licence": "Apache-2.0",
+  "size": "5.5 GB",
+  "tasks": [
+    "generate"
+  ],
+  "source": {
+    "repo": "filipstrand/Z-Image-Turbo-mflux-4bit",
+    "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b",
+    "files": [
+      "transformer/",
+      "text_encoder/",
+      "vae/",
+      "tokenizer/"
+    ]
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 9,
+    "quantize": -1
+  },
+  "runtimeArgs": {
+    "mflux": "z-image-turbo"
+  }
+}

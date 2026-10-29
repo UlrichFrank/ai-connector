@@ -1,0 +1,33 @@
+{
+  "id": "seedvr2-3b",
+  "name": "SeedVR2 3B",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 80,
+  "about": "SeedVR2 3B (ByteDance), Apache 2.0: upscales an image 2× or 4× (at most 4096 px) and adds detail without repainting it; one step, seconds to a minute",
+  "licence": "Apache-2.0",
+  "size": 7284343622,
+  "tasks": [
+    "upscale"
+  ],
+  "source": {
+    "repo": "numz/SeedVR2_comfyUI",
+    "rev": "09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+    "files": [
+      "seedvr2_ema_3b_fp16.safetensors",
+      "ema_vae_fp16.safetensors"
+    ]
+  },
+  "here": [
+    "seedvr2_ema_3b_fp16.safetensors",
+    "ema_vae_fp16.safetensors"
+  ],
+  "sharedFolder": true,
+  "defaults": {
+    "quantize": -1,
+    "scale": 2
+  },
+  "runtimeArgs": {
+    "mflux": "seedvr2-3b"
+  }
+}

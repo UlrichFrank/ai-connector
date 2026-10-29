@@ -197,8 +197,8 @@ func TestSetupModelsRecommended(t *testing.T) {
 // audioCatalog is the catalogue's music, sound and speech models and the upscalers (nothing here), and FLUX.2 klein 4B.
 func audioCatalog() *Catalog {
 	ms := []*Model{{ID: "flux2-klein-4b", Name: "FLUX.2 [klein] 4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"},
-		zImageTurbo(&models.Store{Dir: "/nonexistent"}, "")}
-	ms = append(ms, seedvr2Catalog(&models.Store{Dir: "/nonexistent"}, "")...)
+		manifestModels(&models.Store{Dir: "/nonexistent"}, "", zImageID)[0]}
+	ms = append(ms, manifestModels(&models.Store{Dir: "/nonexistent"}, "", "seedvr2-")...)
 	ms = append(ms, musicModels()...)
 	ms = append(ms, soundModels()...)
 	ms = append(ms, speechModels()...)

@@ -1,0 +1,31 @@
+{
+  "id": "flux2-klein-9b",
+  "name": "FLUX.2 [klein] 9b",
+  "kind": "image",
+  "backend": "mflux",
+  "order": 20,
+  "about": "FLUX.2 [klein] 9B, distilled (4 steps), non-commercial licence (gated: HF_TOKEN)",
+  "licence": "FLUX Non-Commercial License",
+  "nonCommercial": true,
+  "gated": true,
+  "size": "35 GB",
+  "source": {
+    "repo": "black-forest-labs/FLUX.2-klein-9B",
+    "rev": "92196c8e11f7b6cf2b7493e037d8c5345c559216"
+  },
+  "here": [
+    "transformer/*.safetensors",
+    "vae/*.safetensors",
+    "text_encoder/*.safetensors"
+  ],
+  "defaults": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "guidance": 1,
+    "quantize": 8
+  },
+  "runtimeArgs": {
+    "mflux": "flux2-klein-9b"
+  }
+}
