@@ -78,6 +78,17 @@ for chunk in client.chat.completions.create(model="qwen3.6-35b-a3b", stream=True
 Thinking is off unless asked for (`reasoning_effort` other than `"none"`); the thought then streams as
 `reasoning_content`. `MLXLAB_EMBED_MODEL` and `MLXLAB_CLASSIFY_MODEL` set the server's default models.
 
+### This computer's models for its apps, no server
+
+```bash
+ai-connector local                          # OpenAI API on http://127.0.0.1:8486/v1, token in ~/.config/mlxlab/local-ai.json
+ai-connector local --console 127.0.0.1:8485 # and the console: a client token of its own per app
+```
+
+The hub of `ai-connector vboard` without vboard: loopback only, this computer is its worker, the token of the client
+"local apps" stays the same across restarts. It shares its files with `ai-connector vboard`, so one of them runs at a
+time (docs/api.md, "Local apps").
+
 ### vboard without vboard-ai
 
 vboard's "local AI" (classify, "Group by theme", the board chat with its tools) can come from the workers without

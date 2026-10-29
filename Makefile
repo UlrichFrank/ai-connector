@@ -1,4 +1,4 @@
-.PHONY: build web web-dev console console-dev test vet worker serve server server-linux
+.PHONY: build web web-dev console console-dev test vet worker serve local server server-linux
 
 # local.mk (gitignored, see local.mk.example): this machine's settings, e.g. the deploy target (PI, GITOPS, AIC_URL)
 -include local.mk
@@ -57,6 +57,10 @@ worker: build
 # standalone on http://127.0.0.1:8484, no hub (development)
 serve: build
 	bin/ai-connector serve
+
+# this computer's models for its apps: the OpenAI API on http://127.0.0.1:8486/v1, token in <files>/local-ai.json
+local: build
+	bin/ai-connector local
 
 # ---------- the server image, the Helm chart, the deploy to the Raspberry Pi (docs/deploy.md) ----------
 .PHONY: image image-multiarch base-images chart-lint deploy deploy-image deploy-status deploy-guard deploy-env

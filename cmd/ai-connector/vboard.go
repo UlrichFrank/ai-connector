@@ -40,6 +40,8 @@ type vboardSettings struct {
 	Agents string `json:"agents,omitempty"`
 	// Generators: the image, video, music, sound and speech models offered to the board (comma list; "" none)
 	Generators string `json:"generators,omitempty"`
+	// Addr: the hub's loopback address for the local apps ("": a free port at every start)
+	Addr string `json:"addr,omitempty"`
 }
 
 // standaloneOwner owns the worker and the connector of the standalone hub: Claude Code runs on its owner's workers.
@@ -49,7 +51,7 @@ const vboardUsage = `ai-connector vboard — vboard's local AI on this computer,
 
 usage:
   ai-connector vboard [<vboard address>] [--token T] [--board ID] [--name NAME] [--chat MODEL] [--agents LIST]
-                      [--generators LIST] [--console 127.0.0.1:8485] [--state DIR] [--install]
+                      [--generators LIST] [--addr 127.0.0.1:PORT] [--console 127.0.0.1:8485] [--state DIR] [--install]
   ai-connector vboard --uninstall
 
   <vboard address>  e.g. https://vboard.example.com (or --url, $VBOARD_URL)
@@ -65,18 +67,21 @@ usage:
                     order, comma-separated, e.g. "flux2-klein-4b,ltx-2.5-q4,kokoro-82m" (only those on this
                     computer's disk are offered; "*" for all of them). Default: all of them on this computer's
                     disk, so one downloaded from vboard is offered at once; "none" for none.
+  --addr ADDR       the hub's address for the apps on this computer (OpenAI API; default: a free port, named in
+                    <files>/local-ai.json); loopback only, kept like the other settings
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/vboard/worker, apart from a plain worker's)
   --install         start it at login with these settings (a launchd agent, a systemd user unit, a scheduled task);
                     a copy that runs already with these settings is stopped: the service takes over
   --uninstall       stop that and remove it
 
-One runs at a time with the same settings ($MLXLAB_HOME): another one waits until the first ends, then takes over.
+One runs at a time with the same settings ($MLXLAB_HOME), ` + "`ai-connector local`" + ` included: another one waits until the
+first ends, then takes over. Without vboard: ` + "`ai-connector local`" + `.
 
 On its first start it downloads the embedder and the classifier (about 1 GB); vboard asks before anything else
 is downloaded ("Set up AI").
 
-An empty flag (--board=, --name=, --chat=, --agents=, --generators=) goes back to the default.
+An empty flag (--board=, --name=, --chat=, --agents=, --generators=, --addr=) goes back to the default.
 The settings are kept in <files>/vboard/settings.json: ` + "`ai-connector vboard`" + ` alone starts the same connection again.
 `
 
@@ -91,6 +96,7 @@ func vboardCommand(args []string) error {
 	agentList := fs.String("agents", "", "the AIs vboard offers, in order")
 	generators := fs.String("generators", "", "the image, video, music, sound and speech models vboard offers, in order")
 	console := fs.String("console", "", "serve the console here")
+	addr := fs.String("addr", "", "the hub's loopback address for the local apps (default: a free port)")
 	state := fs.String("state", "", "this process's jobs and sessions")
 	install := fs.Bool("install", false, "start at login")
 	uninstall := fs.Bool("uninstall", false, "do not start at login any more")
@@ -134,7 +140,7 @@ func vboardCommand(args []string) error {
 	own := stateDir(*state, os.Getenv, filepath.Join(dir, "worker"))
 	given := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
-	set, err := resolveVboard(vboardSettings{URL: *url, Token: *token, Board: *board, Name: *name, Chat: *chat, Agents: *agentList, Generators: *generators}, given, os.Getenv, filepath.Join(dir, "settings.json"))
+	set, err := resolveVboard(vboardSettings{URL: *url, Token: *token, Board: *board, Name: *name, Chat: *chat, Agents: *agentList, Generators: *generators, Addr: *addr}, given, os.Getenv, filepath.Join(dir, "settings.json"))
 	if err != nil {
 		return err
 	}
@@ -149,15 +155,64 @@ func vboardCommand(args []string) error {
 		fmt.Println(svc.describe())
 		return nil
 	}
+	connect := func(s *hub.Server, host string) error {
+		// --agents, else Claude Code beside the chat model when it is ready here (vboard_setup.go)
+		agents, err := defaultAgents(set.Agents, set.Chat, func() bool { return claudeReady(own) })
+		if err != nil {
+			return err
+		}
+		connName := set.Name
+		if connName == "" {
+			connName = host + " (ai-connector)"
+		}
+		if _, err := s.EnsureConnector(hub.ConnectorSettings{Name: connName, URL: set.URL, Token: set.Token, Board: set.Board,
+			Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Generators: vboardGenerators(set.Generators), Owner: standaloneOwner}); err != nil {
+			if f := hub.ConnectorErrorField(err); f != "" {
+				return fmt.Errorf("%s: %w", f, err)
+			}
+			return err
+		}
+		fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\n", set.URL, connName, filepath.Join(dir, "settings.json"))
+		return nil
+	}
+	return runStandalone(standaloneRun{what: "ai-connector vboard", own: own, addr: set.Addr, console: *console, connect: connect})
+}
+
+// standaloneRun is what `ai-connector vboard` and `ai-connector local` start: the hub on loopback, this computer as
+// its one worker, the discovery file for the local apps; connect (vboard) adds the hub's one vboard connector, none
+// (local) keeps the stored connectors stopped.
+type standaloneRun struct {
+	what    string // the command, for messages
+	own     string // this process's jobs and sessions (stateDir)
+	addr    string // the hub's loopback address ("": a free port)
+	console string // also serve the console there ("": not)
+	connect func(s *hub.Server, host string) error
+}
+
+// runStandalone runs r until SIGINT/SIGTERM. Both commands share <files>/vboard (the hub's data, the client token of
+// the local apps, the instance lock): one hub per computer, whichever of them runs.
+func runStandalone(r standaloneRun) error {
+	root := engine.ConfigDir()
+	dir := filepath.Join(root, "vboard")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	addr := r.addr
+	if addr == "" {
+		addr = "127.0.0.1:0"
+	}
+	if err := loopbackAddr(addr); err != nil {
+		return err
+	}
 	// one at a time with these settings (instance.go): another one is waited for, not given up on
 	waitCtx, waitStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	waited := false
 	lock, err := waitInstance(waitCtx, instanceLock(dir), 5*time.Second, func(pid int) {
-		who := "another ai-connector vboard runs"
+		who := "another ai-connector vboard or local runs"
 		if pid > 0 {
 			who += fmt.Sprintf(" (pid %d)", pid)
 		}
-		fmt.Printf("%s with the settings in %s: waiting until it ends (`ai-connector vboard --install` replaces it)\n", who, dir)
+		fmt.Printf("%s with the files in %s: waiting until it ends\n", who, dir)
 		waited = true
 	})
 	waitStop()
@@ -169,18 +224,9 @@ func vboardCommand(args []string) error {
 	}
 	defer lock.Close()
 	if waited {
-		fmt.Println("the other ai-connector vboard ended: this one takes over")
+		fmt.Printf("the other one ended: %s takes over\n", r.what)
 	}
 	host := web.HostName()
-	// --agents, else Claude Code beside the chat model when it is ready here (vboard_setup.go)
-	agents, err := defaultAgents(set.Agents, set.Chat, func() bool { return claudeReady(own) })
-	if err != nil {
-		return err
-	}
-	connName := set.Name
-	if connName == "" {
-		connName = host + " (ai-connector)"
-	}
 
 	// the hub's sign-in password (only the optional console uses it): made once, kept beside the settings
 	pwFile := filepath.Join(dir, "console-password")
@@ -191,40 +237,40 @@ func vboardCommand(args []string) error {
 			return err
 		}
 	}
-	s, err := hub.New(hub.Config{Password: strings.TrimSpace(string(pw)), Data: dir, Tools: filepath.Join(dir, "tools")})
+	s, err := hub.New(hub.Config{Password: strings.TrimSpace(string(pw)), Data: dir, Tools: filepath.Join(dir, "tools"), NoConnectors: r.connect == nil})
 	if err != nil {
 		return err
 	}
-	l, err := net.Listen("tcp", "127.0.0.1:0")
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return err
+		return fmt.Errorf("--addr: %w", err)
 	}
 	setupPage := s.EnableSetupPage("http://" + l.Addr().String()) // the Hugging Face token, on this computer only
 	workerToken, err := s.LocalWorker(host, standaloneOwner)
 	if err != nil {
 		return fmt.Errorf("this computer as worker: %w", err)
 	}
-	if _, err := s.EnsureConnector(hub.ConnectorSettings{Name: connName, URL: set.URL, Token: set.Token, Board: set.Board,
-		Models: hub.ConnectorModels{Chat: set.Chat}, Agents: agents, Generators: vboardGenerators(set.Generators), Owner: standaloneOwner}); err != nil {
-		if f := hub.ConnectorErrorField(err); f != "" {
-			return fmt.Errorf("%s: %w", f, err)
+	if r.connect != nil {
+		if err := r.connect(s, host); err != nil {
+			return err
 		}
-		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	hubDone := make(chan error, 1)
 	go func() { hubDone <- s.Serve(ctx, l) }()
-	if *console != "" {
-		cl, err := net.Listen("tcp", *console)
+	if r.console != "" {
+		cl, err := net.Listen("tcp", r.console)
 		if err != nil {
 			return fmt.Errorf("--console: %w", err)
 		}
 		fmt.Printf("ai-connector console: http://%s/console/ (password %s)\n", cl.Addr(), strings.TrimSpace(string(pw)))
 		go func() { _ = http.Serve(cl, s.Handler()) }()
 	}
-	go logConnector(ctx, s)
+	if r.connect != nil {
+		go logConnector(ctx, s)
+	}
 	// the apps on this computer use the same models through the hub (localai.go)
 	if clientToken, err := s.LocalClient("local apps", standaloneOwner); err != nil {
 		fmt.Fprintf(os.Stderr, "local apps: %v\n", err)
@@ -232,9 +278,10 @@ func vboardCommand(args []string) error {
 		fmt.Fprintf(os.Stderr, "local apps: %v\n", err)
 	} else {
 		defer removeLocalAI(root, os.Getpid())
+		fmt.Printf("OpenAI API for the apps on this computer: http://%s/v1 (token and address: %s)\n", l.Addr(), filepath.Join(root, localAIFile))
 	}
 
-	_, mgr := setup(root, own)
+	_, mgr := setup(root, r.own)
 	// downloads on request (vboard's Download), and the small models vboard needs at once
 	dl := downloads(root, mgr.Catalog)
 	dl.Changed = func(st engine.DownloadState) {
@@ -243,7 +290,7 @@ func vboardCommand(args []string) error {
 		}
 	}
 	startFirstModels(dl, llm.MemBytes())
-	fmt.Printf("ai-connector for vboard %s as %q (settings: %s)\nsetup page (Hugging Face token): %s\n", set.URL, connName, filepath.Join(dir, "settings.json"), setupPage)
+	fmt.Printf("setup page (Hugging Face token): %s\n", setupPage)
 	werr := worker(mgr, workerConfig{Hub: "http://" + l.Addr().String(), Token: workerToken}, host,
 		(&web.Server{Jobs: mgr, Prompts: prompts.Open(mgr.Dir), Home: root, HomeTools: homeTools, Version: version, Agents: claudeAgents,
 			Downloads: dl}).Handler())
@@ -253,6 +300,22 @@ func vboardCommand(args []string) error {
 	claudeAgents.Close()
 	closeSandboxes()
 	return werr
+}
+
+// loopbackAddr checks --addr: host:port on a loopback address. Nobody signs in at the hub, the setup page and the
+// client tokens are for this computer only.
+func loopbackAddr(addr string) error {
+	h, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return fmt.Errorf("--addr %q: %w", addr, err)
+	}
+	if h == "localhost" {
+		return nil
+	}
+	if ip := net.ParseIP(h); ip == nil || !ip.IsLoopback() {
+		return fmt.Errorf("--addr %q: a loopback address only (127.0.0.1:PORT): this hub is for the apps on this computer", addr)
+	}
+	return nil
 }
 
 // envFlag is the repeatable --env KEY=VALUE.
@@ -302,6 +365,12 @@ func resolveVboard(flags vboardSettings, given map[string]bool, getenv func(stri
 		Chat:       pick("chat", flags.Chat, "", saved.Chat),
 		Agents:     pick("agents", flags.Agents, "", saved.Agents),
 		Generators: pick("generators", flags.Generators, "", saved.Generators),
+		Addr:       pick("addr", flags.Addr, "", saved.Addr),
+	}
+	if out.Addr != "" {
+		if err := loopbackAddr(out.Addr); err != nil {
+			return out, err
+		}
 	}
 	if out.URL == "" {
 		return out, errors.New("no vboard address: ai-connector vboard https://vboard.example.com --token … (see --help)")

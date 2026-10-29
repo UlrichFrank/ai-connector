@@ -102,3 +102,25 @@ func TestLocalClientKeepsItsToken(t *testing.T) {
 		t.Fatalf("%d clients, want 1", n)
 	}
 }
+
+func TestNoConnectorsKeepsThemStopped(t *testing.T) {
+	dir := t.TempDir()
+	s, _ := newHub(t, dir)
+	if _, err := s.EnsureConnector(ConnectorSettings{URL: "http://127.0.0.1:1/", Token: "vbp_a", Owner: "local"}); err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+	// ai-connector local on the same files: the connector is kept, but nothing dials vboard
+	s2, _ := newHubWith(t, Config{Password: password, Data: dir, Tools: t.TempDir(), NoConnectors: true})
+	defer s2.Close()
+	cs := s2.Connectors()
+	if len(cs) != 1 || !cs[0].Enabled || cs[0].URL != "http://127.0.0.1:1" {
+		t.Fatalf("connectors %+v: want the kept one", cs)
+	}
+	s2.connectors.mu.Lock()
+	running := s2.connectors.list[0].run != nil
+	s2.connectors.mu.Unlock()
+	if running {
+		t.Fatal("NoConnectors: the connector was started")
+	}
+}

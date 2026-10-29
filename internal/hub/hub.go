@@ -44,6 +44,8 @@ type Config struct {
 	// MDNS announces the hub on the LAN (Bonjour, mdns.go) while Run serves; MDNSName is its instance name.
 	MDNS     bool
 	MDNSName string
+	// NoConnectors: the stored connectors are kept but not started (`ai-connector local`: the hub without vboard)
+	NoConnectors bool
 }
 
 // FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL,
@@ -158,7 +160,9 @@ func New(cfg Config) (*Server, error) {
 	if s.connectors, err = openConnectors(s, cfg.Data); err != nil {
 		return nil, fmt.Errorf("connectors: %w", err)
 	}
-	s.connectors.startAll()
+	if !cfg.NoConnectors {
+		s.connectors.startAll()
+	}
 	s.proxy = s.newProxy()
 	return s, nil
 }

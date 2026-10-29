@@ -72,15 +72,21 @@ built-in server (loopback only) never announces. In Kubernetes the multicast rea
 
 ## Local apps (the discovery file)
 
-Apps on the same computer as `ai-connector vboard` (EDDy, scripts) use its models without any setup: while it runs,
-it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, so only the same user reads it):
+Apps on the same computer as `ai-connector vboard` or `ai-connector local` (EDDy, scripts) use its models without any
+setup: while it runs, it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, so only the
+same user reads it):
 
 ```json
 { "url": "http://127.0.0.1:52817", "token": "aic_…", "pid": 4711 }
 ```
 
-* `url`: the built-in hub on a loopback port (a new one at every start); the OpenAI API below with `token` as client
-  token (the client "local apps", owner `local`: Claude Code runs as this computer's user).
+* `url`: the built-in hub on a loopback port — `--addr` (`ai-connector local`: `127.0.0.1:8486` by default), else a
+  new one at every start; the OpenAI API below with `token` as client token (the client "local apps", owner `local`:
+  Claude Code runs as this computer's user).
+* `ai-connector local` is the same hub without vboard: the stored vboard connector is kept, not started. Both share
+  `<config>/vboard` (the hub's files, the token, the instance lock): one of them runs at a time. An app that takes
+  only an address and a key (an OpenAI client) gets `http://127.0.0.1:8486/v1` and the token; one token per app:
+  `--console 127.0.0.1:8485`, a client of its own there.
 * The token stays the same across restarts (kept in `<config>/vboard/standalone.json`); removing the client in the
   console makes a new one at the next start.
 * The file is written once the hub listens and removed when it ends; a file left by a crash names a port nobody

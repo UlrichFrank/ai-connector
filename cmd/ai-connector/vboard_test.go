@@ -75,3 +75,24 @@ func TestVboardAgents(t *testing.T) {
 		t.Fatalf("the chat model goes first: %+v %v", as, err)
 	}
 }
+
+func TestResolveVboardKeepsTheAddress(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "settings.json")
+	none := func(string) string { return "" }
+	if _, err := resolveVboard(vboardSettings{URL: "https://v", Token: "vbp_1", Addr: "0.0.0.0:8486"}, nil, none, file); err == nil {
+		t.Fatal("--addr 0.0.0.0: want an error")
+	}
+	if _, err := os.Stat(file); err == nil {
+		t.Fatal("a refused address was kept")
+	}
+	if _, err := resolveVboard(vboardSettings{URL: "https://v", Token: "vbp_1", Addr: "127.0.0.1:8486"}, nil, none, file); err != nil {
+		t.Fatal(err)
+	}
+	// the service starts without flags: the address comes from the file
+	if s, _ := resolveVboard(vboardSettings{}, nil, none, file); s.Addr != "127.0.0.1:8486" {
+		t.Fatalf("%+v: want the kept address", s)
+	}
+	if s, _ := resolveVboard(vboardSettings{}, map[string]bool{"addr": true}, none, file); s.Addr != "" {
+		t.Fatalf("--addr=: want a free port again, got %+v", s)
+	}
+}

@@ -59,6 +59,8 @@ usage:
   mlxlab agents login | status [--state DIR]  Claude Code's login as this worker's agent sessions use it (docs/api.md)
   ai-connector vboard <vboard address> --token T [--agents LIST]
                                               vboard's local AI on this computer, no server (ai-connector vboard --help)
+  ai-connector local [--addr 127.0.0.1:8486]  this computer's models for its apps (OpenAI API), no vboard, no server
+                                              (ai-connector local --help)
 
 worker: the hub URL and the token come from the flags, $MLXLAB_HUB and $MLXLAB_WORKER_TOKEN, or worker.json
         (written when --hub and a token (flag or MLXLAB_WORKER_TOKEN) are given). The token is the hub's MLXLAB_WORKER_TOKEN.
@@ -96,6 +98,8 @@ func run() error {
 		return agentsCommand(args)
 	case cmd == "vboard":
 		return vboardCommand(args)
+	case cmd == "local":
+		return localCommand(args)
 	case cmd == "" && !helpFlag(args):
 		// plain mlxlab (and its flags, like --server) is the TUI
 		return tui.Main(args)
