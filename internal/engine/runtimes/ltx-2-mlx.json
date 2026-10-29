@@ -1,0 +1,13 @@
+{
+  "name": "ltx-2-mlx",
+  "notes": "github.com/dgrauet/ltx-2-mlx (MIT), pinned; LTX-2.5 packs since 0.15. Its CLI, no worker script",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-core-mlx",
+        "ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@e42136350c43fc02fe3a6cc76ee66a33dd77e6f9#subdirectory=packages/ltx-pipelines-mlx"
+      ]
+    }
+  }
+}

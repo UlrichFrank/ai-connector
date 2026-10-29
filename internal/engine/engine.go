@@ -33,6 +33,8 @@ var Kinds = []Kind{Chat, Image, Video, Music, Speech, Avatar, Sound, Embed, Clas
 // Request is one job for a model. Only the fields of the model's kind are read.
 type Request struct {
 	Model string `json:"model"`
+	// Params: a generic runtime's model's own settings (Model.Params)
+	Params map[string]any `json:"params,omitempty"`
 
 	// chat
 	Messages []llm.Message `json:"messages,omitempty"`

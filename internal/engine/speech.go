@@ -28,21 +28,8 @@ import (
 // "transcribe" jobs), and Qwen3-ForcedAligner for the words' timings of every clip (when it is on disk). Every model
 // runs in one Python worker (workers/speech.py) on mlx-audio.
 
-// mlxAudioCommit is mlx-audio's main after v0.5.7 (2026-10-03): v0.5.7 plus a Voxtral TTS first-frame fix.
-const mlxAudioCommit = "543792553ba62fe7cdb9e0b22c505bfa899c0f09"
-
 // SpeechEnv is the speech runtime, pinned (verified on an M1 Max, 64 GB).
-var SpeechEnv = pyenv.Env{Name: "speech", Python: "3.12", Packages: []string{
-	"mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@" + mlxAudioCommit,
-	"mlx==0.32.3", "numpy==2.3.5", "transformers==5.18.0", // numpy < 2.4: mistral-common
-	"mistral-common[audio]==1.12.0", // Voxtral's tekken.json (voice_num_audio_tokens) needs ≥ 1.12
-	"torch==2.14.1",                 // Higgs v3: its codec's bf16 weights are read through PyTorch (CPU, at load)
-	// Kokoro's G2P: misaki (English with spaCy's small model, pinned here so it is not fetched at run time; Chinese;
-	// espeak-ng for es/fr/it/pt/hi comes as a library inside espeakng-loader's wheel — nothing to install on the
-	// system). Not Japanese: misaki[ja] builds pyopenjtalk from source and needs unidic's 500 MB dictionary.
-	"misaki[en,zh]==0.9.4",
-	"en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-}}
+var SpeechEnv = runtimeEnv("speech") // runtimes/speech.json
 
 // speechFamily is what a model family can do with a request; see speechFamilies.
 type speechFamily struct {

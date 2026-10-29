@@ -1,0 +1,11 @@
+{
+  "name": "spandrel",
+  "notes": "spandrel (MIT) loads image restoration models by their weights alone (ESRGAN, Real-ESRGAN, SwinIR, …) on PyTorch: CUDA, else MPS, else the CPU",
+  "script": "upscale.py",
+  "generic": true,
+  "kinds": ["image"],
+  "output": "png",
+  "envs": {
+    "darwin-arm64": {"python": "3.12", "packages": ["spandrel==0.4.2", "torch==2.14.1", "torchvision==0.29.1", "numpy==2.5.4", "pillow==12.3.0", "safetensors==0.8.0", "einops==0.8.2"]}
+  }
+}

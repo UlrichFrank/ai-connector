@@ -1,0 +1,13 @@
+{
+  "name": "acestep",
+  "notes": "ACE-Step 1.5 (MIT): MLX diffusion and language model; lego and extract on PyTorch/MPS",
+  "script": "acestep_worker.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"
+      ]
+    }
+  }
+}

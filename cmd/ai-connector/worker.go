@@ -23,7 +23,13 @@ import (
 type workerConfig struct {
 	Hub   string `json:"hub"`
 	Token string `json:"token"`
+	// AllowLocalRuntimes: the worker reads <config dir>/runtimes.d, Python runtimes of this machine's own
+	// (docs/models.md) — code nobody reviewed, so off unless set here
+	AllowLocalRuntimes bool `json:"allowLocalRuntimes,omitempty"`
 }
+
+// allowLocalRuntimes is the worker's AllowLocalRuntimes (set before setup).
+var allowLocalRuntimes bool
 
 // workerFile is the worker's config file (hub and token): --config, else $MLXLAB_WORKER_CONFIG, else
 // <config dir>/worker.json. A second worker on the same Mac (another hub) keeps its own file this way.
@@ -74,6 +80,8 @@ func resolveWorker(flagHub, flagToken string, getenv func(string) string, file s
 	cfg = workerConfig{
 		Hub:   strings.TrimRight(pick(flagHub, "MLXLAB_HUB", saved.Hub), "/"),
 		Token: pick(flagToken, "MLXLAB_WORKER_TOKEN", saved.Token),
+		// set in the file only (saving keeps it)
+		AllowLocalRuntimes: saved.AllowLocalRuntimes,
 	}
 	if cfg.Hub == "" {
 		return cfg, false, errors.New("no hub: mlxlab worker --hub https://… --token … (or MLXLAB_HUB)")

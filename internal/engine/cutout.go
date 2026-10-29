@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/philipparndt/ai-connector/internal/models"
-	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
 // Cutouts: one image in, the same image with its background transparent out (an RGBA PNG; vboard's "Remove
@@ -30,10 +29,7 @@ const CutoutMaxPNG = 15 << 20
 
 // CutoutEnv is the cutout worker's runtime: PyTorch and what BiRefNet's own code (birefnet.py, loaded with
 // trust_remote_code) imports — timm, kornia, einops, torchvision.
-var CutoutEnv = pyenv.Env{Name: "cutout", Python: "3.12", Packages: []string{
-	"torch==2.14.1", "torchvision==0.29.1", "transformers==5.19.0", "timm==1.0.30", "kornia==0.8.3", "einops==0.8.2",
-	"safetensors==0.8.0", "numpy==2.5.4", "pillow==12.3.0",
-}}
+var CutoutEnv = runtimeEnv("cutout") // runtimes/cutout.json
 
 // cutoutCatalog is the catalogue's BiRefNet models (catalog/birefnet*.json): the files the worker loads (its code, its
 // config and the weights), side: what the model sees.

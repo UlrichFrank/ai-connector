@@ -25,6 +25,8 @@
     "quantize": 8
   },
   "runtimeArgs": {
-    "mflux": "flux2-klein-base-4b"
+    "mflux": "flux2-klein-base-4b",
+    "loader": "mflux.models.flux2.variants:Flux2Klein",
+    "editLoader": "mflux.models.flux2.variants:Flux2KleinEdit"
   }
 }

@@ -54,8 +54,12 @@ type Manifest struct {
 	HereCache    *[]string        `json:"hereCache,omitempty"`
 	DeclaredSize bool             `json:"declaredSize,omitempty"`
 	Defaults     Request          `json:"defaults"`
-	RuntimeArgs  struct {
+	// Params: what a model of a generic runtime takes besides the request's fields (checked before the queue)
+	Params      map[string]ParamSpec `json:"params,omitempty"`
+	RuntimeArgs struct {
 		Mflux       string  `json:"mflux,omitempty"`
+		Loader      string  `json:"loader,omitempty"`     // mflux: "module:Class" for text to image
+		EditLoader  string  `json:"editLoader,omitempty"` // mflux: "module:Class" for editing with reference images
 		HQ          bool    `json:"hq,omitempty"`
 		Side        int     `json:"side,omitempty"`
 		Runtime     string  `json:"runtime,omitempty"`
@@ -179,19 +183,31 @@ func ParseManifest(data []byte) (*Manifest, error) {
 
 func (mf *Manifest) check() error {
 	be, ok := manifestBackends[mf.Backend]
+	generic := false
+	if rt := runtimeManifest(mf.Backend); !ok && rt != nil && rt.Generic {
+		ok, generic = true, true
+		be = manifestBackend{kind: mf.Kind, tasks: mf.Tasks}
+		if !slices.Contains(rt.Kinds, mf.Kind) {
+			return fmt.Errorf("runtime %s makes %v models, not %q", rt.Name, rt.Kinds, mf.Kind)
+		}
+	}
 	switch {
 	case mf.Name == "" || mf.About == "":
 		return fmt.Errorf("name and about are needed")
 	case !ok:
-		return fmt.Errorf("backend %q is not one a manifest can name (%s)", mf.Backend, strings.Join(backendNames(), ", "))
+		return fmt.Errorf("backend %q is neither one of %s nor a generic runtime", mf.Backend, strings.Join(backendNames(), ", "))
 	case mf.Kind != be.kind:
 		return fmt.Errorf("backend %s runs %s models, not %q", mf.Backend, be.kind, mf.Kind)
+	case len(mf.Params) > 0 && !generic:
+		return fmt.Errorf("params are for the models of a generic runtime")
 	case mf.Licence == "":
 		return fmt.Errorf("the licence is needed")
 	case mf.Size <= 0:
 		return fmt.Errorf("the size is needed")
-	case (mf.Source == nil) == (len(mf.Sources) == 0):
-		return fmt.Errorf("source (one repository) or sources (several) is needed, not both")
+	case mf.Source != nil && len(mf.Sources) > 0:
+		return fmt.Errorf("source (one repository) or sources (several), not both")
+	case mf.Source == nil && len(mf.Sources) == 0 && !generic:
+		return fmt.Errorf("source (one repository) or sources (several) is needed")
 	case mf.Source != nil && (mf.Source.Repo == "" || !pinnedRev.MatchString(mf.Source.Rev)):
 		return fmt.Errorf("source.repo and source.rev (a commit, 40 hex digits) are needed")
 	case mf.Source != nil && len(mf.Here) == 0:
@@ -209,6 +225,11 @@ func (mf *Manifest) check() error {
 	for _, t := range mf.Tasks {
 		if !slices.Contains(be.tasks, t) {
 			return fmt.Errorf("task %q is none of %s's (%s)", t, mf.Backend, strings.Join(be.tasks, ", "))
+		}
+	}
+	for n, p := range mf.Params {
+		if err := p.check(); err != nil {
+			return fmt.Errorf("param %s: %w", n, err)
 		}
 	}
 	if be.check != nil {
@@ -231,8 +252,8 @@ func backendNames() []string {
 func (mf *Manifest) model(store *models.Store, hub string) *Model {
 	ra := mf.RuntimeArgs
 	m := &Model{ID: mf.ID, Name: mf.Name, Kind: mf.Kind, Backend: mf.Backend, About: mf.About, Size: int64(mf.Size), Memory: mf.Memory,
-		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults,
-		mflux: ra.Mflux, hq: ra.HQ, side: ra.Side, runtime: ra.Runtime, workerModel: ra.WorkerModel, maxSeconds: ra.MaxSeconds}
+		Gated: mf.Gated, Licence: mf.Licence, NonCommercial: mf.NonCommercial, Tasks: mf.Tasks, Defaults: mf.Defaults, Params: mf.Params,
+		mflux: ra.Mflux, loader: ra.Loader, editLoader: ra.EditLoader, hq: ra.HQ, side: ra.Side, runtime: ra.Runtime, workerModel: ra.WorkerModel, maxSeconds: ra.MaxSeconds}
 	if ra.LoRA != nil {
 		m.lora = &musicLoRA{file: ra.LoRA.File, trigger: ra.LoRA.Trigger, scale: ra.LoRA.Scale}
 	}
@@ -252,6 +273,10 @@ func (mf *Manifest) model(store *models.Store, hub string) *Model {
 }
 
 func (mf *Manifest) findHere(m *Model, store *models.Store, hub string) {
+	if mf.Source == nil && len(mf.Sources) == 0 { // a generic runtime's model that brings its weights along
+		m.Here = true
+		return
+	}
 	if len(mf.Sources) > 0 {
 		var need []hubRepo
 		for i, s := range mf.Sources {

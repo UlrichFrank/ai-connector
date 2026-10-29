@@ -1,0 +1,19 @@
+{
+  "name": "sound",
+  "notes": "mlx-speech (MOSS-SoundEffect), pure MLX",
+  "script": "sound.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.13",
+      "packages": [
+        "mlx-speech @ git+https://github.com/appautomaton/mlx-speech@4577ad28e6bef2ae2a11b8fa76a6cdb23bb2a9cc",
+        "mlx==0.32.2",
+        "numpy==2.4.4",
+        "safetensors==0.7.0",
+        "soundfile==0.13.1",
+        "tokenizers==0.22.2",
+        "huggingface-hub==1.8.0"
+      ]
+    }
+  }
+}

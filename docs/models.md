@@ -69,7 +69,8 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `hereCache` | | other patterns for the Hugging Face cache; `[]`: the runtime does not take the model from there (LTX, the avatars) |
 | `declaredSize` | | a downloaded model's size stays `size`, not the folder's (SeedVR2's folder holds both models; BiRefNet's what it loads) |
 | `defaults` | | the request fields the UIs start with (`width`, `height`, `steps`, `guidance`, `quantize`, `scale`, …; docs/api.md) |
-| `runtimeArgs` | | what the runtime needs to know of the model (table above) |
+| `runtimeArgs` | | what the runtime needs to know of the model (table above); mflux also `loader` and `editLoader`: the mflux classes (`"module:Class"`) for text to image and for editing — a model with only one does only that · a generic runtime: `workerModel` |
+| `params` | | a generic runtime's model: what it takes besides the request's fields ("Params" below) |
 
 Unknown fields are an error, so a typo does not go unnoticed.
 
@@ -79,3 +80,85 @@ Unknown fields are an error, so a typo does not go unnoticed.
 exist, revisions are pinned. `TestCatalogGolden` (testdata/catalog.golden.json) pins what users get of every model —
 the API, the files and folders, the runtime's arguments, the recommendations; a model moved from Go into a manifest
 must leave it as it is.
+
+## Runtimes
+
+A Python runtime is a manifest too: `internal/engine/runtimes/<name>.json` — its worker script (in
+`internal/engine/workers/`), an optional build step, and one environment per platform. The packages differ by
+platform (PyTorch's CUDA or ROCm wheels, MLX only on Apple silicon), so a worker offers a runtime's models only where
+the runtime has an environment for its platform; the others are not listed (and the server routes their jobs to the
+workers that have them).
+
+```json
+{
+  "name": "cutout",
+  "script": "birefnet_worker.py",
+  "envs": {
+    "darwin-arm64": {"python": "3.12", "packages": ["torch==2.14.1", "…"]},
+    "linux-cuda":   {"python": "3.12", "packages": ["torch==2.14.1", "…"]},
+    "linux-rocm":   {"python": "3.12", "packages": ["torch==2.14.1", "…"], "index": "https://download.pytorch.org/whl/rocm6.4"}
+  }
+}
+```
+
+| Platform | is |
+|---|---|
+| `darwin-arm64` | a Mac with Apple silicon (MLX, PyTorch on MPS) |
+| `linux-cuda`, `linux-rocm`, `linux-cpu` | Linux with an NVIDIA GPU (`nvidia-smi`), with AMD's ROCm (`rocminfo`, `/opt/rocm`), with neither |
+| `windows-cuda`, `windows-rocm`, `windows-cpu` | the same on Windows (ROCm: the HIP SDK's `HIP_PATH`) |
+
+`MLXLAB_GPU=cuda|rocm|cpu` overrides what the worker finds. `index`: a package index besides PyPI, preferred where it
+has a package (PyTorch's wheels for a GPU). An environment is installed once, by uv, into
+`<config dir>/envs/<name>-<hash>`; the hash is of the Python version, the packages and the index, so a changed
+environment is a new directory.
+
+Today: every runtime runs on Apple silicon; BiRefNet also on Linux (CUDA, the CPU, and ROCm — not tried on a Radeon
+yet). No Python runtime on Windows yet: the job protocol's events come on file descriptor 3, which Windows does not
+pass to a child process. ComfyUI (an HTTP API) and the local servers are not affected.
+
+### Generic runtimes: a new library without Go
+
+A runtime with `"generic": true` needs no Go of its own: its models (`"backend": "<runtime>"`) run in the generic
+backend, which speaks the job protocol with the worker script.
+
+| Field | |
+|---|---|
+| `generic`, `kinds`, `output` | the kinds its models may be, and the extension of what it makes (`png`, `wav`, `mp4`, …) |
+| `heavy` | its model takes so much memory that the queue unloads the other heavy ones first |
+
+The script reads one JSON request per line on stdin and writes events as JSON lines on file descriptor 3 (`status`,
+`progress` with `step`/`total`, `log`, `result` with `file`, `seconds`, `peakGB`, `width`, `height`, or `error` with
+`text`; `ready` once it has started). The request is the job's request with the model's `defaults` under it, and:
+
+| Key | |
+|---|---|
+| `model` | the model's `runtimeArgs.workerModel` (else its id) |
+| `path` | the folder of the model's `source` (downloaded and verified) |
+| `dirs` | the folders of its `sources`, by key |
+| `params` | the model's params, checked and with their defaults |
+| `output` | where to write the result |
+
+### Params
+
+A model of a generic runtime says what it takes besides the request's fields:
+
+```json
+"params": {"maxSide": {"type": "integer", "default": 4096, "minimum": 256, "maximum": 8192,
+                       "description": "the longest side of the result"}}
+```
+
+`type` is `integer`, `number`, `string` or `boolean`; `minimum`, `maximum`, `enum`, `default` and `description` as in
+JSON Schema. `/api/models` lists them (`params`), so a UI can make its form from them. A job's `params` are checked
+when it is submitted — an unknown one, a wrong type or a value out of range is a 400 that names it, before anything is
+loaded — and the defaults are filled in.
+
+### A machine's own runtimes
+
+`<config dir>/runtimes.d/<name>/runtime.json` with its script beside it adds a generic runtime to one machine,
+without a release. It runs code nobody reviewed, so the worker reads `runtimes.d` only when it is allowed:
+`"allowLocalRuntimes": true` in its `worker.json` (or `MLXLAB_ALLOW_LOCAL_RUNTIMES=1` for `ai-connector serve`). A
+runtime the catalogue has already is left out.
+
+`docs/examples/` has one that was tried: spandrel with Real-ESRGAN x4 (`runtimes.d/spandrel/`, `models.d/realesrgan-x4.json`)
+— copy both into the config dir, allow local runtimes, and `realesrgan-x4` upscales images (512² to 2048² in about
+5 s on an M2 Pro, after uv has installed the environment once).

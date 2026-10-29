@@ -160,6 +160,7 @@ func run() error {
 			}
 			return err
 		}
+		allowLocalRuntimes = cfg.AllowLocalRuntimes
 		if save || *install { // the service has neither flags nor this environment: hub and token only from the file
 			if err := saveWorker(file, cfg); err != nil {
 				return err
@@ -250,6 +251,12 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	lms, hf := llm.LocalRoots()
 	finder := &llm.Finder{Store: store, LMStudio: lms, HFCache: hf, Mem: llm.MemBytes(),
 		Verifier: &llm.Verifier{Path: filepath.Join(store.Dir, "verified.json")}}
+	// this machine's own Python runtimes (<config dir>/runtimes.d), when allowed: they run code nobody reviewed
+	if allowLocalRuntimes || os.Getenv("MLXLAB_ALLOW_LOCAL_RUNTIMES") == "1" {
+		for _, err := range engine.AddLocalRuntimes(filepath.Join(root, "runtimes.d")) {
+			fmt.Fprintln(os.Stderr, "mlxlab: runtimes.d:", err)
+		}
+	}
 	cat := engine.NewCatalog(store, finder)
 	// this machine's own models: manifests in <config dir>/models.d (docs/models.md)
 	for _, err := range cat.AddLocal(filepath.Join(root, "models.d"), store) {
@@ -260,26 +267,38 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	always := approvals.Open(own)
 	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
 	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
-	// the embedder and the classifier run everywhere (pure Go); so does the cutout (BiRefNet on PyTorch: CUDA, Apple's
-	// MPS or the CPU); MLX and the other Python runtimes need Apple silicon
-	backends := []engine.Backend{text, &engine.CutoutBackend{Root: root, Store: store}}
+	// the embedder and the classifier run everywhere (pure Go), the chat models on Apple silicon (MLX); the Python
+	// backends where their runtime has an environment for this machine (runtimes/*.json: BiRefNet on PyTorch with
+	// CUDA, ROCm, MPS or the CPU; the MLX ones on Apple silicon), each model where its own runtime has one
+	backends := []engine.Backend{text}
 	if appleSilicon {
-		backends = append(backends,
-			&engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)},
-			&engine.FluxBackend{Root: root, Store: store},
-			&engine.LTXBackend{Root: root, Store: store},
-			&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
-			speech,
-			&engine.SoundBackend{Root: root, Store: store},
-			// the avatar says its text with the speech backend
-			&engine.AvatarBackend{Root: root, Store: store, Speaker: speech},
-		)
+		backends = append(backends, &engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)})
+	}
+	for _, b := range []struct {
+		runs    bool
+		backend engine.Backend
+	}{
+		{engine.RuntimeRuns("cutout"), &engine.CutoutBackend{Root: root, Store: store}},
+		{engine.RuntimeRuns("mflux"), &engine.FluxBackend{Root: root, Store: store}},
+		{engine.RuntimeRuns("ltx-2-mlx"), &engine.LTXBackend{Root: root, Store: store}},
+		{engine.RuntimeRuns("acestep") || engine.RuntimeRuns("stableaudio3"), &engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()}},
+		{engine.RuntimeRuns("speech"), speech},
+		{engine.RuntimeRuns("sound"), &engine.SoundBackend{Root: root, Store: store}},
+		// the avatar says its text with the speech backend
+		{engine.RuntimeRuns("ltx-2-mlx") || engine.RuntimeRuns("longcat-avatar"), &engine.AvatarBackend{Root: root, Store: store, Speaker: speech}},
+	} {
+		if b.runs {
+			backends = append(backends, b.backend)
+		}
+	}
+	for _, n := range engine.GenericRuntimes() {
+		backends = append(backends, &engine.RuntimeBackend{Root: root, Store: store, Runtime: n})
 	}
 	runs := map[string]bool{}
 	for _, b := range backends {
 		runs[b.Name()] = true
 	}
-	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] })
+	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] && engine.ModelRuns(m) })
 	// local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp, vLLM): their models, found now and every 30 s
 	rts, err := engine.ParseRuntimes(os.Getenv("MLXLAB_RUNTIMES"))
 	if err != nil {

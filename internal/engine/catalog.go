@@ -44,6 +44,9 @@ type Model struct {
 	Images bool `json:"images,omitempty"`
 	// Audio: what a music, sound or speech model takes (audiocaps.go; vboard's generators)
 	Audio *AudioCaps `json:"audio,omitempty"`
+	// Params: what a model of a generic runtime takes besides the request's fields (docs/models.md, "Params"):
+	// checked before the job is queued, the defaults filled in
+	Params map[string]ParamSpec `json:"params,omitempty"`
 	// Defaults are the request fields the UIs start with.
 	Defaults Request `json:"defaults"`
 	// Sampling: a chat model's settings with thinking on and off (generation_config.json and Qwen's
@@ -58,8 +61,10 @@ type Model struct {
 	files  []string      // the files a backend needs of repo ("" = all but ignore)
 	ignore []string      // file patterns not to download
 	mflux  string        // mflux's model name
-	hq     bool          // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
-	side   int           // cutout: the side the model sees (BiRefNet 1024, the HR ones 2048)
+	// loader, editLoader: the mflux classes ("module:Class") for text to image and for editing (the manifest's)
+	loader, editLoader string
+	hq                 bool // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
+	side               int  // cutout: the side the model sees (BiRefNet 1024, the HR ones 2048)
 
 	served      *servedModel // a model of a local OpenAI-compatible server (OpenAIBackend)
 	runtime     string       // music: the runtime (MusicBackend.Runtimes)

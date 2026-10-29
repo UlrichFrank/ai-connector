@@ -28,9 +28,10 @@ var workerFiles embed.FS
 // pyWorker is one running worker process.
 type pyWorker struct {
 	env    pyenv.Env
-	script string   // file name in workers/
-	args   []string // after the script
-	extra  []string // environment variables
+	script string                 // file name in workers/
+	src    func() ([]byte, error) // the script's source when it is not in workers/ (a local runtime)
+	args   []string               // after the script
+	extra  []string               // environment variables
 
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
@@ -75,7 +76,11 @@ func (w *pyWorker) start(ctx context.Context, root string, emit Emit) error {
 	if err := w.env.Ensure(ctx, root, emit.Log); err != nil {
 		return err
 	}
-	src, err := workerFiles.ReadFile("workers/" + w.script)
+	read := w.src
+	if read == nil {
+		read = func() ([]byte, error) { return workerFiles.ReadFile("workers/" + w.script) }
+	}
+	src, err := read()
 	if err != nil {
 		return err
 	}

@@ -45,10 +45,7 @@ func clampSoundDuration(d float64) float64 {
 }
 
 // soundEnv is the sound worker's runtime: mlx-speech at a fixed commit and its dependencies as in its uv.lock.
-var soundEnv = pyenv.Env{Name: "sound", Python: "3.13", Packages: []string{
-	"mlx-speech @ git+https://github.com/appautomaton/mlx-speech@4577ad28e6bef2ae2a11b8fa76a6cdb23bb2a9cc",
-	"mlx==0.32.2", "numpy==2.4.4", "safetensors==0.7.0", "soundfile==0.13.1", "tokenizers==0.22.2", "huggingface-hub==1.8.0",
-}}
+var soundEnv = runtimeEnv("sound") // runtimes/sound.json
 
 // soundModels are the catalogue's sound effect models.
 func soundModels() []*Model { return builtinModels("sound", nil, "") }

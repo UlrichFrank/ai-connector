@@ -41,6 +41,7 @@ type goldenEnv struct {
 	Name     string   `json:"name"`
 	Python   string   `json:"python"`
 	Packages []string `json:"packages,omitempty"`
+	Index    string   `json:"index,omitempty"`
 	Build    bool     `json:"build,omitempty"`
 }
 
@@ -49,16 +50,19 @@ type goldenModel struct {
 
 	Sources []goldenRepo `json:"sources,omitempty"`
 	Runtime struct {
-		Mflux       string     `json:"mflux,omitempty"`
-		HQ          bool       `json:"hq,omitempty"`
-		Side        int        `json:"side,omitempty"`
-		Runtime     string     `json:"runtime,omitempty"`
-		WorkerModel string     `json:"workerModel,omitempty"`
-		MaxSeconds  float64    `json:"maxSeconds,omitempty"`
-		LoRAFile    string     `json:"loraFile,omitempty"`
-		LoRATrigger string     `json:"loraTrigger,omitempty"`
-		LoRAScale   float64    `json:"loraScale,omitempty"`
-		Env         *goldenEnv `json:"env,omitempty"`
+		Mflux       string               `json:"mflux,omitempty"`
+		Loader      string               `json:"loader,omitempty"`
+		EditLoader  string               `json:"editLoader,omitempty"`
+		HQ          bool                 `json:"hq,omitempty"`
+		Side        int                  `json:"side,omitempty"`
+		Runtime     string               `json:"runtime,omitempty"`
+		WorkerModel string               `json:"workerModel,omitempty"`
+		MaxSeconds  float64              `json:"maxSeconds,omitempty"`
+		LoRAFile    string               `json:"loraFile,omitempty"`
+		LoRATrigger string               `json:"loraTrigger,omitempty"`
+		LoRAScale   float64              `json:"loraScale,omitempty"`
+		Env         *goldenEnv           `json:"env,omitempty"`  // on Apple silicon
+		Envs        map[string]goldenEnv `json:"envs,omitempty"` // on the other platforms
 	} `json:"runtime"`
 
 	RepoURL       string  `json:"repoURL,omitempty"`
@@ -105,12 +109,28 @@ func goldenOf(t *testing.T, m *Model) goldenModel {
 		g.Sources = append(g.Sources, goldenRepo{Key: hr.key, Repo: hr.repo, Rev: hr.rev, Include: hr.include})
 	}
 	rt := &g.Runtime
+	rt.Loader, rt.EditLoader = m.loader, m.editLoader
 	rt.Mflux, rt.HQ, rt.Side, rt.Runtime, rt.WorkerModel, rt.MaxSeconds = m.mflux, m.hq, m.side, m.runtime, m.workerModel, m.maxSeconds
 	if m.lora != nil {
 		rt.LoRAFile, rt.LoRATrigger, rt.LoRAScale = m.lora.file, m.lora.trigger, m.lora.scale
 	}
-	if env, build := runtimeOf(m); env != nil {
-		rt.Env = &goldenEnv{Name: env.Name, Python: env.Python, Packages: env.Packages, Build: build != nil}
+	if n := runtimeName(m); n != "" {
+		build := runtimeManifest(n).Build != ""
+		for _, p := range Platforms {
+			env, ok := envFor(n, p)
+			if !ok {
+				continue
+			}
+			g := goldenEnv{Name: env.Name, Python: env.Python, Packages: env.Packages, Index: env.Index, Build: build}
+			if p == "darwin-arm64" {
+				rt.Env = &g
+			} else {
+				if rt.Envs == nil {
+					rt.Envs = map[string]goldenEnv{}
+				}
+				rt.Envs[p] = g
+			}
+		}
 	}
 	g.RepoURL = RepoURL(m)
 	g.Downloadable = Downloadable(m)

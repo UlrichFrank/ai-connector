@@ -26,15 +26,12 @@ import (
 // model's clip is split at pauses; every clip after the first starts from the last frame of the one before (as a
 // movie's continued clips do). The clips are joined without their own sound and the original speech is muxed in.
 
-const longcatCommit = "e2e1e8701424cef0e601281b62e228e5289ed032"
+// longcatCommit is the pinned commit of the port (runtimes/longcat-avatar.json): the worker gets it as its argument.
+var longcatCommit = packageCommit("longcat-avatar", "longcat-video-avatar-mlx")
 
 // LongCatEnv is the pinned LongCat-Video-Avatar MLX runtime (github.com/xocialize/longcat-avatar-mlx, MIT). The
 // worker adds the package's models/avatar folder from the same commit (its setuptools list leaves it out).
-var LongCatEnv = pyenv.Env{Name: "longcat-avatar", Python: "3.12", Packages: []string{
-	"longcat-video-avatar-mlx @ git+https://github.com/xocialize/longcat-avatar-mlx@" + longcatCommit,
-	"mlx==0.32.3", "mlx-arsenal==0.16.0", "transformers==5.18.0", "tokenizers==0.23.2", "librosa==1.0.0",
-	"soundfile==0.14.0", "pillow==12.3.0", "pyloudnorm==0.2.0", "numpy==2.5.3", "safetensors==0.8.0",
-}}
+var LongCatEnv = runtimeEnv("longcat-avatar") // runtimes/longcat-avatar.json
 
 // avatarRuntime is how one family of avatar models animates a clip.
 type avatarRuntime struct {
