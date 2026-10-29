@@ -1,0 +1,26 @@
+{
+  "id": "qwen3-0.6b-gguf",
+  "name": "Qwen3 0.6B (GGUF Q4_K_M, llama.cpp)",
+  "kind": "chat",
+  "backend": "llama-cpp",
+  "about": "Qwen3 0.6B as GGUF through llama.cpp's server: the same model on a Mac, Linux or Windows (NVIDIA, AMD, CPU)",
+  "licence": "Apache-2.0",
+  "size": 396705472,
+  "memory": 2,
+  "source": {
+    "repo": "unsloth/Qwen3-0.6B-GGUF",
+    "rev": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+    "files": [
+      "Qwen3-0.6B-Q4_K_M.gguf"
+    ]
+  },
+  "here": [
+    "Qwen3-0.6B-Q4_K_M.gguf"
+  ],
+  "hereCache": [],
+  "declaredSize": true,
+  "defaults": {},
+  "runtimeArgs": {
+    "workerModel": "Qwen3-0.6B-Q4_K_M.gguf"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "mlx-vlm",
+  "notes": "Blaizzy's mlx-vlm (MIT) as its OpenAI-compatible server (mlx_vlm.server): vision language models on MLX (Qwen-VL, Gemma 3, SmolVLM, PaddleOCR-VL, …) — chat with images",
+  "kinds": [
+    "chat"
+  ],
+  "server": {
+    "start": [
+      "mlx_vlm.server",
+      "--model",
+      "{model}",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}"
+    ],
+    "health": "/health"
+  },
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "mlx-vlm==0.7.8"
+      ]
+    }
+  }
+}
