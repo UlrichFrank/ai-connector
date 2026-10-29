@@ -183,9 +183,9 @@ stopped when another heavy model comes, when the worker unloads or ends.
 }
 ```
 
-Only the worker should ask the server: `{key}` in `start` (llama-server's `--api-key`) or `server.keyEnv` (an
-environment variable, `MLX_VLM_SERVER_API_KEY` for mlx-vlm) gets a random key of this start, which the worker sends
-with every request; and after the health check the worker makes sure the port belongs to the process it started
+Only the worker should ask the server: `server.keyEnv` names the environment variable the program takes an API key
+from (`LLAMA_API_KEY`, `MLX_VLM_SERVER_API_KEY`); it gets a random key of this start, which the worker sends with
+every request — never as an argument, which every user of the machine can read (a `{key}` in `start` is refused); and after the health check the worker makes sure the port belongs to the process it started
 (`lsof`; not on Windows), not to another program that took it in between. mlx-lm's server takes no key: while it
 runs, another program of this machine can ask it too (it listens on 127.0.0.1 only).
 

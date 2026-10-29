@@ -15,11 +15,10 @@
       "{port}",
       "--jinja",
       "--n-gpu-layers",
-      "999",
-      "--api-key",
-      "{key}"
+      "999"
     ],
-    "health": "/health"
+    "health": "/health",
+    "keyEnv": "LLAMA_API_KEY"
   },
   "tools": {
     "darwin-arm64": [

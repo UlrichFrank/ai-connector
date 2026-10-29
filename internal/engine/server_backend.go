@@ -151,12 +151,12 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	if err != nil {
 		return err
 	}
-	// a key of this start: only the worker may ask the server (another program of this machine may not)
-	key, usesKey := randomKey(), rt.Server.KeyEnv != ""
+	// a key of this start: only the worker may ask the server (another program of this machine may not); in the
+	// environment, not the arguments (which every user of the machine can read)
+	key := randomKey()
 	var args []string
 	for _, a := range rt.Server.Start[1:] {
-		usesKey = usesKey || strings.Contains(a, "{key}")
-		args = append(args, strings.ReplaceAll(expand(a, model, dir, strconv.Itoa(port)), "{key}", key))
+		args = append(args, expand(a, model, dir, strconv.Itoa(port)))
 	}
 	emit(Event{Type: "status", Text: "starting " + rt.Name + " …"})
 	cmd := exec.Command(prog, args...)
@@ -166,7 +166,7 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 		cmd.Env = append(cmd.Env, rt.Server.KeyEnv+"="+key)
 	}
 	b.key = ""
-	if usesKey {
+	if rt.Server.KeyEnv != "" {
 		b.key = key
 	}
 	out, err := cmd.StdoutPipe()
