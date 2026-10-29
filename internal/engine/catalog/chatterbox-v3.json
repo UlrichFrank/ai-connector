@@ -1,0 +1,40 @@
+{
+  "id": "chatterbox-v3",
+  "name": "Chatterbox Multilingual v3",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 40,
+  "about": "Resemble AI's Chatterbox Multilingual v3 (23 languages): clones a voice from a few seconds; instruct sets the emotion exaggeration (0–2 or calm … dramatic)",
+  "licence": "MIT",
+  "size": "3000 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/chatterbox-multilingual-v3",
+      "rev": "03565773edd72e949572557597af8063bb49a18a"
+    },
+    {
+      "key": "conds",
+      "repo": "mlx-community/chatterbox-fp16",
+      "rev": "4923fcca09086356aeab5191a2348c5a17a23694",
+      "include": [
+        "conds.safetensors"
+      ]
+    },
+    {
+      "key": "s3tok",
+      "repo": "mlx-community/S3TokenizerV2",
+      "rev": "e0c9886f0e1c35ae85b1f27277416fb19fc72bec",
+      "include": [
+        "model.safetensors",
+        "config.json"
+      ]
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "chatterbox"
+  }
+}

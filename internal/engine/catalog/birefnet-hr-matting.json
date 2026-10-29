@@ -1,0 +1,38 @@
+{
+  "id": "birefnet-hr-matting",
+  "name": "BiRefNet HR matting",
+  "kind": "image",
+  "backend": "cutout",
+  "order": 110,
+  "about": "BiRefNet HR matting (ZhengPeng7), MIT: trained for soft alpha (hair, fur, smoke) at 2048² inside; finer edges for large pictures; slower (about 4–5 s on a Mac) and far more GPU memory (MPS took up to 26 GB)",
+  "licence": "MIT",
+  "size": 444566444,
+  "tasks": [
+    "cutout"
+  ],
+  "source": {
+    "repo": "ZhengPeng7/BiRefNet_HR-matting",
+    "rev": "5d6b6f8adcb5b417c871b1d84ceaae9871355b7f",
+    "files": [
+      "birefnet.py",
+      "BiRefNet_config.py",
+      "config.json",
+      "model.safetensors"
+    ]
+  },
+  "here": [
+    "model.safetensors",
+    "birefnet.py"
+  ],
+  "hereCache": [
+    "birefnet.py",
+    "BiRefNet_config.py",
+    "config.json",
+    "model.safetensors"
+  ],
+  "declaredSize": true,
+  "defaults": {},
+  "runtimeArgs": {
+    "side": 2048
+  }
+}

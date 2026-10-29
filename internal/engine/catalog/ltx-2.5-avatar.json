@@ -1,0 +1,36 @@
+{
+  "id": "ltx-2.5-avatar",
+  "name": "LTX-2.5 avatar",
+  "kind": "avatar",
+  "backend": "avatar",
+  "order": 10,
+  "about": "LTX-2.5 22B (int4 pack) with the portrait as first frame and the speech as a frozen audio latent: lip-synced clips of up to ~6.5 s, longer speech is chained at pauses (sizes snap to 64, at most ~640×640)",
+  "licence": "LTX-2 Community License",
+  "gated": true,
+  "size": "30 GB",
+  "memory": 16,
+  "source": {
+    "repo": "dgrauet/ltx-2.5-mlx-q4",
+    "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+    "ignore": [
+      "transformer-dev.safetensors",
+      "*distilled-lora*",
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "transformer-distilled.safetensors",
+    "audio_vae.safetensors"
+  ],
+  "hereCache": [],
+  "defaults": {
+    "prompt": "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera",
+    "width": 512,
+    "height": 640,
+    "frames": 161,
+    "fps": 24
+  },
+  "runtimeArgs": {
+    "runtime": "ltx-a2v"
+  }
+}

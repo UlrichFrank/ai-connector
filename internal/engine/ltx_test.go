@@ -57,7 +57,8 @@ func TestLTXCatalog(t *testing.T) {
 	}
 
 	// the distilled q8 here: the HQ q8 is not until the dev transformer and the LoRA are too
-	dir := filepath.Join(store.Dir, filepath.FromSlash(ltxQ8.repo), ltxQ8.rev)
+	q8 := manifestModel(t, store, "", "ltx-2.5-q8")
+	dir := filepath.Join(store.Dir, filepath.FromSlash(q8.repo), q8.rev)
 	touch := func(names ...string) {
 		for _, n := range names {
 			if err := os.MkdirAll(dir, 0o755); err != nil {

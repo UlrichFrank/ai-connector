@@ -141,22 +141,12 @@ func SpeechPresets() map[string][]string {
 	return out
 }
 
-func qwenRepos(size string, revs ...string) []hubRepo {
-	keys := []string{"custom", "base", "design"}
-	var out []hubRepo
-	for i, rev := range revs {
-		variant := map[string]string{"custom": "CustomVoice", "base": "Base", "design": "VoiceDesign"}[keys[i]]
-		out = append(out, hubRepo{key: keys[i], repo: "mlx-community/Qwen3-TTS-12Hz-" + size + "-" + variant + "-bf16", rev: rev})
-	}
-	return out
-}
-
 // asrRepo is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
-var asrRepo = hubRepo{key: "asr", repo: "mlx-community/Qwen3-ASR-1.7B-8bit", rev: "a8379a2e2f9e313c9292cdf1af4055ab56d50d55"}
+var asrRepo = builtinRepo("qwen3-asr", "asr")
 
 // alignRepo is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
 // in its languages (alignLangs) once it is on disk — a model of its own, fetched by its download, never by a clip.
-var alignRepo = hubRepo{key: "align", repo: "mlx-community/Qwen3-ForcedAligner-0.6B-8bit", rev: "0e1a68e91d815300c7c9754b2a7639378b23db15"}
+var alignRepo = builtinRepo("qwen3-forced-aligner", "align")
 
 // alignLangs are the languages Qwen3-ForcedAligner times (its config's support_languages; not Japanese and Korean:
 // mlx-audio splits their words with nagisa / soynlp, which the speech runtime does not have). workers/speech.py
@@ -167,56 +157,7 @@ var alignLangs = []string{"de", "en", "es", "fr", "it", "pt", "ru", "zh"}
 const TaskAlign = "align"
 
 // speechModels are the catalogue's speech models.
-func speechModels() []*Model {
-	d := Request{Speed: 1}
-	ms := []*Model{
-		{ID: "kokoro-82m", Name: "Kokoro 82M", Kind: Speech, Backend: "speech", workerModel: "kokoro",
-			repos: []hubRepo{{key: "model", repo: "mlx-community/Kokoro-82M-bf16", rev: "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
-				include: []string{"config.json", "kokoro-v1_0.safetensors", "voices/*.safetensors"}}},
-			Licence: "Apache-2.0", Size: 339 << 20, Defaults: d,
-			About: "hexgrad's Kokoro 82M (bf16): small and fast, 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi and Chinese — no German; word timings for English"},
-		{ID: "qwen3-tts-1.7b", Name: "Qwen3-TTS 1.7B", Kind: Speech, Backend: "speech", workerModel: "qwen3-tts",
-			repos:   qwenRepos("1.7B", "52f4770fd9726457eae3d3b6aa92047a25a10776", "a6eb4f68e4b056f1215157bb696209bc82a6db48", "7d3824abff87e49756bb0f83fb5411de75d160c4"),
-			Licence: "Apache-2.0", Size: 12 * gb, Defaults: d,
-			About: "Qwen3-TTS 12Hz 1.7B (bf16): 9 preset voices that follow an instruction (emotion, style), cloning from a sample, voices designed from a description; 10 languages incl. German. Each part (CustomVoice, Base, VoiceDesign, 4 GB each) is fetched when first used"},
-		{ID: "qwen3-tts-0.6b", Name: "Qwen3-TTS 0.6B", Kind: Speech, Backend: "speech", workerModel: "qwen3-tts",
-			repos:   qwenRepos("0.6B", "6415d95f88be018ff9e46813119dc3bc12261328", "1eccf1cb2519b5a4e8a95b5f0544f3303568164f"),
-			Licence: "Apache-2.0", Size: 4670 << 20, Defaults: d,
-			About: "Qwen3-TTS 12Hz 0.6B (bf16): the small one, faster; presets with instruct and cloning, no voice design"},
-		{ID: "chatterbox-v3", Name: "Chatterbox Multilingual v3", Kind: Speech, Backend: "speech", workerModel: "chatterbox",
-			repos: []hubRepo{
-				{key: "model", repo: "mlx-community/chatterbox-multilingual-v3", rev: "03565773edd72e949572557597af8063bb49a18a"},
-				{key: "conds", repo: "mlx-community/chatterbox-fp16", rev: "4923fcca09086356aeab5191a2348c5a17a23694", include: []string{"conds.safetensors"}},
-				{key: "s3tok", repo: "mlx-community/S3TokenizerV2", rev: "e0c9886f0e1c35ae85b1f27277416fb19fc72bec", include: []string{"model.safetensors", "config.json"}},
-			},
-			Licence: "MIT", Size: 3000 << 20, Defaults: d,
-			About: "Resemble AI's Chatterbox Multilingual v3 (23 languages): clones a voice from a few seconds; instruct sets the emotion exaggeration (0–2 or calm … dramatic)"},
-		{ID: "voxcpm2", Name: "VoxCPM2", Kind: Speech, Backend: "speech", workerModel: "voxcpm2",
-			repos:   []hubRepo{{key: "model", repo: "mlx-community/VoxCPM2-bf16", rev: "a7fb80d9056983135a54ca3f71fcc5a637ccddf5"}},
-			Licence: "Apache-2.0", Size: 4730 << 20, Defaults: d,
-			About: "OpenBMB's VoxCPM2 2B (bf16), 48 kHz studio quality, 30 languages: cloning, voices designed from a description, instruct as a style"},
-		{ID: "higgs-audio-v3", Name: "Higgs Audio v3 TTS 4B", Kind: Speech, Backend: "speech", workerModel: "higgs",
-			repos: []hubRepo{{key: "model", repo: "bosonai/higgs-tts-3-4b", rev: "239f63fb7b02b1aa085f98d9efae5e35cc5523e8",
-				include: []string{"*.json", "*.safetensors", "*.jinja", "LICENSE"}}},
-			Licence: "Boson Higgs Audio v3 Research and Non-Commercial License", NonCommercial: true, Size: 8730 << 20, Defaults: d,
-			About: "Boson AI's Higgs Audio v3 4B: expressive, clones from a sample; instruct becomes control tags (emotions, whisper, shout, speed) or put tags like <|emotion:amusement|> into the text. Non-commercial"},
-		{ID: "voxtral-tts", Name: "Voxtral 4B TTS", Kind: Speech, Backend: "speech", workerModel: "voxtral",
-			repos:   []hubRepo{{key: "model", repo: "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16", rev: "dd85c02adbae551f5bb29ded35ee60ccdfb90927"}},
-			Licence: "CC BY-NC 4.0", NonCommercial: true, Size: 7670 << 20, Defaults: d,
-			About: "Mistral's Voxtral 4B TTS (bf16): 20 natural preset voices in 9 languages (de_male, de_female …); no cloning. Non-commercial"},
-		{ID: "qwen3-asr", Name: "Qwen3-ASR 1.7B (transcribe)", Kind: Speech, Backend: "speech", workerModel: "asr",
-			repos: []hubRepo{asrRepo}, Licence: "Apache-2.0", Size: 2360 << 20,
-			About: "Qwen3-ASR 1.7B (8-bit): speech to text in 30 languages; a job with an audio file gives its transcript (the voice library uses it for samples)"},
-		{ID: "qwen3-forced-aligner", Name: "Qwen3-ForcedAligner 0.6B (word timings)", Kind: Speech, Backend: "speech", workerModel: "align",
-			repos: []hubRepo{alignRepo}, Licence: "Apache-2.0", Size: 1217 << 20,
-			About: "Qwen3-ForcedAligner 0.6B (8-bit): when each word of a clip is said, for every speech model, in English, German, French, Spanish, Italian, Portuguese, Russian and Chinese (subtitles, the word being spoken); every clip uses it once it is on disk (it makes nothing itself)"},
-	}
-	for _, m := range ms {
-		m.Tasks = speechTasks(m)
-		m.Audio = speechCaps(m)
-	}
-	return ms
-}
+func speechModels() []*Model { return builtinModels("speech", nil, "") }
 
 // speechTasks are what a speech model honours, for the UI: clone, design, presets, instruct, speed, language (the
 // transcriber: transcribe).
@@ -258,18 +199,6 @@ func coreRepos(m *Model) []hubRepo {
 }
 
 // reposHere: the store has every file of these repositories.
-func reposHere(store *models.Store, repos []hubRepo) bool {
-	for _, hr := range repos {
-		if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
-			return false
-		}
-		hm, err := store.FromHub(context.Background(), hr.repo, hr.repo, hr.rev, hr.keep()) // from the cached list
-		if err != nil || store.Missing(hm) > 0 {
-			return false
-		}
-	}
-	return true
-}
 
 func (hr hubRepo) keep() func(string) bool {
 	if len(hr.include) == 0 {

@@ -1,0 +1,23 @@
+{
+  "id": "voxcpm2",
+  "name": "VoxCPM2",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 50,
+  "about": "OpenBMB's VoxCPM2 2B (bf16), 48 kHz studio quality, 30 languages: cloning, voices designed from a description, instruct as a style",
+  "licence": "Apache-2.0",
+  "size": "4730 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/VoxCPM2-bf16",
+      "rev": "a7fb80d9056983135a54ca3f71fcc5a637ccddf5"
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "voxcpm2"
+  }
+}

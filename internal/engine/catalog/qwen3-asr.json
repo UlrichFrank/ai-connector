@@ -1,0 +1,21 @@
+{
+  "id": "qwen3-asr",
+  "name": "Qwen3-ASR 1.7B (transcribe)",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 80,
+  "about": "Qwen3-ASR 1.7B (8-bit): speech to text in 30 languages; a job with an audio file gives its transcript (the voice library uses it for samples)",
+  "licence": "Apache-2.0",
+  "size": "2360 MB",
+  "sources": [
+    {
+      "key": "asr",
+      "repo": "mlx-community/Qwen3-ASR-1.7B-8bit",
+      "rev": "a8379a2e2f9e313c9292cdf1af4055ab56d50d55"
+    }
+  ],
+  "defaults": {},
+  "runtimeArgs": {
+    "workerModel": "asr"
+  }
+}

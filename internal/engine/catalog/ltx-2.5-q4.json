@@ -1,0 +1,33 @@
+{
+  "id": "ltx-2.5-q4",
+  "name": "LTX-2.5 (q4)",
+  "kind": "video",
+  "backend": "ltx",
+  "order": 10,
+  "about": "LTX-2.5 22B audio+video, int4 (Gemma 4 text encoder): distilled two-stage, fits 32 GB",
+  "licence": "LTX-2 Community License",
+  "gated": true,
+  "size": "30 GB",
+  "memory": 16,
+  "source": {
+    "repo": "dgrauet/ltx-2.5-mlx-q4",
+    "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+    "ignore": [
+      "transformer-dev.safetensors",
+      "*distilled-lora*",
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "transformer-distilled.safetensors",
+    "text_encoder.safetensors"
+  ],
+  "hereCache": [],
+  "defaults": {
+    "width": 704,
+    "height": 448,
+    "frames": 97,
+    "fps": 24
+  },
+  "runtimeArgs": {}
+}

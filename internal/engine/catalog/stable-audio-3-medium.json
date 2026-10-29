@@ -1,0 +1,37 @@
+{
+  "id": "stable-audio-3-medium",
+  "name": "Stable Audio 3 Medium",
+  "kind": "music",
+  "backend": "music",
+  "order": 70,
+  "about": "Stable Audio 3 Medium (1.4B), pure MLX: instrumental only (no vocals; lyrics are ignored), up to 6 min 20 s, better sound than Small; the tempo goes in the style (\"128 BPM\"). Remix, replace a part, extend. Restricted licence: Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+  "licence": "Stability AI Community License (free below $1M annual revenue; Gemma terms for the T5Gemma text encoder)",
+  "size": "6565 MB",
+  "tasks": [
+    "cover",
+    "repaint",
+    "extend"
+  ],
+  "sources": [
+    {
+      "key": "weights",
+      "repo": "stabilityai/stable-audio-3-optimized",
+      "rev": "da6edc54ddba10bfd79a077102ded687f80e882b",
+      "include": [
+        "MLX/t5gemma_f16.npz",
+        "MLX/dit_medium_f16.npz",
+        "MLX/same_l_decoder_f32.npz",
+        "MLX/same_l_encoder_f32.npz"
+      ]
+    }
+  ],
+  "defaults": {
+    "steps": 8,
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "stableaudio3",
+    "workerModel": "medium",
+    "maxSeconds": 380
+  }
+}

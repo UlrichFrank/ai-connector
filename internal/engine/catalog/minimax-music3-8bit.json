@@ -1,0 +1,27 @@
+{
+  "id": "minimax-music3-8bit",
+  "name": "MiniMax Music 3 (8-bit)",
+  "kind": "music",
+  "backend": "music",
+  "order": 80,
+  "about": "MiniMax Music 3 (8B song LM + 2.4B flow matching): lyrics and a music description to a full song with vocals, up to 5 min, pure MLX (8-bit). Slow: about 6 min for 30 s on an M1 Max, 20 GB peak. The length is a ceiling (the model may end the song earlier); describe genre, BPM, key, vocals and arrangement. MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+  "licence": "MiniMax-Music3 Community License: commercial use allowed if \"MiniMax-Music3\" is shown in the product's UI (above USD 20M yearly revenue only with MiniMax's written authorization); acceptable use policy applies",
+  "size": 13363585426,
+  "memory": 21,
+  "sources": [
+    {
+      "key": "weights",
+      "repo": "mikoy92/MiniMax-Music3-MLX-8bit",
+      "rev": "a21ab36ebe882b9fcb927bb23c5a914a41efcb96"
+    }
+  ],
+  "defaults": {
+    "steps": 30,
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "minimax3",
+    "workerModel": "8bit",
+    "maxSeconds": 300
+  }
+}

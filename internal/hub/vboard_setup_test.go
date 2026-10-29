@@ -142,7 +142,8 @@ func startSetupMac(t *testing.T, base, token string, extra ...*engine.Model) *se
 		{ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "vbchat", Size: 20 * gib},
 		{ID: "qwen3-embedding-0.6b", Name: "Embedder", Kind: engine.Embed, Backend: "vbtext", Size: gib},
 		{ID: "laya-typed-decisions", Name: "Laya", Kind: engine.Classify, Backend: "vbtext", Size: gib},
-		{ID: "flux2-klein-9b", Name: "FLUX.2 [klein] 9B", Kind: engine.Image, Backend: "vbchat", Size: 35 * gib, Gated: true},
+		{ID: "flux2-klein-9b", Name: "FLUX.2 [klein] 9B", Kind: engine.Image, Backend: "vbchat", Size: 35 * gib, Gated: true,
+			Licence: "FLUX Non-Commercial License", NonCommercial: true},
 	}
 	for _, m := range ms {
 		m.SetRepo("org/"+m.ID, "rev")

@@ -1,0 +1,49 @@
+{
+  "id": "ace-step-1.5-xl-turbo-techno",
+  "name": "ACE-Step 1.5 XL turbo + techno LoRA",
+  "kind": "music",
+  "backend": "music",
+  "order": 50,
+  "about": "ACE-Step 1.5 XL turbo with a community techno LoRA (RyanOnTheInside, rank 64, trained on 15 tracks): driving, dark and minimal techno; the LoRA states no licence",
+  "licence": "MIT (the LoRA states no licence)",
+  "size": "30200 MB",
+  "memory": 10,
+  "tasks": [
+    "cover",
+    "repaint",
+    "extend"
+  ],
+  "sources": [
+    {
+      "key": "main",
+      "repo": "ACE-Step/Ace-Step1.5",
+      "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "key": "xl-turbo",
+      "repo": "ACE-Step/acestep-v15-xl-turbo",
+      "rev": "d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee"
+    },
+    {
+      "key": "lora",
+      "repo": "ryanontheinside/techno-acestep1.5-xl-v1",
+      "rev": "5154315313eb08bf9ff4d685b611706bfb4a2832",
+      "include": [
+        "adapter_config.json",
+        "techno-xl-v1.safetensors"
+      ]
+    }
+  ],
+  "defaults": {
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "acestep",
+    "workerModel": "ace-step-1.5-xl-turbo",
+    "lora": {
+      "file": "techno-xl-v1.safetensors",
+      "trigger": "roti-t3kn0",
+      "scale": 1
+    }
+  }
+}

@@ -7,6 +7,7 @@
   "about": "FLUX.2 [klein] 4B base, undistilled (50 steps, guidance 4): slower, more varied",
   "licence": "Apache-2.0",
   "size": "16 GB",
+  "memory": 15,
   "source": {
     "repo": "black-forest-labs/FLUX.2-klein-base-4B",
     "rev": "a3b4f4849157f664bdbc776fd7453c2783562f4d"

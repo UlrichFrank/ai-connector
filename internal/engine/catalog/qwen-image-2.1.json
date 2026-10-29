@@ -8,6 +8,7 @@
   "licence": "Qwen Research License",
   "nonCommercial": true,
   "size": "31 GB",
+  "memory": 30,
   "tasks": [
     "generate"
   ],

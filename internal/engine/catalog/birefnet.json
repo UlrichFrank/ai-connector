@@ -1,0 +1,38 @@
+{
+  "id": "birefnet",
+  "name": "BiRefNet",
+  "kind": "image",
+  "backend": "cutout",
+  "order": 100,
+  "about": "BiRefNet (ZhengPeng7), MIT: removes the background of an image — a soft alpha matte, edges cleaned for a dark backdrop, glows and shadows kept on a plain background; 1024² inside, 1–3 s an image on a Mac, 450 MB",
+  "licence": "MIT",
+  "size": 444566195,
+  "tasks": [
+    "cutout"
+  ],
+  "source": {
+    "repo": "ZhengPeng7/BiRefNet",
+    "rev": "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+    "files": [
+      "birefnet.py",
+      "BiRefNet_config.py",
+      "config.json",
+      "model.safetensors"
+    ]
+  },
+  "here": [
+    "model.safetensors",
+    "birefnet.py"
+  ],
+  "hereCache": [
+    "birefnet.py",
+    "BiRefNet_config.py",
+    "config.json",
+    "model.safetensors"
+  ],
+  "declaredSize": true,
+  "defaults": {},
+  "runtimeArgs": {
+    "side": 1024
+  }
+}

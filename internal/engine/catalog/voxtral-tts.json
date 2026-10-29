@@ -1,0 +1,24 @@
+{
+  "id": "voxtral-tts",
+  "name": "Voxtral 4B TTS",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 70,
+  "about": "Mistral's Voxtral 4B TTS (bf16): 20 natural preset voices in 9 languages (de_male, de_female …); no cloning. Non-commercial",
+  "licence": "CC BY-NC 4.0",
+  "nonCommercial": true,
+  "size": "7670 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
+      "rev": "dd85c02adbae551f5bb29ded35ee60ccdfb90927"
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "voxtral"
+  }
+}

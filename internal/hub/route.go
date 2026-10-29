@@ -31,7 +31,8 @@ const headroomGB = 6
 // peaks are the memory a runtime takes at its peak where that is known better than from the model's size (the
 // weights × 1.3 rule is far off for these: they stream, offload or quantise on load). Measured on the Mac Studio
 // while the runtimes were set up (the numbers in the multi-Mac task, docs/architecture.md; LTX q8 from its
-// catalogue note "wants 64 GB"). Matched by model id prefix, the longest first.
+// catalogue note "wants 64 GB"). Matched by model id prefix, the longest first. The models' manifests carry these
+// now (catalogModel.Memory, which wins); the list stays for workers from before that and the chat models in Go.
 var peaks = []struct {
 	prefix string
 	gb     float64
@@ -62,8 +63,12 @@ var peaks = []struct {
 	{"minimax-music3-4bit", 16},
 }
 
-// needGB is the memory a model wants: its known peak, else its size × 1.3, plus the headroom.
+// needGB is the memory a model wants: its peak as the worker says or as known here, else its size × 1.3, plus the
+// headroom.
 func needGB(m catalogModel) float64 {
+	if m.Memory > 0 {
+		return m.Memory + headroomGB
+	}
 	best, peak := 0, 0.0
 	for _, p := range peaks {
 		if strings.HasPrefix(m.ID, p.prefix) && len(p.prefix) > best {

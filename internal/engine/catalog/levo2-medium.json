@@ -1,0 +1,30 @@
+{
+  "id": "levo2-medium",
+  "name": "LeVo 2 medium (Q6_K)",
+  "kind": "music",
+  "backend": "music",
+  "order": 110,
+  "about": "LeVo 2 with the smaller language model: faster (about 4 min for 30 s), vocals less reliable. Research use only",
+  "licence": "research use only",
+  "nonCommercial": true,
+  "size": "3080 MB",
+  "sources": [
+    {
+      "key": "levo2",
+      "repo": "ckadirt/LeVo2-GGUF",
+      "rev": "9d7b5746fdc74fdc80f85295e7b6c783be3703da",
+      "include": [
+        "LeVo2-v2-medium-Q6_K.gguf*",
+        "LeVo2-v2-flow-Q6_K.gguf*",
+        "LeVo2-v2-vae-F16.gguf*"
+      ]
+    }
+  ],
+  "defaults": {
+    "duration": 30
+  },
+  "runtimeArgs": {
+    "runtime": "levo2",
+    "workerModel": "levo2-medium"
+  }
+}
