@@ -54,6 +54,18 @@ environment (`MLXLAB_HUB`, `MLXLAB_WORKER_TOKEN`) or `~/.config/mlxlab/worker.js
 It reconnects with backoff and prints its state; a refused token (revoked) stops it. `mlxlab version` prints the
 build. The TUI is no longer part of the worker.
 
+**Settings in `worker.json`** besides hub and token (kept when the file is written again):
+
+| Key | | Environment (wins; also for `serve`) |
+|---|---|---|
+| `idleUnload` | a model with no job for this long leaves memory: `"10m"` (the default), `"1h"`, `"0"` never | `MLXLAB_IDLE_UNLOAD` |
+| `pin` | models that stay loaded however long they wait, e.g. `["qwen3.6-35b-a3b"]` (the chat model without a cold start) | `MLXLAB_PIN` (comma list) |
+| `allowLocalRuntimes` | read `<config dir>/runtimes.d`: Python runtimes of this machine's own (docs/models.md) | `MLXLAB_ALLOW_LOCAL_RUNTIMES=1` |
+
+Unloading after idle time (`jobs/idle.go`): the worker looks every quarter of the idle time (at most every 30 s);
+a backend whose model has had no job for that long is unloaded — its Python worker or server ends, the memory goes
+back to the machine — unless the model is pinned or the queue's running job is on it.
+
 **Starts at login** (`mlxlab worker --install`; `--uninstall` stops and removes it): hub and token as above (flags,
 environment or the file; none → "--install needs a hub and a token …") are written to the config file (0600), and
 the service runs `ai-connector worker` with no token on its command line or in its file — only `--config FILE` and
