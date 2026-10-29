@@ -75,7 +75,11 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `runtimeArgs` | | what the runtime needs to know of the model (table above); mflux also `loader` and `editLoader`: the mflux classes (`"module:Class"`) for text to image and for editing — a model with only one does only that · a generic runtime: `workerModel` |
 | `params` | | a generic runtime's model: what it takes besides the request's fields ("Params" below) |
 
-Unknown fields are an error, so a typo does not go unnoticed.
+Unknown fields are an error, so a typo does not go unnoticed. A manifest is data — in `models.d` nobody reviews it,
+so nothing in it may reach out of its folders or name code: `source.repo` is `owner/name`, file patterns, `here`,
+`workerModel` and ComfyUI's `folders` stay inside their folder (no `..`, nothing absolute), a ComfyUI folder is a
+plain name (`checkpoints`, `vae`, …), and mflux's `loader`/`editLoader` name a class of `mflux.models` only. Code
+comes only through `runtimes.d`, which the worker reads only when allowed.
 
 ## Checks
 
@@ -110,8 +114,9 @@ workers that have them).
 | `linux-cuda`, `linux-rocm`, `linux-cpu` | Linux with an NVIDIA GPU (`nvidia-smi`), with AMD's ROCm (`rocminfo`, `/opt/rocm`), with neither |
 | `windows-cuda`, `windows-rocm`, `windows-cpu` | the same on Windows (ROCm: the HIP SDK's `HIP_PATH`) |
 
-`MLXLAB_GPU=cuda|rocm|cpu` overrides what the worker finds. `index`: a package index besides PyPI, preferred where it
-has a package (PyTorch's wheels for a GPU). An environment is installed once, by uv, into
+`MLXLAB_GPU=cuda|rocm|cpu` overrides what the worker finds. `index` with `indexPackages`: a package index for the
+packages named (PyTorch's wheels for a GPU); they are installed from it alone, the others from PyPI alone, so the two
+never compete for a name. An environment is installed once, by uv, into
 `<config dir>/envs/<name>-<hash>`; the hash is of the Python version, the packages and the index, so a changed
 environment is a new directory.
 
@@ -127,7 +132,7 @@ backend, which speaks the job protocol with the worker script.
 | Field | |
 |---|---|
 | `generic`, `kinds`, `output` | the kinds its models may be, and the extension of what it makes (`png`, `wav`, `mp4`, …) |
-| `heavy` | its model takes so much memory that the queue unloads the other heavy ones first |
+| `heavy` | its model takes so much memory that the queue unloads the other heavy ones first — the default; `false` for a small one that may stay beside them |
 
 The script reads one JSON request per line on stdin and writes events as JSON lines on file descriptor 3 (`status`,
 `progress` with `step`/`total`, `log`, `result` with `file`, `seconds`, `peakGB`, `width`, `height`, or `error` with

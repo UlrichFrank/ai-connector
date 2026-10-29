@@ -50,8 +50,11 @@ class Progress:
 
 
 def load(spec):
-    # "module:Class", as the model's manifest names it (runtimeArgs.loader / editLoader)
+    # "module:Class", as the model's manifest names it (runtimeArgs.loader / editLoader): only mflux's models (the
+    # worker checks the manifest too; a manifest is data and must not import anything else)
     module, _, name = spec.partition(":")
+    if not module.startswith("mflux.models.") or not name.isidentifier():
+        raise ValueError(f"{spec!r} is no mflux model class")
     return getattr(importlib.import_module(module), name)
 
 

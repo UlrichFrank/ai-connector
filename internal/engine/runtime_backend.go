@@ -31,7 +31,7 @@ type RuntimeBackend struct {
 }
 
 func (b *RuntimeBackend) Name() string   { return b.Runtime }
-func (b *RuntimeBackend) Heavy() bool    { return runtimeManifest(b.Runtime).Heavy }
+func (b *RuntimeBackend) Heavy() bool    { return runtimeManifest(b.Runtime).heavy() }
 func (b *RuntimeBackend) Loaded() string { return b.state.get() }
 
 func (b *RuntimeBackend) Unload() {

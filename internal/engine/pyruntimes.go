@@ -36,7 +36,9 @@ type RuntimeManifest struct {
 	Generic bool   `json:"generic,omitempty"`
 	Kinds   []Kind `json:"kinds,omitempty"`
 	Output  string `json:"output,omitempty"`
-	Heavy   bool   `json:"heavy,omitempty"` // one heavy model in memory at a time (the queue unloads the others first)
+	// Heavy: its model takes so much memory that the queue unloads the other heavy ones first (default: yes; false for
+	// a small one that may stay beside them)
+	Heavy *bool `json:"heavy,omitempty"`
 	// Server: a program that serves an OpenAI-compatible API, started by the worker with the model (ServerBackend);
 	// its program comes from Envs (a Python package's script) or Tools (archives of a release, by platform)
 	Server *ServerSpec              `json:"server,omitempty"`
@@ -107,6 +109,10 @@ func ParseRuntime(data []byte) (*RuntimeManifest, error) {
 		return nil, fmt.Errorf("%s: no build step %q", rt.Name, rt.Build)
 	case rt.Generic && (rt.Script == "" || len(rt.Kinds) == 0 || rt.Output == ""):
 		return nil, fmt.Errorf("%s: a generic runtime needs script, kinds and output", rt.Name)
+	case rt.Generic && (rt.Envs["windows-cuda"].Python != "" || rt.Envs["windows-rocm"].Python != "" || rt.Envs["windows-cpu"].Python != ""):
+		return nil, fmt.Errorf("%s: a generic runtime cannot run on Windows yet (the job protocol's events come on file descriptor 3)", rt.Name)
+	case rt.Generic && !manifestID.MatchString(strings.TrimSuffix(rt.Script, ".py")):
+		return nil, fmt.Errorf("%s: script %q: a file name beside the manifest", rt.Name, rt.Script)
 	}
 	for p, as := range rt.Tools {
 		if !contains(Platforms, p) {
@@ -295,6 +301,9 @@ func AddLocalRuntimes(dir string) []error {
 	}
 	return errs
 }
+
+// heavy says whether its models count as heavy (Heavy, default yes).
+func (rt *RuntimeManifest) heavy() bool { return rt.Heavy == nil || *rt.Heavy }
 
 // script is the runtime's worker script: its source.
 func (rt *RuntimeManifest) source() ([]byte, error) {

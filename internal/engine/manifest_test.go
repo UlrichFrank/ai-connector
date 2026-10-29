@@ -72,6 +72,11 @@ func TestParseManifest(t *testing.T) {
 		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {}`, "runtimeArgs.mflux"},
 		{`"defaults": {"steps": 9}`, `"defaults": {"stepz": 9}`, "unknown field"},
 		{`"about": "a test",`, `"about": "a test", "tasks": ["paint"],`, "task"},
+		// models.d is data: nothing in it may reach out of its folders or import code
+		{`"repo": "a/b"`, `"repo": "../../x/b"`, "no Hugging Face repository"},
+		{`"files": ["vae/"]`, `"files": ["../../etc/"]`, "leaves its folder"},
+		{`"here": ["vae/*.safetensors"]`, `"here": ["/etc/passwd"]`, "leaves its folder"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z", "loader": "os:system"}`, "no mflux class"},
 	} {
 		_, err := ParseManifest([]byte(strings.Replace(zImageManifest, c.from, c.to, 1)))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -146,5 +151,27 @@ func TestManifestSpeechFamily(t *testing.T) {
 	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`, `"workerModel": "nobody"`, 1)
 	if _, err := ParseManifest([]byte(strings.Replace(bad, `"kitten-test"`, `"nobody-test"`, 1))); err == nil || !strings.Contains(err.Error(), "runtimeArgs.speech") {
 		t.Errorf("unknown family: %v", err)
+	}
+}
+
+// A ComfyUI model's folders are ComfyUI's models folders, its files inside its own folder.
+func TestComfyManifestPaths(t *testing.T) {
+	runtimesMu.Lock()
+	runtimes()["comfy-check"] = &RuntimeManifest{Name: "comfy-check", Kinds: []Kind{Image},
+		Server: &ServerSpec{Protocol: "comfyui", Start: []string{"python", "{app}"}, Health: "/"}}
+	runtimesMu.Unlock()
+	t.Cleanup(func() { runtimesMu.Lock(); delete(runtimes(), "comfy-check"); runtimesMu.Unlock() })
+	ok := `{"id": "c", "name": "C", "kind": "image", "backend": "comfy-check", "about": "a", "licence": "MIT", "size": 1,
+	  "source": {"repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}, "here": ["x.safetensors"],
+	  "runtimeArgs": {"workflow": {"4": {"inputs": {}}}, "inputs": {"prompt": "4.inputs.text"},
+	    "folders": {"checkpoints": ["x.safetensors"]}}}`
+	if _, err := ParseManifest([]byte(ok)); err != nil {
+		t.Fatal(err)
+	}
+	for from, to := range map[string]string{`"checkpoints"`: `"../custom_nodes"`, `["x.safetensors"]}}}`: `["../../evil.py"]}}}`,
+		`"source": {"repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}, `: `"sources": [{"key": "m", "repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}], `} {
+		if _, err := ParseManifest([]byte(strings.Replace(ok, from, to, 1))); err == nil {
+			t.Errorf("%s → %s accepted", from, to)
+		}
 	}
 }
