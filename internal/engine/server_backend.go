@@ -2,6 +2,8 @@ package engine
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
@@ -32,6 +34,7 @@ type ServerBackend struct {
 	exit  chan struct{}
 	model string     // the model the server has
 	url   string     // its API base, …/v1
+	key   string     // the API key of this start ("" the server takes none)
 	lmu   sync.Mutex // logs
 	logs  []string
 	oa    OpenAIBackend
@@ -53,7 +56,7 @@ func (b *ServerBackend) stop() {
 		b.cmd.Process.Kill()
 		<-b.exit
 	}
-	b.cmd, b.model, b.url = nil, "", ""
+	b.cmd, b.model, b.url, b.key = nil, "", "", ""
 	b.state.set("")
 }
 
@@ -90,7 +93,7 @@ func (b *ServerBackend) Run(ctx context.Context, m *Model, r Request, outDir str
 	}
 	b.state.set(m.ID)
 	served := *m
-	served.served = &servedModel{Runtime: &Runtime{Name: b.Runtime, URL: b.url}, Model: orStr(expand(rt.Server.Model, model, dir, ""), model)}
+	served.served = &servedModel{Runtime: &Runtime{Name: b.Runtime, URL: b.url, Key: b.key}, Model: orStr(expand(rt.Server.Model, model, dir, ""), model)}
 	if err := b.oa.Run(ctx, &served, r, outDir, emit); err != nil {
 		if !b.running() {
 			b.stop()
@@ -148,14 +151,24 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	if err != nil {
 		return err
 	}
+	// a key of this start: only the worker may ask the server (another program of this machine may not)
+	key, usesKey := randomKey(), rt.Server.KeyEnv != ""
 	var args []string
 	for _, a := range rt.Server.Start[1:] {
-		args = append(args, expand(a, model, dir, strconv.Itoa(port)))
+		usesKey = usesKey || strings.Contains(a, "{key}")
+		args = append(args, strings.ReplaceAll(expand(a, model, dir, strconv.Itoa(port)), "{key}", key))
 	}
 	emit(Event{Type: "status", Text: "starting " + rt.Name + " …"})
 	cmd := exec.Command(prog, args...)
 	cmd.Dir = dir
 	cmd.Env = append(cmd.Environ(), "HF_HUB_OFFLINE=1")
+	if rt.Server.KeyEnv != "" {
+		cmd.Env = append(cmd.Env, rt.Server.KeyEnv+"="+key)
+	}
+	b.key = ""
+	if usesKey {
+		b.key = key
+	}
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -197,11 +210,8 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 			return fmt.Errorf("%s ended while starting:\n%s", rt.Name, b.lastLogs())
 		case <-time.After(250 * time.Millisecond):
 		}
-		if resp, err := http.Get(b.url + rt.Server.Health); err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				break
-			}
+		if b.healthy(rt.Server.Health) {
+			break
 		}
 		if time.Now().After(deadline) {
 			b.stop()
@@ -211,9 +221,76 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	b.lmu.Lock()
 	starting = false
 	b.lmu.Unlock()
+	// the port is the started server's, not another program's that took it between freePort and the start
+	if pids, ok := listeners(port); ok && !ownedBy(pids, cmd.Process.Pid) {
+		b.stop()
+		return fmt.Errorf("port %d answers, but not from %s (process %v): not used", port, rt.Name, pids)
+	}
 	b.url += "/v1"
 	emit.Log(rt.Name + " is ready")
 	return nil
+}
+
+func (b *ServerBackend) healthy(path string) bool {
+	req, err := http.NewRequest(http.MethodGet, b.url+path, nil)
+	if err != nil {
+		return false
+	}
+	if b.key != "" {
+		req.Header.Set("Authorization", "Bearer "+b.key)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
+}
+
+func randomKey() string {
+	b := make([]byte, 24)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// listeners are the processes listening on a TCP port of this machine (lsof; ok false: lsof is not there, as on
+// Windows — then the port is not checked).
+func listeners(port int) ([]int, bool) {
+	if _, err := exec.LookPath("lsof"); err != nil {
+		return nil, false
+	}
+	out, err := exec.Command("lsof", "-nP", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN", "-Fp").Output()
+	if err != nil && len(out) == 0 {
+		return nil, true // nobody (lsof exits 1)
+	}
+	var pids []int
+	for _, l := range strings.Split(string(out), "\n") {
+		if p, ok := strings.CutPrefix(l, "p"); ok {
+			if n, err := strconv.Atoi(p); err == nil {
+				pids = append(pids, n)
+			}
+		}
+	}
+	return pids, true
+}
+
+// ownedBy: some listener is the process or a child of it (a server that forks its workers).
+func ownedBy(pids []int, pid int) bool {
+	for _, p := range pids {
+		if p == pid || parentOf(p) == pid {
+			return true
+		}
+	}
+	return false
+}
+
+func parentOf(pid int) int {
+	out, err := exec.Command("ps", "-o", "ppid=", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(string(out)))
+	return n
 }
 
 func (b *ServerBackend) lastLogs() string {

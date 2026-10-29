@@ -73,7 +73,7 @@ func TestServerBackend(t *testing.T) {
 	}
 	root := t.TempDir()
 	rt := &RuntimeManifest{Name: "fake-server", Kinds: []Kind{Chat},
-		Server: &ServerSpec{Start: []string{"fake-server", "--model", "{model}", "--port", "{port}"}, Health: "/health"},
+		Server: &ServerSpec{Start: []string{"fake-server", "--model", "{model}", "--port", "{port}", "--key", "{key}"}, Health: "/health"},
 		Tools:  map[string][]ToolArchive{Platform(): {{URL: "https://example.invalid/x.tar.gz", SHA256: strings.Repeat("0", 64)}}}}
 	runtimesMu.Lock()
 	runtimes()[rt.Name] = rt
@@ -91,12 +91,15 @@ func TestServerBackend(t *testing.T) {
 	os.WriteFile(srv, []byte(`import http.server, json, sys
 model = sys.argv[sys.argv.index("--model") + 1]
 port = int(sys.argv[sys.argv.index("--port") + 1])
+key = sys.argv[sys.argv.index("--key") + 1]
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_GET(self):
         self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
     def do_POST(self):
         self.rfile.read(int(self.headers["Content-Length"]))
+        if len(key) < 32 or self.headers.get("Authorization") != "Bearer " + key:
+            self.send_response(401); self.end_headers(); return
         self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
         chunk = {"choices": [{"delta": {"content": "hello from " + model.split("/")[-1]}}]}
         self.wfile.write(("data: " + json.dumps(chunk) + "\n\ndata: [DONE]\n\n").encode())

@@ -15,7 +15,9 @@
       "{port}",
       "--jinja",
       "--n-gpu-layers",
-      "999"
+      "999",
+      "--api-key",
+      "{key}"
     ],
     "health": "/health"
   },

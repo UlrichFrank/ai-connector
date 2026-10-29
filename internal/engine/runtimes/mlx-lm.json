@@ -1,6 +1,6 @@
 {
   "name": "mlx-lm",
-  "notes": "Apple's mlx-lm (MIT) as its OpenAI-compatible server (mlx_lm.server): every architecture mlx-lm knows (Llama, Qwen, Mistral, Gemma, Phi, DeepSeek, …), a model folder of MLX weights",
+  "notes": "Apple's mlx-lm (MIT) as its OpenAI-compatible server (mlx_lm.server): every architecture mlx-lm knows (Llama, Qwen, Mistral, Gemma, Phi, DeepSeek, …), a model folder of MLX weights. mlx_lm.server takes no API key: while it runs, other programs of this machine can ask it too (it listens on 127.0.0.1 only)",
   "kinds": [
     "chat"
   ],

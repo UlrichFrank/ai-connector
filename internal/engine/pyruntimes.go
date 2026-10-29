@@ -46,12 +46,14 @@ type RuntimeManifest struct {
 }
 
 // ServerSpec is how a server runtime starts: Start is the program and its arguments, with {model} (the model's
-// file or folder), {dir} (its folder) and {port}; Health a path that answers 200 once the model is loaded; Model what
-// a request names as the model ("" the {model} path).
+// file or folder), {dir} (its folder), {port} and {key} (a random API key of this start, which the worker sends);
+// KeyEnv an environment variable the program takes that key from instead; Health a path that answers 200 once the
+// model is loaded; Model what a request names as the model ("" the {model} path).
 type ServerSpec struct {
 	Start  []string `json:"start"`
 	Health string   `json:"health"`
 	Model  string   `json:"model,omitempty"`
+	KeyEnv string   `json:"keyEnv,omitempty"`
 }
 
 // ToolArchive is an archive of a program's release (.tar.gz or .zip), pinned by its SHA-256.
