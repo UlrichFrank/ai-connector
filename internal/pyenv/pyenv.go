@@ -105,15 +105,28 @@ func (e Env) split() (from, rest []string) {
 	if e.Index == "" {
 		return nil, e.Packages
 	}
+	want := make([]string, len(e.IndexPackages))
+	for i, n := range e.IndexPackages {
+		want[i] = normName(n)
+	}
 	for _, p := range e.Packages {
-		name := strings.ToLower(strings.TrimSpace(strings.FieldsFunc(p, func(r rune) bool { return strings.ContainsRune("=<>!~[@ ;", r) })[0]))
-		if slices.Contains(e.IndexPackages, name) {
+		fs := strings.FieldsFunc(p, func(r rune) bool { return strings.ContainsRune("=<>!~[@ ;", r) })
+		if len(fs) == 0 {
+			continue
+		}
+		if slices.Contains(want, normName(fs[0])) {
 			from = append(from, p)
 		} else {
 			rest = append(rest, p)
 		}
 	}
 	return from, rest
+}
+
+// normName is a package name as PyPI compares them (PEP 503): lower case, runs of -, _ and . as one -.
+func normName(n string) string {
+	n = strings.ToLower(strings.TrimSpace(n))
+	return strings.Join(strings.FieldsFunc(n, func(r rune) bool { return r == '-' || r == '_' || r == '.' }), "-")
 }
 
 // uvCommand runs uv with the system's certificates (macOS keychain, Windows store, Linux CA bundle) instead of

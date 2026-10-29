@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,10 +20,14 @@ import (
 
 // ComfyBackend runs ComfyUI's workflows as models (runtimes/comfyui.json; docs/models.md, "ComfyUI"): a model is a
 // workflow in API format, where the request's fields go in it, and its files. The worker starts ComfyUI (its pinned
-// source, its environment) on a free port, links the model's files from the store into ComfyUI's models folders, fills
-// the workflow, queues it (/prompt), waits for its result (/history) and fetches the picture or video (/view).
+// source, its environment) on a free port without custom nodes, with the model's folders of the store as its model
+// paths (an extra_model_paths.yaml; nothing is written into ComfyUI's folder), and outputs in a folder of its own;
+// fills the workflow, queues it (/prompt), waits for its result (/history), fetches the picture or video (/view) and
+// deletes it and the prompt's history from ComfyUI.
 type ComfyBackend struct {
-	srv *ServerBackend
+	srv   *ServerBackend
+	paths map[string]map[string]bool // the model folders of the running ComfyUI: folder → directories
+	last  string                     // the model of the last workflow (another one: ComfyUI frees its models first)
 }
 
 // NewComfyBackend is the backend of the ComfyUI runtime name.
@@ -33,7 +38,7 @@ func NewComfyBackend(root string, store *models.Store, name string) *ComfyBacken
 func (b *ComfyBackend) Name() string   { return b.srv.Runtime }
 func (b *ComfyBackend) Heavy() bool    { return true }
 func (b *ComfyBackend) Loaded() string { return b.srv.Loaded() }
-func (b *ComfyBackend) Unload()        { b.srv.Unload() }
+func (b *ComfyBackend) Unload()        { b.srv.Unload(); b.paths, b.last = nil, "" }
 
 func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir string, emit Emit) error {
 	s := b.srv
@@ -44,16 +49,26 @@ func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 	if err != nil {
 		return err
 	}
-	if !s.running() {
+	need := modelPaths(dir, m.folders)
+	if !s.running() || !covers(b.paths, need) {
+		// a model of folders the running ComfyUI does not know: started again with them (it reads its paths at start)
+		paths := union(b.paths, need)
 		s.stop()
+		args, err := b.startArgs(paths)
+		if err != nil {
+			return err
+		}
+		s.ExtraArgs = args
 		if err := s.start(ctx, rt, dir, dir, emit); err != nil {
 			return err
 		}
 		s.model = s.Runtime // one ComfyUI for all its models: it loads what a workflow names
+		b.paths, b.last = paths, ""
 	}
-	if err := linkModelFiles(dir, filepath.Join(s.app, "models"), m.folders); err != nil {
-		return err
+	if b.last != "" && b.last != m.ID {
+		b.post(ctx, "/free", map[string]any{"unload_models": true, "free_memory": true}) // only one model's weights in memory
 	}
+	b.last = m.ID
 	wf, seed, err := fillWorkflow(m, r)
 	if err != nil {
 		return err
@@ -71,6 +86,9 @@ func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 		return err
 	}
 	file, err := b.fetch(ctx, out, outDir, m.ID)
+	// ComfyUI keeps nothing of the job: its copy of the result, the prompt in its history
+	os.Remove(filepath.Join(b.outputDir(), filepath.FromSlash(out.Subfolder), filepath.Base(out.Filename)))
+	b.post(ctx, "/history", map[string]any{"delete": []string{id}})
 	if err != nil {
 		return err
 	}
@@ -79,28 +97,96 @@ func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 	return nil
 }
 
-// linkModelFiles links the model's files (in its folder of the store) into ComfyUI's models folders by their names.
-func linkModelFiles(dir, modelsDir string, folders map[string][]string) error {
+// modelPaths are the folders ComfyUI must search for the model's files: folder → the directories they lie in.
+func modelPaths(dir string, folders map[string][]string) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
 	for folder, files := range folders {
 		for _, f := range files {
-			src := filepath.Join(dir, filepath.FromSlash(f))
-			if _, err := os.Stat(src); err != nil {
-				return fmt.Errorf("the model has no file %s: %w", f, err)
+			if out[folder] == nil {
+				out[folder] = map[string]bool{}
 			}
-			dst := filepath.Join(modelsDir, folder, filepath.Base(f))
-			if cur, err := os.Readlink(dst); err == nil && cur == src {
-				continue
-			}
-			os.Remove(dst)
-			if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-				return err
-			}
-			if err := os.Symlink(src, dst); err != nil {
-				return err
+			out[folder][filepath.Dir(filepath.Join(dir, filepath.FromSlash(f)))] = true
+		}
+	}
+	return out
+}
+
+func covers(have, need map[string]map[string]bool) bool {
+	for folder, dirs := range need {
+		for d := range dirs {
+			if !have[folder][d] {
+				return false
 			}
 		}
 	}
-	return nil
+	return true
+}
+
+func union(a, b map[string]map[string]bool) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
+	for _, m := range []map[string]map[string]bool{a, b} {
+		for folder, dirs := range m {
+			if out[folder] == nil {
+				out[folder] = map[string]bool{}
+			}
+			for d := range dirs {
+				out[folder][d] = true
+			}
+		}
+	}
+	return out
+}
+
+// runDir is ComfyUI's own folder of this worker (<config dir>/run/<runtime>): its model paths, outputs, inputs, temp.
+func (b *ComfyBackend) runDir() string    { return filepath.Join(b.srv.Root, "run", b.srv.Runtime) }
+func (b *ComfyBackend) outputDir() string { return filepath.Join(b.runDir(), "output") }
+
+// startArgs writes the model paths and gives ComfyUI's arguments: no custom nodes, those paths, its own folders.
+func (b *ComfyBackend) startArgs(paths map[string]map[string]bool) ([]string, error) {
+	run := b.runDir()
+	os.RemoveAll(run) // the last start's outputs and temp files
+	for _, d := range []string{"output", "input", "temp"} {
+		if err := os.MkdirAll(filepath.Join(run, d), 0o700); err != nil {
+			return nil, err
+		}
+	}
+	var y strings.Builder
+	y.WriteString("ai-connector:\n")
+	var folders []string
+	for f := range paths {
+		folders = append(folders, f)
+	}
+	sort.Strings(folders)
+	for _, f := range folders {
+		y.WriteString("  " + f + ": |\n")
+		var dirs []string
+		for d := range paths[f] {
+			dirs = append(dirs, d)
+		}
+		sort.Strings(dirs)
+		for _, d := range dirs {
+			y.WriteString("    " + d + "\n")
+		}
+	}
+	cfg := filepath.Join(run, "extra_model_paths.yaml")
+	if err := os.WriteFile(cfg, []byte(y.String()), 0o600); err != nil {
+		return nil, err
+	}
+	return []string{"--disable-all-custom-nodes", "--extra-model-paths-config", cfg, "--output-directory", filepath.Join(run, "output"),
+		"--input-directory", filepath.Join(run, "input"), "--temp-directory", filepath.Join(run, "temp")}, nil
+}
+
+// post sends a small request to ComfyUI and forgets the answer (freeing memory, deleting history).
+func (b *ComfyBackend) post(ctx context.Context, path string, body any) {
+	raw, _ := json.Marshal(body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.srv.base+path, bytes.NewReader(raw))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if resp, err := localHTTP.Do(req); err == nil {
+		resp.Body.Close()
+	}
 }
 
 // fillWorkflow puts the request's fields (over the model's defaults) into the workflow where its inputs say; a
@@ -153,7 +239,7 @@ func (b *ComfyBackend) queue(ctx context.Context, wf map[string]any) (string, er
 	body, _ := json.Marshal(map[string]any{"prompt": wf, "client_id": randomKey()})
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, b.srv.base+"/prompt", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := localHTTP.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -183,17 +269,17 @@ func (b *ComfyBackend) wait(ctx context.Context, id string) (comfyOutput, error)
 	for {
 		select {
 		case <-ctx.Done():
-			req, _ := http.NewRequest(http.MethodPost, b.srv.base+"/interrupt", nil)
-			if resp, err := http.DefaultClient.Do(req); err == nil {
-				resp.Body.Close()
-			}
+			stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			b.post(stop, "/interrupt", map[string]any{})
+			cancel()
 			return comfyOutput{}, ctx.Err()
 		case <-time.After(500 * time.Millisecond):
 		}
 		if !b.srv.running() {
 			return comfyOutput{}, fmt.Errorf("ComfyUI stopped:\n%s", b.srv.lastLogs())
 		}
-		resp, err := http.Get(b.srv.base + "/history/" + url.PathEscape(id))
+		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, b.srv.base+"/history/"+url.PathEscape(id), nil)
+		resp, err := localHTTP.Do(req)
 		if err != nil {
 			continue
 		}
@@ -234,7 +320,7 @@ func (b *ComfyBackend) wait(ctx context.Context, id string) (comfyOutput, error)
 func (b *ComfyBackend) fetch(ctx context.Context, o comfyOutput, outDir, id string) (string, error) {
 	q := url.Values{"filename": {o.Filename}, "subfolder": {o.Subfolder}, "type": {o.Type}}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, b.srv.base+"/view?"+q.Encode(), nil)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) // a video may take longer than localHTTP's timeout; ctx ends it
 	if err != nil {
 		return "", err
 	}

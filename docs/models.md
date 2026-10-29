@@ -195,6 +195,11 @@ every request — never as an argument, which every user of the machine can read
 (`lsof`; not on Windows), not to another program that took it in between. mlx-lm's server takes no key: while it
 runs, another program of this machine can ask it too (it listens on 127.0.0.1 only).
 
+A server runs in a process group of its own and is ended with it (on Linux it also dies with the worker); its pid is
+kept in `<config dir>/run/<runtime>.pid`, so a server a killed worker left behind is ended at the next start. It gets
+the worker's environment without its secrets (names with TOKEN, SECRET, PASSWORD, KEY; `MLXLAB_*`). Where `lsof` is
+missing, Linux's `/proc` checks the port; on Windows it is not checked.
+
 `start[0]` is the program: a script of the runtime's Python environment (`envs`, e.g. `mlx_lm.server`), or found in
 its `tools` — release archives per platform, fetched once into `<config dir>/tools/<runtime>-<hash>`, checked
 against their SHA-256 and unpacked (nothing may point out of that folder). `{model}` is the model's folder, or the
@@ -260,8 +265,13 @@ is a pinned release archive (v0.40.0, by SHA-256), its requirements a pinned env
 | `inputs` | where a request's field goes: `node.inputs.name`; the model's `defaults` under the request's fields; a seed the request lacks is drawn |
 | `folders` | the model's files (from its `source`, downloaded and verified into the store) by ComfyUI's models folder (`checkpoints`, `diffusion_models`, `text_encoders`, `vae`, `loras`, …): the worker links them there |
 
-The worker queues the filled workflow (`/prompt`), waits for its history (`/history`), fetches the first picture or
-video a node wrote (`/view`); a canceled job interrupts ComfyUI (`/interrupt`). One ComfyUI serves all its models
+ComfyUI starts without custom nodes (`--disable-all-custom-nodes`), with the models' folders of the store as its
+model paths (an `extra_model_paths.yaml` in `<config dir>/run/comfyui`; nothing is linked or written into ComfyUI's
+own folder, which also works on Windows) and its outputs, inputs and temp files in that run folder; a model whose
+folders it does not know yet starts it again. The worker queues the filled workflow (`/prompt`), waits for its
+history (`/history`), fetches the first picture or video a node wrote (`/view`), then deletes it and the prompt's
+history from ComfyUI; another model than the last frees ComfyUI's memory first (`/free`); a canceled job interrupts
+ComfyUI (`/interrupt`). One ComfyUI serves all its models
 (it loads what a workflow names); it is heavy and unloads like the others. ComfyUI takes no key: while it runs,
 another program of this machine can use it (127.0.0.1 only; the port is checked as for the other servers) — so not
 for a machine several people log into. Its folder (with its outputs) is the worker's user's only (0700). Custom
