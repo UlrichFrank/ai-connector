@@ -44,7 +44,8 @@ func ensureTools(ctx context.Context, root, name string, log func(string)) (stri
 		return dir, nil
 	}
 	_ = os.RemoveAll(dir) // a half-made one
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	// the worker's user only: a server's app writes its outputs there (ComfyUI)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 	for _, a := range as {

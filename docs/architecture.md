@@ -58,7 +58,7 @@ build. The TUI is no longer part of the worker.
 
 | Key | | Environment (wins; also for `serve`) |
 |---|---|---|
-| `idleUnload` | a model with no job for this long leaves memory: `"10m"` (the default), `"1h"`, `"0"` never | `MLXLAB_IDLE_UNLOAD` |
+| `idleUnload` | a model with no job for this long leaves memory: `"10m"`, `"1h"`; `"0"` or unset: never (the default, so an existing worker behaves as before) | `MLXLAB_IDLE_UNLOAD` |
 | `pin` | models that stay loaded however long they wait, e.g. `["qwen3.6-35b-a3b"]` (the chat model without a cold start) | `MLXLAB_PIN` (comma list) |
 | `allowLocalRuntimes` | read `<config dir>/runtimes.d`: Python runtimes of this machine's own (docs/models.md) | `MLXLAB_ALLOW_LOCAL_RUNTIMES=1` |
 
