@@ -25,6 +25,8 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `music` | `music` | ACE-Step, Stable Audio 3, MiniMax Music 3, LeVo 2, HeartMuLa, YuE2 | `runtime` (the song runtime), `workerModel`; `maxSeconds`, `lora` {`file`, `trigger`, `scale`} |
 | `speech` | `speech` | Kokoro, Qwen3-TTS, Chatterbox, VoxCPM2, Higgs, Voxtral, Qwen3-ASR, Qwen3-ForcedAligner | `workerModel` (the family; its tasks, voices and languages come from it) |
 | `sound` | `sound` | MOSS-SoundEffect | `workerModel` |
+| a generic runtime | its `kinds` | a new library's models ("Generic runtimes") | `workerModel`; `params` |
+| a server runtime | `chat` | mlx-lm, mlx-vlm, llama.cpp ("Server runtimes") | `workerModel` (a GGUF file); `images` |
 
 ## The manifest
 
@@ -162,3 +164,37 @@ runtime the catalogue has already is left out.
 `docs/examples/` has one that was tried: spandrel with Real-ESRGAN x4 (`runtimes.d/spandrel/`, `models.d/realesrgan-x4.json`)
 — copy both into the config dir, allow local runtimes, and `realesrgan-x4` upscales images (512² to 2048² in about
 5 s on an M2 Pro, after uv has installed the environment once).
+
+### Server runtimes: models the built-in engines do not have
+
+A runtime with `server` is a program that serves an OpenAI-compatible API (`/v1/chat/completions`). The worker
+starts it with the model on a free port of 127.0.0.1, waits until `health` answers 200, and asks it like a local
+runtime it found running (Ollama, LM Studio). Unlike those it counts as heavy: one such model in memory, the server
+stopped when another heavy model comes, when the worker unloads or ends.
+
+```json
+{
+  "name": "llama-cpp",
+  "kinds": ["chat"],
+  "server": {"start": ["llama-server", "--model", "{model}", "--host", "127.0.0.1", "--port", "{port}", "--jinja"],
+             "health": "/health"},
+  "tools": {"darwin-arm64": [{"url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-macos-arm64.tar.gz",
+                              "sha256": "75d795f8…"}], "…": []}
+}
+```
+
+`start[0]` is the program: a script of the runtime's Python environment (`envs`, e.g. `mlx_lm.server`), or found in
+its `tools` — release archives per platform, fetched once into `<config dir>/tools/<runtime>-<hash>`, checked
+against their SHA-256 and unpacked (nothing may point out of that folder). `{model}` is the model's folder, or the
+file `runtimeArgs.workerModel` names in it (a GGUF); `{dir}` the folder; `{port}` the port. `server.model`: what a
+request names as the model (default: the `{model}` path).
+
+| Runtime | Platforms | Models |
+|---|---|---|
+| `mlx-lm` | Apple silicon | any chat model mlx-lm knows (Llama, Qwen, Mistral, Gemma, Phi, DeepSeek, …): a folder of MLX weights |
+| `mlx-vlm` | Apple silicon | vision language models (Qwen-VL, Gemma 3, SmolVLM, PaddleOCR-VL, …): chat with images (`"images": true` in the model's manifest) |
+| `llama-cpp` | Apple silicon (Metal), Linux (CUDA, ROCm, CPU), Windows (CUDA; AMD through Vulkan, RX 6000 too; CPU) | GGUF chat models (`workerModel`: the file) |
+
+Tried here: Qwen3 0.6B through mlx-lm and through llama.cpp (the Mac build, fetched by the worker), SmolVLM 256M
+through mlx-vlm with a picture (`docs/examples/models.d`). The Linux and Windows archives are pinned with their
+checksums but have not been run here.

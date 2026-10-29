@@ -1,0 +1,74 @@
+{
+  "name": "llama-cpp",
+  "notes": "llama.cpp's llama-server (MIT), release b11700 (2026-10-16), from its release archives: GGUF chat models on every platform — Metal on a Mac, CUDA or ROCm on Linux, CUDA on Windows, AMD on Windows through Vulkan (Radeon RX 6000 too), else the CPU. Only the Mac build has been run here",
+  "kinds": [
+    "chat"
+  ],
+  "server": {
+    "start": [
+      "llama-server",
+      "--model",
+      "{model}",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}",
+      "--jinja",
+      "--n-gpu-layers",
+      "999"
+    ],
+    "health": "/health"
+  },
+  "tools": {
+    "darwin-arm64": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-macos-arm64.tar.gz",
+        "sha256": "75d795f8826e09893d44e040742ca5dd604d9402dc40393aed0aea6866aadd73"
+      }
+    ],
+    "linux-cpu": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-ubuntu-x64.tar.gz",
+        "sha256": "51842656431fc20928123e0c88598f7604a2fe2031fb4e7d45943316817de024"
+      }
+    ],
+    "linux-cuda": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-ubuntu-cuda-12.8-x64.tar.gz",
+        "sha256": "da7b301678e307ae38926e9368a03b475639a790bbbe8ed98aad49587bbcca5c"
+      },
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/cudart-llama-b11700-bin-ubuntu-cuda-12.8-x64.tar.gz",
+        "sha256": "882888621b49538d480595f92b5f5415797d895fc2e8a077901fe2942c839456"
+      }
+    ],
+    "linux-rocm": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-ubuntu-rocm-10.0-x64.tar.gz",
+        "sha256": "c92e37689817728fe0f4bdaa27157b8a3af00aa908e0b68de909de16ccb9599c"
+      }
+    ],
+    "windows-cpu": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-win-cpu-x64.zip",
+        "sha256": "4e2af6b2b39691cd84267a02839596ed6653ea2dde5ee9cdbfeb4dd9677eecbb"
+      }
+    ],
+    "windows-cuda": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-win-cuda-12.4-x64.zip",
+        "sha256": "119f65b8000dfb37ee7daa578ad68bd47f41fbf4e3984fd0e50576d17a7b4920"
+      },
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6"
+      }
+    ],
+    "windows-rocm": [
+      {
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11700/llama-b11700-bin-win-vulkan-x64.zip",
+        "sha256": "d93ccad5992d6640d7081407c24d3ceddf717bc0a1c3c269225c9bef0182f83e"
+      }
+    ]
+  }
+}

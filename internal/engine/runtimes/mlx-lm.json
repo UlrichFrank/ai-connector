@@ -1,0 +1,27 @@
+{
+  "name": "mlx-lm",
+  "notes": "Apple's mlx-lm (MIT) as its OpenAI-compatible server (mlx_lm.server): every architecture mlx-lm knows (Llama, Qwen, Mistral, Gemma, Phi, DeepSeek, …), a model folder of MLX weights",
+  "kinds": [
+    "chat"
+  ],
+  "server": {
+    "start": [
+      "mlx_lm.server",
+      "--model",
+      "{model}",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}"
+    ],
+    "health": "/v1/models"
+  },
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "mlx-lm==0.32.0"
+      ]
+    }
+  }
+}

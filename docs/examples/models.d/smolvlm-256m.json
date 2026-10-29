@@ -1,0 +1,26 @@
+{
+  "id": "smolvlm-256m",
+  "name": "SmolVLM 256M (mlx-vlm)",
+  "kind": "chat",
+  "backend": "mlx-vlm",
+  "about": "HuggingFaceTB's SmolVLM 256M (Apache-2.0) through mlx-vlm's server: a tiny vision language model, a test that images reach a server runtime",
+  "licence": "Apache-2.0",
+  "size": 517927785,
+  "memory": 2,
+  "images": true,
+  "source": {
+    "repo": "mlx-community/SmolVLM-256M-Instruct-bf16",
+    "rev": "cfe17933371986666073f450510d9e40d6157b13",
+    "ignore": [
+      "README.md",
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "model.safetensors",
+    "config.json"
+  ],
+  "hereCache": [],
+  "defaults": {},
+  "runtimeArgs": {}
+}

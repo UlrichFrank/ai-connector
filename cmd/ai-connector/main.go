@@ -294,6 +294,10 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	for _, n := range engine.GenericRuntimes() {
 		backends = append(backends, &engine.RuntimeBackend{Root: root, Store: store, Runtime: n})
 	}
+	// servers the worker starts with their model (mlx-lm, llama.cpp: runtimes/*.json with server)
+	for _, n := range engine.ServerRuntimes() {
+		backends = append(backends, &engine.ServerBackend{Root: root, Store: store, Runtime: n})
+	}
 	runs := map[string]bool{}
 	for _, b := range backends {
 		runs[b.Name()] = true
