@@ -139,7 +139,7 @@ func TestResolveVoice(t *testing.T) {
 }
 
 func TestSpeechCatalog(t *testing.T) {
-	presets := SpeechPresets()
+	presets := SpeechPresets(nil)
 	if _, ok := presets["qwen3-asr"]; ok {
 		t.Error("the transcriber has no voices")
 	}
@@ -186,8 +186,8 @@ func TestSpeechCatalog(t *testing.T) {
 		}
 	}
 	al := byID(speechModels())["qwen3-forced-aligner"]
-	if al == nil || len(al.repos) != 1 || al.repos[0].rev != alignRepo.rev || al.Licence != "Apache-2.0" || al.Size < gb || al.Size > 2*gb ||
-		alignRepo.repo != "mlx-community/Qwen3-ForcedAligner-0.6B-8bit" {
+	if al == nil || len(al.repos) != 1 || al.repos[0].rev != alignRepo().rev || al.Licence != "Apache-2.0" || al.Size < gb || al.Size > 2*gb ||
+		alignRepo().repo != "mlx-community/Qwen3-ForcedAligner-0.6B-8bit" {
 		t.Errorf("aligner %+v", al)
 	}
 	if _, err := (&SpeechBackend{}).speechModel("qwen3-forced-aligner"); err == nil {

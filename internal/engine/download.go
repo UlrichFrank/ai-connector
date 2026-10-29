@@ -714,6 +714,13 @@ func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
 		return nil
 	}
 	env, build := runtimeOf(m)
+	if n := runtimeName(m); d.Prepare == nil && n != "" && len(runtimeManifest(n).Tools[Platform()]) > 0 {
+		// a server runtime's program (llama.cpp, ComfyUI): fetched with the model, not at its first job
+		d.set(r, func(st *DownloadState) { st.State = DownloadPreparing })
+		if _, err := ensureTools(ctx, d.Root, n, func(string) {}); err != nil {
+			return fmt.Errorf("the %s runtime: %w", n, err)
+		}
+	}
 	if env == nil && build == nil || d.Prepare == nil && build == nil && env.Ready(d.Root) {
 		return nil
 	}
@@ -740,24 +747,19 @@ func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
 
 // runtimeOf is the Python runtime a model's backend runs in (nil: none, the Go engine) and the runtime's step of its
 // own (nil: none).
+// runtimeOf is the Python environment of the model's runtime on this machine (nil none: Go, a local server, a server
+// runtime of tools only) and its build step — from the runtime's manifest (runtimeName), the one source of which
+// runtime a model runs in.
 func runtimeOf(m *Model) (*pyenv.Env, func(ctx context.Context, root string, emit Emit) ([]string, error)) {
-	switch m.Backend {
-	case "mflux": // FLUX, Qwen-Image, SeedVR2
-		return &MfluxEnv, nil
-	case "ltx":
-		return &LTXEnv, nil
-	case "music":
-		if rt := MusicRuntimes()[m.runtime]; rt != nil {
-			return &rt.env, rt.build
-		}
-	case "sound":
-		return &soundEnv, nil
-	case "cutout": // BiRefNet on PyTorch
-		return &CutoutEnv, nil
-	case "speech": // with Kokoro's G2P (misaki, spaCy's English model, espeak-ng inside its wheel)
-		return &SpeechEnv, nil
+	n := runtimeName(m)
+	if n == "" {
+		return nil, nil
 	}
-	return nil, nil
+	var env *pyenv.Env
+	if e, ok := envFor(n, Platform()); ok {
+		env = &e
+	}
+	return env, runtimeBuildFns[runtimeManifest(n).Build]
 }
 
 // plan is what a download of m fetches: the files of each repository, as the backend's first job would. A speech
@@ -786,8 +788,24 @@ func (d *Downloads) plan(ctx context.Context, m *Model) ([]models.Model, error) 
 			return nil, d.hubErr(ctx, m, err)
 		}
 		return []models.Model{hm}, nil
-	case len(m.repos) > 0 && (m.Backend == "music" || m.Backend == "sound" || m.Backend == "speech"):
-		// every repository the backend's Run fetches (MusicBackend.Run, SoundBackend.files, SpeechBackend.speak)
+	case m.repo != "":
+		// a model of a generic, server or ComfyUI runtime: its source as its backend fetches it (files, else all but
+		// ignore)
+		keep := func(string) bool { return true }
+		switch {
+		case len(m.files) > 0:
+			keep = func(p string) bool { return models.Matches(p, m.files...) }
+		case len(m.ignore) > 0:
+			keep = func(p string) bool { return !models.Matches(p, m.ignore...) }
+		}
+		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, keep)
+		if err != nil {
+			return nil, d.hubErr(ctx, m, err)
+		}
+		return []models.Model{hm}, nil
+	case len(m.repos) > 0:
+		// every repository the backend's Run fetches (MusicBackend.Run, SoundBackend.files, SpeechBackend.speak, a
+		// generic runtime's)
 		var out []models.Model
 		for _, hr := range m.repos {
 			hm, err := d.Store.FromHub(ctx, m.Name, hr.repo, hr.rev, hr.keep())

@@ -166,6 +166,9 @@ var manifestBackends = map[string]manifestBackend{
 			return fmt.Errorf("%s is no family the catalogue knows: describe it in runtimeArgs.speech (modelType, voices, …)", wm)
 		case sp != nil && speechFamilies[wm] != nil && speechFamilies[wm].modelType == "":
 			return fmt.Errorf("%s is a family of the catalogue: no runtimeArgs.speech", wm)
+		case sp != nil && speechFamilies[wm] != nil && (speechFamilies[wm].modelType != sp.ModelType ||
+			strings.Join(speechFamilies[wm].presets, ",") != strings.Join(sp.Voices, ",")):
+			return fmt.Errorf("the family %s is described differently by another manifest: one description per workerModel", wm)
 		}
 		return nil
 	},

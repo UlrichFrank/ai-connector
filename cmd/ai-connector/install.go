@@ -46,6 +46,7 @@ const (
 // serviceEnvKeys are kept from the environment of `--install` (where the files and the models are, what the agents
 // find on the PATH).
 var serviceEnvKeys = []string{"PATH", "MLXLAB_HOME", "XDG_CONFIG_HOME", "MLXLAB_STATE", "MLXLAB_MODELS_FROM", "MLXLAB_RUNTIMES",
+	"MLXLAB_GPU", "MLXLAB_IDLE_UNLOAD", "MLXLAB_PIN", "MLXLAB_ALLOW_LOCAL_RUNTIMES",
 	"HF_HOME", "HF_HUB_CACHE", "HF_TOKEN_PATH", "CLAUDE_CONFIG_DIR"}
 
 // service is the start at login on one system.

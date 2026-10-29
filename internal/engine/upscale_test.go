@@ -107,7 +107,7 @@ func TestUpscaleRun(t *testing.T) {
 	}
 	root, out := t.TempDir(), t.TempDir()
 	// a fake mflux environment: its python logs the request and answers with a picture of 64×48
-	env := MfluxEnv.Dir(root)
+	env := MfluxEnv().Dir(root)
 	os.MkdirAll(filepath.Join(env, "bin"), 0o755)
 	os.WriteFile(filepath.Join(env, ".mlxlab-ready"), nil, 0o644)
 	made := filepath.Join(root, "made.png")

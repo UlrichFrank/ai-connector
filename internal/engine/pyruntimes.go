@@ -383,3 +383,14 @@ func ServerRuntimes(protocol string) []string {
 	}
 	return out
 }
+
+// BackendRuns: some model of the catalogue's of a backend can run here (its runtime has an environment or its tools for
+// this machine) — so the worker offers the backend (music: if any song runtime runs).
+func BackendRuns(backend string) bool {
+	for _, mf := range builtinManifests() {
+		if mf.Backend == backend && ModelRuns(mf.model(nil, "")) {
+			return true
+		}
+	}
+	return false
+}

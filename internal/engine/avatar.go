@@ -27,15 +27,15 @@ import (
 // movie's continued clips do). The clips are joined without their own sound and the original speech is muxed in.
 
 // longcatCommit is the pinned commit of the port (runtimes/longcat-avatar.json): the worker gets it as its argument.
-var longcatCommit = packageCommit("longcat-avatar", "longcat-video-avatar-mlx")
+func longcatCommit() string { return packageCommit("longcat-avatar", "longcat-video-avatar-mlx") }
 
-// LongCatEnv is the pinned LongCat-Video-Avatar MLX runtime (github.com/xocialize/longcat-avatar-mlx, MIT). The
+// LongCatEnv() is the pinned LongCat-Video-Avatar MLX runtime (github.com/xocialize/longcat-avatar-mlx, MIT). The
 // worker adds the package's models/avatar folder from the same commit (its setuptools list leaves it out).
-var LongCatEnv = runtimeEnv("longcat-avatar") // runtimes/longcat-avatar.json
+func LongCatEnv() pyenv.Env { return runtimeEnv("longcat-avatar") } // runtimes/longcat-avatar.json
 
 // avatarRuntime is how one family of avatar models animates a clip.
 type avatarRuntime struct {
-	env    pyenv.Env
+	env    string // the runtime (runtimes/<name>.json): its environment taken when the worker starts
 	script string
 	args   []string
 	fps    int
@@ -50,14 +50,15 @@ type avatarRuntime struct {
 	refPortrait bool
 	// mult: width and height are multiples of it; maxArea: larger sizes are scaled down to this many pixels
 	mult, maxArea int
+	longcatArgs   bool // the worker gets the LongCat port's pinned commit as its argument
 }
 
 var avatarRuntimes = map[string]avatarRuntime{
 	// LTX: the two-stage pipeline wants multiples of 64; up to 640×640 (the web app's sizes)
-	"ltx-a2v": {env: LTXEnv, script: "avatar_ltx.py", fps: 24, frames: frames8k1Up, dropFirst: true, lowRAMRetry: true,
+	"ltx-a2v": {env: "ltx-2-mlx", script: "avatar_ltx.py", fps: 24, frames: frames8k1Up, dropFirst: true, lowRAMRetry: true,
 		mult: 64, maxArea: 640 * 640},
 	// LongCat: Wan's VAE (8) × patch (2); slow, so the area of 256×432 at most
-	"longcat": {env: LongCatEnv, script: "avatar_longcat.py", args: []string{longcatCommit}, fps: 25, frames: frames4k1Up,
+	"longcat": {env: "longcat-avatar", script: "avatar_longcat.py", longcatArgs: true, fps: 25, frames: frames4k1Up,
 		refPortrait: true, mult: 16, maxArea: 256 * 432},
 }
 
@@ -371,7 +372,11 @@ func (b *AvatarBackend) workerClip(ctx context.Context, m *Model, rt avatarRunti
 	b.stopWorkers(m.runtime) // one model in memory
 	w := b.workers[m.runtime]
 	if w == nil {
-		w = &pyWorker{env: rt.env, script: rt.script, args: rt.args}
+		args := rt.args
+		if rt.longcatArgs {
+			args = []string{longcatCommit()} // the port's pinned commit
+		}
+		w = &pyWorker{env: runtimeEnv(rt.env), script: rt.script, args: args}
 		b.workers[m.runtime] = w
 	}
 	if err := w.start(ctx, b.Root, emit); err != nil {

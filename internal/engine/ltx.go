@@ -19,8 +19,8 @@ import (
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-// LTXEnv is the pinned ltx-2-mlx runtime (github.com/dgrauet/ltx-2-mlx, MIT; LTX-2.5 packs since 0.15).
-var LTXEnv = runtimeEnv("ltx-2-mlx") // runtimes/ltx-2-mlx.json
+// LTXEnv() is the pinned ltx-2-mlx runtime (github.com/dgrauet/ltx-2-mlx, MIT; LTX-2.5 packs since 0.15).
+func LTXEnv() pyenv.Env { return runtimeEnv("ltx-2-mlx") } // runtimes/ltx-2-mlx.json
 
 // LTXBackend runs LTX-2.5 through ltx-2-mlx, one process per video (the pipeline loads and frees its parts stage by
 // stage anyway: Gemma, the transformer, the upscaler, the decoders): the distilled two-stage pipeline, or for the HQ
@@ -89,7 +89,7 @@ func (b *LTXBackend) Run(ctx context.Context, m *Model, r Request, outDir string
 	if err != nil {
 		return err
 	}
-	if err := LTXEnv.Ensure(ctx, b.Root, emit.Log); err != nil {
+	if err := LTXEnv().Ensure(ctx, b.Root, emit.Log); err != nil {
 		return err
 	}
 	start := time.Now()
@@ -207,7 +207,7 @@ func hqStage(desc string) string {
 func (b *LTXBackend) renderOnce(ctx context.Context, p ltxRun, r Request, prompt string, frames int, images []string, seed int64, out string, emit Emit) error {
 	args := ltxArgs(p, r, prompt, frames, images, seed, out)
 	emit.Status("starting ltx-2-mlx …")
-	cmd := exec.CommandContext(ctx, LTXEnv.Bin(b.Root, "ltx-2-mlx"), args...)
+	cmd := exec.CommandContext(ctx, LTXEnv().Bin(b.Root, "ltx-2-mlx"), args...)
 	// a longer GPU watchdog for this process (long Metal jobs while the display is on); see gpuWatchdog
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "AGX_RELAX_CDM_CTXSTORE_TIMEOUT=1")
 	stage := ""

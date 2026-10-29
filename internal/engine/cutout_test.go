@@ -27,7 +27,7 @@ func TestCutoutCatalog(t *testing.T) {
 		if !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(m.rev) {
 			t.Errorf("%s: the revision is pinned", m.ID)
 		}
-		if env, build := runtimeOf(m); env != &CutoutEnv || build != nil {
+		if env, build := runtimeOf(m); env == nil || env.Name != CutoutEnv().Name || env.Dir("/r") != CutoutEnv().Dir("/r") || build != nil {
 			t.Errorf("%s: runtime %v", m.ID, env)
 		}
 		if r := SetupRole(m.Kind, m.Tasks); r != "image/cutout" {
@@ -53,7 +53,7 @@ func TestCutoutCatalog(t *testing.T) {
 		}
 	}
 	// every package of the runtime pinned
-	for _, p := range CutoutEnv.Packages {
+	for _, p := range CutoutEnv().Packages {
 		if !strings.Contains(p, "==") {
 			t.Errorf("%s is not pinned", p)
 		}
@@ -87,7 +87,7 @@ func TestCutoutRun(t *testing.T) {
 		t.Skip("python3 runs the fake worker")
 	}
 	root, out := t.TempDir(), t.TempDir()
-	env := CutoutEnv.Dir(root)
+	env := CutoutEnv().Dir(root)
 	must(t, os.MkdirAll(filepath.Join(env, "bin"), 0o755))
 	must(t, os.WriteFile(filepath.Join(env, ".mlxlab-ready"), nil, 0o644))
 	reqs := filepath.Join(root, "requests.jsonl")
