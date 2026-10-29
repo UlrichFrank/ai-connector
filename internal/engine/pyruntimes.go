@@ -46,9 +46,10 @@ type RuntimeManifest struct {
 }
 
 // ServerSpec is how a server runtime starts: Start is the program and its arguments, with {model} (the model's
-// file or folder), {dir} (its folder), {port} and {key} (a random API key of this start, which the worker sends);
-// KeyEnv an environment variable the program takes that key from instead; Health a path that answers 200 once the
-// model is loaded; Model what a request names as the model ("" the {model} path).
+// file or folder), {dir} (its folder) and {port}; KeyEnv the environment variable the program takes an API key from
+// (a random one of this start, which the worker sends; never an argument: those every user of the machine can read);
+// Health a path that answers 200 once the model is loaded; Model what a request names as the model ("" the {model}
+// path).
 type ServerSpec struct {
 	Start  []string `json:"start"`
 	Health string   `json:"health"`
@@ -91,6 +92,8 @@ func ParseRuntime(data []byte) (*RuntimeManifest, error) {
 		return nil, fmt.Errorf("%s: envs or tools (one per platform) are needed", rt.Name)
 	case rt.Server != nil && (len(rt.Server.Start) == 0 || rt.Server.Health == "" || len(rt.Kinds) == 0):
 		return nil, fmt.Errorf("%s: a server needs start, health and kinds", rt.Name)
+	case rt.Server != nil && strings.Contains(strings.Join(rt.Server.Start, " "), "{key}"):
+		return nil, fmt.Errorf("%s: no key in the arguments (every user of the machine can read them): keyEnv", rt.Name)
 	case rt.Server != nil && rt.Generic:
 		return nil, fmt.Errorf("%s: a runtime is a server or generic, not both", rt.Name)
 	case rt.Build != "" && !runtimeBuilds[rt.Build]:

@@ -73,7 +73,7 @@ func TestServerBackend(t *testing.T) {
 	}
 	root := t.TempDir()
 	rt := &RuntimeManifest{Name: "fake-server", Kinds: []Kind{Chat},
-		Server: &ServerSpec{Start: []string{"fake-server", "--model", "{model}", "--port", "{port}", "--key", "{key}"}, Health: "/health"},
+		Server: &ServerSpec{Start: []string{"fake-server", "--model", "{model}", "--port", "{port}"}, Health: "/health", KeyEnv: "FAKE_KEY"},
 		Tools:  map[string][]ToolArchive{Platform(): {{URL: "https://example.invalid/x.tar.gz", SHA256: strings.Repeat("0", 64)}}}}
 	runtimesMu.Lock()
 	runtimes()[rt.Name] = rt
@@ -88,10 +88,10 @@ func TestServerBackend(t *testing.T) {
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, ".mlxlab-ready"), nil, 0o644)
 	srv := filepath.Join(dir, "server.py")
-	os.WriteFile(srv, []byte(`import http.server, json, sys
+	os.WriteFile(srv, []byte(`import http.server, json, os, sys
 model = sys.argv[sys.argv.index("--model") + 1]
 port = int(sys.argv[sys.argv.index("--port") + 1])
-key = sys.argv[sys.argv.index("--key") + 1]
+key = os.environ.get("FAKE_KEY", "")
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_GET(self):
