@@ -1,0 +1,47 @@
+{
+  "id": "kitten-tts-micro",
+  "name": "KittenTTS micro 0.8",
+  "kind": "speech",
+  "backend": "speech",
+  "about": "KittenML's KittenTTS micro 0.8 (Apache-2.0) through mlx-audio: tiny English text to speech with 8 preset voices — a family described by its manifest, no Go",
+  "licence": "Apache-2.0",
+  "size": 136569329,
+  "memory": 2,
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/kitten-tts-micro-0.8",
+      "rev": "fd4e8e8677eafd21c5e92433f68532fcf156bd9c",
+      "include": [
+        "config.json",
+        "model.safetensors",
+        "model.safetensors.index.json",
+        "voices.npz"
+      ]
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "kitten",
+    "speech": {
+      "modelType": "kitten_tts",
+      "voices": [
+        "Bella",
+        "Jasper",
+        "Luna",
+        "Bruno",
+        "Rosie",
+        "Hugo",
+        "Kiki",
+        "Leo"
+      ],
+      "defaultVoice": "Leo",
+      "speaks": [
+        "en"
+      ],
+      "speed": true
+    }
+  }
+}

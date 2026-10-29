@@ -42,6 +42,11 @@ type speechFamily struct {
 	honoured string                   // what of the request it honours, for the model's "about"
 	words    bool                     // it gives word timings itself (Kokoro, English; any model with the aligner)
 	speaks   []string                 // the languages it speaks when it is not told them (langs) — nil: many, it detects
+
+	// a family a model's manifest describes (runtimeArgs.speech) instead of Go: mlx-audio's model type, and whether
+	// it takes an instruction; speech.py runs it on its general path
+	modelType string
+	instruct  bool
 }
 
 var qwenPresets = []string{"Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"}
@@ -166,11 +171,15 @@ func speechTasks(m *Model) []string {
 	if len(f.presets) > 0 {
 		t = append(t, "presets")
 	}
-	if m.workerModel != "voxtral" && m.workerModel != "kokoro" { // no instruction; the others take it (see speechFamilies)
+	if f.modelType != "" { // a family of a manifest: as it says
+		if f.instruct {
+			t = append(t, "instruct")
+		}
+	} else if m.workerModel != "voxtral" && m.workerModel != "kokoro" { // no instruction; the others take it (see speechFamilies)
 		t = append(t, "instruct")
 	}
 	t = append(t, "speed") // the model's own (Higgs, Kokoro) or by time-stretching
-	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" || m.workerModel == "kokoro" {
+	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" || m.workerModel == "kokoro" || (f.modelType != "" && len(f.langs) > 0) {
 		t = append(t, "language") // told the language (Voxtral: it picks the default preset)
 	}
 	return t
@@ -482,6 +491,9 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 		"language": lang, "seed": r.Seed, "chunks": chunks, "output": out}
 	if m.workerModel == "chatterbox" {
 		req["exaggeration"] = exaggeration(r.Instruct)
+	}
+	if fam.modelType != "" { // a manifest's family: speech.py's general path
+		req["modelType"], req["langCode"], req["takesInstruct"] = fam.modelType, len(fam.langs) > 0, fam.instruct
 	}
 	if fam.speed {
 		req["speed"] = r.Speed
@@ -924,5 +936,35 @@ func wavSeconds(file string) float64 {
 		return 0
 	}
 	f, _ := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
+	return f
+}
+
+// manifestFamily is a speech family a model's manifest describes (runtimeArgs.speech): mlx-audio runs it on
+// speech.py's general path.
+func manifestFamily(name, modelType string, voices []string, def string, langs, speaks []string, clone, instruct, speed bool) *speechFamily {
+	if def == "" && len(voices) > 0 {
+		def = voices[0]
+	}
+	var said []string
+	if len(voices) > 0 {
+		said = append(said, fmt.Sprintf("%d preset voices", len(voices)))
+	}
+	if clone {
+		said = append(said, "cloning")
+	}
+	if instruct {
+		said = append(said, "instruct")
+	}
+	if speed {
+		said = append(said, "speed")
+	}
+	if len(langs) > 0 {
+		said = append(said, "language")
+	}
+	f := &speechFamily{presets: voices, clone: clone, speed: speed, langs: langs, speaks: speaks, modelType: modelType,
+		instruct: instruct, honoured: strings.Join(said, ", ") + " (" + name + ", described by its manifest)"}
+	if def != "" {
+		f.preset = func(string) string { return def }
+	}
 	return f
 }

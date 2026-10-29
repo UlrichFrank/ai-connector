@@ -120,3 +120,31 @@ func TestAddLocal(t *testing.T) {
 		t.Errorf("a missing models.d: %v", errs)
 	}
 }
+
+// A speech family the catalogue does not know, described by the model's manifest: its tasks and voices come from the
+// description; a model naming an unknown family without one is refused.
+func TestManifestSpeechFamily(t *testing.T) {
+	kitten := `{"id": "kitten-test", "name": "Kitten", "kind": "speech", "backend": "speech", "about": "a test",
+	  "licence": "Apache-2.0", "size": "130 MB",
+	  "sources": [{"key": "model", "repo": "mlx-community/kitten-tts-micro-0.8", "rev": "fd4e8e8677eafd21c5e92433f68532fcf156bd9c"}],
+	  "defaults": {"speed": 1},
+	  "runtimeArgs": {"workerModel": "kitten-test", "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Leo"],
+	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}}}`
+	mf, err := ParseManifest([]byte(kitten))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { delete(speechFamilies, "kitten-test") })
+	m := mf.model(nil, "")
+	if strings.Join(m.Tasks, ",") != "presets,speed" || m.Audio == nil || len(m.Audio.Voices) != 2 || m.Audio.Instruct {
+		t.Errorf("tasks %v audio %+v", m.Tasks, m.Audio)
+	}
+	if f := speechFamilies["kitten-test"]; f == nil || f.modelType != "kitten_tts" || f.preset("de") != "Leo" {
+		t.Errorf("family %+v", f)
+	}
+	bad := strings.Replace(kitten, `"workerModel": "kitten-test", "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Leo"],
+	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`, `"workerModel": "nobody"`, 1)
+	if _, err := ParseManifest([]byte(strings.Replace(bad, `"kitten-test"`, `"nobody-test"`, 1))); err == nil || !strings.Contains(err.Error(), "runtimeArgs.speech") {
+		t.Errorf("unknown family: %v", err)
+	}
+}
