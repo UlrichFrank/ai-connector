@@ -183,15 +183,11 @@ func vboardCommand(args []string) error {
 	}
 
 	// the hub's sign-in password (only the optional console uses it): made once, kept beside the settings
-	pwFile := filepath.Join(dir, "console-password")
-	pw, _ := os.ReadFile(pwFile)
-	if len(strings.TrimSpace(string(pw))) == 0 {
-		pw = []byte(randomHex(12))
-		if err := os.WriteFile(pwFile, pw, 0o600); err != nil {
-			return err
-		}
+	pw, err := consolePassword(dir) // local.go
+	if err != nil {
+		return err
 	}
-	s, err := hub.New(hub.Config{Password: strings.TrimSpace(string(pw)), Data: dir, Tools: filepath.Join(dir, "tools")})
+	s, err := hub.New(hub.Config{Password: pw, Data: dir, Tools: filepath.Join(dir, "tools")})
 	if err != nil {
 		return err
 	}
@@ -221,7 +217,7 @@ func vboardCommand(args []string) error {
 		if err != nil {
 			return fmt.Errorf("--console: %w", err)
 		}
-		fmt.Printf("ai-connector console: http://%s/console/ (password %s)\n", cl.Addr(), strings.TrimSpace(string(pw)))
+		fmt.Printf("ai-connector console: http://%s/console/ (password %s)\n", cl.Addr(), pw)
 		go func() { _ = http.Serve(cl, s.Handler()) }()
 	}
 	go logConnector(ctx, s)

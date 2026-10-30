@@ -50,6 +50,10 @@ func (s *Server) announce(addr net.Addr) (stop func()) {
 	return srv.Shutdown
 }
 
+// Announce announces the hub on the port of addr under the instance name Config.MDNSName (TXT role=hub, as the
+// server's), for a hub served with Serve (`ai-connector local --lan`); the returned func withdraws it.
+func (s *Server) Announce(addr net.Addr) (stop func()) { return s.announce(addr) }
+
 // AvahiService is the announcement as an avahi static service file (/etc/avahi/services/*.service), for nodes
 // that already run avahi: the node's daemon announces the hub, so the pod needs no hostNetwork. The chart writes
 // it with an init container (mdns.avahi, docs/deploy.md). port is what the record carries; apps use the TXT url.

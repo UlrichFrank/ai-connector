@@ -1,6 +1,6 @@
 package main
 
-// The discovery file of the local apps: `ai-connector vboard` writes the address of its loopback hub and a client
+// The discovery file of the local apps: `ai-connector local` and `ai-connector vboard` write the address of its loopback hub and a client
 // token to <config>/local-ai.json (mode 0600, so only this user's apps read it), and removes it when it ends. An app
 // on this machine (EDDy) reads it and uses the OpenAI API (docs/api.md, "Local apps") — the models of this computer,
 // loaded once for all of them.
@@ -39,6 +39,16 @@ func writeLocalAI(root string, info localAI) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), filepath.Join(root, localAIFile))
+}
+
+// readLocalAI reads the file (ai-connector local --print-token: the running one's token).
+func readLocalAI(root string) (localAI, error) {
+	var info localAI
+	b, err := os.ReadFile(filepath.Join(root, localAIFile))
+	if err != nil {
+		return info, err
+	}
+	return info, json.Unmarshal(b, &info)
 }
 
 // removeLocalAI removes the file when it is still this process's (another one may have taken over).

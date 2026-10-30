@@ -44,6 +44,10 @@ type Config struct {
 	// MDNS announces the hub on the LAN (Bonjour, mdns.go) while Run serves; MDNSName is its instance name.
 	MDNS     bool
 	MDNSName string
+	// Owner: the one user of a standalone hub (`ai-connector local`): every device that signs in acts for it,
+	// whatever user name it gives, so the clients it makes or links (PIN) run Claude Code on the hub's own worker,
+	// whose owner it is. "": each device for the user it names (a server).
+	Owner string
 }
 
 // FromEnv reads MLXLAB_PASSWORD, MLXLAB_WORKER_TOKEN, MLXLAB_DATA, MLXLAB_ADDR, MLXLAB_TOOLS, MLXLAB_EMBED_MODEL,
@@ -341,6 +345,9 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	// checked before the invite, so a missing name does not use the code up
 	user := cleanUser(body.User)
+	if s.cfg.Owner != "" {
+		user = s.cfg.Owner
+	}
 	if user == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "user", "message": "Who uses this device? A user name is needed"})
 		return

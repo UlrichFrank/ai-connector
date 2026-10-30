@@ -67,13 +67,15 @@ domain `local.`, the instance name `MLXLAB_MDNS_NAME` (default `AI Connector`), 
 | `path` | `/` |
 
 `MLXLAB_MDNS` turns it off (`0`, `false`, `off`; default on). A failed registration only logs. `ai-connector vboard`'s
-built-in server (loopback only) never announces. In Kubernetes the multicast reaches the LAN only with `hostNetwork`
+built-in server (loopback only) never announces; `ai-connector local --lan` does, as `<host> (ai-connector)` (or
+`--name`) on its port (default 8485), TXT `role=hub`, `path=/` (no `url`), and withdraws it when it ends. In Kubernetes the multicast reaches the LAN only with `hostNetwork`
 (docs/deploy.md, `mdns.enabled`).
 
 ## Local apps (the discovery file)
 
-Apps on the same computer as `ai-connector vboard` (EDDy, scripts) use its models without any setup: while it runs,
-it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, so only the same user reads it):
+Apps on the same computer as `ai-connector local` or `ai-connector vboard` (OpenCAD, EDDy, scripts) use its models
+without any setup: while it runs, it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, so
+only the same user reads it):
 
 ```json
 { "url": "http://127.0.0.1:52817", "token": "aic_…", "pid": 4711 }
@@ -81,8 +83,15 @@ it keeps `<config>/local-ai.json` (`~/.config/mlxlab/local-ai.json`; mode 0600, 
 
 * `url`: the built-in hub on a loopback port (a new one at every start); the OpenAI API below with `token` as client
   token (the client "local apps", owner `local`: Claude Code runs as this computer's user).
-* The token stays the same across restarts (kept in `<config>/vboard/standalone.json`); removing the client in the
-  console makes a new one at the next start.
+* The token stays the same across restarts (kept in `<config>/local/standalone.json`, `<config>/vboard/…` for
+  `ai-connector vboard`); removing the client in the console makes a new one at the next start.
+* `ai-connector local` is `ai-connector vboard` without the vboard connector (also `ai-connector serve
+  --standalone`): the hub inside the process, this computer its one worker (Claude Code too), its files in
+  `<config>/local`. `--addr HOST:PORT` (loopback only; default a free port), `--install` / `--uninstall` (start at
+  login with the same flags), `--print-token` (the token, for an app on another computer). With `--lan` it listens
+  on every interface (default port 8485), announces itself (Bonjour, above) and apps on other computers link with a
+  PIN (above), approved at `<base>/pin` after signing in with the console password it prints. Everyone signed in to
+  it acts for the owner `local`, so linked apps run Claude Code here too. `url` stays the loopback address.
 * The file is written once the hub listens and removed when it ends; a file left by a crash names a port nobody
   answers on — apps treat a refused connection as "no local AI".
 

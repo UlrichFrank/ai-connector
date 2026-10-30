@@ -136,6 +136,24 @@ each stage: `d508560` (classify), `0992b68` (+ embed), `f914d44` (+ chat with to
 rolling updates, chat status), and vboard's `ai-agents` branch (+ several agents per bridge, which the agent list
 needs; older vboards see the default chat model only).
 
+#### Standalone for local apps (OpenCAD, scripts)
+
+`ai-connector vboard` without vboard: the server inside the process, this computer its one worker (Claude Code too,
+when it is installed and logged in here), no connector, no token to paste.
+
+```bash
+ai-connector local                       # this computer only: a free loopback port
+ai-connector local --lan                 # other computers too: port 8485, Bonjour, apps link with a PIN
+ai-connector local --lan --install       # start it at login with these flags (--uninstall)
+ai-connector local --print-token         # the apps' token, to type into an app on another computer
+```
+
+Apps on this computer find the address and a client token in `<files>/local-ai.json` while it runs (docs/api.md,
+"Local apps"). With `--lan` it prints its addresses and the console password: an app on another computer shows a
+PIN, approve it at `<address>/pin`; linked apps get Claude Code here too. Its files are in `<files>/local` (apart from
+`ai-connector vboard`'s); one runs at a time per `$MLXLAB_HOME`. `ai-connector serve --standalone` is the same;
+`ai-connector local --help` for the rest.
+
 ### Console
 
 The server has two web apps: the **console** of ai-connector under `/console/` (`console/`, embedded from

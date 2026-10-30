@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -100,5 +101,55 @@ func TestLocalClientKeepsItsToken(t *testing.T) {
 	}
 	if n := len(s2.clients.list()); n != 1 {
 		t.Fatalf("%d clients, want 1", n)
+	}
+}
+
+// The standalone hub of `ai-connector local --lan` (Config.Owner): a device signed in with the password acts for the
+// hub's one owner whatever user name it gives, so an app linked with a PIN it approves runs Claude Code on the hub's
+// own worker (owner "local").
+func TestStandaloneLinkedClientRunsClaude(t *testing.T) {
+	s, srv := newHubWith(t, Config{Password: password, Data: t.TempDir(), Tools: t.TempDir(), Owner: "local"})
+	base := srv.URL
+	tok, err := s.LocalWorker("this-mac", "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wk, _ := s.workers.lookup(tok)
+	dev := signInAs(t, base, "phone", "Philipp")
+	var info map[string]any
+	decode(t, do(t, "GET", base+"/api/info", dev, nil), &info)
+	if info["user"] != "local" {
+		t.Fatalf("signed in as %v, want the hub's owner", info["user"])
+	}
+
+	st := startLink(t, base, "OpenCAD")
+	if code, out := decideLink(t, base, dev, normalizePIN(st.UserCode), true); code != 200 || out["client"].(map[string]any)["owner"] != "local" {
+		t.Fatalf("approve: %d %v", code, out)
+	}
+	code, out := pollLink(t, base, st.DeviceCode)
+	if code != 200 {
+		t.Fatalf("token: %d %v", code, out)
+	}
+	app := out["token"].(string)
+
+	chat, _ := startClaudeChatMac(t, base, tok)
+	waitFor(t, "the worker known", func() bool { return workerItems(t, base, dev)[wk.ID].Specs != nil })
+	code, b := post(t, base+"/v1/chat/completions", app, `{"model":"claude-code/sonnet","messages":[{"role":"user","content":"hi"}]}`)
+	if code != 200 || !strings.Contains(string(b), "Hello!") {
+		t.Fatalf("v1: %d %s", code, b)
+	}
+	if got := chat.last(); got.Owner != "local" || got.Client != "OpenCAD" {
+		t.Fatalf("job: owner %q client %q", got.Owner, got.Client)
+	}
+}
+
+// Without an owner (a server) each device keeps the user it names.
+func TestServerDeviceKeepsItsUser(t *testing.T) {
+	_, srv := newHub(t, t.TempDir())
+	dev := signInAs(t, srv.URL, "phone", "Philipp")
+	var info map[string]any
+	decode(t, do(t, "GET", srv.URL+"/api/info", dev, nil), &info)
+	if info["user"] != "Philipp" {
+		t.Fatalf("user %v", info["user"])
 	}
 }
