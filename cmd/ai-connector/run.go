@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/philipparndt/ai-connector/internal/engine"
 	"github.com/philipparndt/ai-connector/internal/jobs"
@@ -52,6 +53,7 @@ func (o *runOptions) flags(fs *flag.FlagSet) {
 }
 
 func (o *runOptions) run(mgr *jobs.Manager, args []string) error {
+	defer mgr.Unload() // like mlxlab serve: a server runtime's server, with its model in memory, does not outlive the job
 	if len(args) < 2 {
 		usage()
 		return errors.New("run: a model and a prompt")
@@ -105,7 +107,7 @@ func (o *runOptions) run(mgr *jobs.Manager, args []string) error {
 		return err
 	}
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sig
 		_ = mgr.Cancel(j.ID)
