@@ -25,7 +25,7 @@ pinned one by one with checksums (`internal/llm`, `internal/models`) and their e
 | `music` | `music` | ACE-Step, Stable Audio 3, MiniMax Music 3, LeVo 2, HeartMuLa, YuE2 | `runtime` (the song runtime), `workerModel`; `maxSeconds`, `lora` {`file`, `trigger`, `scale`} |
 | `speech` | `speech` | Kokoro, Qwen3-TTS, Chatterbox, VoxCPM2, Higgs, Voxtral, Qwen3-ASR, Qwen3-ForcedAligner | `workerModel` (the family; its tasks, voices and languages come from it); a family the catalogue does not know: `speech` ("A speech family of its own") |
 | `sound` | `sound` | MOSS-SoundEffect | `workerModel` |
-| a generic runtime | its `kinds` | a new library's models ("Generic runtimes") | `workerModel`; `params` |
+| a generic runtime | its `kinds` | a new library's models ("Generic runtimes"); `detect` only here (SAM 3.1) | `workerModel`; `params` |
 | a server runtime | `chat` | mlx-lm, mlx-vlm, llama.cpp ("Server runtimes") | `workerModel` (a GGUF file); `images` |
 | `comfyui` | `image`, `video` | a ComfyUI workflow ("ComfyUI") | `workflow`, `inputs`, `folders` |
 
@@ -131,7 +131,7 @@ backend, which speaks the job protocol with the worker script.
 
 | Field | |
 |---|---|
-| `generic`, `kinds`, `output` | the kinds its models may be, and the extension of what it makes (`png`, `wav`, `mp4`, …) |
+| `generic`, `kinds`, `output` | the kinds its models may be, and the extension of what it makes (`png`, `wav`, `mp4`, …); `json`: the file is also the job's `result` (a detector's boxes) |
 | `heavy` | its model takes so much memory that the queue unloads the other heavy ones first — the default; `false` for a small one that may stay beside them |
 
 The script reads one JSON request per line on stdin and writes events as JSON lines on file descriptor 3 (`status`,
@@ -170,6 +170,13 @@ runtime the catalogue has already is left out.
 `docs/examples/` has one that was tried: spandrel with Real-ESRGAN x4 (`runtimes.d/spandrel/`, `models.d/realesrgan-x4.json`)
 — copy both into the config dir, allow local runtimes, and `realesrgan-x4` upscales images (512² to 2048² in about
 5 s on an M2 Pro, after uv has installed the environment once).
+
+A second one is a detector, the kind `detect`: SAM 3.1 through mlx-vlm (`runtimes.d/sam3`, `models.d/sam3.1.json`).
+A job names images and what to find in them (`texts`, e.g. `["ball"]`); the result is JSON with the boxes and scores
+per image (docs/api.md "Native jobs API"). About 2 s a picture on an M2 Pro (5.6 GB at the peak); on a handball
+video's labelled frames it found the ball as often as SAM 3.1 through its own Swift app (43 of 72 at a score of 0.5).
+Uses: a ball or players in sports videos, faces or license plates to blur before sharing, a signature or a table on
+a scanned page, counting things on a photo.
 
 ### Server runtimes: models the built-in engines do not have
 

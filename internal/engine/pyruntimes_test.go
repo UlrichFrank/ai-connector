@@ -118,65 +118,21 @@ func TestCheckParams(t *testing.T) {
 // A machine's own runtime (runtimes.d) and model (models.d), no Go: the worker script gets the request with the
 // model's defaults, its params and the model's folder, and its result becomes the job's file.
 func TestLocalGenericRuntime(t *testing.T) {
-	py, err := exec.LookPath("python3")
-	if err != nil {
-		t.Skip("python3 runs the worker")
-	}
-	cfg, root, out := t.TempDir(), t.TempDir(), t.TempDir()
-	d := filepath.Join(cfg, "runtimes.d", "echo-test")
-	os.MkdirAll(d, 0o755)
-	envs := `{"python": "3.12"}`
-	var all []string
-	for _, p := range Platforms {
-		if !strings.HasPrefix(p, "windows") { // no generic runtime on Windows (fd 3)
-			all = append(all, `"`+p+`": `+envs)
-		}
-	}
-	os.WriteFile(filepath.Join(d, "runtime.json"), []byte(`{"name": "echo-test", "script": "echo.py", "generic": true,
-	  "kinds": ["image"], "output": "txt", "envs": {`+strings.Join(all, ", ")+`}}`), 0o644)
-	os.WriteFile(filepath.Join(d, "echo.py"), []byte(`import json, os, sys
+	m, b, out := localRuntime(t, "echo-test", "image", "txt", `import json, os, sys
 ev = os.fdopen(3, "w", buffering=1)
 ev.write(json.dumps({"type": "ready"}) + "\n")
 for line in sys.stdin:
     req = json.loads(line)
     open(req["output"], "w").write(json.dumps(req))
     ev.write(json.dumps({"type": "result", "file": req["output"], "seconds": 0.1}) + "\n")
-`), 0o644)
-	if errs := AddLocalRuntimes(filepath.Join(cfg, "runtimes.d")); len(errs) > 0 {
-		t.Fatal(errs)
-	}
-	t.Cleanup(func() {
-		runtimesMu.Lock()
-		delete(runtimes(), "echo-test")
-		runtimesMu.Unlock()
-	})
-	if !RuntimeRuns("echo-test") || !strings.Contains(strings.Join(GenericRuntimes(), ","), "echo-test") {
-		t.Fatal("the local runtime does not run here")
-	}
-	// its environment: python is the system's (no packages to install)
-	env := runtimeEnv("echo-test")
-	os.MkdirAll(filepath.Dir(env.Bin(root, "python")), 0o755)
-	os.WriteFile(filepath.Join(env.Dir(root), ".mlxlab-ready"), nil, 0o644)
-	os.Symlink(py, env.Bin(root, "python"))
-
-	store := &models.Store{Dir: filepath.Join(root, "models")}
-	md := filepath.Join(cfg, "models.d")
-	os.MkdirAll(md, 0o755)
-	os.WriteFile(filepath.Join(md, "echo-1.json"), []byte(`{"id": "echo-1", "name": "Echo", "kind": "image", "backend": "echo-test",
+`, `{"id": "echo-1", "name": "Echo", "kind": "image", "backend": "echo-test",
 	  "about": "a test", "licence": "MIT", "size": 1, "tasks": ["upscale"],
 	  "defaults": {"scale": 2, "steps": 4},
 	  "params": {"tile": {"type": "integer", "default": 256, "minimum": 64}},
-	  "runtimeArgs": {"workerModel": "echo"}}`), 0o644)
-	c := &Catalog{}
-	if errs := c.AddLocal(md, store); len(errs) > 0 {
-		t.Fatal(errs)
-	}
-	m := c.Find("echo-1")
-	if m == nil || !ModelRuns(m) || m.Params["tile"].Default != 256.0 {
+	  "runtimeArgs": {"workerModel": "echo"}}`)
+	if m.Params["tile"].Default != 256.0 {
 		t.Fatalf("%+v", m)
 	}
-	b := &RuntimeBackend{Root: root, Store: store, Runtime: "echo-test"}
-	t.Cleanup(b.Unload)
 	var files []string
 	emit := func(e Event) {
 		if e.Type == "file" {
@@ -203,4 +159,98 @@ for line in sys.stdin:
 	if err := b.Run(context.Background(), m, Request{Model: "echo-1", Params: map[string]any{"tile": 8.0}}, out, emit); err == nil || !strings.Contains(err.Error(), "below 64") {
 		t.Errorf("tile 8: %v", err)
 	}
+}
+
+// A runtime whose output is "json" (detect): the file it writes is also the job's result.
+func TestLocalJSONRuntime(t *testing.T) {
+	m, b, out := localRuntime(t, "boxes-test", "detect", "json", `import json, os, sys
+ev = os.fdopen(3, "w", buffering=1)
+ev.write(json.dumps({"type": "ready"}) + "\n")
+for line in sys.stdin:
+    req = json.loads(line)
+    res = {"images": [{"image": 0, "detections": [{"text": t, "box": [1, 2, 3, 4], "score": 0.9} for t in req["texts"]]}]}
+    open(req["output"], "w").write(json.dumps(res))
+    ev.write(json.dumps({"type": "result", "file": req["output"], "seconds": 0.1}) + "\n")
+`, `{"id": "boxes-1", "name": "Boxes", "kind": "detect", "backend": "boxes-test",
+	  "about": "a test", "licence": "MIT", "size": 1, "runtimeArgs": {"workerModel": "boxes"}}`)
+	var files []string
+	var result map[string]any
+	emit := func(e Event) {
+		switch e.Type {
+		case "file":
+			files = append(files, e.File)
+		case "result":
+			result = e.Data
+		}
+	}
+	if err := b.Run(context.Background(), m, Request{Model: "boxes-1", Texts: []string{"ball", "player"}}, out, emit); err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 || !strings.HasSuffix(files[0], "-boxes-1.json") {
+		t.Fatalf("files %v", files)
+	}
+	imgs, _ := result["images"].([]any)
+	if len(imgs) != 1 {
+		t.Fatalf("result %v", result)
+	}
+	dets, _ := imgs[0].(map[string]any)["detections"].([]any)
+	if len(dets) != 2 || dets[1].(map[string]any)["text"] != "player" {
+		t.Errorf("detections %v", dets)
+	}
+}
+
+// localRuntime makes a runtime of runtimes.d (its script, the system's python) and one model of models.d for it.
+func localRuntime(t *testing.T, name, kind, output, script, manifest string) (*Model, *RuntimeBackend, string) {
+	t.Helper()
+	py, err := exec.LookPath("python3")
+	if err != nil {
+		t.Skip("python3 runs the worker")
+	}
+	cfg, root, out := t.TempDir(), t.TempDir(), t.TempDir()
+	d := filepath.Join(cfg, "runtimes.d", name)
+	os.MkdirAll(d, 0o755)
+	envs := `{"python": "3.12"}`
+	var all []string
+	for _, p := range Platforms {
+		if !strings.HasPrefix(p, "windows") { // no generic runtime on Windows (fd 3)
+			all = append(all, `"`+p+`": `+envs)
+		}
+	}
+	os.WriteFile(filepath.Join(d, "runtime.json"), []byte(`{"name": "`+name+`", "script": "worker.py", "generic": true,
+	  "kinds": ["`+kind+`"], "output": "`+output+`", "envs": {`+strings.Join(all, ", ")+`}}`), 0o644)
+	os.WriteFile(filepath.Join(d, "worker.py"), []byte(script), 0o644)
+	if errs := AddLocalRuntimes(filepath.Join(cfg, "runtimes.d")); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	t.Cleanup(func() {
+		runtimesMu.Lock()
+		delete(runtimes(), name)
+		runtimesMu.Unlock()
+	})
+	if !RuntimeRuns(name) || !strings.Contains(strings.Join(GenericRuntimes(), ","), name) {
+		t.Fatal("the local runtime does not run here")
+	}
+	// its environment: python is the system's (no packages to install)
+	env := runtimeEnv(name)
+	os.MkdirAll(filepath.Dir(env.Bin(root, "python")), 0o755)
+	os.WriteFile(filepath.Join(env.Dir(root), ".mlxlab-ready"), nil, 0o644)
+	os.Symlink(py, env.Bin(root, "python"))
+
+	store := &models.Store{Dir: filepath.Join(root, "models")}
+	md := filepath.Join(cfg, "models.d")
+	os.MkdirAll(md, 0o755)
+	var id struct{ ID string }
+	json.Unmarshal([]byte(manifest), &id)
+	os.WriteFile(filepath.Join(md, id.ID+".json"), []byte(manifest), 0o644)
+	c := &Catalog{}
+	if errs := c.AddLocal(md, store); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	m := c.Find(id.ID)
+	if m == nil || !ModelRuns(m) {
+		t.Fatalf("%+v", m)
+	}
+	b := &RuntimeBackend{Root: root, Store: store, Runtime: name}
+	t.Cleanup(b.Unload)
+	return m, b, out
 }

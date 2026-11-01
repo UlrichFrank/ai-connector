@@ -25,10 +25,11 @@ const (
 	Speech   Kind = "speech" // text to speech, voices (internal/engine/speech.go)
 	Avatar   Kind = "avatar" // a talking video from a portrait and speech (internal/engine/avatar.go)
 	Sound    Kind = "sound"  // sound effects from a description (internal/engine/sound.go)
+	Detect   Kind = "detect" // boxes of what text prompts name in images (generic runtimes; docs/models.md)
 )
 
 // Kinds in the order the UIs list them.
-var Kinds = []Kind{Chat, Image, Video, Music, Speech, Avatar, Sound, Embed, Classify}
+var Kinds = []Kind{Chat, Image, Video, Music, Speech, Avatar, Sound, Detect, Embed, Classify}
 
 // Request is one job for a model. Only the fields of the model's kind are read.
 type Request struct {

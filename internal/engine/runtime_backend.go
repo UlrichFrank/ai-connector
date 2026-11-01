@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -108,6 +109,14 @@ func (b *RuntimeBackend) Run(ctx context.Context, m *Model, r Request, outDir st
 		return err
 	}
 	emit(Event{Type: "file", File: ev.File})
+	if rt.Output == "json" {
+		// a JSON result (detect: the boxes) is also the job's result, so a client needs no second request
+		data, err := jsonResult(ev.File)
+		if err != nil {
+			return err
+		}
+		emit(Event{Type: "result", Data: data})
+	}
 	st := map[string]any{"seconds": ev.Seconds, "peakGB": ev.PeakGB}
 	if ev.Width > 0 && ev.Height > 0 {
 		st["width"], st["height"] = ev.Width, ev.Height
@@ -234,4 +243,17 @@ func CheckParams(m *Model, given map[string]any) (map[string]any, error) {
 		}
 	}
 	return out, nil
+}
+
+// jsonResult reads the JSON object a runtime with output "json" wrote.
+func jsonResult(file string) (map[string]any, error) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	var data map[string]any
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, fmt.Errorf("the runtime's result %s is not a JSON object: %v", filepath.Base(file), err)
+	}
+	return data, nil
 }

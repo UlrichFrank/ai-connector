@@ -148,13 +148,13 @@ func (m *Model) SetRepo(repo, rev string) { m.repo, m.rev = repo, rev }
 // setupKind: the setup offers models of this kind.
 func setupKind(k Kind) bool {
 	switch k {
-	case Chat, Embed, Classify, Image, Video, Music, Sound, Speech:
+	case Chat, Embed, Classify, Image, Video, Music, Sound, Speech, Detect:
 		return true
 	}
 	return false
 }
 
-// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video, music, sound, speech) whose
+// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video, music, sound, speech, detect) whose
 // files this worker can fetch (not Claude Code, not a local runtime's).
 func Downloadable(m *Model) bool {
 	if !setupKind(m.Kind) {
@@ -263,7 +263,7 @@ func FitsMemory(m *Model, mem int64) bool {
 			return m.chat.Fits(mem)
 		}
 		return m.Size*100/70 < mem
-	case Image, Video:
+	case Image, Video, Detect:
 		return m.Size < mem
 	case Music, Sound, Speech:
 		return m.Size*2 < mem

@@ -1,0 +1,24 @@
+{
+  "id": "sam3.1",
+  "name": "SAM 3.1 (mlx-vlm)",
+  "kind": "detect",
+  "backend": "sam3",
+  "about": "Meta's SAM 3.1 (SAM licence) through mlx-vlm: boxes of whatever the texts name, in every image of the request; about 1.8 s an image on an M2 Pro",
+  "licence": "SAM License",
+  "size": 3493042370,
+  "memory": 8,
+  "source": {
+    "repo": "mlx-community/sam3.1-bf16",
+    "rev": "a992e302ea9b0f03f41dfd93414a4fd0e818f65b",
+    "files": ["config.json", "model.safetensors"]
+  },
+  "here": ["config.json", "model.safetensors"],
+  "defaults": {},
+  "params": {
+    "threshold": {"type": "number", "default": 0.5, "minimum": 0, "maximum": 1,
+                  "description": "the lowest score a box is kept with"},
+    "maxBoxes": {"type": "integer", "default": 20, "minimum": 1, "maximum": 200,
+                 "description": "the most boxes an image gets (the best first)"}
+  },
+  "runtimeArgs": {"workerModel": "sam3.1"}
+}
