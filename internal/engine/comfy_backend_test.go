@@ -3,11 +3,15 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/philipparndt/ai-connector/internal/models"
 )
@@ -141,5 +145,68 @@ http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
 	}
 	if b.Loaded() != "sd-test" {
 		t.Errorf("loaded %q", b.Loaded())
+	}
+}
+
+// comfyWaiting is a backend whose ComfyUI answers with the handler; its process runs as long as the test.
+func comfyWaiting(t *testing.T, h http.HandlerFunc) *ComfyBackend {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	return &ComfyBackend{srv: &ServerBackend{base: srv.URL, cmd: &exec.Cmd{}, exit: make(chan struct{})}}
+}
+
+// A job that runs is waited for as long as it takes, one ComfyUI has lost and a ComfyUI that does not answer end it.
+func TestComfyWait(t *testing.T) {
+	old := comfyQuiet
+	comfyQuiet = 300 * time.Millisecond
+	t.Cleanup(func() { comfyQuiet = old })
+	done := `{"p1": {"status": {"status_str": "success"}, "outputs": {"9": {"images": [{"filename": "a.png", "type": "output"}]}}}}`
+
+	var polls atomic.Int32
+	b := comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/queue":
+			w.Write([]byte(`{"queue_running": [[0, "p1", {}]], "queue_pending": [[1, "p2", {}]]}`))
+		case polls.Add(1) > comfyLost+1: // runs longer than a lost job would be looked for, and longer than comfyQuiet
+			w.Write([]byte(done))
+		default:
+			w.Write([]byte(`{}`))
+		}
+	})
+	if out, err := b.wait(context.Background(), "p1"); err != nil || out.Filename != "a.png" {
+		t.Errorf("a job that runs: %+v %v", out, err)
+	}
+
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/queue" {
+			w.Write([]byte(`{"queue_running": [], "queue_pending": [[1, "p2", {}]]}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	})
+	if _, err := b.wait(context.Background(), "p1"); err == nil || !strings.Contains(err.Error(), "lost") {
+		t.Errorf("a lost job: %v", err)
+	}
+
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
+	if _, err := b.wait(context.Background(), "p1"); err == nil || !strings.Contains(err.Error(), "no answer") {
+		t.Errorf("no answer: %v", err)
+	}
+
+	// no answer to /queue says nothing about the job; it goes on until the history answers
+	polls.Store(0)
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/queue":
+			w.WriteHeader(http.StatusInternalServerError)
+		case polls.Add(1) > comfyLost+1:
+			w.Write([]byte(done))
+		default:
+			w.Write([]byte(`{}`))
+		}
+	})
+	if _, err := b.wait(context.Background(), "p1"); err != nil {
+		t.Errorf("no answer to /queue: %v", err)
 	}
 }

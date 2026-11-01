@@ -265,7 +265,65 @@ type comfyOutput struct {
 }
 
 // wait polls the prompt's history until it is done; canceled, it interrupts ComfyUI.
+// comfyQuiet is how long ComfyUI may give no answer about a job before the job fails: a long model load may hold it up
+// (localHTTP gives each question 10 s), a ComfyUI that hangs must not hold the job and the backend forever. How long a
+// workflow may run has no limit: a video takes hours.
+var comfyQuiet = 5 * time.Minute
+
+// comfyLost is how many times in a row a job must be neither in the history nor in the queue before it counts as lost
+// (it moves from one to the other between the two questions).
+const comfyLost = 3
+
+type comfyHistory map[string]struct {
+	Status struct {
+		Str      string            `json:"status_str"`
+		Messages []json.RawMessage `json:"messages"`
+	} `json:"status"`
+	Outputs map[string]map[string]json.RawMessage `json:"outputs"`
+}
+
+// history is what ComfyUI has of a finished job; a job that waits or runs is not in it.
+func (b *ComfyBackend) history(ctx context.Context, id string) (comfyHistory, error) {
+	var h comfyHistory
+	return h, b.getJSON(ctx, "/history/"+url.PathEscape(id), &h)
+}
+
+// queued: the job waits or runs.
+func (b *ComfyBackend) queued(ctx context.Context, id string) (bool, error) {
+	var q struct {
+		Running [][]json.RawMessage `json:"queue_running"`
+		Pending [][]json.RawMessage `json:"queue_pending"`
+	}
+	if err := b.getJSON(ctx, "/queue", &q); err != nil {
+		return false, err
+	}
+	for _, item := range append(q.Running, q.Pending...) { // [number, prompt id, prompt, …]
+		var got string
+		if len(item) > 1 && json.Unmarshal(item[1], &got) == nil && got == id {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (b *ComfyBackend) getJSON(ctx context.Context, path string, v any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, b.srv.base+path, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := localHTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("ComfyUI %s: %s", path, resp.Status)
+	}
+	return json.NewDecoder(resp.Body).Decode(v)
+}
+
 func (b *ComfyBackend) wait(ctx context.Context, id string) (comfyOutput, error) {
+	answered, lost := time.Now(), 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -278,22 +336,23 @@ func (b *ComfyBackend) wait(ctx context.Context, id string) (comfyOutput, error)
 		if !b.srv.running() {
 			return comfyOutput{}, fmt.Errorf("ComfyUI stopped:\n%s", b.srv.lastLogs())
 		}
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, b.srv.base+"/history/"+url.PathEscape(id), nil)
-		resp, err := localHTTP.Do(req)
+		h, err := b.history(ctx, id)
 		if err != nil {
+			if time.Since(answered) > comfyQuiet && ctx.Err() == nil {
+				return comfyOutput{}, fmt.Errorf("ComfyUI gave no answer for %s: %w", comfyQuiet, err)
+			}
 			continue
 		}
-		var h map[string]struct {
-			Status struct {
-				Str      string            `json:"status_str"`
-				Messages []json.RawMessage `json:"messages"`
-			} `json:"status"`
-			Outputs map[string]map[string]json.RawMessage `json:"outputs"`
-		}
-		json.NewDecoder(resp.Body).Decode(&h)
-		resp.Body.Close()
+		answered = time.Now()
 		e, ok := h[id]
 		if !ok {
+			if known, err := b.queued(ctx, id); err == nil && !known {
+				if lost++; lost >= comfyLost {
+					return comfyOutput{}, fmt.Errorf("ComfyUI lost the job: it is neither queued nor in its history")
+				}
+			} else {
+				lost = 0
+			}
 			continue
 		}
 		if e.Status.Str == "error" {
