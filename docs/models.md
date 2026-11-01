@@ -213,7 +213,9 @@ request names as the model (default: the `{model}` path).
 | `llama-cpp` | Apple silicon (Metal), Linux (CUDA, ROCm, CPU), Windows (CUDA; AMD through Vulkan, RX 6000 too; CPU) | GGUF chat models (`workerModel`: the file) |
 
 Tried here: Qwen3 0.6B through mlx-lm and through llama.cpp (the Mac build, fetched by the worker), SmolVLM 256M
-through mlx-vlm with a picture (`docs/examples/models.d`). The Linux and Windows archives are pinned with their
+and Qwen3-VL 8B through mlx-vlm with a picture (`docs/examples/models.d`). Qwen3-VL 8B (4-bit, M2 Pro, about 1 s a
+picture) read the jersey number on 60 of 68 player crops with a clearly readable number and none wrongly, the
+same as mlx-vlm called directly; it takes the model from the Hugging Face cache, as it names no `hereCache`. The Linux and Windows archives are pinned with their
 checksums but have not been run here.
 
 ## A speech family of its own
