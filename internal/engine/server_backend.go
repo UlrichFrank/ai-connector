@@ -47,6 +47,8 @@ type ServerBackend struct {
 	logs  []string
 	oa    OpenAIBackend
 	state status
+	// onStop: the server is gone, under mu (what a backend on top of this one knows about it)
+	onStop func()
 }
 
 func (b *ServerBackend) Name() string   { return b.Runtime }
@@ -79,6 +81,9 @@ func (b *ServerBackend) stop() {
 	}
 	b.model, b.url, b.key, b.base, b.app = "", "", "", "", ""
 	b.state.set("")
+	if b.onStop != nil {
+		b.onStop()
+	}
 }
 
 func (b *ServerBackend) running() bool {

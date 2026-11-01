@@ -32,13 +32,15 @@ type ComfyBackend struct {
 
 // NewComfyBackend is the backend of the ComfyUI runtime name.
 func NewComfyBackend(root string, store *models.Store, name string) *ComfyBackend {
-	return &ComfyBackend{srv: &ServerBackend{Root: root, Store: store, Runtime: name}}
+	b := &ComfyBackend{srv: &ServerBackend{Root: root, Store: store, Runtime: name}}
+	b.srv.onStop = func() { b.paths, b.last = nil, "" }
+	return b
 }
 
 func (b *ComfyBackend) Name() string   { return b.srv.Runtime }
 func (b *ComfyBackend) Heavy() bool    { return true }
 func (b *ComfyBackend) Loaded() string { return b.srv.Loaded() }
-func (b *ComfyBackend) Unload()        { b.srv.Unload(); b.paths, b.last = nil, "" }
+func (b *ComfyBackend) Unload()        { b.srv.Unload() }
 
 func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir string, emit Emit) error {
 	s := b.srv

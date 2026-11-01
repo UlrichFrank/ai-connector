@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -209,4 +210,31 @@ func TestComfyWait(t *testing.T) {
 	if _, err := b.wait(context.Background(), "p1"); err != nil {
 		t.Errorf("no answer to /queue: %v", err)
 	}
+}
+
+// What it knows about its server goes with the server, under the lock of the jobs: an Unload does not wipe what a job
+// that came right after it has just set, which would stop that ComfyUI for nothing.
+func TestComfyUnloadKeepsNextJob(t *testing.T) {
+	b := NewComfyBackend(t.TempDir(), nil, "comfy-unload-test")
+	b.paths, b.last = map[string]map[string]bool{"checkpoints": {"/a": true}}, "m"
+	b.Unload()
+	if b.paths != nil || b.last != "" {
+		t.Errorf("after Unload: %v %q", b.paths, b.last)
+	}
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			b.Unload()
+		}()
+		go func() { // what Run does
+			defer wg.Done()
+			b.srv.mu.Lock()
+			defer b.srv.mu.Unlock()
+			b.srv.stop()
+			b.paths, b.last = map[string]map[string]bool{}, "m"
+		}()
+	}
+	wg.Wait()
 }
