@@ -5,10 +5,16 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -155,6 +161,69 @@ http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
 
 // A server a dead worker left behind (its pid file) is ended before the next start; a pid now of another program is
 // left alone.
+// toolsRuntime is a server runtime whose program is the archive the handler serves (the archive's sum when it is given).
+func toolsRuntime(t *testing.T, name string, archive []byte, h http.HandlerFunc) string {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	sum := sha256.Sum256(archive)
+	rt := &RuntimeManifest{Name: name, Kinds: []Kind{Chat},
+		Tools: map[string][]ToolArchive{Platform(): {{URL: srv.URL + "/x.tar.gz", SHA256: hex.EncodeToString(sum[:])}}}}
+	runtimesMu.Lock()
+	runtimes()[name] = rt
+	runtimesMu.Unlock()
+	t.Cleanup(func() {
+		runtimesMu.Lock()
+		delete(runtimes(), name)
+		runtimesMu.Unlock()
+	})
+	return t.TempDir()
+}
+
+// A download's preparing and a job's start of the same runtime: one fetches, the other waits and finds it ready.
+func TestEnsureToolsTogether(t *testing.T) {
+	archive, err := os.ReadFile(tarGz(t, tar.Header{Name: "bin/server", Typeflag: tar.TypeReg, Mode: 0o755}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fetched atomic.Int32
+	root := toolsRuntime(t, "tools-together", archive, func(w http.ResponseWriter, r *http.Request) {
+		fetched.Add(1)
+		time.Sleep(50 * time.Millisecond) // the others arrive meanwhile
+		w.Write(archive)
+	})
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dir, err := ensureTools(context.Background(), root, "tools-together", func(string) {})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if _, err := os.Stat(filepath.Join(dir, "bin", "server")); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+	if n := fetched.Load(); n != 1 {
+		t.Errorf("fetched %d times", n)
+	}
+	// while another fetches, a canceled job does not wait
+	dir, _, _ := toolDir(root, "tools-together")
+	os.Remove(filepath.Join(dir, ".mlxlab-ready"))
+	slot, _ := toolLocks.Load(dir)
+	slot.(chan struct{}) <- struct{}{}
+	defer func() { <-slot.(chan struct{}) }()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := ensureTools(ctx, root, "tools-together", func(string) {}); err != context.Canceled {
+		t.Errorf("canceled while waiting: %v", err)
+	}
+}
+
 func TestKillLeftover(t *testing.T) {
 	sleep, err := exec.LookPath("sleep")
 	if err != nil {

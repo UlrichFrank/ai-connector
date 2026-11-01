@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 // A server runtime's program from its release archives (RuntimeManifest.Tools): fetched once into
@@ -34,11 +35,22 @@ func toolDir(root, name string) (string, []ToolArchive, bool) {
 	return filepath.Join(root, "tools", name+"-"+hex.EncodeToString(h.Sum(nil))[:8]), as, true
 }
 
+// toolLocks: one fetches a folder of tools at a time, a download's preparing and a job's start of the same runtime wait
+// for each other (each would remove what the other is unpacking). A slot, not a mutex: a job that waits can be canceled.
+var toolLocks sync.Map // the folder → chan struct{}
+
 // ensureTools fetches and unpacks the runtime's archives if they are not there yet.
 func ensureTools(ctx context.Context, root, name string, log func(string)) (string, error) {
 	dir, as, ok := toolDir(root, name)
 	if !ok {
 		return "", fmt.Errorf("%s has no program for %s", name, Platform())
+	}
+	slot, _ := toolLocks.LoadOrStore(dir, make(chan struct{}, 1))
+	select {
+	case slot.(chan struct{}) <- struct{}{}:
+		defer func() { <-slot.(chan struct{}) }()
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
 	ready := filepath.Join(dir, ".mlxlab-ready")
 	if _, err := os.Stat(ready); err == nil {
