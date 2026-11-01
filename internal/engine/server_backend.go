@@ -192,7 +192,7 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 		args = append(args, strings.ReplaceAll(expand(a, model, dir, strconv.Itoa(port)), "{app}", app))
 	}
 	args = append(args, b.ExtraArgs...)
-	killLeftover(b.Root, rt.Name, prog) // a server of a worker that died before it could end it
+	killLeftover(b.Root, rt.Name) // a server of a worker that died before it could end it
 	emit(Event{Type: "status", Text: "starting " + rt.Name + " …"})
 	cmd := exec.Command(prog, args...)
 	ownGroup(cmd)
@@ -317,30 +317,50 @@ func cleanEnv(env []string) []string {
 	return out
 }
 
-// The pid file of a runtime's server (<config dir>/run/<runtime>.pid: pid and program): a worker that died (killed,
-// crashed) leaves its server running with its model in memory; the next start ends it first.
+// The pid file of a runtime's server (<config dir>/run/<runtime>.pid: pid, program, the time it started): a worker that
+// died (killed, crashed) leaves its server running with its model in memory; the next start ends it first.
 func pidFile(root, name string) string { return filepath.Join(root, "run", name+".pid") }
 
 func writePidFile(root, name string, pid int, prog string) {
 	os.MkdirAll(filepath.Join(root, "run"), 0o700)
-	os.WriteFile(pidFile(root, name), []byte(strconv.Itoa(pid)+"\n"+prog+"\n"), 0o600)
+	start, _ := processStart(pid)
+	os.WriteFile(pidFile(root, name), []byte(strconv.Itoa(pid)+"\n"+prog+"\n"+start+"\n"), 0o600)
 }
 
 func removePidFile(root, name string) { os.Remove(pidFile(root, name)) }
 
-// killLeftover ends the server a pid file names if it is still that program (a pid may have been reused).
-func killLeftover(root, name, prog string) {
+// killLeftover ends the server a pid file names if it is still that process (a pid may have been reused), whichever
+// program this start would run: after an update the environment's path is another one.
+func killLeftover(root, name string) {
 	b, err := os.ReadFile(pidFile(root, name))
 	if err != nil {
 		return
 	}
 	defer removePidFile(root, name)
-	pidS, was, _ := strings.Cut(strings.TrimSpace(string(b)), "\n")
-	pid, err := strconv.Atoi(pidS)
-	if err != nil || pid <= 1 || was != prog || !alive(pid) || !runs(pid, prog) {
+	f := append(strings.Split(strings.TrimSpace(string(b)), "\n"), "", "")
+	pid, err := strconv.Atoi(f[0])
+	if err != nil || pid <= 1 || !alive(pid) || !sameProcess(pid, f[1], f[2]) {
 		return
 	}
 	killGroup(pid)
+}
+
+// sameProcess: the process pid is the one started as prog at start. The time tells (a reused pid has another); where
+// it is not known, the program's whole path must be in its command line, not just its name: ComfyUI's is "python".
+func sameProcess(pid int, prog, start string) bool {
+	if now, ok := processStart(pid); ok && start != "" {
+		return now == start
+	}
+	return runs(pid, prog)
+}
+
+// processStart is when the process started, as ps says it (ok false: no ps with that field, as on Windows).
+func processStart(pid int) (string, bool) {
+	cmd := exec.Command("ps", "-o", "lstart=", "-p", strconv.Itoa(pid))
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
+	out, err := cmd.Output()
+	start := strings.TrimSpace(string(out))
+	return start, err == nil && start != ""
 }
 
 // runs: the process pid runs prog (its command line names it).
@@ -349,7 +369,7 @@ func runs(pid int, prog string) bool {
 	if err != nil { // no ps (Windows): the pid file is all there is
 		return runtime.GOOS == "windows"
 	}
-	return strings.Contains(string(out), filepath.Base(prog))
+	return prog != "" && strings.Contains(string(out), prog)
 }
 
 func randomKey() string {

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -224,12 +225,13 @@ func TestEnsureToolsTogether(t *testing.T) {
 	}
 }
 
-func TestKillLeftover(t *testing.T) {
+// startLeftover is a process of its own group, like a server its worker left behind; done closes when it has ended.
+func startLeftover(t *testing.T) (*exec.Cmd, string, chan struct{}) {
+	t.Helper()
 	sleep, err := exec.LookPath("sleep")
 	if err != nil {
 		t.Skip("no sleep")
 	}
-	root := t.TempDir()
 	cmd := exec.Command(sleep, "60")
 	ownGroup(cmd)
 	if err := cmd.Start(); err != nil {
@@ -237,20 +239,54 @@ func TestKillLeftover(t *testing.T) {
 	}
 	done := make(chan struct{})
 	go func() { cmd.Wait(); close(done) }()
-	writePidFile(root, "x", cmd.Process.Pid, "/somewhere/else/server")
-	killLeftover(root, "x", "/somewhere/else/server")
+	t.Cleanup(func() {
+		killGroup(cmd.Process.Pid)
+		<-done
+	})
+	return cmd, sleep, done
+}
+
+func stillRuns(t *testing.T, done chan struct{}, what string) {
+	t.Helper()
 	select {
 	case <-done:
-		t.Fatal("another program's pid was killed")
+		t.Fatal(what)
 	case <-time.After(200 * time.Millisecond):
 	}
-	writePidFile(root, "x", cmd.Process.Pid, sleep)
-	killLeftover(root, "x", sleep)
+}
+
+func hasEnded(t *testing.T, done chan struct{}) {
+	t.Helper()
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the leftover server still runs")
 	}
+}
+
+func TestKillLeftover(t *testing.T) {
+	cmd, sleep, done := startLeftover(t)
+	root := t.TempDir()
+	pid := strconv.Itoa(cmd.Process.Pid)
+	write := func(content string) {
+		os.MkdirAll(filepath.Join(root, "run"), 0o700)
+		os.WriteFile(pidFile(root, "x"), []byte(content), 0o600)
+	}
+	// a pid reused: it started at another time, also if it runs the same program
+	write(pid + "\n" + sleep + "\nMon Jan  1 00:00:00 2001\n")
+	killLeftover(root, "x")
+	stillRuns(t, done, "another process of that pid was killed")
+	if _, err := os.Stat(pidFile(root, "x")); err == nil {
+		t.Error("the pid file is still there")
+	}
+	// no time known: the same name in another place (ComfyUI's program is "python") is not the same program
+	write(pid + "\n/somewhere/else/" + filepath.Base(sleep) + "\n")
+	killLeftover(root, "x")
+	stillRuns(t, done, "another program of that name was killed")
+	// the program's path has changed since (an update), the process is the same: ended
+	writePidFile(root, "x", cmd.Process.Pid, "/an/older/environment/server")
+	killLeftover(root, "x")
+	hasEnded(t, done)
 	if _, err := os.Stat(pidFile(root, "x")); err == nil {
 		t.Error("the pid file is still there")
 	}
