@@ -302,6 +302,11 @@ func (mf *Manifest) check() error {
 			return err
 		}
 	}
+	if l := mf.RuntimeArgs.LoRA; l != nil && l.File != "" {
+		if err := localPaths("runtimeArgs.lora.file", l.File); err != nil {
+			return err
+		}
+	}
 	if s := mf.Source; s != nil {
 		if !hubRepoName.MatchString(s.Repo) || strings.Contains(s.Repo, "..") {
 			return fmt.Errorf("source.repo %q is no Hugging Face repository (owner/name)", s.Repo)

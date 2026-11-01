@@ -77,6 +77,8 @@ func TestParseManifest(t *testing.T) {
 		{`"files": ["vae/"]`, `"files": ["../../etc/"]`, "leaves its folder"},
 		{`"here": ["vae/*.safetensors"]`, `"here": ["/etc/passwd"]`, "leaves its folder"},
 		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z", "loader": "os:system"}`, "no mflux class"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z-image-turbo", "lora": {"file": "../../x.safetensors"}}`, "leaves its folder"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z-image-turbo", "lora": {"file": "/etc/x.safetensors"}}`, "leaves its folder"},
 	} {
 		_, err := ParseManifest([]byte(strings.Replace(zImageManifest, c.from, c.to, 1)))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
