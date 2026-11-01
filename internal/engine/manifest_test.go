@@ -130,6 +130,36 @@ func TestAddLocal(t *testing.T) {
 
 // A speech family the catalogue does not know, described by the model's manifest: its tasks and voices come from the
 // description; a model naming an unknown family without one is refused.
+// Manifests of one folder and one family: a second description that differs is refused with the reason, the same one
+// and a manifest without any are fine, whatever the files are called.
+func TestLocalSpeechFamilyTogether(t *testing.T) {
+	manifest := func(id, speech string) []byte {
+		return []byte(`{"id": "` + id + `", "name": "Kitten", "kind": "speech", "backend": "speech", "about": "a test",
+		  "licence": "Apache-2.0", "size": "130 MB",
+		  "sources": [{"key": "model", "repo": "mlx-community/kitten-tts-micro-0.8", "rev": "fd4e8e8677eafd21c5e92433f68532fcf156bd9c"}],
+		  "defaults": {"speed": 1}, "runtimeArgs": {"workerModel": "family-test"` + speech + `}}`)
+	}
+	speech := func(voices string) string {
+		return `, "speech": {"modelType": "kitten_tts", "voices": [` + voices + `], "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`
+	}
+	t.Cleanup(func() { delete(speechFamilies, "family-test") })
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a-uses.json"), manifest("fam-uses", ""), 0o644)
+	os.WriteFile(filepath.Join(dir, "b-first.json"), manifest("fam-first", speech(`"Bella", "Leo"`)), 0o644)
+	os.WriteFile(filepath.Join(dir, "c-same.json"), manifest("fam-same", speech(`"Bella", "Leo"`)), 0o644)
+	os.WriteFile(filepath.Join(dir, "d-other.json"), manifest("fam-other", speech(`"Leo"`)), 0o644)
+	ms, errs := readManifests(os.DirFS(dir), ".")
+	if len(errs) != 1 || !strings.Contains(errs[0].Error(), "d-other.json") || !strings.Contains(errs[0].Error(), "one description per workerModel") {
+		t.Errorf("errors %v", errs)
+	}
+	if len(ms) != 3 {
+		t.Errorf("%d manifests", len(ms))
+	}
+	if f := speechFamilies["family-test"]; f == nil || len(f.presets) != 2 {
+		t.Errorf("family %+v", f)
+	}
+}
+
 func TestManifestSpeechFamily(t *testing.T) {
 	kitten := `{"id": "kitten-test", "name": "Kitten", "kind": "speech", "backend": "speech", "about": "a test",
 	  "licence": "Apache-2.0", "size": "130 MB",

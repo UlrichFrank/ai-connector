@@ -376,10 +376,7 @@ func (mf *Manifest) model(store *models.Store, hub string) *Model {
 	for _, s := range mf.Sources {
 		m.repos = append(m.repos, hubRepo{key: s.Key, repo: s.Repo, rev: s.Rev, include: s.Include})
 	}
-	if sp := ra.Speech; sp != nil && speechFamilies[ra.WorkerModel] == nil {
-		speechFamilies[ra.WorkerModel] = manifestFamily(ra.WorkerModel, sp.ModelType, sp.Voices, sp.DefaultVoice, sp.Languages, sp.Speaks,
-			sp.Clone, sp.Instruct, sp.Speed)
-	}
+	mf.addFamily()
 	if add := manifestBackends[mf.Backend].add; add != nil {
 		add(m)
 	}
@@ -387,6 +384,15 @@ func (mf *Manifest) model(store *models.Store, hub string) *Model {
 		mf.findHere(m, store, hub)
 	}
 	return m
+}
+
+// addFamily makes the speech family the manifest describes known.
+func (mf *Manifest) addFamily() {
+	ra := mf.RuntimeArgs
+	if sp := ra.Speech; sp != nil && speechFamilies[ra.WorkerModel] == nil {
+		speechFamilies[ra.WorkerModel] = manifestFamily(ra.WorkerModel, sp.ModelType, sp.Voices, sp.DefaultVoice, sp.Languages, sp.Speaks,
+			sp.Clone, sp.Instruct, sp.Speed)
+	}
 }
 
 func (mf *Manifest) findHere(m *Model, store *models.Store, hub string) {
@@ -446,18 +452,34 @@ func readManifests(fsys fs.FS, dir string) ([]*Manifest, []error) {
 		return nil, []error{err}
 	}
 	sort.Strings(names)
+	files := make([]struct {
+		name      string
+		data      []byte
+		err       error
+		describes bool
+	}, len(names))
+	for i, n := range names {
+		files[i].name = n
+		files[i].data, files[i].err = fs.ReadFile(fsys, n)
+		var mf Manifest
+		files[i].describes = json.Unmarshal(files[i].data, &mf) == nil && mf.RuntimeArgs.Speech != nil
+	}
+	// those that describe a speech family first: whatever their names, the others may use it, and a second description
+	// of it is compared with the first (check) instead of being dropped without a word
+	sort.SliceStable(files, func(i, j int) bool { return files[i].describes && !files[j].describes })
 	var out []*Manifest
 	var errs []error
-	for _, n := range names {
-		b, err := fs.ReadFile(fsys, n)
+	for _, f := range files {
+		err := f.err
 		if err == nil {
 			var mf *Manifest
-			if mf, err = ParseManifest(b); err == nil {
+			if mf, err = ParseManifest(f.data); err == nil {
+				mf.addFamily()
 				out = append(out, mf)
 				continue
 			}
 		}
-		errs = append(errs, fmt.Errorf("%s: %w", n, err))
+		errs = append(errs, fmt.Errorf("%s: %w", f.name, err))
 	}
 	return out, errs
 }
