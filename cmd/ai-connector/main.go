@@ -256,6 +256,7 @@ const appleSilicon = runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
 // setup builds the catalogue, the backends and the job manager: the models, envs and libraries from root (the
 // config dir, shared), the jobs, prompts, approvals and Claude Code sessions in own (stateDir; root by default).
 func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
+	engine.EndLeftovers(root) // servers of a worker that died, with their models in memory
 	srcs, _ := models.Sources(os.Getenv("MLXLAB_MODELS_FROM"), nil)
 	store := &models.Store{Dir: filepath.Join(root, "models"), Sources: srcs}
 	lms, hf := llm.LocalRoots()

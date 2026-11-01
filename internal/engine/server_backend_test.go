@@ -292,6 +292,37 @@ func TestKillLeftover(t *testing.T) {
 	}
 }
 
+// A worker that starts ends what a dead one left, of every runtime, but not the server of a worker that still runs.
+func TestEndLeftovers(t *testing.T) {
+	cmd, sleep, done := startLeftover(t)
+	owner, _, _ := startLeftover(t)
+	root := t.TempDir()
+	writePidFile(root, "x", cmd.Process.Pid, sleep)
+	f := func(ownerPid int) {
+		b, _ := os.ReadFile(pidFile(root, "x"))
+		lines := strings.Split(string(b), "\n")
+		start, _ := processStart(ownerPid)
+		os.WriteFile(pidFile(root, "x"), []byte(strings.Join([]string{lines[0], lines[1], lines[2], strconv.Itoa(ownerPid), start, ""}, "\n")), 0o600)
+	}
+	f(owner.Process.Pid)
+	EndLeftovers(root)
+	stillRuns(t, done, "the server of a worker that runs was killed")
+	if _, err := os.Stat(pidFile(root, "x")); err != nil {
+		t.Error("its pid file is gone")
+	}
+	// that worker dies
+	killGroup(owner.Process.Pid)
+	for deadline := time.Now().Add(5 * time.Second); alive(owner.Process.Pid) && time.Now().Before(deadline); {
+		time.Sleep(10 * time.Millisecond)
+	}
+	EndLeftovers(root)
+	hasEnded(t, done)
+	if _, err := os.Stat(pidFile(root, "x")); err == nil {
+		t.Error("the pid file is still there")
+	}
+	EndLeftovers(t.TempDir()) // no folder, nothing to do
+}
+
 func TestCleanEnv(t *testing.T) {
 	got := strings.Join(cleanEnv([]string{"PATH=/bin", "HF_TOKEN=x", "MLXLAB_WORKER_TOKEN=y", "OPENAI_API_KEY=z", "HOME=/h",
 		"MLXLAB_GPU=rocm", "AWS_SECRET_ACCESS_KEY=s", "LANG=de"}), " ")

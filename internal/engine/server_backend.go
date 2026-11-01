@@ -317,32 +317,58 @@ func cleanEnv(env []string) []string {
 	return out
 }
 
-// The pid file of a runtime's server (<config dir>/run/<runtime>.pid: pid, program, the time it started): a worker that
-// died (killed, crashed) leaves its server running with its model in memory; the next start ends it first.
+// The pid file of a runtime's server (<config dir>/run/<runtime>.pid: pid, program, the time it started, and the same
+// of the process that started it): a worker that died (killed, crashed) leaves its server running with its model in
+// memory; the next worker ends it when it starts (EndLeftovers), not only when that runtime is next used.
 func pidFile(root, name string) string { return filepath.Join(root, "run", name+".pid") }
 
 func writePidFile(root, name string, pid int, prog string) {
 	os.MkdirAll(filepath.Join(root, "run"), 0o700)
 	start, _ := processStart(pid)
-	os.WriteFile(pidFile(root, name), []byte(strconv.Itoa(pid)+"\n"+prog+"\n"+start+"\n"), 0o600)
+	self := os.Getpid()
+	selfStart, _ := processStart(self)
+	os.WriteFile(pidFile(root, name), []byte(strconv.Itoa(pid)+"\n"+prog+"\n"+start+"\n"+strconv.Itoa(self)+"\n"+selfStart+"\n"), 0o600)
 }
 
 func removePidFile(root, name string) { os.Remove(pidFile(root, name)) }
 
+// EndLeftovers ends the servers that workers which died left behind on this machine: until a job of that runtime came
+// they kept their models in memory, and the next heavy model could run out of it.
+func EndLeftovers(root string) {
+	files, _ := filepath.Glob(filepath.Join(root, "run", "*.pid"))
+	for _, f := range files {
+		killLeftover(root, strings.TrimSuffix(filepath.Base(f), ".pid"))
+	}
+}
+
 // killLeftover ends the server a pid file names if it is still that process (a pid may have been reused), whichever
-// program this start would run: after an update the environment's path is another one.
+// program this start would run: after an update the environment's path is another one. The server of another process
+// that lives is left alone: several commands can share a config dir.
 func killLeftover(root, name string) {
 	b, err := os.ReadFile(pidFile(root, name))
 	if err != nil {
 		return
 	}
+	f := append(strings.Split(strings.TrimSpace(string(b)), "\n"), "", "", "", "")
+	if ownerLives(f[3], f[4]) {
+		return
+	}
 	defer removePidFile(root, name)
-	f := append(strings.Split(strings.TrimSpace(string(b)), "\n"), "", "")
 	pid, err := strconv.Atoi(f[0])
 	if err != nil || pid <= 1 || !alive(pid) || !sameProcess(pid, f[1], f[2]) {
 		return
 	}
 	killGroup(pid)
+}
+
+// ownerLives: the process that started a server is another one than this and still runs.
+func ownerLives(pidS, start string) bool {
+	pid, err := strconv.Atoi(pidS)
+	if err != nil || pid <= 1 || pid == os.Getpid() || !alive(pid) {
+		return false
+	}
+	now, ok := processStart(pid)
+	return !ok || start == "" || now == start
 }
 
 // sameProcess: the process pid is the one started as prog at start. The time tells (a reused pid has another); where
