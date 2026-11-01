@@ -20,6 +20,41 @@ func onPlatform(t *testing.T, p string) {
 	t.Cleanup(func() { Platform = old })
 }
 
+// A platform names the system and its GPU: an archive built for another processor is not offered on it, so llama.cpp's
+// models do not end in "exec format error" on Linux and Windows on ARM. A source archive (ComfyUI) runs on any.
+func TestToolsForArch(t *testing.T) {
+	rt := runtimeManifest("llama-cpp")
+	for _, c := range []struct {
+		platform, goarch string
+		want             bool
+	}{
+		{"darwin-arm64", "arm64", true},
+		{"linux-cpu", "amd64", true},
+		{"linux-cuda", "amd64", true},
+		{"windows-rocm", "amd64", true},
+		{"linux-cpu", "arm64", false},
+		{"linux-cuda", "arm64", false},
+		{"windows-cpu", "arm64", false},
+	} {
+		if got := len(rt.toolsFor(c.platform, c.goarch)) > 0; got != c.want {
+			t.Errorf("llama-cpp on %s %s: %v", c.platform, c.goarch, got)
+		}
+	}
+	if len(runtimeManifest("comfyui").toolsFor("linux-cpu", "arm64")) == 0 {
+		t.Error("ComfyUI's source archive runs on any processor")
+	}
+	// an archive with a processor in its name says so
+	for _, n := range runtimeNames() {
+		for p, as := range runtimeManifest(n).Tools {
+			for _, a := range as {
+				if strings.Contains(a.URL, "-x64") && a.Arch != "amd64" || strings.Contains(a.URL, "-arm64") && a.Arch != "arm64" {
+					t.Errorf("%s %s: %s says arch %q", n, p, a.URL, a.Arch)
+				}
+			}
+		}
+	}
+}
+
 func TestPlatformOf(t *testing.T) {
 	none := func(string) bool { return false }
 	only := func(k string) func(string) bool { return func(x string) bool { return x == k } }

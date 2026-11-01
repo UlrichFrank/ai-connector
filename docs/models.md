@@ -208,7 +208,8 @@ the worker's environment without its secrets (names with TOKEN, SECRET, PASSWORD
 missing, Linux's `/proc` checks the port; on Windows it is not checked.
 
 `start[0]` is the program: a script of the runtime's Python environment (`envs`, e.g. `mlx_lm.server`), or found in
-its `tools` — release archives per platform, fetched once into `<config dir>/tools/<runtime>-<hash>`, checked
+its `tools` — release archives per platform (`arch`: the processor they are built for, so a machine with another one
+is not offered the runtime), fetched once into `<config dir>/tools/<runtime>-<hash>`, checked
 against their SHA-256 and unpacked (nothing may point out of that folder). `{model}` is the model's folder, or the
 file `runtimeArgs.workerModel` names in it (a GGUF); `{dir}` the folder; `{port}` the port. `server.model`: what a
 request names as the model (default: the `{model}` path).

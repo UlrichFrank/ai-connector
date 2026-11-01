@@ -714,7 +714,7 @@ func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
 		return nil
 	}
 	env, build := runtimeOf(m)
-	if n := runtimeName(m); d.Prepare == nil && n != "" && len(runtimeManifest(n).Tools[Platform()]) > 0 {
+	if n := runtimeName(m); d.Prepare == nil && n != "" && len(runtimeManifest(n).tools()) > 0 {
 		// a server runtime's program (llama.cpp, ComfyUI): fetched with the model, not at its first job
 		d.set(r, func(st *DownloadState) { st.State = DownloadPreparing })
 		if _, err := ensureTools(ctx, d.Root, n, func(string) {}); err != nil {

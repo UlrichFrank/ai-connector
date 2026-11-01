@@ -24,10 +24,10 @@ import (
 // toolDir is where a runtime's tools of this platform live (ok false: it has none here).
 func toolDir(root, name string) (string, []ToolArchive, bool) {
 	rt := runtimeManifest(name)
-	if rt == nil || len(rt.Tools[Platform()]) == 0 {
+	if rt == nil || len(rt.tools()) == 0 {
 		return "", nil, false
 	}
-	as := rt.Tools[Platform()]
+	as := rt.tools()
 	h := sha256.New()
 	for _, a := range as {
 		io.WriteString(h, a.SHA256)

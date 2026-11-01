@@ -155,7 +155,7 @@ func (b *ServerBackend) files(ctx context.Context, m *Model, emit Emit) (string,
 func (b *ServerBackend) program(ctx context.Context, rt *RuntimeManifest, emit Emit) (prog, app string, err error) {
 	name := rt.Server.Start[0]
 	var tools string
-	if len(rt.Tools[Platform()]) > 0 {
+	if len(rt.tools()) > 0 {
 		if tools, err = ensureTools(ctx, b.Root, rt.Name, emit.Log); err != nil {
 			return "", "", err
 		}

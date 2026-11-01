@@ -64,11 +64,28 @@ type ServerSpec struct {
 	App string `json:"app,omitempty"`
 }
 
-// ToolArchive is an archive of a program's release (.tar.gz or .zip), pinned by its SHA-256.
+// ToolArchive is an archive of a program's release (.tar.gz or .zip), pinned by its SHA-256. Arch is the processor
+// its programs are built for (GOARCH); "" a source archive that runs on any.
 type ToolArchive struct {
 	URL    string `json:"url"`
 	SHA256 string `json:"sha256"`
+	Arch   string `json:"arch,omitempty"`
 }
+
+// toolsFor are the runtime's archives for a platform and processor (nil: a platform says the system and its GPU, not
+// the processor, and one built for another could not start here).
+func (rt *RuntimeManifest) toolsFor(platform, goarch string) []ToolArchive {
+	as := rt.Tools[platform]
+	for _, a := range as {
+		if a.Arch != "" && a.Arch != goarch {
+			return nil
+		}
+	}
+	return as
+}
+
+// tools are the runtime's archives for this machine.
+func (rt *RuntimeManifest) tools() []ToolArchive { return rt.toolsFor(Platform(), runtime.GOARCH) }
 
 // RuntimeEnv is a runtime's environment on one platform.
 type RuntimeEnv struct {
@@ -209,7 +226,7 @@ func RuntimeRuns(name string) bool {
 		return false
 	}
 	_, env := envFor(name, Platform())
-	tools := len(rt.Tools[Platform()]) > 0
+	tools := len(rt.tools()) > 0
 	switch {
 	case len(rt.Envs) > 0 && len(rt.Tools) > 0:
 		return env && tools
