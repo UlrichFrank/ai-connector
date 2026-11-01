@@ -23,13 +23,13 @@ func TestUnloadIdle(t *testing.T) {
 	}
 	// a job runs: nothing goes (it may use another backend than its own, as the avatar the speech backend)
 	m.mu.Lock()
-	m.busy, m.current = true, "b"
+	m.busy = true
 	m.mu.Unlock()
 	if got := m.UnloadIdle(10*time.Minute, pin, t0.Add(11*time.Minute)); len(got) != 0 {
 		t.Fatalf("unloaded while a job runs: %v", got)
 	}
 	m.mu.Lock()
-	m.busy, m.current = false, ""
+	m.busy = false
 	m.lastUsed["b"] = t0.Add(5 * time.Minute)
 	m.mu.Unlock()
 	got := m.UnloadIdle(10*time.Minute, pin, t0.Add(11*time.Minute))
