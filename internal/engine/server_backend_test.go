@@ -368,6 +368,42 @@ func TestEndLeftovers(t *testing.T) {
 	EndLeftovers(t.TempDir()) // no folder, nothing to do
 }
 
+// A server that ends while starting says why: its last lines are in the error, also after much output. A child that
+// lives on with its output does not hold the worker.
+func TestServerEndsWhileStarting(t *testing.T) {
+	for _, c := range []struct{ name, script string }{
+		{"ends", "#!/bin/sh\ni=0\nwhile [ $i -lt 2000 ]; do echo line $i; i=$((i+1)); done\necho failed to load model\nexit 1\n"},
+		{"child", "#!/bin/sh\nsleep 8 &\necho failed to load model\nexit 1\n"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			root := t.TempDir()
+			rt := &RuntimeManifest{Name: "ends-" + c.name, Kinds: []Kind{Chat}, Server: &ServerSpec{Start: []string{"fake-server"}, Health: "/health"},
+				Tools: map[string][]ToolArchive{Platform(): {{URL: "https://example.invalid/x.tar.gz", SHA256: strings.Repeat("0", 64)}}}}
+			runtimesMu.Lock()
+			runtimes()[rt.Name] = rt
+			runtimesMu.Unlock()
+			t.Cleanup(func() {
+				runtimesMu.Lock()
+				delete(runtimes(), rt.Name)
+				runtimesMu.Unlock()
+			})
+			dir, _, _ := toolDir(root, rt.Name)
+			os.MkdirAll(dir, 0o755)
+			os.WriteFile(filepath.Join(dir, ".mlxlab-ready"), nil, 0o644)
+			os.WriteFile(filepath.Join(dir, "fake-server"), []byte(c.script), 0o755)
+			b := &ServerBackend{Root: root, Runtime: rt.Name, StartWait: 20 * time.Second}
+			t0 := time.Now()
+			err := b.start(context.Background(), rt, root, root, func(Event) {})
+			if err == nil || !strings.Contains(err.Error(), "failed to load model") {
+				t.Errorf("got %v", err)
+			}
+			if d := time.Since(t0); d > 6*time.Second {
+				t.Errorf("took %s", d)
+			}
+		})
+	}
+}
+
 func TestCleanEnv(t *testing.T) {
 	got := strings.Join(cleanEnv([]string{"PATH=/bin", "HF_TOKEN=x", "MLXLAB_WORKER_TOKEN=y", "OPENAI_API_KEY=z", "HOME=/h",
 		"MLXLAB_GPU=rocm", "AWS_SECRET_ACCESS_KEY=s", "LANG=de", "AWS_ACCESS_KEY_ID=a", "API_KEY_FILE=f", "GITHUB_PAT=p", "DB_URL=u",

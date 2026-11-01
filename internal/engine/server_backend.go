@@ -210,12 +210,16 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	if rt.Server.KeyEnv != "" {
 		b.key = key
 	}
-	out, err := cmd.StdoutPipe()
+	// a pipe of our own: cmd.Wait closes one of StdoutPipe at once, and the server's last lines (why it ended) were lost
+	out, w, err := os.Pipe()
 	if err != nil {
 		return err
 	}
-	cmd.Stderr = cmd.Stdout
-	if err := cmd.Start(); err != nil {
+	cmd.Stdout, cmd.Stderr = w, w
+	err = cmd.Start()
+	w.Close()
+	if err != nil {
+		out.Close()
 		return err
 	}
 	exit := make(chan struct{})
@@ -223,18 +227,31 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	b.cmd, b.exit, b.logs = cmd, exit, nil
 	b.lmu.Unlock()
 	starting := true
-	go pyenv.Lines(out, func(s string) {
-		b.lmu.Lock()
-		defer b.lmu.Unlock()
-		b.logs = append(b.logs, s)
-		if len(b.logs) > 20 {
-			b.logs = b.logs[1:]
+	read := make(chan struct{})
+	go func() {
+		defer close(read)
+		pyenv.Lines(out, func(s string) {
+			b.lmu.Lock()
+			defer b.lmu.Unlock()
+			b.logs = append(b.logs, s)
+			if len(b.logs) > 20 {
+				b.logs = b.logs[1:]
+			}
+			if starting {
+				emit.Log(s)
+			}
+		})
+	}()
+	go func() {
+		cmd.Wait()
+		// its last lines first; a child that lives on holds the pipe open, so not for long
+		select {
+		case <-read:
+		case <-time.After(serverDrain):
 		}
-		if starting {
-			emit.Log(s)
-		}
-	})
-	go func() { cmd.Wait(); close(exit) }()
+		out.Close()
+		close(exit)
+	}()
 	writePidFile(b.Root, rt.Name, cmd.Process.Pid, prog)
 	b.url = fmt.Sprintf("http://127.0.0.1:%d", port)
 	wait := b.StartWait
@@ -281,6 +298,9 @@ func (b *ServerBackend) start(ctx context.Context, rt *RuntimeManifest, dir, mod
 	emit.Log(rt.Name + " is ready")
 	return nil
 }
+
+// serverDrain is how long a server's last output is read after it has ended.
+const serverDrain = 2 * time.Second
 
 // localHTTP asks a server of this machine: a server that takes the connection but does not answer (stopped, swapping)
 // does not hold a job forever.
