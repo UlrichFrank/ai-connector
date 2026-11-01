@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -179,6 +180,50 @@ func toolsRuntime(t *testing.T, name string, archive []byte, h http.HandlerFunc)
 		runtimesMu.Unlock()
 	})
 	return t.TempDir()
+}
+
+// A connection that stands still counts as broken: it is tried again, and the job does not hang; a slow one that keeps
+// sending is not ended.
+func TestToolDownloadStalls(t *testing.T) {
+	old := toolStall
+	toolStall = 200 * time.Millisecond
+	t.Cleanup(func() { toolStall = old })
+	archive, err := os.ReadFile(tarGz(t, tar.Header{Name: "server", Typeflag: tar.TypeReg, Mode: 0o755}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tries atomic.Int32
+	mode := atomic.Value{}
+	mode.Store("stall")
+	root := toolsRuntime(t, "tools-stall", archive, func(w http.ResponseWriter, r *http.Request) {
+		tries.Add(1)
+		if mode.Load() == "stall" {
+			w.Write(archive[:1])
+			w.(http.Flusher).Flush()
+			<-r.Context().Done() // sends nothing more, until the client goes
+			return
+		}
+		for _, b := range archive { // slower than toolStall in all, never as slow between two pieces
+			w.Write([]byte{b})
+			w.(http.Flusher).Flush()
+			time.Sleep(time.Duration(int64(600*time.Millisecond) / int64(len(archive))))
+		}
+	})
+	t0 := time.Now()
+	_, err = ensureTools(context.Background(), root, "tools-stall", func(string) {})
+	if !errors.Is(err, errToolStalled) {
+		t.Fatalf("got %v", err)
+	}
+	if n := tries.Load(); n != 3 {
+		t.Errorf("%d tries", n)
+	}
+	if d := time.Since(t0); d > 5*time.Second {
+		t.Errorf("took %s", d)
+	}
+	mode.Store("slow")
+	if _, err := ensureTools(context.Background(), root, "tools-stall", func(string) {}); err != nil {
+		t.Errorf("a slow download that keeps sending: %v", err)
+	}
 }
 
 // A download's preparing and a job's start of the same runtime: one fetches, the other waits and finds it ready.

@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 // A server runtime's program from its release archives (RuntimeManifest.Tools): fetched once into
@@ -89,27 +90,62 @@ func ensureTools(ctx context.Context, root, name string, log func(string)) (stri
 	return dir, os.WriteFile(ready, nil, 0o644)
 }
 
+// toolStall is how long a release's server may send nothing before the connection counts as broken: nothing else ends
+// a connection that just stands still, and the job would wait for it until someone cancels. Not a limit for the whole
+// archive: on a slow line a large one takes as long as it takes.
+var toolStall = time.Minute
+
+var errToolStalled = errors.New("no data")
+
+// stallReader tells the timer each time data comes.
+type stallReader struct {
+	r     io.Reader
+	timer *time.Timer
+}
+
+func (s stallReader) Read(p []byte) (int, error) {
+	n, err := s.r.Read(p)
+	if n > 0 {
+		s.timer.Reset(toolStall)
+	}
+	return n, err
+}
+
 func downloadTool(ctx context.Context, a ToolArchive, w io.Writer) error {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	timer := time.AfterFunc(toolStall, func() {
+		cancel(fmt.Errorf("%w for %s", errToolStalled, toolStall))
+	})
+	defer timer.Stop()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.URL, nil)
 	if err != nil {
 		return err
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return stallCause(ctx, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s", resp.Status)
 	}
 	h := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(w, h), resp.Body); err != nil {
-		return err
+	if _, err := io.Copy(io.MultiWriter(w, h), stallReader{resp.Body, timer}); err != nil {
+		return stallCause(ctx, err)
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); got != a.SHA256 {
 		return fmt.Errorf("%w: sha256 %s, want %s", errChecksum, got, a.SHA256)
 	}
 	return nil
+}
+
+// stallCause is the stall when that ended the request, else err.
+func stallCause(ctx context.Context, err error) error {
+	if c := context.Cause(ctx); errors.Is(c, errToolStalled) {
+		return c
+	}
+	return err
 }
 
 // unpack extracts a .tar.gz or .zip into dir; a path that would leave dir is refused.
