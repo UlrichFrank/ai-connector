@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -301,18 +302,34 @@ func (b *ServerBackend) healthy(ctx context.Context, path string) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-// cleanEnv is the environment without the worker's secrets: names with TOKEN, SECRET, PASSWORD or KEY, and the
-// worker's own settings (MLXLAB_*).
+// serverEnv is what a server gets of the worker's environment: the system's own, and the settings of GPUs and numeric
+// libraries. A list of what is needed, not of what looks secret: a credential has many names (AWS_ACCESS_KEY_ID,
+// GITHUB_PAT, DB_URL). No proxies: they can carry a password, and the servers work offline.
+var (
+	serverEnv = map[string]bool{"PATH": true, "HOME": true, "USER": true, "LOGNAME": true, "SHELL": true, "TMPDIR": true, "TMP": true, "TEMP": true,
+		"LANG": true, "LANGUAGE": true, "TZ": true, "LD_LIBRARY_PATH": true, "DYLD_LIBRARY_PATH": true,
+		"HF_HOME": true, "HF_HUB_CACHE": true, "HUGGINGFACE_HUB_CACHE": true,
+		// Windows' own
+		"SYSTEMROOT": true, "SYSTEMDRIVE": true, "WINDIR": true, "COMSPEC": true, "PATHEXT": true, "USERPROFILE": true, "USERNAME": true,
+		"HOMEDRIVE": true, "HOMEPATH": true, "APPDATA": true, "LOCALAPPDATA": true, "PROGRAMDATA": true, "PROGRAMFILES": true,
+		"PROGRAMFILES(X86)": true, "PROGRAMW6432": true, "COMMONPROGRAMFILES": true, "NUMBER_OF_PROCESSORS": true, "OS": true}
+	serverEnvPrefixes = []string{"LC_", "XDG_", "PROCESSOR_", "CUDA_", "NVIDIA_", "ROCR_", "HSA_", "HIP_", "GPU_", "AMD_", "MTL_", "METAL_",
+		"MLX_", "OMP_", "MKL_", "OPENBLAS_", "PYTORCH_", "TORCH_", "LLAMA_"}
+)
+
+// cleanEnv is what a server gets of the worker's environment (serverEnv), never a name with TOKEN, SECRET, PASSWORD or
+// KEY, even under a prefix it may have (NVIDIA_API_KEY).
 func cleanEnv(env []string) []string {
 	var out []string
 	for _, kv := range env {
 		name, _, _ := strings.Cut(kv, "=")
 		u := strings.ToUpper(name)
-		if strings.Contains(u, "TOKEN") || strings.Contains(u, "SECRET") || strings.Contains(u, "PASSWORD") ||
-			strings.HasSuffix(u, "_KEY") || strings.HasSuffix(u, "APIKEY") || strings.HasPrefix(u, "MLXLAB_") {
+		if strings.Contains(u, "TOKEN") || strings.Contains(u, "SECRET") || strings.Contains(u, "PASSWORD") || strings.Contains(u, "KEY") {
 			continue
 		}
-		out = append(out, kv)
+		if serverEnv[u] || slices.ContainsFunc(serverEnvPrefixes, func(p string) bool { return strings.HasPrefix(u, p) }) {
+			out = append(out, kv)
+		}
 	}
 	return out
 }

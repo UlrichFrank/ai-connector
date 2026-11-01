@@ -370,8 +370,9 @@ func TestEndLeftovers(t *testing.T) {
 
 func TestCleanEnv(t *testing.T) {
 	got := strings.Join(cleanEnv([]string{"PATH=/bin", "HF_TOKEN=x", "MLXLAB_WORKER_TOKEN=y", "OPENAI_API_KEY=z", "HOME=/h",
-		"MLXLAB_GPU=rocm", "AWS_SECRET_ACCESS_KEY=s", "LANG=de"}), " ")
-	if got != "PATH=/bin HOME=/h LANG=de" {
+		"MLXLAB_GPU=rocm", "AWS_SECRET_ACCESS_KEY=s", "LANG=de", "AWS_ACCESS_KEY_ID=a", "API_KEY_FILE=f", "GITHUB_PAT=p", "DB_URL=u",
+		"HTTPS_PROXY=http://me:pw@proxy", "NVIDIA_API_KEY=n", "CUDA_VISIBLE_DEVICES=0", "LC_ALL=C", "SystemRoot=C:\\Windows"}), " ")
+	if got != "PATH=/bin HOME=/h LANG=de CUDA_VISIBLE_DEVICES=0 LC_ALL=C SystemRoot=C:\\Windows" {
 		t.Errorf("%s", got)
 	}
 }

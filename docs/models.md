@@ -204,7 +204,7 @@ runs, another program of this machine can ask it too (it listens on 127.0.0.1 on
 
 A server runs in a process group of its own and is ended with it (on Linux it also dies with the worker); its pid is
 kept in `<config dir>/run/<runtime>.pid`, so a server a killed worker left behind is ended at the next start. It gets
-the worker's environment without its secrets (names with TOKEN, SECRET, PASSWORD, KEY; `MLXLAB_*`). Where `lsof` is
+only what it needs of the worker's environment: the system's variables and those of GPUs and numeric libraries (`serverEnv`), no name with TOKEN, SECRET, PASSWORD or KEY. Where `lsof` is
 missing, Linux's `/proc` checks the port; on Windows it is not checked.
 
 `start[0]` is the program: a script of the runtime's Python environment (`envs`, e.g. `mlx_lm.server`), or found in
