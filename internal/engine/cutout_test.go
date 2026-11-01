@@ -14,6 +14,7 @@ import (
 )
 
 func TestCutoutCatalog(t *testing.T) {
+	onPlatform(t, "darwin-arm64")
 	store := &models.Store{Dir: t.TempDir()}
 	ms := cutoutCatalog(store, "")
 	if len(ms) != 3 || ms[0].ID != "birefnet" || ms[1].ID != "birefnet-hr-matting" || ms[2].ID != "birefnet-lite" {

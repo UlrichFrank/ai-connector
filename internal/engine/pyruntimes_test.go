@@ -12,6 +12,14 @@ import (
 	"github.com/philipparndt/ai-connector/internal/models"
 )
 
+// onPlatform makes this test see the runtimes as on platform p: most environments exist only for Apple silicon, the
+// machine running the tests may be another.
+func onPlatform(t *testing.T, p string) {
+	old := Platform
+	Platform = func() string { return p }
+	t.Cleanup(func() { Platform = old })
+}
+
 func TestPlatformOf(t *testing.T) {
 	none := func(string) bool { return false }
 	only := func(k string) func(string) bool { return func(x string) bool { return x == k } }
@@ -202,6 +210,7 @@ for line in sys.stdin:
 // localRuntime makes a runtime of runtimes.d (its script, the system's python) and one model of models.d for it.
 func localRuntime(t *testing.T, name, kind, output, script, manifest string) (*Model, *RuntimeBackend, string) {
 	t.Helper()
+	onPlatform(t, "darwin-arm64")
 	py, err := exec.LookPath("python3")
 	if err != nil {
 		t.Skip("python3 runs the worker")

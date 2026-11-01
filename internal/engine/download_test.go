@@ -208,6 +208,7 @@ func audioCatalog() *Catalog {
 // Music, sound and speech models and the upscalers are offered and downloaded like the others: the files, then the
 // runtime of their backend (preparing) — the music runtime's own step too (LeVo2.cpp, Stable Audio 3's code).
 func TestDownloadsAudioPrepare(t *testing.T) {
+	onPlatform(t, "darwin-arm64")
 	hfToken(t, "", nil)
 	cat := audioCatalog()
 	var mu sync.Mutex

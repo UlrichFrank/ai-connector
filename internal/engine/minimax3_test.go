@@ -86,6 +86,7 @@ func TestMusicRequestMiniMax3(t *testing.T) {
 }
 
 func TestMiniMax3Catalog(t *testing.T) {
+	onPlatform(t, "darwin-arm64")
 	rt := MusicRuntimes()["minimax3"]
 	if rt == nil || rt.script != "minimax3.py" {
 		t.Fatal("no minimax3 runtime")
