@@ -65,6 +65,9 @@ func startJSON(s *Session, args []string, preamble string) (driver, error) {
 	cmd := exec.Command(m.command(), full...)
 	cmd.Dir = s.cwd
 	cmd.Env = m.environ(s.env...)
+	if err := checkEnv(cmd.Env); err != nil {
+		return nil, err
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -77,7 +80,7 @@ func startJSON(s *Session, args []string, preamble string) (driver, error) {
 		stderr: &tail{max: 8 << 10}, preamble: preamble}
 	cmd.Stderr = d.stderr
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("starting claude: %w", err)
+		return nil, startError(err, m.command(), full, cmd.Env, cmd.Dir)
 	}
 	go func() {
 		sc := bufio.NewScanner(stdout)

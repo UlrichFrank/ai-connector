@@ -502,9 +502,6 @@ func (m *Manager) startDriver(s *Session, resume string) (driver, error) {
 // Windows' CreateProcess takes 32767 characters for the whole command line (Linux 128 KB for one argument).
 const maxInlineArg = 8 << 10
 
-// maxCommandLine: what Windows allows for the whole command line, with room for quoting.
-const maxCommandLine = 32000
-
 // systemFile is where the session's system prompt is written for --append-system-prompt-file (in its private
 // control folder; removed when the process ends).
 func (s *Session) systemFile() string { return filepath.Join(s.ctl, "system.md") }
@@ -542,19 +539,6 @@ func (m *Manager) systemArgs(s *Session, resumed bool) (args []string, preamble 
 
 // goos is runtime.GOOS (a test sets it).
 var goos = runtime.GOOS
-
-// checkArgs: the command line fits (on Windows, where a longer one fails with "The filename or extension is too
-// long").
-func checkArgs(cmd string, args []string) error {
-	n := len(cmd) + 3
-	for _, a := range args {
-		n += len(a) + 3
-	}
-	if n > maxCommandLine && goos == "windows" {
-		return fmt.Errorf("the command line for claude is %d KB, more than Windows allows (32 KB)", n>>10)
-	}
-	return nil
-}
 
 // mcpName keeps letters, digits, - and _ (Claude Code's tool names are mcp__<server>__<tool>).
 func mcpName(n string) string {
