@@ -412,3 +412,44 @@ func TestCleanEnv(t *testing.T) {
 		t.Errorf("%s", got)
 	}
 }
+
+// Several processes share a config dir: each keeps its own pid file of a runtime, so none overwrites or removes
+// another's; a file of an older version (no owner in its name) is still ended.
+func TestPidFilePerOwner(t *testing.T) {
+	cmd, sleep, done := startLeftover(t)
+	root := t.TempDir()
+	writePidFile(root, "x", cmd.Process.Pid, sleep)
+	// another process's file of the same runtime
+	other := filepath.Join(root, "run", "x@999999.pid")
+	os.WriteFile(other, []byte("1\nother\n\n999999\n\n"), 0o600)
+	removePidFile(root, "x")
+	if _, err := os.Stat(other); err != nil {
+		t.Fatal("removing this process's file removed another's")
+	}
+	if got := pidFiles(root, "x"); len(got) != 1 || got[0] != other {
+		t.Fatalf("files %v", got)
+	}
+	// an older version's file: found, and its dead owner's server ended
+	old := filepath.Join(root, "run", "x.pid")
+	start, _ := processStart(cmd.Process.Pid)
+	os.WriteFile(old, []byte(strconv.Itoa(cmd.Process.Pid)+"\n"+sleep+"\n"+start+"\n999998\n\n"), 0o600)
+	killLeftover(root, "x")
+	hasEnded(t, done)
+	if _, err := os.Stat(old); err == nil {
+		t.Error("the old pid file is still there")
+	}
+}
+
+// On Windows a process is known by tasklist's image name.
+func TestTasklistImage(t *testing.T) {
+	out := "\"llama-server.exe\",\"4242\",\"Console\",\"1\",\"1.234 K\"\r\n"
+	if img, ok := tasklistImage(out, 4242); !ok || img != "llama-server.exe" {
+		t.Fatalf("%q %v", img, ok)
+	}
+	if _, ok := tasklistImage("INFO: No tasks are running which match the specified criteria.\r\n", 4242); ok {
+		t.Fatal("no such process")
+	}
+	if _, ok := tasklistImage(out, 42); ok {
+		t.Fatal("another pid")
+	}
+}

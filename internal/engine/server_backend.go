@@ -359,10 +359,27 @@ func cleanEnv(env []string) []string {
 	return out
 }
 
-// The pid file of a runtime's server (<config dir>/run/<runtime>.pid: pid, program, the time it started, and the same
-// of the process that started it): a worker that died (killed, crashed) leaves its server running with its model in
-// memory; the next worker ends it when it starts (EndLeftovers), not only when that runtime is next used.
-func pidFile(root, name string) string { return filepath.Join(root, "run", name+".pid") }
+// The pid file of a runtime's server (<config dir>/run/<runtime>@<owner>.pid: pid, program, the time it started, and
+// the same of the process that started it — its owner): a worker that died (killed, crashed) leaves its server running
+// with its model in memory; the next worker ends it when it starts (EndLeftovers), not only when that runtime is next
+// used. One file per owner: several processes can share a config dir, each with its own server of a runtime, and none
+// overwrites or removes another's record. (<runtime>.pid: an older version's, without the owner in its name.)
+func pidFile(root, name string) string {
+	return filepath.Join(root, "run", name+"@"+strconv.Itoa(os.Getpid())+".pid")
+}
+
+// pidFiles are a runtime's pid files of every owner ("" every runtime).
+func pidFiles(root, name string) []string {
+	if name == "" {
+		files, _ := filepath.Glob(filepath.Join(root, "run", "*.pid"))
+		return files
+	}
+	files, _ := filepath.Glob(filepath.Join(root, "run", name+"@*.pid"))
+	if _, err := os.Stat(filepath.Join(root, "run", name+".pid")); err == nil {
+		files = append(files, filepath.Join(root, "run", name+".pid"))
+	}
+	return files
+}
 
 func writePidFile(root, name string, pid int, prog string) {
 	os.MkdirAll(filepath.Join(root, "run"), 0o700)
@@ -377,17 +394,23 @@ func removePidFile(root, name string) { os.Remove(pidFile(root, name)) }
 // EndLeftovers ends the servers that workers which died left behind on this machine: until a job of that runtime came
 // they kept their models in memory, and the next heavy model could run out of it.
 func EndLeftovers(root string) {
-	files, _ := filepath.Glob(filepath.Join(root, "run", "*.pid"))
-	for _, f := range files {
-		killLeftover(root, strings.TrimSuffix(filepath.Base(f), ".pid"))
+	for _, f := range pidFiles(root, "") {
+		killLeftoverFile(f)
 	}
 }
 
-// killLeftover ends the server a pid file names if it is still that process (a pid may have been reused), whichever
-// program this start would run: after an update the environment's path is another one. The server of another process
-// that lives is left alone: several commands can share a config dir.
+// killLeftover ends the servers of a runtime that processes which died left behind.
 func killLeftover(root, name string) {
-	b, err := os.ReadFile(pidFile(root, name))
+	for _, f := range pidFiles(root, name) {
+		killLeftoverFile(f)
+	}
+}
+
+// killLeftoverFile ends the server a pid file names if it is still that process (a pid may have been reused),
+// whichever program this start would run: after an update the environment's path is another one. The server of
+// another process that lives is left alone: several commands can share a config dir.
+func killLeftoverFile(file string) {
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return
 	}
@@ -395,7 +418,7 @@ func killLeftover(root, name string) {
 	if ownerLives(f[3], f[4]) {
 		return
 	}
-	defer removePidFile(root, name)
+	defer os.Remove(file)
 	pid, err := strconv.Atoi(f[0])
 	if err != nil || pid <= 1 || !alive(pid) || !sameProcess(pid, f[1], f[2]) {
 		return
@@ -431,13 +454,40 @@ func processStart(pid int) (string, bool) {
 	return start, err == nil && start != ""
 }
 
-// runs: the process pid runs prog (its command line names it).
+// runs: the process pid runs prog (its command line names it; on Windows, where there is no ps, its image is prog's
+// file). When that cannot be told, it does not: an unknown process is never ended for a leftover.
 func runs(pid int, prog string) bool {
-	out, err := exec.Command("ps", "-o", "command=", "-p", strconv.Itoa(pid)).Output()
-	if err != nil { // no ps (Windows): the pid file is all there is
-		return runtime.GOOS == "windows"
+	if prog == "" {
+		return false
 	}
-	return prog != "" && strings.Contains(string(out), prog)
+	if runtime.GOOS == "windows" {
+		image, ok := windowsImage(pid)
+		want := filepath.Base(prog)
+		return ok && (strings.EqualFold(image, want) || strings.EqualFold(image, want+".exe"))
+	}
+	out, err := exec.Command("ps", "-o", "command=", "-p", strconv.Itoa(pid)).Output()
+	return err == nil && strings.Contains(string(out), prog)
+}
+
+// windowsImage is the program file of a process on Windows (tasklist's image name; ok false: no such process, or
+// tasklist does not say).
+func windowsImage(pid int) (string, bool) {
+	out, err := exec.Command("tasklist", "/FI", "PID eq "+strconv.Itoa(pid), "/FO", "CSV", "/NH").Output()
+	if err != nil {
+		return "", false
+	}
+	return tasklistImage(string(out), pid)
+}
+
+// tasklistImage reads tasklist's CSV line of pid: "image","pid",… (anything else: not found).
+func tasklistImage(out string, pid int) (string, bool) {
+	for _, line := range strings.Split(out, "\n") {
+		f := strings.Split(strings.TrimSpace(line), "\",\"")
+		if len(f) >= 2 && strings.Trim(f[1], "\"") == strconv.Itoa(pid) {
+			return strings.Trim(f[0], "\""), true
+		}
+	}
+	return "", false
 }
 
 func randomKey() string {
@@ -454,7 +504,9 @@ func listeners(port int) ([]int, bool) {
 	}
 	out, err := exec.Command("lsof", "-nP", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN", "-Fp").Output()
 	if err != nil && len(out) == 0 {
-		return nil, true // nobody (lsof exits 1)
+		// lsof says nothing: the server answered, so somebody listens — lsof cannot see it (another namespace, no
+		// rights): not known, not checked
+		return nil, false
 	}
 	var pids []int
 	for _, l := range strings.Split(string(out), "\n") {
@@ -467,11 +519,14 @@ func listeners(port int) ([]int, bool) {
 	return pids, true
 }
 
-// ownedBy: some listener is the process or a child of it (a server that forks its workers).
+// ownedBy: some listener is the process or one it started, at any depth (a launcher that starts an interpreter that
+// starts the server; a server that forks its workers).
 func ownedBy(pids []int, pid int) bool {
 	for _, p := range pids {
-		if p == pid || parentOf(p) == pid {
-			return true
+		for at, depth := p, 0; at > 1 && depth < 8; at, depth = parentOf(at), depth+1 {
+			if at == pid {
+				return true
+			}
 		}
 	}
 	return false
