@@ -43,8 +43,6 @@ const (
 	aacSpeech = 96000
 )
 
-func audioKind(kind string) bool { return kind == "music" || kind == "sound" || kind == "speech" }
-
 // genDefaults are the generators "*" puts first of their kind (the first of a kind is its default): songs with
 // lyrics, then short instrumentals; Kokoro (fast, small), then Qwen3-TTS (German and instructions).
 var genDefaults = map[string]int{"ace-step-1.5-turbo": 1, "stable-audio-3-small": 2, "kokoro-82m": 1, "qwen3-tts-1.7b": 2}
@@ -56,62 +54,13 @@ func genRank(id string) int {
 	return 10
 }
 
-// audioGenerator is a music, sound or speech model as a generator: what the worker's catalogue says it takes (a
-// worker that does not say it — an older one — offers none).
-func audioGenerator(m catalogModel, g advertisedGenerator) (advertisedGenerator, bool) {
-	a := m.Audio
-	if a == nil || m.Backend != m.Kind {
-		return g, false
-	}
-	def := 0.0
-	if m.Defaults != nil {
-		def = m.Defaults.Duration
-	}
-	switch m.Kind {
-	case "music":
-		g.Lyrics, g.Instrumental, g.BPM = a.Lyrics, a.Instrumental, a.BPM
-		g.MaxSeconds = cmpOr(int(a.MaxSeconds), 240)
-		g.Seconds = min(cmpOr(int(def), 60), g.MaxSeconds)
-	case "sound":
-		g.MaxSeconds = cmpOr(int(a.MaxSeconds), 30)
-		g.Seconds = min(cmpOr(int(def), 5), g.MaxSeconds)
-	case "speech":
-		if a.MaxChars <= 0 { // the transcriber
-			return g, false
-		}
-		g.Voices, g.Languages, g.Instruct, g.MaxChars = a.Voices, a.Languages, a.Instruct, a.MaxChars
-	}
-	return g, true
-}
-
-func wireAudioGenerator(g advertisedGenerator) map[string]any {
-	w := map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "nonCommercial": g.NonCommercial}
-	switch g.Kind {
-	case "music":
-		w["lyrics"], w["instrumental"], w["bpm"] = g.Lyrics, g.Instrumental, g.BPM
-		w["default"], w["maxSeconds"] = map[string]any{"seconds": g.Seconds}, g.MaxSeconds
-	case "sound":
-		w["default"], w["maxSeconds"] = map[string]any{"seconds": g.Seconds}, g.MaxSeconds
-	case "speech":
-		voices, langs := g.Voices, g.Languages
-		if voices == nil {
-			voices = []genVoice{}
-		}
-		if langs == nil {
-			langs = []string{}
-		}
-		w["voices"], w["languages"], w["instruct"], w["maxChars"] = voices, langs, g.Instruct, g.MaxChars
-	}
-	return w
-}
-
 // ---------- speech: which generator reads it ----------
 
 // speechGenerators are the speech generators on the connection, in order.
-func (c *bridgeConn) speechGenerators() []advertisedGenerator {
+func (c *bridgeConn) speechGenerators() []generatorInfo {
 	c.cmu.Lock()
 	defer c.cmu.Unlock()
-	var out []advertisedGenerator
+	var out []generatorInfo
 	for _, g := range c.caps.generators {
 		if g.Kind == "speech" {
 			out = append(out, g)
@@ -120,7 +69,7 @@ func (c *bridgeConn) speechGenerators() []advertisedGenerator {
 	return out
 }
 
-func (g advertisedGenerator) voice(id string) (genVoice, bool) {
+func (g generatorInfo) voice(id string) (genVoice, bool) {
 	for _, v := range g.Voices {
 		if strings.EqualFold(v.ID, id) {
 			return v, true
@@ -130,7 +79,7 @@ func (g advertisedGenerator) voice(id string) (genVoice, bool) {
 }
 
 // speaks: the generator speaks lang (one without languages detects them: any).
-func (g advertisedGenerator) speaks(lang string) bool {
+func (g generatorInfo) speaks(lang string) bool {
 	return lang == "" || len(g.Languages) == 0 || slices.Contains(g.Languages, lang)
 }
 
@@ -148,7 +97,7 @@ func normLanguage(s string) string {
 // else as the text looks: a German text goes past Kokoro); a voice belongs to its generator (none named: the first
 // that has it); an instruction prefers one that takes it when nothing else decides. It sets the request's language
 // (that of the generator's own voice when none was given; "" when it cannot tell) and voice (its id as listed).
-func (c *bridgeConn) pickSpeech(g advertisedGenerator, q *genRequest) (advertisedGenerator, error) {
+func (c *bridgeConn) pickSpeech(g generatorInfo, q *genRequest) (generatorInfo, error) {
 	named := q.Generator != ""
 	all := c.speechGenerators()
 	voice := strings.TrimSpace(q.Voice)
@@ -158,7 +107,7 @@ func (c *bridgeConn) pickSpeech(g advertisedGenerator, q *genRequest) (advertise
 			if named {
 				return g, fmt.Errorf("%s has no voice %q (its voices: %s)", g.Name, voice, voiceIDs(g))
 			}
-			i := slices.IndexFunc(all, func(x advertisedGenerator) bool { _, ok := x.voice(voice); return ok })
+			i := slices.IndexFunc(all, func(x generatorInfo) bool { _, ok := x.voice(voice); return ok })
 			if i < 0 {
 				return g, fmt.Errorf("no speech generator has the voice %q", voice)
 			}
@@ -178,13 +127,13 @@ func (c *bridgeConn) pickSpeech(g advertisedGenerator, q *genRequest) (advertise
 		if lang == "" {
 			lang, guessed = audio.GuessLanguage(q.Text), true
 		}
-		ok := func(x advertisedGenerator) bool { return x.speaks(lang) }
-		if q.Instruct != "" && !named && !g.Instruct && slices.ContainsFunc(all, func(x advertisedGenerator) bool { return x.Instruct && ok(x) }) {
-			ok = func(x advertisedGenerator) bool { return x.Instruct && x.speaks(lang) } // how to say it: one that listens
+		ok := func(x generatorInfo) bool { return x.speaks(lang) }
+		if q.Instruct != "" && !named && !g.Instruct && slices.ContainsFunc(all, func(x generatorInfo) bool { return x.Instruct && ok(x) }) {
+			ok = func(x generatorInfo) bool { return x.Instruct && x.speaks(lang) } // how to say it: one that listens
 		}
 		if !ok(g) {
 			// the next one that does, after it in the list, then from the start
-			at := slices.IndexFunc(all, func(x advertisedGenerator) bool { return x.ID == g.ID })
+			at := slices.IndexFunc(all, func(x generatorInfo) bool { return x.ID == g.ID })
 			next := -1
 			for k := 1; k <= len(all) && next < 0; k++ {
 				if x := all[(at+k)%len(all)]; ok(x) {
@@ -208,7 +157,7 @@ func (c *bridgeConn) pickSpeech(g advertisedGenerator, q *genRequest) (advertise
 	return g, nil
 }
 
-func voiceIDs(g advertisedGenerator) string {
+func voiceIDs(g generatorInfo) string {
 	if len(g.Voices) == 0 {
 		return "none: its own voice"
 	}
@@ -223,7 +172,7 @@ func voiceIDs(g advertisedGenerator) string {
 
 // planAudio checks a music, sound or speech request and works out the job: the length to be made (music and
 // sound: seconds, 0 the default, at most the generator's; speech: an estimate from the text) and its fields.
-func planAudio(g advertisedGenerator, q *genRequest) (genPlan, error) {
+func planAudio(g generatorInfo, q *genRequest) (genPlan, error) {
 	p := genPlan{job: map[string]any{}}
 	if q.Seed < 0 || q.Seconds < 0 || q.BPM < 0 {
 		return p, errors.New("seed, seconds and bpm are 0 (the default) or more")
@@ -329,7 +278,7 @@ type audioFile struct {
 
 // sendAudio sends a music, sound or speech job's file: AAC made on the worker (or here for an older worker), the
 // WAV when nobody can make AAC and it fits vboard's limit. It returns the length and the waveform.
-func (r *vboardRun) sendAudio(ctx context.Context, c *bridgeConn, id string, n *node, g advertisedGenerator, j *genJob, fail func(string)) (float64, []float64, bool) {
+func (r *vboardRun) sendAudio(ctx context.Context, c *bridgeConn, id string, n *node, g generatorInfo, j *genJob, fail func(string)) (float64, []float64, bool) {
 	wav := ""
 	for _, f := range j.Files { // the first is the song; a tempo-locked song has the model's own after it
 		if strings.ToLower(path.Ext(f)) == ".wav" {
@@ -454,7 +403,7 @@ func encodeHere(ctx context.Context, wav []byte, bitrate, channels int) ([]byte,
 
 // audioDone is {generateDone} of a music, sound or speech job: the length, the seed, the waveform, and what each
 // kind is (speech: the text, voice, language and the words' times; music: title, tempo, lyrics, faded).
-func audioDone(g advertisedGenerator, q *genRequest, plan genPlan, j *genJob, seconds float64, peaks []float64) map[string]any {
+func audioDone(g generatorInfo, q *genRequest, plan genPlan, j *genJob, seconds float64, peaks []float64) map[string]any {
 	done := map[string]any{"type": "generateDone", "generator": g.ID, "seed": q.Seed, "peaks": peaks,
 		"took": math.Round(j.Finished.Sub(j.Started).Seconds()*10) / 10}
 	if v, ok := j.stat("seed"); ok {

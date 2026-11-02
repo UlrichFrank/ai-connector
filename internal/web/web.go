@@ -378,6 +378,10 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if req.Encode != nil && req.Encode.Format != "aac" {
+		http.Error(w, "encode: the format is \"aac\"", http.StatusBadRequest)
+		return
+	}
 	// reference images must be uploads (or earlier outputs): the page names them by their /files/ path
 	for i, p := range req.Images {
 		local, ok := s.local(p)
@@ -572,6 +576,20 @@ func (s *Server) view(j *jobs.Job) *jobs.Job {
 	}
 	if j.Request.Source != "" {
 		v.Request.Source = s.url(j.Request.Source)
+	}
+	if enc, ok := j.Result["encoded"].(map[string]any); ok { // jobs/encode.go: the file as a url too
+		if f, ok := enc["file"].(string); ok {
+			e := make(map[string]any, len(enc))
+			for k, x := range enc {
+				e[k] = x
+			}
+			e["file"] = s.url(f)
+			v.Result = make(map[string]any, len(j.Result))
+			for k, x := range j.Result {
+				v.Result[k] = x
+			}
+			v.Result["encoded"] = e
+		}
 	}
 	if llm.HasImages(j.Request.Messages) { // a chat's images: their /files/ urls (the bytes are not in the job)
 		v.Request.Messages = make([]llm.Message, len(j.Request.Messages))

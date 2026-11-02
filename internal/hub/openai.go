@@ -621,7 +621,7 @@ func (s *Server) v1Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if c, ok := clientOf(r); ok {
-		job["client"] = c.Name
+		job["client"], job["clientId"] = c.Name, c.ID
 	}
 	feed := s.fleet.followJob() // before the job exists: none of its events is missed
 	defer feed.close()

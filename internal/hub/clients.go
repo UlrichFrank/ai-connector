@@ -102,6 +102,18 @@ func (cs *clients) lookup(token string) (Client, bool) {
 	return s.Client, true
 }
 
+// byID is the client with this id (an uplink's: it acts as it).
+func (cs *clients) byID(id string) (Client, bool) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	for _, s := range cs.byHash {
+		if s.ID == id {
+			return s.Client, true
+		}
+	}
+	return Client{}, false
+}
+
 func (cs *clients) list() []Client {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -167,17 +179,20 @@ func bearer(r *http.Request) string {
 	return ""
 }
 
-// clientMay: the native jobs API, the one part of /api/* and /files/* a client token reaches (docs/api.md).
+// clientMay: the native jobs API and the capabilities, the one part of /api/* and /files/* a client token reaches (docs/api.md).
 func clientMay(r *http.Request) bool {
 	p, m := r.URL.Path, r.Method
 	switch {
-	case m == http.MethodGet && (p == "/api/models" || p == "/api/jobs" || p == "/api/events"):
+	case m == http.MethodGet && (p == "/api/models" || p == "/api/jobs" || p == "/api/events" ||
+		p == "/api/capabilities" || p == "/api/capabilities/events"):
 		return true
 	case m == http.MethodPost && p == "/api/jobs":
 		return true
+	case p == "/api/my/setup" && m == http.MethodGet, p == "/api/my/downloads": // the owner's setup (mysetup.go)
+		return true
 	case strings.HasPrefix(p, "/api/jobs/"):
 		id, rest, sub := strings.Cut(strings.TrimPrefix(p, "/api/jobs/"), "/")
-		return id != "" && (m == http.MethodGet && !sub || m == http.MethodPost && rest == "cancel")
+		return id != "" && (m == http.MethodGet && (!sub || rest == "events") || m == http.MethodPost && rest == "cancel")
 	case m == http.MethodGet && strings.HasPrefix(p, "/files/"):
 		return true
 	}
@@ -187,6 +202,10 @@ func clientMay(r *http.Request) bool {
 // requireAPI guards the client APIs (/v1/*, /embed): a client token or a device token, else an OpenAI-shaped 401.
 func (s *Server) requireAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := uplinkClient(r); ok { // a request through an uplink acts as its client (uplinks.go)
+			next.ServeHTTP(w, withClient(r, c))
+			return
+		}
 		if c, ok := s.clients.lookup(bearer(r)); ok {
 			next.ServeHTTP(w, withClient(r, c))
 			return

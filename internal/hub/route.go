@@ -164,15 +164,25 @@ func (s *Server) dispatch(w http.ResponseWriter, r *http.Request) {
 	case m == "GET" && p == "/api/jobs":
 		s.mergedJobs(w, r, routed)
 	case m == "GET" && p == "/api/events":
-		s.mergedEvents(w, r)
+		s.mergedEvents(w, r, routed)
 	case m == "GET" && p == "/api/models":
 		s.mergedModels(w, r, routed, prim)
 	case m == "POST" && p == "/api/jobs":
 		s.submit(w, r, routed, prim)
+	case m == "GET" && strings.HasPrefix(p, "/api/jobs/") && strings.HasSuffix(p, "/events"):
+		s.jobEvents(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/api/jobs/"), "/events"), prim)
 	case strings.HasPrefix(p, "/api/jobs/"):
 		id, _, _ := strings.Cut(strings.TrimPrefix(p, "/api/jobs/"), "/")
+		if c, ok := clientOf(r); ok && !s.ownJob(r.Context(), c, id, prim) {
+			notFound(w)
+			return
+		}
 		s.toRoute(w, r, jobRoute(id), prim)
 	case strings.HasPrefix(p, "/files/"):
+		if c, ok := clientOf(r); ok && !s.ownFile(r.Context(), c, p, prim) {
+			notFound(w)
+			return
+		}
 		s.toRoute(w, r, fileRoute(p), prim)
 	case strings.HasPrefix(p, "/api/agents/"): // Claude Code sessions: the person's own workers (agents.go)
 		s.agentsAPI(w, r, routed)
@@ -274,6 +284,7 @@ func (s *Server) mergedJobs(w http.ResponseWriter, r *http.Request, nodes []*nod
 	}
 	var all []item
 	got := false
+	client, mine := clientOf(r)
 	for _, b := range s.each(r.Context(), nodes, "/api/jobs") {
 		if b == nil {
 			continue
@@ -286,8 +297,12 @@ func (s *Server) mergedJobs(w http.ResponseWriter, r *http.Request, nodes []*nod
 		for _, raw := range list {
 			var c struct {
 				Created time.Time `json:"created"`
+				jobHead
 			}
 			json.Unmarshal(raw, &c)
+			if mine && c.Request.ClientID != client.ID {
+				continue // a client lists its own jobs
+			}
 			all = append(all, item{raw, c.Created})
 		}
 	}
@@ -305,7 +320,8 @@ func (s *Server) mergedJobs(w http.ResponseWriter, r *http.Request, nodes []*nod
 
 // mergedEvents: GET /api/events — every Mac's events in one stream. When a Mac comes or goes the stream ends, so
 // the client connects again and loads the lists anew (with the new Mac's jobs, without the gone one's).
-func (s *Server) mergedEvents(w http.ResponseWriter, r *http.Request) {
+// A client gets its own jobs' events only.
+func (s *Server) mergedEvents(w http.ResponseWriter, r *http.Request, nodes []*node) {
 	fl, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "no streaming", http.StatusInternalServerError)
@@ -316,6 +332,7 @@ func (s *Server) mergedEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 	ch, stop := s.fleet.subscribe()
 	defer stop()
+	show := s.eventFilter(r, nodes) // after subscribing: a job of the client's that comes meanwhile is seen
 	set := s.fleet.routedSet()
 	changed := s.fleet.Changed()
 	fmt.Fprint(w, ": hello\n\n")
@@ -330,6 +347,9 @@ func (s *Server) mergedEvents(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, ": ping\n\n")
 			fl.Flush()
 		case data := <-ch:
+			if !show(data) {
+				continue
+			}
 			fmt.Fprintf(w, "data: %s\n\n", data)
 			fl.Flush()
 		case <-changed:
@@ -808,8 +828,10 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, p
 	delete(req, "worker")
 	// the application that submits it: from its token, never the caller's word
 	delete(req, "client")
+	delete(req, "clientId")
 	if c, ok := clientOf(r); ok {
 		req["client"], _ = json.Marshal(c.Name)
+		req["clientId"], _ = json.Marshal(c.ID)
 	}
 	delete(req, "owner") // the server says whose a job is (agents.go)
 	if isClaude(nodes, str("model")) {
@@ -881,20 +903,20 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, p
 		to = n
 	}
 
-	// files on another Mac come along
+	// files on another Mac come along, files sent along (data: URLs) are uploaded to it
 	copied := false
 	for i, u := range images {
-		if nu, err := s.bring(r.Context(), u, to); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "copy", "message": err.Error()})
+		if nu, err := s.placeFile(r.Context(), u, fmt.Sprintf("image-%d", i+1), to); err != nil {
+			fileError(w, err)
 			return
 		} else if nu != u {
 			images[i], copied = nu, true
 		}
 	}
 	if audio != "" {
-		nu, err := s.bring(r.Context(), audio, to)
+		nu, err := s.placeFile(r.Context(), audio, "audio", to)
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "copy", "message": err.Error()})
+			fileError(w, err)
 			return
 		}
 		if nu != audio {

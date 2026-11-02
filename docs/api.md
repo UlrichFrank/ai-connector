@@ -225,11 +225,52 @@ Python dict). `type` must be `choice` (or absent); a criterion's description is 
 one classify call on the same worker. Errors are OpenAI-shaped (the endpoint is under `/v1/`). Model default
 `MLXLAB_CLASSIFY_MODEL`, else `laya-typed-decisions`.
 
+### Classify many — `POST /v1/classify` (client or device token)
+
+One choice question for many states (sorting a board's notes, say):
+`{"model"?,"states":[<any JSON>,…],"instructions":"…","options":{"<label>":<description>,…}}` →
+`{"model":"<catalogue id>","answers":[{"choice","probabilities","answer_confidence"},…]}`, an answer per state in
+their order. States are serialised as for `/v1/systemone`; the options keep their order, a description is a text,
+`null` (none) or anything else (written as compact Python JSON). At most 20000 states a request, asked of one worker
+4096 at a time. No options, options that are not an object, too many states → 400 (OpenAI-shaped errors). Model
+default as for `/v1/systemone`.
+
 ## Native jobs API (client or device token)
 
 The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `GET /api/jobs`,
 `GET /api/jobs/{id}`, `POST /api/jobs/{id}/cancel`, `GET /api/events` (SSE), `GET /files/…`
-(see `docs/architecture.md`). A job submitted with a client token carries `"client":"<client name>"`.
+(see `docs/architecture.md`). A job submitted with a client token carries `"client":"<client name>"` and
+`"clientId":"<client id>"` (set by the server; what a caller sends for either is dropped).
+
+**A client sees only its own jobs** (those with its `clientId`): `GET /api/jobs` lists them, `GET /api/events`
+streams their events only, and `GET`/`cancel` of another job answer 404 `{"error":"not found"}`. It reads only the
+files its jobs name (what they made, the images and audio they were given) — another `/files/…` answers 404. A device
+sees every job and file.
+
+**Files sent along:** a job's `images` (reference images) and `audio` may be base64 `data:` URLs instead of
+`/files/` urls — for an application, which cannot upload to a worker. The hub uploads each to the worker the job
+goes to and puts its `/files/` url in the job. Types: `image/png`, `image/jpeg`, `image/webp`; `audio/wav`,
+`audio/mpeg`, `audio/mp4`, `audio/aac`, `audio/flac`, `audio/ogg`; at most 16 MB a file (the whole request at most
+64 MB). Another type, a URL that is not base64 or does not decode → 400 `{"error":"bad request","message"}`.
+
+**Audio ready to play:** a music, sound or speech job with `"encode":{"format":"aac","bitrate"?,"channels"?,
+"peaks"?}` gets its WAV made AAC on the worker when it is done (bit rate 32000–320000, default 192000; channels 1
+or 2, default 2; peaks 0–4096, default 256). The `.m4a` is added to the job's `files`, and `result.encoded` says
+`{"file":"/files/….m4a","mime":"audio/mp4","size","seconds","peaks":[0..1 …],"encoder":"afconvert|ffmpeg"}`.
+Without an encoder on the worker, the WAV is the file (`"mime":"audio/wav"`). Another `format` → 400. A job without
+a WAV ignores it; an older worker ignores it too (no `result.encoded`).
+
+`GET /api/jobs/{id}/events` (client or device token): one job's events as SSE, none dropped — first
+`data: {"jobId","job"}` (the job as it is now), then every update and event of it as `/api/events` sends them
+(`{"jobId","job"}`, `{"jobId","event"}`), `: ping` every 15 s. The stream ends after the update that ends the job
+(`done`, `failed`, `canceled`); for a job that has already ended, after the first event.
+
+Between them, `{"jobId","progress":{…}}` says where the job is whenever that changes:
+`{"state":"queued","ahead":2}` (the jobs its worker does before it, the running one included; asked every second
+while it waits), `{"state":"running"}`, and with steps (image, video, music …) `{"state":"running","step":12,
+"total":30,"eta":45}` — `eta` the seconds still to go at the pace of the steps seen so far (from the second step
+on). A queued job's `ahead` is also in `GET /api/jobs/{id}` (absent for an older worker, and for a job that runs
+beside the queue: Claude Code).
 
 `engine.Request` gains:
 
@@ -238,6 +279,98 @@ The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `
   never run. Not with `zone` (the zones' tools run on the worker).
 * `client`: set by the server from the client token's name (a value sent by the caller is replaced).
 * `messages[].images`: a user message's images ("Images in chats" above; references only in the history).
+
+## Capabilities (client or device token)
+
+What the token can run now, so that an application knows what to offer without knowing the workers.
+
+`GET /api/capabilities` → `{"user":"<the person the token acts for, or \"\">","models":[<model>…]}`. A model is
+listed when a connected worker has it **on disk** (nothing is downloaded for it): any worker for most models, for
+Claude Code (`claude-code/*`) only the worker of `user` (the device's user, the client token's owner; "Agents
+(Claude Code)", Ownership). A model:
+
+```json
+{"id":"flux2-klein-4b","name":"FLUX.2 [klein] 4b","kind":"image","backend":"mflux","images":false,"tasks":[],
+ "nonCommercial":false,"workers":[{"id":"<worker id>","name":"Mac Studio"}],"generator":{…}}
+```
+
+* `workers`: where it would run, the one a job would go to now first (loaded, then idle, then the most memory).
+* `images`: a chat model that takes images.
+* `generator` (image, video, upscale, cutout, music, sound and speech models), by `kind`:
+  * `image`: `multiple` (sides are rounded down to it), `max` (the longer side), `edit` (takes reference images),
+    `textToImage: false` when it only edits, `default: {width, height}`;
+  * `video`: `multiple`, `max`, `maxSeconds`, `firstFrame`, `audio` (a soundtrack), `default: {width, height, fps,
+    seconds}`;
+  * `upscale`: `scales` (the factors), `max` (the result's longer side); `cutout`: `max` (the image's longer side);
+  * `music`: `lyrics`, `instrumental`, `bpm`, `maxSeconds`, `default: {seconds}`; `sound`: `maxSeconds`,
+    `default: {seconds}`; `speech`: `voices` `[{"id","name","language"}]`, `languages`, `instruct`, `maxChars`.
+
+`GET /api/capabilities/events`: SSE, `data: <the capabilities>` at once and whenever they change (a worker comes or
+goes, a model is downloaded…; checked on every change of the workers and every 30 s), `: ping` every 15 s.
+
+## Setting up models (client or device token)
+
+Models are downloaded onto the workers of the person a token acts for (the device's user, the client token's
+owner) — nobody fills another person's disk. A token without a person → 403 `{"error":"forbidden","message"}`.
+Workers without downloads on request (older ones) are left out.
+
+| | |
+|---|---|
+| `GET /api/my/setup[?access=1]` | `{"user","setupUrl"?,"workers":[{"id","name","memory","free","huggingFace":{"token"}}],"models":[…],"downloads":[…]}` |
+| `POST /api/my/downloads` | `{"model","worker"?}` → the download (200). `worker`: a worker's id or name; else the only one, else one that has the model, else the one where it fits with the most free disk. No worker of the person connected, or `worker` not theirs → 409 `{"error":"no-worker","message"}` |
+| `GET /api/my/downloads[?model=&worker=]` | every download on the person's workers since they started; with `model`, that model's (on `worker`, else the first) — 404 when there is none |
+| `DELETE /api/my/downloads?model=[&worker=]` | stops it (204; the partial files stay); none running → 404 |
+
+* A model: the worker's setup entry (`id`, `name`, `kind`, `about`, `here`, `size`, `licence`, `nonCommercial`,
+  `gated`, `access`, `url`, `fits`, `recommended`, `tasks`, `languages`) and `worker: {id, name}` — one entry per
+  model and worker. At most one is `recommended` per role (the kind; `image/upscale`, `image/cutout`,
+  `speech/transcribe`, `speech/align` apart), on the worker with the most memory. `?access=1` asks Hugging Face
+  whether the token may download the gated ones (`access`); it takes longer.
+* A download: `{"model","state":"queued|downloading|done|failed|canceled","bytes","total","eta","error","need","url",
+  "worker":{id,name}}` — `need` says what only the person can do (`token`, `licence`, `space`, `memory`) and `url` where.
+* A download that is done is offered at once (`GET /api/capabilities` and its events).
+
+## Uplinks (device sign-in required)
+
+An application that cannot reach the server (the server is at home, behind a router; the application is on the
+internet) is reached the other way round: the server dials the application — an **uplink** — and the application
+makes its requests to the server through that connection. The server knows nothing of the application but its URL
+and token.
+
+| | |
+|---|---|
+| `GET /api/uplinks` | `[<uplink>]` in the order they were made (never the token) |
+| `POST /api/uplinks` | `{"name"?,"url","token","enabled"?}` → the uplink (201), with its client (below) |
+| `PATCH /api/uplinks/{id}` | any of `name`, `url`, `token` (blank keeps it), `enabled` → the uplink (200); it dials again |
+| `DELETE /api/uplinks/{id}` | 204: the connection ends, its client is revoked (unknown id: 404) |
+| `GET /api/uplinks/events` | SSE: `data: [<uplink>,…]` at once and on every change; `: ping` every 25 s |
+
+An uplink: `{"id","name","url","enabled","owner","client","created","state":"connecting|connected|error|disabled",
+"error"?,"since"?}`. `url`: the application's endpoint, `http(s)://` or `ws(s)://`; `token`: the application's token
+for it, any text without spaces (else 400 `{"error":"url"|"token","message"}`). `owner`: the user of the device that
+made it. `state`: `connecting` (with `error`: why it retries — 1 s, doubled up to 30 s), `connected` (`since`),
+`error` (the application refused the token: stopped until the uplink is edited), `disabled`. Stored in
+`<data>/uplinks.json` (mode 0600, the token in clear: the server needs it to dial).
+
+**What comes through:** an uplink acts as its **client** — a client token made with it (named as the uplink, owned
+by `owner`; listed under `/api/clients`, its token never used). Requests through the uplink reach what a client
+token reaches — `/v1/*`, `/embed`, the native jobs API, `/api/capabilities`, `/api/my/*`, `/files/*` — as that
+client (its jobs carry its name and id; Claude Code and downloads go to `owner`'s workers). Anything else answers
+404 (401 under `/api/`), whatever the request carries: an `Authorization` header, a cookie or `?token=` are removed.
+Revoking the client refuses the uplink's requests (401) while the connection stays.
+
+**The protocol** (what an application implements; ai-connector's workers dial the server the same way,
+`internal/tunnel`):
+
+1. The server opens a WebSocket to `url` (`http`→`ws`, `https`→`wss`) with `Authorization: Bearer <token>` and
+   `X-Mlxlab-Worker: <the uplink's name>`. The application answers 401 or 403 to a token it does not take (the
+   server stops: `state: "error"`), else accepts the upgrade.
+2. Binary messages carry a [yamux](https://github.com/hashicorp/yamux/blob/master/spec.md) session: the
+   application is the yamux **client** (it opens the streams), the server the yamux server. Keep-alive every 15 s.
+3. Each stream carries plain HTTP/1.1 — a request from the application, the server's answer (keep-alive and
+   streaming answers such as SSE included). The `Host` header does not matter.
+4. When the connection drops, the server dials again (1 s, doubled up to 30 s); an application keeps the newest
+   connection of an uplink.
 
 ## Worker: direct path (through the tunnel; the server calls it)
 
