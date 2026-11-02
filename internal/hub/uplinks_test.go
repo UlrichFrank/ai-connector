@@ -115,3 +115,33 @@ func TestUplinks(t *testing.T) {
 		}
 	}
 }
+
+// EnsureUplink (ai-connector local --uplink): the first needs a token; again it keeps the stored one (or takes a new
+// one); a client revoked in the console is made anew.
+func TestEnsureUplink(t *testing.T) {
+	s, _ := newHub(t, t.TempDir())
+	if _, err := s.EnsureUplink("Mac", "https://app.example.com/ai/uplink", "", "Ada"); err == nil {
+		t.Fatal("a first uplink without a token")
+	}
+	up, err := s.EnsureUplink("Mac", "https://app.example.com/ai/uplink", "tok-1", "Ada")
+	if err != nil || up.Owner != "Ada" || up.Client == "" || len(s.Uplinks()) != 1 {
+		t.Fatalf("made %+v %v", up, err)
+	}
+	again, err := s.EnsureUplink("Studio", "https://app.example.com/ai/uplink", "", "Ada")
+	if err != nil || again.ID != up.ID || again.Name != "Studio" || again.Client != up.Client || len(s.Uplinks()) != 1 {
+		t.Fatalf("again %+v %v", again, err)
+	}
+	if s.uplinks.list[0].conf.Token != "tok-1" {
+		t.Fatal("the stored token was not kept")
+	}
+	if ok, _ := s.clients.revoke(up.Client); !ok {
+		t.Fatal("revoke")
+	}
+	renewed, err := s.EnsureUplink("Studio", "https://app.example.com/ai/uplink", "tok-2", "Ada")
+	if err != nil || renewed.Client == up.Client || s.uplinks.list[0].conf.Token != "tok-2" {
+		t.Fatalf("renewed %+v %v", renewed, err)
+	}
+	if _, ok := s.clients.byID(renewed.Client); !ok {
+		t.Fatal("the new client is not there")
+	}
+}

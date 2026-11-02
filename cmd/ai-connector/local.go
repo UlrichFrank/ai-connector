@@ -1,7 +1,7 @@
 package main
 
-// ai-connector local: this computer's AI for the apps on it (OpenCAD, EDDy, scripts), without a server and without
-// vboard — `ai-connector vboard` without its connector. The hub runs inside this process, this computer is its one
+// ai-connector local: this computer's AI for the apps on it (OpenCAD, EDDy, scripts), without a server. With --uplink
+// it also dials an application that cannot reach it (an uplink: the application then uses its API through it). The hub runs inside this process, this computer is its one
 // worker (Claude Code too) and the apps find the hub and a client token in <config>/local-ai.json (localai.go).
 // With --lan the hub listens on the network, announces itself (Bonjour) and apps on other computers link with a PIN.
 
@@ -35,7 +35,7 @@ const localUsage = `ai-connector local — this computer's AI for the apps on it
 
 usage:
   ai-connector local [--addr HOST:PORT] [--lan] [--name NAME] [--console ADDR] [--state DIR] [--print-token]
-                     [--install | --uninstall]
+                     [--uplink URL [--uplink-token TOKEN]] [--install | --uninstall]
 
   --addr HOST:PORT  where the hub listens (default 127.0.0.1:0, a free port on this computer only; with --lan
                     :8485, every network interface). Without --lan only a loopback address.
@@ -45,6 +45,10 @@ usage:
   --name NAME       the Bonjour name (default: "<this computer> (ai-connector)")
   --console ADDR    also serve the ai-connector console there (it prints the password)
   --state DIR       its jobs and Claude Code sessions (default <files>/local/worker, apart from a plain worker's)
+  --uplink URL      also dial this application's uplink endpoint (an address it gives for that) and serve it the
+                    API through it, as a client acting for this computer's owner (docs/api.md "Uplinks")
+  --uplink-token T  the application's token for it (or $AIC_UPLINK_TOKEN); needed the first time, then kept in
+                    <files>/local (never in the start at login)
   --print-token     print the local apps' token (to type it into an app on another computer); a running one's
                     is printed and nothing starts. Tokens are never printed otherwise.
   --install         start it at login with these flags (a launchd agent, a systemd user unit, a scheduled task);
@@ -64,6 +68,7 @@ type localOptions struct {
 	name, console, state string
 	install, uninstall   bool
 	printToken           bool
+	uplink, uplinkToken  string
 	env                  envFlag
 }
 
@@ -82,6 +87,8 @@ func parseLocal(args []string, out io.Writer) (localOptions, error) {
 	fs.StringVar(&o.console, "console", "", "serve the console here")
 	fs.StringVar(&o.state, "state", "", "this process's jobs and sessions")
 	fs.BoolVar(&o.printToken, "print-token", false, "print the local apps' token")
+	fs.StringVar(&o.uplink, "uplink", "", "an application's uplink endpoint")
+	fs.StringVar(&o.uplinkToken, "uplink-token", "", "the application's token for it")
 	fs.BoolVar(&o.install, "install", false, "start at login")
 	fs.BoolVar(&o.uninstall, "uninstall", false, "do not start at login any more")
 	// not in the usage: the Windows task's command carries the environment of --install with it (as vboard's)
@@ -94,6 +101,9 @@ func parseLocal(args []string, out io.Writer) (localOptions, error) {
 	}
 	if o.install && o.uninstall {
 		return o, errors.New("--install or --uninstall, not both")
+	}
+	if o.uplinkToken != "" && o.uplink == "" {
+		return o, errors.New("--uplink-token goes with --uplink URL")
 	}
 	if _, err := o.listenAddr(); err != nil {
 		return o, err
@@ -151,7 +161,42 @@ func localKind(o localOptions) serviceKind {
 	if o.state != "" {
 		k.args = append(k.args, "--state", absPath(o.state))
 	}
+	if o.uplink != "" { // its token is kept in <files>/local (ensureUplink)
+		k.args = append(k.args, "--uplink", o.uplink)
+	}
 	return k
+}
+
+// uplinkName is the name an application shows for this computer's uplink.
+func (o localOptions) uplinkName(host string) string {
+	if o.name != "" {
+		return o.name
+	}
+	return host + " (ai-connector)"
+}
+
+// token is --uplink-token, else $AIC_UPLINK_TOKEN ("" keeps the stored one).
+func (o localOptions) token(getenv func(string) string) string {
+	if o.uplinkToken != "" {
+		return o.uplinkToken
+	}
+	return strings.TrimSpace(getenv("AIC_UPLINK_TOKEN"))
+}
+
+// storeUplink keeps the uplink and its token in the hub's state in dir before the start at login is installed (the
+// service gets only --uplink URL): the hub is opened for it and closed again.
+func storeUplink(dir string, o localOptions) error {
+	pw, err := consolePassword(dir)
+	if err != nil {
+		return err
+	}
+	s, err := hub.New(hub.Config{Password: pw, Data: dir, Tools: filepath.Join(dir, "tools"), Owner: standaloneOwner})
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	_, err = s.EnsureUplink(o.uplinkName(web.HostName()), o.uplink, o.token(os.Getenv), standaloneOwner)
+	return err
 }
 
 // standaloneArgs: `ai-connector serve --standalone …` is `ai-connector local …` (ok: --standalone was there).
@@ -254,6 +299,11 @@ func localCommand(args []string) error {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
+		if o.uplink != "" {
+			if err := storeUplink(dir, o); err != nil {
+				return fmt.Errorf("--uplink: %w", err)
+			}
+		}
 		if err := svc.install(); err != nil {
 			return err
 		}
@@ -320,6 +370,14 @@ func localCommand(args []string) error {
 	}
 	base := localBase(l.Addr())
 	setupPage := s.EnableSetupPage(base) // the Hugging Face token (its code is in the address)
+	if o.uplink != "" {
+		up, err := s.EnsureUplink(o.uplinkName(host), o.uplink, o.token(os.Getenv), standaloneOwner)
+		if err != nil {
+			l.Close()
+			return fmt.Errorf("--uplink: %w", err)
+		}
+		fmt.Printf("uplink: %s (its state shows in the console)\n", up.URL)
+	}
 	workerToken, err := s.LocalWorker(host, standaloneOwner)
 	if err != nil {
 		return fmt.Errorf("this computer as worker: %w", err)

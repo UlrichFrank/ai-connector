@@ -130,3 +130,25 @@ func TestConsolePasswordKept(t *testing.T) {
 		t.Fatal(fi.Mode())
 	}
 }
+
+// --uplink goes into the start at login, its token never (it is kept in the hub's state); a token alone is refused.
+func TestLocalUplinkFlags(t *testing.T) {
+	o, err := parseLocal([]string{"--uplink", "https://app.example.com/ai/uplink", "--uplink-token", "vbp_secret", "--install"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k := localKind(o)
+	if !slices.Equal(k.args, []string{"local", "--uplink", "https://app.example.com/ai/uplink"}) || strings.Contains(strings.Join(k.args, " "), "vbp_secret") {
+		t.Fatalf("args %q", k.args)
+	}
+	if o.token(func(string) string { return "from-env" }) != "vbp_secret" {
+		t.Fatal("the flag's token")
+	}
+	o.uplinkToken = ""
+	if o.token(func(k string) string { return map[string]string{"AIC_UPLINK_TOKEN": " from-env "}[k] }) != "from-env" {
+		t.Fatal("the environment's token")
+	}
+	if _, err := parseLocal([]string{"--uplink-token", "x"}, nil); err == nil {
+		t.Fatal("a token without --uplink")
+	}
+}
