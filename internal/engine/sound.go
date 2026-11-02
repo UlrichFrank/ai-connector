@@ -50,7 +50,6 @@ func soundEnv() pyenv.Env { return runtimeEnv("sound") } // runtimes/sound.json
 // soundModels are the catalogue's sound effect models.
 func soundModels() []*Model { return builtinModels("sound", nil, "") }
 
-
 // SoundBackend runs the sound effect models: one worker, which keeps its model loaded between sounds (about 6 GB at its peak).
 type SoundBackend struct {
 	Root  string
