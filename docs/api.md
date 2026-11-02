@@ -290,6 +290,28 @@ Claude Code (`claude-code/*`) only the worker of `user` (the device's user, the 
 `GET /api/capabilities/events`: SSE, `data: <the capabilities>` at once and whenever they change (a worker comes or
 goes, a model is downloaded…; checked on every change of the workers and every 30 s), `: ping` every 15 s.
 
+## Setting up models (client or device token)
+
+Models are downloaded onto the workers of the person a token acts for (the device's user, the client token's
+owner) — nobody fills another person's disk. A token without a person → 403 `{"error":"forbidden","message"}`.
+Workers without downloads on request (older ones) are left out.
+
+| | |
+|---|---|
+| `GET /api/my/setup[?access=1]` | `{"user","setupUrl"?,"workers":[{"id","name","memory","free","huggingFace":{"token"}}],"models":[…],"downloads":[…]}` |
+| `POST /api/my/downloads` | `{"model","worker"?}` → the download (200). `worker`: a worker's id or name; else the only one, else one that has the model, else the one where it fits with the most free disk. No worker of the person connected, or `worker` not theirs → 409 `{"error":"no-worker","message"}` |
+| `GET /api/my/downloads[?model=&worker=]` | every download on the person's workers since they started; with `model`, that model's (on `worker`, else the first) — 404 when there is none |
+| `DELETE /api/my/downloads?model=[&worker=]` | stops it (204; the partial files stay); none running → 404 |
+
+* A model: the worker's setup entry (`id`, `name`, `kind`, `about`, `here`, `size`, `licence`, `nonCommercial`,
+  `gated`, `access`, `url`, `fits`, `recommended`, `tasks`, `languages`) and `worker: {id, name}` — one entry per
+  model and worker. At most one is `recommended` per role (the kind; `image/upscale`, `image/cutout`,
+  `speech/transcribe`, `speech/align` apart), on the worker with the most memory. `?access=1` asks Hugging Face
+  whether the token may download the gated ones (`access`); it takes longer.
+* A download: `{"model","state":"queued|downloading|done|failed|canceled","bytes","total","eta","error","need","url",
+  "worker":{id,name}}` — `need` says what only the person can do (`token`, `licence`, `space`, `memory`) and `url` where.
+* A download that is done is offered at once (`GET /api/capabilities` and its events).
+
 ## Worker: direct path (through the tunnel; the server calls it)
 
 Embedding and classifying are quick and run beside the queue (a video rendering does not hold a search up):

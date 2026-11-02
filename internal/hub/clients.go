@@ -176,6 +176,8 @@ func clientMay(r *http.Request) bool {
 		return true
 	case m == http.MethodPost && p == "/api/jobs":
 		return true
+	case p == "/api/my/setup" && m == http.MethodGet, p == "/api/my/downloads": // the owner's setup (mysetup.go)
+		return true
 	case strings.HasPrefix(p, "/api/jobs/"):
 		id, rest, sub := strings.Cut(strings.TrimPrefix(p, "/api/jobs/"), "/")
 		return id != "" && (m == http.MethodGet && (!sub || rest == "events") || m == http.MethodPost && rest == "cancel")
