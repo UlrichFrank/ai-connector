@@ -303,8 +303,21 @@ type chatRun struct {
 	since  int64
 }
 
-// start submits the job to the worker: its id and state ("queued", "running" …).
+// start submits the job to the worker: its id and state ("queued", "running" …). The submission is not cut short
+// when ctx ends: the worker may have the job (and run it) by then, and only its id lets it be canceled — which it is
+// then, before the error is returned.
 func (s *Server) startChat(ctx context.Context, n *node, job map[string]any) (string, string, *apiError) {
+	id, state, e := s.submitChat(n, job)
+	if e == nil && ctx.Err() != nil {
+		(&chatRun{s: s, n: n, id: id}).cancel()
+		return "", "", &apiError{http.StatusBadGateway, "worker_error", ctx.Err().Error()}
+	}
+	return id, state, e
+}
+
+func (s *Server) submitChat(n *node, job map[string]any) (string, string, *apiError) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	b, _ := json.Marshal(job)
 	resp, err := s.fleet.request(ctx, n, http.MethodPost, "/api/jobs", bytes.NewReader(b), "application/json")
 	if err != nil {
