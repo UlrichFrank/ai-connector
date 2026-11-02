@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The local integration (docs/local.md): this repo's ai-connector server on 127.0.0.1, this Mac as its worker (own
 # config and state, the model store shared with ~/.config/mlxlab), a vboard from a local checkout with its test login,
-# and a vboard connector offering a local chat model and Claude Code in vboard's chat panel.
+# and its uplink to vboard (vboard a client of the server's API; LOCAL_VIA=connector: the vboard connector instead,
+# offering a local chat model and Claude Code in vboard's chat panel).
 #
 #   deploy/local/local.sh up | down | status | logs [server|worker|vboard|idp] | open
 #
@@ -347,7 +348,9 @@ start_vboard() {
   mkdir -p "$VB_DIR/data"
   step "starting vboard on $VB_URL (its test login offers $USER_FULL)"
   start_idp
-  start_bg vboard "$VB_BIN" env -u DATABASE_URL -u BLOB_STORE \
+  # vboard wraps its server secrets with SECRETS_KEY when there is a login: one made here once, kept in the state
+  [[ -s "$STATE/vboard-secrets-key" ]] || (umask 077 && openssl rand -hex 32 >"$STATE/vboard-secrets-key")
+  start_bg vboard "$VB_BIN" env -u DATABASE_URL -u BLOB_STORE SECRETS_KEY="$(cat "$STATE/vboard-secrets-key")" \
     HOST=127.0.0.1 PORT="$VB_PORT" DATA_DIR="$VB_DIR/data" STATIC_DIR="$VB_DIR/web" MANUAL_DIR="$VB_DIR/manual" \
     AUTH_MODE=oidc AUTH_OIDC_ISSUER="$IDP_URL" AUTH_OIDC_CLIENT_ID=vboard AUTH_OIDC_CLIENT_SECRET=local \
     AUTH_OIDC_NAME="Local login" AUTH_ADMIN_GROUPS=admins AUTH_BASE_URL="$VB_URL" LOG_LEVEL=info "$VB_BIN"
@@ -490,6 +493,41 @@ connector() {
   say "  the connector is not connected yet (local.sh status shows why)"
 }
 
+# uplink: the server dials vboard (GET /api/v1/ai-connector/uplink with the vboard token) and vboard is a client of
+# its API — the default; LOCAL_VIA=connector for the vboard connector instead (the one or the other, never both:
+# vboard would see the server twice).
+uplink() {
+  local uid url body cid
+  url="$VB_URL/api/v1/ai-connector/uplink"
+  cid="$(aic GET /api/connectors 2>/dev/null | jq -r --arg u "$VB_URL" '[.[] | select(.url == $u)][0].id // empty')"
+  if [[ -n "$cid" ]]; then
+    step "removing the vboard connector (the uplink replaces it)"
+    aic DELETE "/api/connectors/$cid" -o /dev/null
+  fi
+  uid="$(aic GET /api/uplinks | jq -r --arg u "$url" '[.[] | select(.url == $u)][0].id // empty')"
+  body="$(jq -n --arg n "$CONNECTOR_NAME" --arg u "$url" --arg t "$(cat "$STATE/vboard-token")" '{name:$n, url:$u, token:$t, enabled:true}')"
+  if [[ -n "$uid" ]]; then
+    step "updating the uplink to vboard"
+    aic PATCH "/api/uplinks/$uid" -d "$body" -o /dev/null
+  else
+    step "creating the uplink to vboard ($url)"
+    aic POST /api/uplinks -d "$body" -o /dev/null
+  fi
+  for _ in $(seq 1 50); do
+    [[ "$(aic GET /api/uplinks | jq -r --arg u "$url" '[.[] | select(.url == $u)][0].state')" == connected ]] && return
+    sleep 0.2
+  done
+  say "  the uplink is not connected yet (local.sh status shows why)"
+}
+
+remove_uplinks() {
+  local id
+  for id in $(aic GET /api/uplinks 2>/dev/null | jq -r --arg u "$VB_URL/api/v1/ai-connector/uplink" '.[] | select(.url == $u) | .id'); do
+    step "removing the uplink to vboard (LOCAL_VIA=connector)"
+    aic DELETE "/api/uplinks/$id" -o /dev/null
+  done
+}
+
 cmd_up() {
   need jq "brew install jq"; need curl ""; need go "Go"; need pnpm "pnpm"; need openssl ""
   mkdir -p "$STATE" "$LOGS" "$RUN"
@@ -512,7 +550,7 @@ cmd_up() {
   start_vboard
   vboard_token
   vboard_board
-  connector
+  if [[ "${LOCAL_VIA:-uplink}" == connector ]]; then remove_uplinks; connector; else uplink; fi
   say ""
   cmd_status
   say ""
@@ -556,6 +594,7 @@ cmd_status() {
     aic GET /api/connectors 2>/dev/null | jq -r '.[] | "  connector \(.name) → \(.url)  state=\(.state)\(if (.error // "") != "" then " (\(.error))" else "" end)  user=\(.user // "-")",
       "            agents: \([.agents[] | .model] | join(", "))",
       "            offered now: \([.advertised[]? | "\(.id) (\(.kind) on \(.worker))"] | join(", "))"' || true
+    aic GET /api/uplinks 2>/dev/null | jq -r '.[] | "  uplink   \(.name) → \(.url)  state=\(.state)\(if (.error // "") != "" then " (\(.error))" else "" end)"' || true
   else
     say "  server   not reachable on $AIC_URL"
   fi

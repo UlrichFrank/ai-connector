@@ -5,7 +5,7 @@ export const de: Record<string, string> = {
   Workers: "Worker",
   Models: "Modelle",
   Clients: "Clients",
-  Connectors: "Konnektoren",
+  Uplinks: "Uplinks",
   "Link a device": "Gerät verknüpfen",
   "mlxlab app": "mlxlab-App",
   "Signed in as {user}": "Angemeldet als {user}",
@@ -22,7 +22,7 @@ export const de: Record<string, string> = {
 
   // sign-in
   "Sign in to approve the device that asks for a client token.": "Melde dich an, um das Gerät freizugeben, das ein Client-Token anfragt.",
-  "Sign in to manage workers, models, clients and connectors.": "Anmelden, um Worker, Modelle, Clients und Konnektoren zu verwalten.",
+  "Sign in to manage workers, models, clients and uplinks.": "Anmelden, um Worker, Modelle, Clients und Uplinks zu verwalten.",
   "Your name": "Dein Name",
   "e.g. Philipp": "z. B. Philipp",
   Password: "Passwort",
@@ -206,11 +206,9 @@ export const de: Record<string, string> = {
   'POST /v1/chat/completions (add "stream": true for SSE)': 'POST /v1/chat/completions („"stream": true“ für SSE)',
   "POST /v1/embeddings (L2-normalised vectors)": "POST /v1/embeddings (L2-normierte Vektoren)",
   "The OpenAI SDK, pointed at this server": "Das OpenAI-SDK, auf diesen Server gerichtet",
-  "vboard's environment (embedder, classifier, cloud AI endpoint and key); provider and model on its admin page":
-    "vboards Umgebung (Embedder, Klassifikator, Cloud-KI-Endpunkt und Schlüssel); Anbieter und Modell auf seiner Admin-Seite",
   "docscanner backend's environment": "Umgebung des docscanner-Backends",
-  "vboard can also be reached the other way round, without changing its settings: add a vboard connector on the Connectors page, and this server dials vboard instead.":
-    "vboard geht auch andersherum, ohne seine Einstellungen zu ändern: Auf der Seite Konnektoren einen vboard-Konnektor anlegen, dann verbindet sich dieser Server mit vboard.",
+  "An application that cannot reach this server can be reached the other way round: add an uplink on the Uplinks page, and this server dials it.":
+    "Eine Anwendung, die diesen Server nicht erreicht, geht auch andersherum: Auf der Seite Uplinks einen Uplink anlegen, dann verbindet sich dieser Server mit ihr.",
 
   // link
   "An app shows a PIN and asks for its own client token. Approve it here and the app picks the token up by itself; nobody copies it.":
@@ -235,14 +233,28 @@ export const de: Record<string, string> = {
   Approve: "Freigeben",
   Deny: "Ablehnen",
 
-  // connectors
-  "Outbound connections to applications that expect a local AI to dial in. A vboard connector answers vboard's classify, embed and chat requests through the workers.":
-    "Ausgehende Verbindungen zu Anwendungen, die eine lokale KI erwarten. Ein vboard-Konnektor beantwortet vboards Klassifizierungs-, Embedding- und Chat-Anfragen über die Worker.",
+  // uplinks
+  "Connections this server makes to applications that cannot reach it: the application then uses this server's API through the connection, as a client.":
+    "Verbindungen, die dieser Server zu Anwendungen aufbaut, die ihn nicht erreichen: Die Anwendung nutzt dann über die Verbindung die API dieses Servers, als Client.",
   "refreshed every few seconds": "alle paar Sekunden aktualisiert",
-  "Add vboard": "vboard hinzufügen",
-  "No connectors yet": "Noch keine Konnektoren",
-  "Add a vboard connector with a vboard personal or board token (vbp_…): this server then acts as vboard's local AI.":
-    "Einen vboard-Konnektor mit einem persönlichen oder Board-Token (vbp_…) anlegen: Dann ist dieser Server vboards lokale KI.",
+  "Add uplink": "Uplink hinzufügen",
+  "No uplinks yet": "Noch keine Uplinks",
+  "Add one with the application's endpoint and the token it gives you for it. The application describes the address.":
+    "Einen mit dem Endpunkt der Anwendung und dem Token anlegen, das sie dafür ausgibt. Die Anwendung nennt die Adresse.",
+  "acts for": "handelt für",
+  "The server disconnects, forgets the token and revokes the uplink's client.": "Der Server trennt die Verbindung, vergisst das Token und widerruft den Client des Uplinks.",
+  "Uplink added": "Uplink hinzugefügt",
+  "Add an uplink": "Uplink hinzufügen",
+  "The server dials the application's endpoint with its token. The application's requests then act as a client of yours: your models, your Claude Code, your downloads.":
+    "Der Server verbindet sich mit dem Token zum Endpunkt der Anwendung. Ihre Anfragen handeln dann als ein Client von dir: deine Modelle, dein Claude Code, deine Downloads.",
+  "The application may show it; blank: “uplink”.": "Die Anwendung zeigt ihn eventuell an; leer: „uplink“.",
+  Endpoint: "Endpunkt",
+  "The address the application gives for an uplink.": "Die Adresse, die die Anwendung für einen Uplink nennt.",
+  "The application's token for it. It is stored on the server and never shown again.":
+    "Das Token der Anwendung dafür. Es wird auf dem Server gespeichert und nie wieder angezeigt.",
+  "The application's address is needed": "Die Adresse der Anwendung fehlt",
+  "An http(s) or ws(s) address of the application's endpoint": "Eine http(s)- oder ws(s)-Adresse des Endpunkts der Anwendung",
+  "The application's token is needed": "Das Token der Anwendung fehlt",
   "Could not enable “{name}”": "„{name}“ einschalten fehlgeschlagen",
   "Could not disable “{name}”": "„{name}“ ausschalten fehlgeschlagen",
   "“{name}” deleted": "„{name}“ gelöscht",
@@ -260,67 +272,20 @@ export const de: Record<string, string> = {
   "Edit…": "Bearbeiten …",
   "Delete…": "Löschen …",
   "Delete “{name}”?": "„{name}“ löschen?",
-  "The server disconnects from vboard and forgets the token.": "Der Server trennt sich von vboard und vergisst das Token.",
   Delete: "Löschen",
-  "Chat agents": "Chat-Agenten",
-  on: "auf",
-  "the default": "Standard",
-  "No connected worker runs it now (Claude Code: your own worker)": "Kein verbundener Worker führt es gerade aus (Claude Code: dein eigener Worker)",
-  "not offered now": "gerade nicht angeboten",
-  "Server default": "Server-Standard",
-  "An agent: it changes the board itself through vboard's MCP": "Ein Agent: Er ändert das Board selbst über vboards MCP",
-  "A chat model: it answers with vboard's tools": "Ein Chat-Modell: Es antwortet mit vboards Werkzeugen",
   model: "Modell",
   agent: "Agent",
-  "What people pick from in vboard's chat panel. Claude Code runs as an agent on your own worker and changes the board through vboard's MCP. Without a list: the chat model above alone.":
-    "Die Auswahl in vboards Chat. Claude Code läuft als Agent auf deinem eigenen Worker und ändert das Board über vboards MCP. Ohne Liste: nur das Chat-Modell oben.",
-  "default — must be a model": "Standard – muss ein Modell sein",
-  "Name of {name}": "Name von {name}",
-  "Effort of {name}": "Aufwand von {name}",
-  "Effort: the worker's default": "Aufwand: Standard des Workers",
-  "Effort:": "Aufwand:",
   "Move up": "Nach oben",
   "Move down": "Nach unten",
   "Remove {name}": "{name} entfernen",
-  "Add an agent": "Agent hinzufügen",
-  "Add a chat model or agent…": "Chat-Modell oder Agent hinzufügen …",
-  "No other chat model is offered now": "Gerade wird kein weiteres Chat-Modell angeboten",
-  "Generators on the board": "Generatoren auf dem Board",
-  "The models vboard may make pictures, videos, songs, sounds and speech with (the first of each kind is the default). Offered only while a connected worker has the model on disk. “All on disk” adds every one there, also those downloaded later from vboard, after the ones named before it. Without a list: none.":
-    "Die Modelle, mit denen vboard Bilder, Videos, Songs, Klänge und Sprache erzeugen darf (das erste jeder Art ist Standard). Nur angeboten, solange ein verbundener Worker das Modell auf der Platte hat. „Alle auf der Platte“ fügt jedes dort hinzu, auch später aus vboard geladene, nach den davor genannten. Ohne Liste: keine.",
-  "All on disk": "Alle auf der Platte",
-  "not on a worker's disk now": "gerade auf keiner Worker-Platte",
-  "Add a generator model": "Generator-Modell hinzufügen",
-  "Add a generator model…": "Generator-Modell hinzufügen …",
-  "No other generator model is listed": "Kein weiteres Generator-Modell vorhanden",
-  "not on disk": "nicht auf der Platte",
   Saved: "Gespeichert",
-  "Connector added": "Konnektor hinzugefügt",
   "It connects in the background; the state shows here.": "Er verbindet sich im Hintergrund; der Status erscheint hier.",
   "Edit “{name}”": "„{name}“ bearbeiten",
-  "Add a vboard connector": "vboard-Konnektor hinzufügen",
-  "The server dials vboard's classifier bridge with the token and answers as vboard's local AI.":
-    "Der Server verbindet sich mit dem Token zu vboards Klassifikator-Brücke und antwortet als vboards lokale KI.",
-  "vboard shows it as the local AI's name; blank: “ai-connector”.": "vboard zeigt ihn als Namen der lokalen KI; leer: „ai-connector“.",
-  "vboard address": "vboard-Adresse",
   unchanged: "unverändert",
   "Leave blank to keep the stored token.": "Leer lassen, um das gespeicherte Token zu behalten.",
-  "A vboard personal or board token. It is stored on the server and never shown again.":
-    "Ein persönliches oder Board-Token von vboard. Es wird auf dem Server gespeichert und nie wieder angezeigt.",
-  "Board id (optional)": "Board-ID (optional)",
-  "Only for this board; empty for every board the token may see.": "Nur für dieses Board; leer für jedes Board, das das Token sehen darf.",
   Classify: "Klassifizieren",
   Embed: "Embedding",
   Save: "Speichern",
   Add: "Hinzufügen",
-  // validation (lib/connectors.ts)
-  "The first is the default, which older vboards and search ask with vboard's tools: it must be a chat model, not Claude Code":
-    "Der erste ist der Standard, den ältere vboards und die Suche mit vboards Werkzeugen fragen: Es muss ein Chat-Modell sein, nicht Claude Code",
-  "Every agent needs a model": "Jeder Agent braucht ein Modell",
-  "The vboard address is needed": "Die vboard-Adresse fehlt",
-  "Claude Code is an agent: add it under Chat agents, with a chat model first": "Claude Code ist ein Agent: unter Chat-Agenten hinzufügen, mit einem Chat-Modell zuerst",
-  "An http(s) address, like https://vboard.example.com": "Eine http(s)-Adresse, etwa https://vboard.example.com",
-  "Not an address, like https://vboard.example.com": "Keine Adresse wie https://vboard.example.com",
-  "A vboard token (vbp_…) is needed": "Ein vboard-Token (vbp_…) ist nötig",
   "A token has no spaces": "Ein Token enthält keine Leerzeichen",
 };

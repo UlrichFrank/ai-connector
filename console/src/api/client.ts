@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import type { Client, ClientCreated, Connector, ConnectorInput, ErrorBody, Info, Job, LinkRequest, LoginResponse, ModelsResponse, Worker, WorkerCreated } from "./types";
+import type { Client, ClientCreated, ErrorBody, Info, Job, LinkRequest, LoginResponse, ModelsResponse, Uplink, UplinkInput, Worker, WorkerCreated } from "./types";
 
 /** A request the server refused. `code` is the `error` field of a JSON answer ("signin", "offline", …), if any. */
 export class ApiError extends Error {
@@ -76,7 +76,7 @@ async function failure(r: Response): Promise<ApiError> {
 interface CallOptions extends RequestInit {
   /** false: a 401 is the answer (sign-in), not a lost session. */
   session?: boolean;
-  /** An endpoint of the server itself (clients, connectors): a 404/405/501 or a forward to the workers means "not there". */
+  /** An endpoint of the server itself (clients, uplinks): a 404/405/501 or a forward to the workers means "not there". */
   serverOnly?: boolean;
 }
 
@@ -128,10 +128,10 @@ export const api = {
   approveLink: (code: string) => post<{ client: Client }>(`/api/link/${enc(code)}`, { approve: true }, { serverOnly: true }),
   denyLink: (code: string) => post<void>(`/api/link/${enc(code)}`, { approve: false }, { serverOnly: true }),
 
-  connectors: () => call<Connector[]>("/api/connectors", { serverOnly: true }),
-  createConnector: (c: ConnectorInput) => post<Connector>("/api/connectors", c, { serverOnly: true }),
-  patchConnector: (id: string, c: ConnectorInput) => call<Connector>(`/api/connectors/${enc(id)}`, { method: "PATCH", body: JSON.stringify(c), serverOnly: true }),
-  deleteConnector: (id: string) => call<void>(`/api/connectors/${enc(id)}`, { method: "DELETE", serverOnly: true }),
+  uplinks: () => call<Uplink[]>("/api/uplinks", { serverOnly: true }),
+  createUplink: (u: UplinkInput) => post<Uplink>("/api/uplinks", u, { serverOnly: true }),
+  patchUplink: (id: string, u: UplinkInput) => call<Uplink>(`/api/uplinks/${enc(id)}`, { method: "PATCH", body: JSON.stringify(u), serverOnly: true }),
+  deleteUplink: (id: string) => call<void>(`/api/uplinks/${enc(id)}`, { method: "DELETE", serverOnly: true }),
 };
 
 /** A sentence for an error, for a toast or an empty state. */

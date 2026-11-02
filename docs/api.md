@@ -352,6 +352,10 @@ made it. `state`: `connecting` (with `error`: why it retries — 1 s, doubled up
 `error` (the application refused the token: stopped until the uplink is edited), `disabled`. Stored in
 `<data>/uplinks.json` (mode 0600, the token in clear: the server needs it to dial).
 
+On a single computer, `ai-connector local --uplink <url> --uplink-token <token>` (or `$AIC_UPLINK_TOKEN`) keeps
+such an uplink for its own hub; with `--install` the token is stored in its state first and the start at login gets
+only `--uplink <url>`. An application's installer can run exactly that.
+
 **What comes through:** an uplink acts as its **client** — a client token made with it (named as the uplink, owned
 by `owner`; listed under `/api/clients`, its token never used). Requests through the uplink reach what a client
 token reaches — `/v1/*`, `/embed`, the native jobs API, `/api/capabilities`, `/api/my/*`, `/files/*` — as that

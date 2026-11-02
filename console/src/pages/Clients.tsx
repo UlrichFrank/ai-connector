@@ -35,7 +35,7 @@ export function ClientsPage() {
 
   return (
     <Page>
-      <PageHeader title={t("Clients")} description={t("API tokens for applications (vboard, docscanner, scripts): they may use the OpenAI, TEI, Laya and jobs APIs, nothing else.")}>
+      <PageHeader title={t("Clients")} description={t("API tokens for applications (docscanner, scripts …): they may use the OpenAI, TEI, Laya and jobs APIs, nothing else.")}>
         <Button variant="outline" onClick={() => navigate("link")} disabled={missing}>
           <Link2 /> {t("Link a device")}
         </Button>
@@ -189,7 +189,7 @@ function CreateClientDialog({ open, onOpenChange, onCreated }: { open: boolean; 
             </DialogHeader>
             <div className="flex flex-col gap-2">
               <Label htmlFor="client-name">{t("Name")}</Label>
-              <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={80} placeholder="docscanner, vboard, scripts …" />
+              <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={80} placeholder="docscanner, scripts …" />
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
@@ -241,7 +241,7 @@ function Usage({ token, tokenName }: { token?: string; tokenName?: string }) {
           {(
             [
               ["openai", "OpenAI API"],
-              ["apps", "vboard & docscanner"],
+              ["apps", "Apps"],
             ] as const
           ).map(([g, label]) => (
             <button key={g} role="tab" aria-selected={group === g} aria-pressed={group === g} onClick={() => setGroup(g)}>
@@ -262,7 +262,7 @@ function Usage({ token, tokenName }: { token?: string; tokenName?: string }) {
       </div>
       {group === "apps" && (
         <p className="mt-3 text-xs text-muted-foreground">
-          {t("vboard can also be reached the other way round, without changing its settings: add a vboard connector on the Connectors page, and this server dials vboard instead.")}
+          {t("An application that cannot reach this server can be reached the other way round: add an uplink on the Uplinks page, and this server dials it.")}
         </p>
       )}
     </section>

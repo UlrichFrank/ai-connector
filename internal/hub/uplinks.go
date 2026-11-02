@@ -469,3 +469,75 @@ func (s *Server) uplinkEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+// EnsureUplink makes the uplink to url, or brings the one there is up to date (its name, a new token; "" keeps the
+// stored one): the standalone hub's way to an application (`ai-connector local --uplink`). Its client acts for owner.
+func (s *Server) EnsureUplink(name, rawURL, token, owner string) (Uplink, error) {
+	u := s.uplinks
+	addr, err := cleanUplinkURL(rawURL)
+	if err != nil {
+		return Uplink{}, err
+	}
+	if strings.TrimSpace(token) != "" {
+		if token, err = cleanUplinkToken(token); err != nil {
+			return Uplink{}, err
+		}
+	}
+	if name = trimRunes(strings.TrimSpace(name), 80); name == "" {
+		name = "uplink"
+	}
+	u.mu.Lock()
+	var e *uplinkEntry
+	for _, x := range u.list {
+		if x.conf.URL == addr {
+			e = x
+		}
+	}
+	if e == nil && token == "" {
+		u.mu.Unlock()
+		return Uplink{}, fmt.Errorf("the first uplink to %s needs the application's token", addr)
+	}
+	u.mu.Unlock()
+	if e == nil {
+		_, cl, err := s.clients.add(name, owner) // its token is never used: the uplink's requests act as it
+		if err != nil {
+			return Uplink{}, err
+		}
+		u.mu.Lock()
+		e = &uplinkEntry{conf: storedUplink{ID: randomString(9), Name: name, URL: addr, Token: token, Enabled: true, Owner: owner,
+			Client: cl.ID, Created: time.Now().UTC().Truncate(time.Second)}}
+		u.list = append(u.list, e)
+	} else {
+		client := ""
+		if _, ok := s.clients.byID(e.conf.Client); !ok { // revoked in the console: a new one
+			_, cl, err := s.clients.add(name, owner)
+			if err != nil {
+				return Uplink{}, err
+			}
+			client = cl.ID
+		}
+		u.mu.Lock()
+		e.conf.Name, e.conf.Enabled = name, true
+		if token != "" {
+			e.conf.Token = token
+		}
+		if client != "" {
+			e.conf.Client = client
+		}
+	}
+	err = u.saveLocked()
+	if err == nil {
+		u.startLocked(e)
+	}
+	v := e.view()
+	u.mu.Unlock()
+	if err != nil {
+		return Uplink{}, err
+	}
+	u.notify()
+	return v, nil
+}
+
+// Uplinks is the uplinks' state now; UplinksChanged fires on the next change (for a log of the state).
+func (s *Server) Uplinks() []Uplink               { return s.uplinks.views() }
+func (s *Server) UplinksChanged() <-chan struct{} { return s.uplinks.Changed() }

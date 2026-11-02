@@ -49,7 +49,7 @@ export function SignIn() {
         <div>
           <h1 className="text-2xl font-semibold tracking-[-0.03em]">ai-connector</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {linking ? t("Sign in to approve the device that asks for a client token.") : t("Sign in to manage workers, models, clients and connectors.")}
+            {linking ? t("Sign in to approve the device that asks for a client token.") : t("Sign in to manage workers, models, clients and uplinks.")}
           </p>
         </div>
       </div>

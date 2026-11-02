@@ -60,7 +60,7 @@ export interface Model {
   gated?: boolean;
   licence?: string;
   nonCommercial?: boolean;
-  /** A music, sound or speech model: what it takes (vboard's generators; the transcriber has no maxChars). */
+  /** A music, sound or speech model: what it takes (the transcriber has no maxChars). */
   audio?: { maxSeconds?: number; maxChars?: number };
   workers?: ModelWorker[];
 }
@@ -175,74 +175,34 @@ export interface LinkRequest {
   expires: string;
 }
 
-export type ConnectorState = "connected" | "connecting" | "error" | "disabled";
+export type UplinkState = "connected" | "connecting" | "error" | "disabled";
 
-export interface ConnectorModels {
-  classify?: string;
-  embed?: string;
-  chat?: string;
-}
-
-/** One of the AIs a connector offers vboard's chat (the first is the default and must be a model). */
-export interface ConnectorAgent {
-  /** Stable (vboard remembers the pick by it); derived from the model when blank. */
+/**
+ * An outbound connection to an application that cannot reach this server (GET /api/uplinks; never the token): the
+ * server dials it, and its requests come back through it as the uplink's client.
+ */
+export interface Uplink {
   id: string;
-  model: string;
-  /** "" = the model's name. */
-  name?: string;
-  /** Set by the server: claude-code/* is an agent (it works on the board through vboard's MCP). */
-  kind?: "model" | "agent";
-  /** A Claude Code agent's effort level (low, medium, high, xhigh, max; absent: the worker's default). */
-  effort?: string;
-}
-
-/** An agent as the connector offers it to vboard now. */
-export interface AdvertisedAgent {
-  id: string;
-  name: string;
-  kind: "model" | "agent";
-  worker?: string;
-  model: string;
-}
-
-/** An outbound connection to an application (GET /api/connectors; never the token). */
-export interface Connector {
-  id: string;
-  kind: "vboard";
   name: string;
   url: string;
-  board?: string;
   enabled: boolean;
-  state: ConnectorState;
-  /** Why it is in state error; while connecting, why it waits or retries ("" none). */
+  /** The user of the device that made it: the uplink's client acts for them. */
+  owner: string;
+  /** The id of the client it acts as (listed under Clients). */
+  client: string;
+  created: string;
+  state: UplinkState;
+  /** Why it is in state error; while connecting, why it retries ("" none). */
   error?: string;
   /** Connected since (RFC 3339; absent while not connected). */
   since?: string;
-  /** Who the token belongs to, as the application says. */
-  user?: string;
-  /** "" = the server's default model. */
-  models?: ConnectorModels;
-  /** The chosen agents in their order ([] = the default: the chat model alone). */
-  agents?: ConnectorAgent[];
-  /** What vboard was told of (while connected). */
-  advertised?: AdvertisedAgent[];
-  /** The image and video models offered to vboard's board, in order (catalogue ids; [] = none). */
-  generators?: string[];
-  /** The user of the device that made it. */
-  owner?: string;
-  created?: string;
 }
 
-export interface ConnectorInput {
-  kind?: "vboard";
+export interface UplinkInput {
   name?: string;
   url?: string;
   token?: string;
-  board?: string;
   enabled?: boolean;
-  models?: ConnectorModels;
-  agents?: ConnectorAgent[];
-  generators?: string[];
 }
 
 export interface ErrorBody {

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
-import { curlChat, curlEmbeddings, docscannerEnv, pickModel, pythonOpenAI, snippets, TOKEN_PLACEHOLDER, vboardEnv } from "./snippets.ts";
+import { curlChat, curlEmbeddings, docscannerEnv, pickModel, pythonOpenAI, snippets, TOKEN_PLACEHOLDER } from "./snippets.ts";
 
 const input = { origin: "https://ai.example.com/", token: "aic_abc", chatModel: "ollama/qwen3:8b", embedModel: "qwen3-embedding-0.6b" };
 
@@ -28,29 +28,13 @@ test("python: base_url ends in /v1, models filled in", () => {
   assert.ok(p.includes('client.embeddings.create(model="qwen3-embedding-0.6b"'));
 });
 
-test("vboard env: the server for TEI and Laya, /v1 and the key for the cloud AI; provider and model on its admin page", () => {
-  const lines = vboardEnv(input).split("\n");
-  assert.ok(lines.includes("EMBED_URL=https://ai.example.com"));
-  assert.ok(lines.includes("EMBED_TOKEN=aic_abc"));
-  assert.ok(lines.includes("CLASSIFIER_URL=https://ai.example.com"));
-  assert.ok(lines.includes("CLASSIFIER_TOKEN=aic_abc"));
-  assert.ok(lines.includes("CLOUD_AI_BASE_URL=https://ai.example.com/v1"));
-  assert.ok(lines.includes("CLOUD_AI_API_KEY=aic_abc"));
-  // vboard reads only these two CLOUD_AI_* variables: the rest is chosen on its admin page
-  const vars = lines.filter((l) => !l.startsWith("#")).map((l) => l.split("=")[0]);
-  assert.deepEqual(vars.filter((v) => v.startsWith("CLOUD_AI_")), ["CLOUD_AI_BASE_URL", "CLOUD_AI_API_KEY"]);
-  const notes = lines.filter((l) => l.startsWith("#")).join("\n");
-  assert.ok(notes.includes('"Cloud AI"') && notes.includes("OpenAI-compatible") && notes.includes("model ollama/qwen3:8b"));
-  assert.ok(notes.includes("claude-code/") && notes.includes("subscription"));
-});
-
 test("docscanner env", () => {
   assert.equal(docscannerEnv(input), "AI_CONNECTOR_URL=https://ai.example.com\nAI_CONNECTOR_TOKEN=aic_abc");
 });
 
 test("without a token or models: the placeholder and the defaults", () => {
   const all = snippets({ origin: "http://localhost:8080" });
-  assert.equal(all.length, 5);
+  assert.equal(all.length, 4);
   for (const s of all) assert.ok(s.text.includes(TOKEN_PLACEHOLDER), s.id);
   assert.ok(curlChat({ origin: "http://x" }).includes("qwen3.6-35b-a3b"));
 });
