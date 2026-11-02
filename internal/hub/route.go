@@ -899,20 +899,20 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request, nodes []*node, p
 		to = n
 	}
 
-	// files on another Mac come along
+	// files on another Mac come along, files sent along (data: URLs) are uploaded to it
 	copied := false
 	for i, u := range images {
-		if nu, err := s.bring(r.Context(), u, to); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "copy", "message": err.Error()})
+		if nu, err := s.placeFile(r.Context(), u, fmt.Sprintf("image-%d", i+1), to); err != nil {
+			fileError(w, err)
 			return
 		} else if nu != u {
 			images[i], copied = nu, true
 		}
 	}
 	if audio != "" {
-		nu, err := s.bring(r.Context(), audio, to)
+		nu, err := s.placeFile(r.Context(), audio, "audio", to)
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "copy", "message": err.Error()})
+			fileError(w, err)
 			return
 		}
 		if nu != audio {

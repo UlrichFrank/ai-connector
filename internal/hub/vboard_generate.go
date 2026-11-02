@@ -10,13 +10,11 @@ import (
 	"io"
 	"maps"
 	"math"
-	"mime/multipart"
 	"net/http"
 	"path"
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 )
 
 // Images and videos on vboard's board (docs/api.md, "vboard: generating images and videos on the board"). The
@@ -816,35 +814,4 @@ func (r *vboardRun) sendPieces(ctx context.Context, c *bridgeConn, id string, n 
 			"data": base64.StdEncoding.EncodeToString(buf[:k]), "last": sent >= size})
 	}
 	return true
-}
-
-// uploadFile puts a file into a worker's uploads (POST /api/upload) and returns its /files/ url there.
-func (s *Server) uploadFile(ctx context.Context, n *node, name string, data []byte) (string, error) {
-	var body bytes.Buffer
-	mw := multipart.NewWriter(&body)
-	part, err := mw.CreateFormFile("file", name)
-	if err == nil {
-		_, err = part.Write(data)
-	}
-	if err == nil {
-		err = mw.Close()
-	}
-	if err != nil {
-		return "", err
-	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	res, err := s.fleet.request(ctx, n, http.MethodPost, "/api/upload", &body, mw.FormDataContentType())
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	var out struct {
-		URL string `json:"url"`
-	}
-	if res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&out) != nil || out.URL == "" {
-		msg, _ := io.ReadAll(io.LimitReader(res.Body, 300))
-		return "", fmt.Errorf("%s %s", res.Status, strings.TrimFunc(string(msg), unicode.IsSpace))
-	}
-	return out.URL, nil
 }

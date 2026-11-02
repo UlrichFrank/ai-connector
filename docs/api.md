@@ -236,6 +236,12 @@ The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `
 streams their events only, and `GET`/`cancel` of another job answer 404 `{"error":"not found"}`. A device sees
 every job.
 
+**Files sent along:** a job's `images` (reference images) and `audio` may be base64 `data:` URLs instead of
+`/files/` urls — for an application, which cannot upload to a worker. The hub uploads each to the worker the job
+goes to and puts its `/files/` url in the job. Types: `image/png`, `image/jpeg`, `image/webp`; `audio/wav`,
+`audio/mpeg`, `audio/mp4`, `audio/aac`, `audio/flac`, `audio/ogg`; at most 16 MB a file (the whole request at most
+64 MB). Another type, a URL that is not base64 or does not decode → 400 `{"error":"bad request","message"}`.
+
 `GET /api/jobs/{id}/events` (client or device token): one job's events as SSE, none dropped — first
 `data: {"jobId","job"}` (the job as it is now), then every update and event of it as `/api/events` sends them
 (`{"jobId","job"}`, `{"jobId","event"}`), `: ping` every 15 s. The stream ends after the update that ends the job

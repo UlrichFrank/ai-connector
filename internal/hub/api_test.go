@@ -714,3 +714,38 @@ func TestChatCanceledWhenClientGoes(t *testing.T) {
 	r.Body.Close()
 	waitFor(t, "the job canceled", func() bool { return mac.mgr.Jobs()[0].State == jobs.Canceled })
 }
+
+// A job's files may come as data: URLs: the hub uploads them to the Mac the job goes to.
+func TestJobFilesInline(t *testing.T) {
+	_, srv := newHub(t, t.TempDir())
+	base := srv.URL
+	device := signIn(t, base, "laptop")
+	_, token := makeClient(t, base, device, "app")
+	_, wtok := enroll(t, base, device, "Mac")
+	startAPIMac(t, base, wtok)
+
+	png := []byte("\x89PNG\r\n\x1a\nnot really")
+	u := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+	code, j, _ := submitJob(t, base, token, `{"model":"qwen3.6-35b-a3b","images":["`+u+`"],"messages":[{"role":"user","content":"x"}]}`)
+	imgs, _ := j.Request["images"].([]any)
+	if code != 200 || len(imgs) != 1 {
+		t.Fatalf("submit %d %+v", code, j)
+	}
+	f, _ := imgs[0].(string)
+	if !strings.HasPrefix(f, "/files/") || !strings.HasSuffix(f, ".png") {
+		t.Fatalf("image %q", f)
+	}
+	r := do(t, "GET", base+f, token, nil)
+	b, _ := io.ReadAll(r.Body)
+	r.Body.Close()
+	if r.StatusCode != 200 || string(b) != string(png) {
+		t.Fatalf("the uploaded file: %d %q", r.StatusCode, b)
+	}
+
+	for _, bad := range []string{"data:image/bmp;base64,AAAA", "data:image/png,plain", "data:image/png;base64,***"} {
+		code, _, _ := submitJob(t, base, token, `{"model":"qwen3.6-35b-a3b","images":["`+bad+`"],"messages":[{"role":"user","content":"x"}]}`)
+		if code != 400 {
+			t.Errorf("%s: %d", bad, code)
+		}
+	}
+}
