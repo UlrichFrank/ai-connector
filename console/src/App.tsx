@@ -6,10 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { t, useLang } from "@/lib/i18n";
 import { useRoute } from "@/lib/route";
 import { ClientsPage } from "@/pages/Clients";
-import { ConnectorsPage } from "@/pages/Connectors";
 import { LinkPage } from "@/pages/Link";
 import { ModelsPage } from "@/pages/Models";
 import { OverviewPage } from "@/pages/Overview";
+import { UplinksPage } from "@/pages/Uplinks";
 import { WorkersPage } from "@/pages/Workers";
 import { useSession } from "@/store/session";
 
@@ -18,7 +18,7 @@ const pages: Record<string, { title: string; render: () => ReactNode }> = {
   workers: { title: "Workers", render: () => <WorkersPage /> },
   models: { title: "Models", render: () => <ModelsPage /> },
   clients: { title: "Clients", render: () => <ClientsPage /> },
-  connectors: { title: "Connectors", render: () => <ConnectorsPage /> },
+  uplinks: { title: "Uplinks", render: () => <UplinksPage /> },
   link: { title: "Link a device", render: () => <LinkPage /> }, // <hub>/pin leads here; not in the sidebar
 };
 

@@ -1,4 +1,4 @@
-import { Bot, Boxes, ExternalLink, KeyRound, LayoutDashboard, LogOut, Menu, Plug, Server } from "lucide-react";
+import { Boxes, Cable, ExternalLink, KeyRound, LayoutDashboard, LogOut, Menu, Plug, Server } from "lucide-react";
 import { useState, type ComponentType, type ReactNode } from "react";
 import { Dot } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const navItems: Item[] = [
   { page: "workers", label: "Workers", icon: Server },
   { page: "models", label: "Models", icon: Boxes },
   { page: "clients", label: "Clients", icon: KeyRound },
-  { page: "connectors", label: "Connectors", icon: Bot },
+  { page: "uplinks", label: "Uplinks", icon: Cable },
 ];
 
 function Nav({ onPick }: { onPick?: () => void }) {
