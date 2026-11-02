@@ -817,3 +817,79 @@ func TestV1Classify(t *testing.T) {
 		t.Fatalf("without a token: %d", c)
 	}
 }
+
+// A job's event stream says where it is: queued with the jobs ahead of it, then running.
+func TestJobEventsProgress(t *testing.T) {
+	defer func(d time.Duration) { jobQueuePoll = d }(jobQueuePoll)
+	jobQueuePoll = 50 * time.Millisecond
+	_, srv := newHub(t, t.TempDir())
+	base := srv.URL
+	device := signIn(t, base, "laptop")
+	_, token := makeClient(t, base, device, "app")
+	_, wtok := enroll(t, base, device, "Mac")
+	mac := startAPIMac(t, base, wtok)
+	hold := make(chan struct{})
+	mac.chat.mu.Lock()
+	mac.chat.hold = hold
+	mac.chat.mu.Unlock()
+
+	chat := `{"model":"qwen3.6-35b-a3b","messages":[{"role":"user","content":"x"}]}`
+	_, first, _ := submitJob(t, base, token, chat)
+	waitFor(t, "the first running", func() bool {
+		js := mac.mgr.Jobs()
+		return len(js) == 1 && js[0].State == jobs.Running
+	})
+	_, second, _ := submitJob(t, base, token, chat)
+	req, _ := http.NewRequest("GET", base+"/api/jobs/"+second.ID+"/events", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r, err := http.DefaultClient.Do(req)
+	if err != nil || r.StatusCode != 200 {
+		t.Fatalf("events %v %v", err, r)
+	}
+	defer r.Body.Close()
+	br := bufio.NewReader(r.Body)
+	var progress []string
+	next := func() string { // the next progress event
+		for {
+			line, err := br.ReadString('\n')
+			if err != nil {
+				t.Fatalf("events: %v (progress %v)", err, progress)
+			}
+			if data, ok := strings.CutPrefix(line, "data: "); ok && strings.Contains(data, `"progress"`) {
+				var u struct{ Progress map[string]any }
+				json.Unmarshal([]byte(data), &u)
+				b, _ := json.Marshal(u.Progress)
+				progress = append(progress, string(b))
+				return string(b)
+			}
+		}
+	}
+	if p := next(); p != `{"ahead":1,"state":"queued"}` {
+		t.Fatalf("first progress %s", p)
+	}
+	close(hold) // the first ends, the second runs (and ends: the fake answers at once)
+	if p := next(); p != `{"state":"running"}` {
+		t.Fatalf("then %v", progress)
+	}
+	waitDone(t, base, token, first.ID)
+}
+
+// The time still to go is the steps left at the pace of those seen.
+func TestProgressETA(t *testing.T) {
+	p := progress{state: "running", step: 2, total: 10}
+	if ev := p.next("j"); !strings.Contains(ev, `"step":2`) || strings.Contains(ev, "eta") {
+		t.Fatalf("the first step: %s", ev)
+	}
+	p.firstAt = p.firstAt.Add(-7990 * time.Millisecond) // two steps in about 8 s: 4 s a step, rounded up
+	p.step = 4
+	if ev := p.next("j"); !strings.Contains(ev, `"eta":24`) {
+		t.Fatalf("eta %s", ev)
+	}
+	if p.next("j") != "" {
+		t.Fatalf("nothing new, something sent")
+	}
+	p.state, p.ahead = "queued", 0
+	if ev := p.next("j"); ev != `{"jobId":"j","progress":{"ahead":0,"state":"queued"}}` {
+		t.Fatalf("queued %s", ev)
+	}
+}

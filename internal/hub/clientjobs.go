@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"time"
@@ -21,10 +22,71 @@ var jobEventsPoll = 15 * time.Second
 type jobUpdate struct {
 	JobID string   `json:"jobId"`
 	Job   *jobHead `json:"job"`
+	Event *struct {
+		Type  string `json:"type"`
+		Step  int    `json:"step"`
+		Total int    `json:"total"`
+	} `json:"event"`
+}
+
+// jobQueuePoll: a queued job's place is asked this often (its worker says no event when a job before it ends).
+var jobQueuePoll = time.Second
+
+// progress is where a followed job is, as its event stream says it ({"jobId","progress":{…}}): queued with the jobs
+// ahead, running with its steps and — once two steps are seen — the seconds still to go (from their pace).
+type progress struct {
+	state       string
+	ahead       int
+	step, total int
+	firstStep   int
+	firstAt     time.Time
+	sent        string
+}
+
+// next takes what is known now and returns the event to send ("" when nothing changed).
+func (p *progress) next(id string) string {
+	v := map[string]any{"state": p.state}
+	switch p.state {
+	case "queued":
+		v["ahead"] = p.ahead
+	case "running":
+		if p.total > 0 {
+			v["step"], v["total"] = p.step, p.total
+			if p.firstAt.IsZero() {
+				p.firstStep, p.firstAt = p.step, time.Now()
+			} else if p.step > p.firstStep && p.step <= p.total {
+				per := time.Since(p.firstAt).Seconds() / float64(p.step-p.firstStep)
+				v["eta"] = int(math.Ceil(per * float64(p.total-p.step)))
+			}
+		}
+	default:
+		return ""
+	}
+	key, _ := json.Marshal(v)
+	if string(key) == p.sent {
+		return ""
+	}
+	p.sent = string(key)
+	b, _ := json.Marshal(map[string]any{"jobId": id, "progress": v})
+	return string(b)
+}
+
+// head takes a job as the worker has it.
+func (p *progress) head(h *jobHead) {
+	p.state = h.State
+	if h.Ahead != nil {
+		p.ahead = *h.Ahead
+	}
+	if h.Total > 0 {
+		p.step, p.total = h.Step, h.Total
+	}
 }
 
 type jobHead struct {
 	State   string `json:"state"`
+	Ahead   *int   `json:"ahead"` // queued: the jobs before it on its worker (jobs.Job.Ahead)
+	Step    int    `json:"step"`
+	Total   int    `json:"total"`
 	Request struct {
 		ClientID string `json:"clientId"`
 	} `json:"request"`
@@ -139,8 +201,19 @@ func (s *Server) jobEvents(w http.ResponseWriter, r *http.Request, id string, pr
 	if finished(h.State) {
 		return
 	}
+	var p progress
+	sendProgress := func() {
+		if ev := p.next(id); ev != "" {
+			fmt.Fprintf(w, "data: %s\n\n", ev)
+		}
+	}
+	p.head(h)
+	sendProgress()
+	fl.Flush()
 	poll := time.NewTicker(jobEventsPoll)
 	defer poll.Stop()
+	queue := time.NewTicker(jobQueuePoll)
+	defer queue.Stop()
 	for {
 		select {
 		case <-r.Context().Done():
@@ -152,13 +225,32 @@ func (s *Server) jobEvents(w http.ResponseWriter, r *http.Request, id string, pr
 			}
 			fmt.Fprint(w, ": ping\n\n")
 			fl.Flush()
+		case <-queue.C:
+			if p.state != "queued" {
+				continue
+			}
+			if _, h, err := s.jobOf(r.Context(), id, prim); err == nil && h.State == "queued" {
+				p.head(h)
+				sendProgress()
+				fl.Flush()
+			}
 		case <-feed.ready:
 			end := false
 			for _, data := range feed.take() {
 				fmt.Fprintf(w, "data: %s\n\n", data)
 				var u jobUpdate
-				if json.Unmarshal(data, &u) == nil && u.Job != nil && finished(u.Job.State) {
+				if json.Unmarshal(data, &u) != nil {
+					continue
+				}
+				switch {
+				case u.Job != nil && finished(u.Job.State):
 					end = true
+				case u.Job != nil:
+					p.head(u.Job)
+					sendProgress()
+				case u.Event != nil && u.Event.Type == "progress":
+					p.state, p.step, p.total = "running", u.Event.Step, u.Event.Total
+					sendProgress()
 				}
 			}
 			fl.Flush()

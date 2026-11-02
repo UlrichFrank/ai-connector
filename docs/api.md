@@ -265,6 +265,13 @@ a WAV ignores it; an older worker ignores it too (no `result.encoded`).
 (`{"jobId","job"}`, `{"jobId","event"}`), `: ping` every 15 s. The stream ends after the update that ends the job
 (`done`, `failed`, `canceled`); for a job that has already ended, after the first event.
 
+Between them, `{"jobId","progress":{…}}` says where the job is whenever that changes:
+`{"state":"queued","ahead":2}` (the jobs its worker does before it, the running one included; asked every second
+while it waits), `{"state":"running"}`, and with steps (image, video, music …) `{"state":"running","step":12,
+"total":30,"eta":45}` — `eta` the seconds still to go at the pace of the steps seen so far (from the second step
+on). A queued job's `ahead` is also in `GET /api/jobs/{id}` (absent for an older worker, and for a job that runs
+beside the queue: Claude Code).
+
 `engine.Request` gains:
 
 * `tools`: `[{"name","description","parameters":<JSON schema>}]` — functions a chat model may call; one round:
