@@ -102,6 +102,18 @@ func (cs *clients) lookup(token string) (Client, bool) {
 	return s.Client, true
 }
 
+// byID is the client with this id (an uplink's: it acts as it).
+func (cs *clients) byID(id string) (Client, bool) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	for _, s := range cs.byHash {
+		if s.ID == id {
+			return s.Client, true
+		}
+	}
+	return Client{}, false
+}
+
 func (cs *clients) list() []Client {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -190,6 +202,10 @@ func clientMay(r *http.Request) bool {
 // requireAPI guards the client APIs (/v1/*, /embed): a client token or a device token, else an OpenAI-shaped 401.
 func (s *Server) requireAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := uplinkClient(r); ok { // a request through an uplink acts as its client (uplinks.go)
+			next.ServeHTTP(w, withClient(r, c))
+			return
+		}
 		if c, ok := s.clients.lookup(bearer(r)); ok {
 			next.ServeHTTP(w, withClient(r, c))
 			return

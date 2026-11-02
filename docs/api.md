@@ -243,8 +243,9 @@ The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `
 `"clientId":"<client id>"` (set by the server; what a caller sends for either is dropped).
 
 **A client sees only its own jobs** (those with its `clientId`): `GET /api/jobs` lists them, `GET /api/events`
-streams their events only, and `GET`/`cancel` of another job answer 404 `{"error":"not found"}`. A device sees
-every job.
+streams their events only, and `GET`/`cancel` of another job answer 404 `{"error":"not found"}`. It reads only the
+files its jobs name (what they made, the images and audio they were given) — another `/files/…` answers 404. A device
+sees every job and file.
 
 **Files sent along:** a job's `images` (reference images) and `audio` may be base64 `data:` URLs instead of
 `/files/` urls — for an application, which cannot upload to a worker. The hub uploads each to the worker the job
@@ -321,6 +322,48 @@ Workers without downloads on request (older ones) are left out.
 * A download: `{"model","state":"queued|downloading|done|failed|canceled","bytes","total","eta","error","need","url",
   "worker":{id,name}}` — `need` says what only the person can do (`token`, `licence`, `space`, `memory`) and `url` where.
 * A download that is done is offered at once (`GET /api/capabilities` and its events).
+
+## Uplinks (device sign-in required)
+
+An application that cannot reach the server (the server is at home, behind a router; the application is on the
+internet) is reached the other way round: the server dials the application — an **uplink** — and the application
+makes its requests to the server through that connection. The server knows nothing of the application but its URL
+and token.
+
+| | |
+|---|---|
+| `GET /api/uplinks` | `[<uplink>]` in the order they were made (never the token) |
+| `POST /api/uplinks` | `{"name"?,"url","token","enabled"?}` → the uplink (201), with its client (below) |
+| `PATCH /api/uplinks/{id}` | any of `name`, `url`, `token` (blank keeps it), `enabled` → the uplink (200); it dials again |
+| `DELETE /api/uplinks/{id}` | 204: the connection ends, its client is revoked (unknown id: 404) |
+| `GET /api/uplinks/events` | SSE: `data: [<uplink>,…]` at once and on every change; `: ping` every 25 s |
+
+An uplink: `{"id","name","url","enabled","owner","client","created","state":"connecting|connected|error|disabled",
+"error"?,"since"?}`. `url`: the application's endpoint, `http(s)://` or `ws(s)://`; `token`: the application's token
+for it, any text without spaces (else 400 `{"error":"url"|"token","message"}`). `owner`: the user of the device that
+made it. `state`: `connecting` (with `error`: why it retries — 1 s, doubled up to 30 s), `connected` (`since`),
+`error` (the application refused the token: stopped until the uplink is edited), `disabled`. Stored in
+`<data>/uplinks.json` (mode 0600, the token in clear: the server needs it to dial).
+
+**What comes through:** an uplink acts as its **client** — a client token made with it (named as the uplink, owned
+by `owner`; listed under `/api/clients`, its token never used). Requests through the uplink reach what a client
+token reaches — `/v1/*`, `/embed`, the native jobs API, `/api/capabilities`, `/api/my/*`, `/files/*` — as that
+client (its jobs carry its name and id; Claude Code and downloads go to `owner`'s workers). Anything else answers
+404 (401 under `/api/`), whatever the request carries: an `Authorization` header, a cookie or `?token=` are removed.
+Revoking the client refuses the uplink's requests (401) while the connection stays.
+
+**The protocol** (what an application implements; ai-connector's workers dial the server the same way,
+`internal/tunnel`):
+
+1. The server opens a WebSocket to `url` (`http`→`ws`, `https`→`wss`) with `Authorization: Bearer <token>` and
+   `X-Mlxlab-Worker: <the uplink's name>`. The application answers 401 or 403 to a token it does not take (the
+   server stops: `state: "error"`), else accepts the upgrade.
+2. Binary messages carry a [yamux](https://github.com/hashicorp/yamux/blob/master/spec.md) session: the
+   application is the yamux **client** (it opens the streams), the server the yamux server. Keep-alive every 15 s.
+3. Each stream carries plain HTTP/1.1 — a request from the application, the server's answer (keep-alive and
+   streaming answers such as SSE included). The `Host` header does not matter.
+4. When the connection drops, the server dials again (1 s, doubled up to 30 s); an application keeps the newest
+   connection of an uplink.
 
 ## Worker: direct path (through the tunnel; the server calls it)
 

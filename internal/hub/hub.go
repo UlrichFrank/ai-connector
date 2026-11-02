@@ -90,6 +90,7 @@ type Server struct {
 	devices    *devices
 	workers    *workers
 	clients    *clients
+	uplinks    *uplinks
 	connectors *connectors // connectors.go, vboard.go
 	invites    *invites
 	logins     *limiter
@@ -163,6 +164,10 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("connectors: %w", err)
 	}
 	s.connectors.startAll()
+	if s.uplinks, err = openUplinks(s, cfg.Data); err != nil {
+		return nil, fmt.Errorf("uplinks: %w", err)
+	}
+	s.uplinks.startAll()
 	s.proxy = s.newProxy()
 	return s, nil
 }
@@ -209,6 +214,7 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("GET /api/my/downloads", s.myDownloads)
 	auth.HandleFunc("DELETE /api/my/downloads", s.cancelMyDownload)
 	s.connectorAPI(auth)
+	s.uplinkAPI(auth)
 	auth.Handle("/api/", s.proxy)
 	auth.Handle("/files/", s.proxy)
 	mux.Handle("/api/", s.requireDevice(auth))
@@ -262,6 +268,14 @@ func tokenOf(r *http.Request) string {
 
 func (s *Server) requireDevice(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := uplinkClient(r); ok { // through an uplink: its client, never a device (uplinks.go)
+			if !clientMay(r) {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "signin"})
+				return
+			}
+			next.ServeHTTP(w, withClient(r, c))
+			return
+		}
 		token := tokenOf(r)
 		dev, ok := s.devices.lookup(token)
 		if !ok && clientMay(r) { // an application's token reaches the native jobs API, nothing else here

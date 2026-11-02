@@ -42,13 +42,19 @@ func config() *yamux.Config {
 // Serve connects to the hub and serves handler to it until ctx ends, reconnecting (with backoff) whenever the
 // connection drops. status is told about every change (connected, the error that ended a connection).
 func Serve(ctx context.Context, hubURL, token, name string, handler http.Handler, status func(connected bool, err error)) error {
+	return ServeAt(ctx, strings.TrimRight(hubURL, "/")+Path, token, name, handler, status)
+}
+
+// ServeAt is Serve to the whole URL u (http(s) or ws(s)): an uplink of the hub to an application, which then makes
+// requests to the hub through it as the hub makes them to a worker (docs/api.md "Uplinks").
+func ServeAt(ctx context.Context, u, token, name string, handler http.Handler, status func(connected bool, err error)) error {
 	if status == nil {
 		status = func(bool, error) {}
 	}
 	wait := time.Second
 	for {
 		start := time.Now()
-		err := serveOnce(ctx, hubURL, token, name, handler, func() { status(true, nil); wait = time.Second })
+		err := serveOnce(ctx, u, token, name, handler, func() { status(true, nil); wait = time.Second })
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -70,11 +76,12 @@ func Serve(ctx context.Context, hubURL, token, name string, handler http.Handler
 }
 
 // ErrUnauthorized: the hub does not know the worker token (retrying will not help).
-var ErrUnauthorized = errors.New("the hub refused the worker token")
+var ErrUnauthorized = errors.New("the token was refused")
 
-func serveOnce(ctx context.Context, hubURL, token, name string, handler http.Handler, connected func()) error {
-	u := strings.TrimRight(hubURL, "/") + Path
-	u = "ws" + strings.TrimPrefix(u, "http") // http→ws, https→wss
+func serveOnce(ctx context.Context, u, token, name string, handler http.Handler, connected func()) error {
+	if strings.HasPrefix(u, "http") {
+		u = "ws" + strings.TrimPrefix(u, "http") // http→ws, https→wss
+	}
 	h := http.Header{}
 	h.Set("Authorization", "Bearer "+token)
 	h.Set(HeaderName, name)

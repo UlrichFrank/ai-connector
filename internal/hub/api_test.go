@@ -750,6 +750,14 @@ func TestJobFilesInline(t *testing.T) {
 	if r.StatusCode != 200 || string(b) != string(png) {
 		t.Fatalf("the uploaded file: %d %q", r.StatusCode, b)
 	}
+	// another application does not get it; a device does
+	_, other := makeClient(t, base, device, "other app")
+	if r := do(t, "GET", base+f, other, nil); r.StatusCode != 404 {
+		t.Fatalf("another client's file: %d", r.StatusCode)
+	}
+	if r := do(t, "GET", base+f, device, nil); r.StatusCode != 200 {
+		t.Fatalf("the file for a device: %d", r.StatusCode)
+	}
 
 	for _, bad := range []string{"data:image/bmp;base64,AAAA", "data:image/png,plain", "data:image/png;base64,***"} {
 		code, _, _ := submitJob(t, base, token, `{"model":"qwen3.6-35b-a3b","images":["`+bad+`"],"messages":[{"role":"user","content":"x"}]}`)

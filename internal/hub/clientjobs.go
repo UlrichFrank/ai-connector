@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -166,4 +167,34 @@ func (s *Server) jobEvents(w http.ResponseWriter, r *http.Request, id string, pr
 			}
 		}
 	}
+}
+
+// ownFile: the file (a /files/ path) is named by one of the client's jobs — what it made, what it was given — on the
+// Mac that holds it.
+func (s *Server) ownFile(ctx context.Context, c Client, path string, prim *node) bool {
+	n := prim
+	if route := fileRoute(path); route != "" {
+		if x, _, known := s.byRoute(route); known {
+			n = x
+		}
+	}
+	if n == nil {
+		return false
+	}
+	a := s.send(ctx, n, http.MethodGet, "/api/jobs", nil, "")
+	if !a.ok() {
+		return false
+	}
+	var list []json.RawMessage
+	if json.Unmarshal(a.body, &list) != nil {
+		return false
+	}
+	quoted, _ := json.Marshal(path)
+	for _, raw := range list {
+		var h jobHead
+		if json.Unmarshal(raw, &h) == nil && h.Request.ClientID == c.ID && bytes.Contains(raw, quoted) {
+			return true
+		}
+	}
+	return false
 }

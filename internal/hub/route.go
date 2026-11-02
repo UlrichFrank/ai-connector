@@ -179,6 +179,10 @@ func (s *Server) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		s.toRoute(w, r, jobRoute(id), prim)
 	case strings.HasPrefix(p, "/files/"):
+		if c, ok := clientOf(r); ok && !s.ownFile(r.Context(), c, p, prim) {
+			notFound(w)
+			return
+		}
 		s.toRoute(w, r, fileRoute(p), prim)
 	case strings.HasPrefix(p, "/api/agents/"): // Claude Code sessions: the person's own workers (agents.go)
 		s.agentsAPI(w, r, routed)
