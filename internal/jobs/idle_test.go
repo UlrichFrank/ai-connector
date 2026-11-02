@@ -132,3 +132,38 @@ func TestAnyPinned(t *testing.T) {
 		t.Error("a pinned model among several loaded")
 	}
 }
+
+// using is a backend that runs another for its jobs (as the avatar its speech) and says so (engine.Uses).
+type using struct {
+	fake
+	other string
+}
+
+func (u *using) Uses() []string { return []string{u.other} }
+
+// The backend a job's backend runs (the avatar's speech) begins its idle time with that job too: an hour-old speech
+// model an avatar job just used is not unloaded right after it.
+func TestIdleOfUsedBackend(t *testing.T) {
+	a := &using{fake: fake{name: "a"}, other: "b"}
+	speech := &fake{name: "b", loaded: "img-b"}
+	m := setup(t, a, speech)
+	m.mu.Lock()
+	m.lastUsed = map[string]time.Time{"b": time.Now().Add(-2 * time.Hour)}
+	m.mu.Unlock()
+	j, err := m.Submit(engine.Request{Model: "chat-a", Prompt: "hi"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wait(t, m, j.ID)
+	for deadline := time.Now().Add(3 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+		m.mu.Lock()
+		free := !m.busy
+		m.mu.Unlock()
+		if free || time.Now().After(deadline) {
+			break
+		}
+	}
+	if got := m.UnloadIdle(time.Hour, nil, time.Now()); len(got) != 0 || speech.loaded != "img-b" {
+		t.Fatalf("the used backend was unloaded right after the job: %v", got)
+	}
+}

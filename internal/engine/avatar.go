@@ -72,6 +72,14 @@ const avatarPrompt = "A person talks to the camera with natural facial expressio
 func avatarModels(store *models.Store) []*Model { return builtinModels("avatar", store, "") }
 
 // AvatarBackend makes talking avatars (models of kind Avatar).
+// Uses names the backend it says the text with (engine.Uses): an avatar job uses it too.
+func (b *AvatarBackend) Uses() []string {
+	if sb, ok := b.Speaker.(Backend); ok {
+		return []string{sb.Name()}
+	}
+	return nil
+}
+
 type AvatarBackend struct {
 	Root  string
 	Store *models.Store

@@ -893,6 +893,11 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 			m.lastUsed = map[string]time.Time{}
 		}
 		m.lastUsed[md.Backend] = time.Now()
+		if u, ok := b.(engine.Uses); ok { // the backends it ran for the job (the avatar's speech): theirs too
+			for _, name := range u.Uses() {
+				m.lastUsed[name] = time.Now()
+			}
+		}
 		m.mu.Unlock()
 		m.publish(Update{JobID: j.ID, Job: snap})
 		if coverOf != nil {

@@ -236,3 +236,9 @@ type Encode struct {
 	Channels int    `json:"channels,omitempty"`
 	Peaks    int    `json:"peaks,omitempty"`
 }
+
+// Uses is a backend that runs others for its jobs (the avatar says its text with the speech backend): it names them,
+// so their idle time begins again with its jobs too (jobs.Manager's idle unload).
+type Uses interface {
+	Uses() []string
+}
