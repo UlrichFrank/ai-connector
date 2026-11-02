@@ -3,6 +3,8 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -237,4 +239,36 @@ func TestComfyUnloadKeepsNextJob(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+// A job canceled while its prompt still waits in ComfyUI's queue: interrupt (it stops the running prompt, another
+// job's) is not sent; forget takes the prompt out of the queue and the history, so it does not run anyway.
+func TestComfyCancelQueued(t *testing.T) {
+	var mu sync.Mutex
+	var posts []string
+	b := comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			body, _ := io.ReadAll(r.Body)
+			mu.Lock()
+			posts = append(posts, r.URL.Path+" "+strings.TrimSpace(string(body)))
+			mu.Unlock()
+			return
+		}
+		if r.URL.Path == "/queue" {
+			w.Write([]byte(`{"queue_running": [[0, "other", {}]], "queue_pending": [[1, "p1", {}]]}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { time.Sleep(700 * time.Millisecond); cancel() }()
+	if _, err := b.wait(ctx, "p1"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("wait: %v", err)
+	}
+	b.forget("p1")
+	mu.Lock()
+	defer mu.Unlock()
+	if strings.Join(posts, "|") != `/queue {"delete":["p1"]}|/history {"delete":["p1"]}` {
+		t.Fatalf("posts %q", posts)
+	}
 }

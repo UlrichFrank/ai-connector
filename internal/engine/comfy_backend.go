@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,7 +85,8 @@ func (b *ComfyBackend) Run(ctx context.Context, m *Model, r Request, outDir stri
 	}
 	emit(Event{Type: "status", Text: "ComfyUI runs the workflow …"})
 	out, err := b.wait(ctx, id)
-	if err != nil {
+	if err != nil { // canceled or failed: nothing of it stays queued or in ComfyUI's history
+		b.forget(id)
 		return err
 	}
 	file, err := b.fetch(ctx, out, outDir, m.ID)
@@ -139,14 +141,25 @@ func union(a, b map[string]map[string]bool) map[string]map[string]bool {
 	return out
 }
 
-// runDir is ComfyUI's own folder of this worker (<config dir>/run/<runtime>): its model paths, outputs, inputs, temp.
-func (b *ComfyBackend) runDir() string    { return filepath.Join(b.srv.Root, "run", b.srv.Runtime) }
+// runDir is ComfyUI's own folder of this process (<config dir>/run/<runtime>@<pid>): its model paths, outputs,
+// inputs, temp. Its own: several processes can share a config dir, each with its own ComfyUI.
+func (b *ComfyBackend) runDir() string {
+	return filepath.Join(b.srv.Root, "run", b.srv.Runtime+"@"+strconv.Itoa(os.Getpid()))
+}
 func (b *ComfyBackend) outputDir() string { return filepath.Join(b.runDir(), "output") }
 
 // startArgs writes the model paths and gives ComfyUI's arguments: no custom nodes, those paths, its own folders.
 func (b *ComfyBackend) startArgs(paths map[string]map[string]bool) ([]string, error) {
 	run := b.runDir()
-	os.RemoveAll(run) // the last start's outputs and temp files
+	os.RemoveAll(run) // this process's last start's outputs and temp files
+	// those of processes that ended (the folder of an older version too: <runtime> without an owner)
+	others, _ := filepath.Glob(filepath.Join(b.srv.Root, "run", b.srv.Runtime+"@*"))
+	for _, d := range others {
+		if pid, err := strconv.Atoi(d[strings.LastIndex(d, "@")+1:]); err == nil && pid != os.Getpid() && !alive(pid) {
+			os.RemoveAll(d)
+		}
+	}
+	os.RemoveAll(filepath.Join(b.srv.Root, "run", b.srv.Runtime))
 	for _, d := range []string{"output", "input", "temp"} {
 		if err := os.MkdirAll(filepath.Join(run, d), 0o700); err != nil {
 			return nil, err
@@ -308,6 +321,31 @@ func (b *ComfyBackend) queued(ctx context.Context, id string) (bool, error) {
 	return false, nil
 }
 
+// running: the prompt is the one ComfyUI runs now.
+func (b *ComfyBackend) running(ctx context.Context, id string) (bool, error) {
+	var q struct {
+		Running [][]json.RawMessage `json:"queue_running"`
+	}
+	if err := b.getJSON(ctx, "/queue", &q); err != nil {
+		return false, err
+	}
+	for _, item := range q.Running {
+		var got string
+		if len(item) > 1 && json.Unmarshal(item[1], &got) == nil && got == id {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// forget takes a prompt out of ComfyUI's queue (it would still run) and its history.
+func (b *ComfyBackend) forget(id string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	b.post(ctx, "/queue", map[string]any{"delete": []string{id}})
+	b.post(ctx, "/history", map[string]any{"delete": []string{id}})
+}
+
 func (b *ComfyBackend) getJSON(ctx context.Context, path string, v any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, b.srv.base+path, nil)
 	if err != nil {
@@ -329,8 +367,11 @@ func (b *ComfyBackend) wait(ctx context.Context, id string) (comfyOutput, error)
 	for {
 		select {
 		case <-ctx.Done():
+			// the prompt runs (interrupt) or still waits in the queue (its delete; interrupt does not reach it)
 			stop, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			b.post(stop, "/interrupt", map[string]any{})
+			if running, err := b.running(stop, id); err != nil || running {
+				b.post(stop, "/interrupt", map[string]any{})
+			}
 			cancel()
 			return comfyOutput{}, ctx.Err()
 		case <-time.After(500 * time.Millisecond):
