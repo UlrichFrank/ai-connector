@@ -225,6 +225,16 @@ Python dict). `type` must be `choice` (or absent); a criterion's description is 
 one classify call on the same worker. Errors are OpenAI-shaped (the endpoint is under `/v1/`). Model default
 `MLXLAB_CLASSIFY_MODEL`, else `laya-typed-decisions`.
 
+### Classify many — `POST /v1/classify` (client or device token)
+
+One choice question for many states (sorting a board's notes, say):
+`{"model"?,"states":[<any JSON>,…],"instructions":"…","options":{"<label>":<description>,…}}` →
+`{"model":"<catalogue id>","answers":[{"choice","probabilities","answer_confidence"},…]}`, an answer per state in
+their order. States are serialised as for `/v1/systemone`; the options keep their order, a description is a text,
+`null` (none) or anything else (written as compact Python JSON). At most 20000 states a request, asked of one worker
+4096 at a time. No options, options that are not an object, too many states → 400 (OpenAI-shaped errors). Model
+default as for `/v1/systemone`.
+
 ## Native jobs API (client or device token)
 
 The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `GET /api/jobs`,

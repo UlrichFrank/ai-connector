@@ -19,8 +19,6 @@ import (
 	"unicode"
 
 	"github.com/coder/websocket"
-
-	"github.com/philipparndt/ai-connector/internal/pyjson"
 )
 
 // The vboard connector: the server is vboard's "local AI", as vboard-ai is on a person's Mac. It dials
@@ -55,7 +53,6 @@ const (
 	bridgeDevice     = "ai-connector" // hello.device
 	bridgeMaxMessage = 8<<20 - 64<<10 // vboard reads at most 8 MB a message
 	bridgeErrorChars = 300            // vboard keeps 300 characters of an error
-	bridgeDirectMax  = 4096           // states or texts per direct call (the worker's limit)
 	bridgeInbound    = 32 << 20       // what vboard may send (a chat's history)
 	bridgePath       = "/api/v1/classifier/bridge"
 )
@@ -1015,84 +1012,20 @@ func apiErr(e *apiError) error {
 	return errors.New(e.message)
 }
 
-// classify answers {classify}: one answer per state, the states serialised as Python's json.dumps (vboard-ai's form),
-// the options in their order.
+// classify answers {classify}: one answer per state (classifyStates).
 func (r *vboardRun) classify(ctx context.Context, caps bridgeCaps, m *bridgeMsg) (map[string]any, error) {
 	if caps.classify == "" {
 		return nil, errors.New("this connector cannot classify now: no connected worker offers a classify model")
 	}
-	states := make([]string, len(m.States))
-	for i, s := range m.States {
-		txt, err := pyjson.Marshal(s)
-		if err != nil {
-			return nil, fmt.Errorf("state %d: %w", i, err)
-		}
-		states[i] = txt
-	}
-	opts, err := bridgeOptions(m.Options)
+	opts, err := classifyOptions(m.Options)
 	if err != nil {
 		return nil, err
 	}
-	answers := make([]map[string]any, 0, len(states))
-	if len(states) > 0 {
-		n, model, e := r.s.place(ctx, caps.classify, "classify")
-		if e != nil {
-			return nil, apiErr(e)
-		}
-		for i := 0; i < len(states); i += bridgeDirectMax {
-			part := states[i:min(i+bridgeDirectMax, len(states))]
-			var res struct {
-				Answers []struct {
-					Choice        string             `json:"choice"`
-					Probabilities map[string]float64 `json:"probabilities"`
-					Confidence    float64            `json:"confidence"`
-				} `json:"answers"`
-			}
-			in := map[string]any{"model": model.ID, "states": part, "instructions": m.Instructions, "options": opts}
-			if e := r.s.direct(ctx, n, "/api/direct/classify", in, &res); e != nil {
-				return nil, apiErr(e)
-			}
-			if len(res.Answers) != len(part) {
-				return nil, fmt.Errorf("%s: %d answers for %d states", n.name, len(res.Answers), len(part))
-			}
-			for _, a := range res.Answers {
-				answers = append(answers, map[string]any{"choice": a.Choice, "probabilities": a.Probabilities, "answer_confidence": a.Confidence})
-			}
-		}
+	_, answers, e := r.s.classifyStates(ctx, caps.classify, m.States, m.Instructions, opts)
+	if e != nil {
+		return nil, apiErr(e)
 	}
 	return map[string]any{"type": "answers", "id": m.ID, "answers": answers}, nil
-}
-
-// bridgeOptions reads the options object in its order, label → description (as vboard-ai does: null or "" is none,
-// structured criteria become compact Python JSON).
-func bridgeOptions(raw json.RawMessage) ([]map[string]string, error) {
-	labels, vals, err := orderedObject(raw)
-	if err != nil {
-		return nil, errors.New("options: an object label → description expected")
-	}
-	if len(labels) == 0 {
-		return nil, errors.New("options: at least one option needed")
-	}
-	out := make([]map[string]string, len(labels))
-	for i, l := range labels {
-		var v any
-		if err := json.Unmarshal(vals[i], &v); err != nil {
-			return nil, err
-		}
-		desc := ""
-		switch x := v.(type) {
-		case nil:
-		case string:
-			desc = x
-		default:
-			b, _ := json.Marshal(x)
-			if desc, err = pyjson.Marshal(b); err != nil {
-				return nil, err
-			}
-		}
-		out[i] = map[string]string{"label": l, "description": desc}
-	}
-	return out, nil
 }
 
 // embed answers {embed}: one L2-normalised vector per text, asked of the worker in batches.

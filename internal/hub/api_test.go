@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -111,7 +112,15 @@ func (b *fakeText) Classify(_ context.Context, _ *engine.Model, states []string,
 	b.asked = append(b.asked, states[0]+" | "+instructions+" | "+strings.Join(labels, ","))
 	b.mu.Unlock()
 	last := opts[len(opts)-1].Label
-	return []engine.Answer{{Choice: last, Probabilities: map[string]float64{last: 0.75, opts[0].Label: 0.25}, Confidence: 0.75}}, nil
+	out := make([]engine.Answer, len(states)) // the last option for every state; "first" in a state the first
+	for i, st := range states {
+		choice := last
+		if strings.Contains(st, "first") {
+			choice = opts[0].Label
+		}
+		out[i] = engine.Answer{Choice: choice, Probabilities: map[string]float64{last: 0.75, opts[0].Label: 0.25}, Confidence: 0.75}
+	}
+	return out, nil
 }
 
 type apiMac struct {
@@ -747,5 +756,56 @@ func TestJobFilesInline(t *testing.T) {
 		if code != 400 {
 			t.Errorf("%s: %d", bad, code)
 		}
+	}
+}
+
+// POST /v1/classify: one question for many states, the answers in their order, in batches the worker takes.
+func TestV1Classify(t *testing.T) {
+	_, srv := newHub(t, t.TempDir())
+	base := srv.URL
+	device := signIn(t, base, "laptop")
+	_, token := makeClient(t, base, device, "app")
+	_, wtok := enroll(t, base, device, "Mac")
+	mac := startAPIMac(t, base, wtok)
+
+	states := make([]string, directMax+3) // two calls to the worker
+	for i := range states {
+		states[i] = fmt.Sprintf(`{"title":"note %d","n":1.0}`, i)
+	}
+	states[1] = `{"title":"the first"}`
+	body := `{"states":[` + strings.Join(states, ",") + `],"instructions":"Is it urgent?","options":{"yes":"needs action","no":null,"maybe":{"when":"later"}}}`
+	c, b := post(t, base+"/v1/classify", token, body)
+	var out struct {
+		Model   string
+		Answers []struct {
+			Choice        string
+			Probabilities map[string]float64
+			Confidence    float64 `json:"answer_confidence"`
+		}
+	}
+	json.Unmarshal(b, &out)
+	if c != 200 || out.Model != "laya-typed-decisions" || len(out.Answers) != len(states) || out.Answers[0].Choice != "maybe" ||
+		out.Answers[1].Choice != "yes" || out.Answers[len(states)-1].Choice != "maybe" || out.Answers[0].Confidence != 0.75 {
+		t.Fatalf("classify %d %.300s", c, b)
+	}
+	mac.text.mu.Lock()
+	asked := append([]string(nil), mac.text.asked...)
+	mac.text.mu.Unlock()
+	// the state as Python writes it (1.0 stays 1.0), the options in their order, structured ones as Python JSON
+	if len(asked) != 2 || asked[0] != `{"title": "note 0", "n": 1.0} | Is it urgent? | yes=needs action,no=,maybe={"when": "later"}` {
+		t.Fatalf("asked %q", asked)
+	}
+
+	for _, bad := range []string{
+		`{"states":[{}],"instructions":"x","options":{}}`,
+		`{"states":[{}],"instructions":"x","options":["a"]}`,
+		`{"states":[{}],"instructions":"x"}`,
+	} {
+		if c, b := post(t, base+"/v1/classify", token, bad); c != 400 {
+			t.Errorf("%s: %d %s", bad, c, b)
+		}
+	}
+	if c, _ := post(t, base+"/v1/classify", "", `{"states":[],"options":{"a":""}}`); c != 401 {
+		t.Fatalf("without a token: %d", c)
 	}
 }
