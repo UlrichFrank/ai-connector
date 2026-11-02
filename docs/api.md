@@ -242,6 +242,13 @@ goes to and puts its `/files/` url in the job. Types: `image/png`, `image/jpeg`,
 `audio/mpeg`, `audio/mp4`, `audio/aac`, `audio/flac`, `audio/ogg`; at most 16 MB a file (the whole request at most
 64 MB). Another type, a URL that is not base64 or does not decode → 400 `{"error":"bad request","message"}`.
 
+**Audio ready to play:** a music, sound or speech job with `"encode":{"format":"aac","bitrate"?,"channels"?,
+"peaks"?}` gets its WAV made AAC on the worker when it is done (bit rate 32000–320000, default 192000; channels 1
+or 2, default 2; peaks 0–4096, default 256). The `.m4a` is added to the job's `files`, and `result.encoded` says
+`{"file":"/files/….m4a","mime":"audio/mp4","size","seconds","peaks":[0..1 …],"encoder":"afconvert|ffmpeg"}`.
+Without an encoder on the worker, the WAV is the file (`"mime":"audio/wav"`). Another `format` → 400. A job without
+a WAV ignores it; an older worker ignores it too (no `result.encoded`).
+
 `GET /api/jobs/{id}/events` (client or device token): one job's events as SSE, none dropped — first
 `data: {"jobId","job"}` (the job as it is now), then every update and event of it as `/api/events` sends them
 (`{"jobId","job"}`, `{"jobId","event"}`), `: ping` every 15 s. The stream ends after the update that ends the job

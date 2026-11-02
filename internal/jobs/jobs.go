@@ -814,7 +814,10 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 			if err != nil {
 				return err
 			}
-			return b.Run(ctx, md, req, m.OutDir(), func(ev engine.Event) { m.event(j, ev) })
+			if err := b.Run(ctx, md, req, m.OutDir(), func(ev engine.Event) { m.event(j, ev) }); err != nil {
+				return err
+			}
+			return m.encode(ctx, j)
 		}()
 		canceled := ctx.Err() != nil
 		cancel()

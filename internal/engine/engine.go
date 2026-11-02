@@ -94,6 +94,9 @@ type Request struct {
 	Title        string  `json:"title,omitempty"`
 	Folder       string  `json:"folder,omitempty"`   // where the song is kept in the library ("" the top; "a/b" nested)
 	CoverFor     string  `json:"coverFor,omitempty"` // image: becomes the cover of this song (job id) when done
+	// Encode: a music, sound or speech job's WAV is made AAC when it is done, with its waveform's peaks
+	// (jobs/encode.go; result.encoded)
+	Encode *Encode `json:"encode,omitempty"`
 
 	// the music studio: what to do with an existing song (Task "" or "generate": a new song)
 	Task     string  `json:"task,omitempty"`     // generate | cover | repaint | extend | lego | extract
@@ -220,4 +223,13 @@ func ConfigDir() string {
 		return filepath.Join(home, ".config", "mlxlab")
 	}
 	return filepath.Join(os.TempDir(), "mlxlab")
+}
+
+// Encode is how a finished job's WAV is made ready for an application: AAC ("aac", the only format) at Bitrate
+// (bit/s, 32000–320000; 0: 192000) with Channels (1 or 2; 0: 2), and Peaks numbers of its waveform (0–4096; 0: 256).
+type Encode struct {
+	Format   string `json:"format"`
+	Bitrate  int    `json:"bitrate,omitempty"`
+	Channels int    `json:"channels,omitempty"`
+	Peaks    int    `json:"peaks,omitempty"`
 }
