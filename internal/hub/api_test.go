@@ -546,17 +546,135 @@ func TestChatCompletions(t *testing.T) {
 
 	// the native jobs API: a client's name replaces what it says; a device cannot claim one
 	code, j1, _ := submitJob(t, base, token, `{"model":"qwen3.6-35b-a3b","client":"someone else","messages":[{"role":"user","content":"x"}]}`)
-	if code != 200 || j1.Request["client"] != "docscanner" {
+	if code != 200 || j1.Request["client"] != "docscanner" || j1.Request["clientId"] == nil {
 		t.Fatalf("client job %d %+v", code, j1)
 	}
-	code, j2, _ := submitJob(t, base, device, `{"model":"qwen3.6-35b-a3b","client":"docscanner","messages":[{"role":"user","content":"x"}]}`)
-	if code != 200 || j2.Request["client"] != nil {
+	code, j2, _ := submitJob(t, base, device, `{"model":"qwen3.6-35b-a3b","client":"docscanner","clientId":"x","messages":[{"role":"user","content":"x"}]}`)
+	if code != 200 || j2.Request["client"] != nil || j2.Request["clientId"] != nil {
 		t.Fatalf("device job %d %+v", code, j2)
 	}
 	waitDone(t, base, token, j1.ID)
 	waitDone(t, base, device, j2.ID)
-	if r := do(t, "POST", base+"/api/jobs/"+j2.ID+"/cancel", token, nil); r.StatusCode == 401 {
-		t.Fatalf("cancel with a client token: %d", r.StatusCode)
+	if r := do(t, "POST", base+"/api/jobs/"+j1.ID+"/cancel", token, nil); r.StatusCode == 401 || r.StatusCode == 404 {
+		t.Fatalf("cancel of its own job with a client token: %d", r.StatusCode)
+	}
+	if r := do(t, "POST", base+"/api/jobs/"+j2.ID+"/cancel", token, nil); r.StatusCode != 404 {
+		t.Fatalf("cancel of a device's job with a client token: %d", r.StatusCode)
+	}
+}
+
+// A client sees, follows and cancels only its own jobs; a device sees every job.
+func TestClientJobsAreItsOwn(t *testing.T) {
+	defer func(d time.Duration) { jobEventsPoll = d }(jobEventsPoll)
+	jobEventsPoll = 200 * time.Millisecond
+	_, srv := newHub(t, t.TempDir())
+	base := srv.URL
+	device := signIn(t, base, "laptop")
+	_, ta := makeClient(t, base, device, "app A")
+	_, tb := makeClient(t, base, device, "app B")
+	_, wtok := enroll(t, base, device, "Mac")
+	mac := startAPIMac(t, base, wtok)
+	hold := make(chan struct{})
+	mac.chat.mu.Lock()
+	mac.chat.hold = hold
+	mac.chat.mu.Unlock()
+
+	// B's event stream, open before A's job exists: it must not hear of it
+	evB, err := http.NewRequest("GET", base+"/api/events", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evB.Header.Set("Authorization", "Bearer "+tb)
+	rB, err := http.DefaultClient.Do(evB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rB.Body.Close()
+	heardB := make(chan string, 100)
+	go func() {
+		br := bufio.NewReader(rB.Body)
+		for {
+			line, err := br.ReadString('\n')
+			if err != nil {
+				return
+			}
+			if strings.HasPrefix(line, "data: ") {
+				heardB <- line
+			}
+		}
+	}()
+
+	code, ja, _ := submitJob(t, base, ta, `{"model":"qwen3.6-35b-a3b","messages":[{"role":"user","content":"x"}]}`)
+	if code != 200 {
+		t.Fatalf("submit %d", code)
+	}
+	waitFor(t, "A's job running", func() bool {
+		js := mac.mgr.Jobs()
+		return len(js) == 1 && js[0].State == jobs.Running
+	})
+	list := func(token string) []map[string]any {
+		r := do(t, "GET", base+"/api/jobs", token, nil)
+		defer r.Body.Close()
+		var l []map[string]any
+		json.NewDecoder(r.Body).Decode(&l)
+		return l
+	}
+	if l := list(ta); len(l) != 1 || l[0]["id"] != ja.ID {
+		t.Fatalf("A lists %v", l)
+	}
+	if l := list(tb); len(l) != 0 {
+		t.Fatalf("B lists %v", l)
+	}
+	if l := list(device); len(l) != 1 {
+		t.Fatalf("the device lists %v", l)
+	}
+	for _, x := range []struct{ method, path string }{
+		{"GET", "/api/jobs/" + ja.ID}, {"GET", "/api/jobs/" + ja.ID + "/events"}, {"POST", "/api/jobs/" + ja.ID + "/cancel"},
+	} {
+		if r := do(t, x.method, base+x.path, tb, nil); r.StatusCode != 404 {
+			t.Fatalf("B: %s %s: %d", x.method, x.path, r.StatusCode)
+		}
+	}
+
+	// A follows its job: the job first, its text, and the stream ends with the job
+	evA, _ := http.NewRequest("GET", base+"/api/jobs/"+ja.ID+"/events", nil)
+	evA.Header.Set("Authorization", "Bearer "+ta)
+	rA, err := http.DefaultClient.Do(evA)
+	if err != nil || rA.StatusCode != 200 {
+		t.Fatalf("A's job events: %v %v", err, rA)
+	}
+	close(hold)
+	b, err := io.ReadAll(rA.Body) // ends by itself when the job does
+	rA.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var states []string
+	for _, line := range strings.Split(string(b), "\n") {
+		data, ok := strings.CutPrefix(line, "data: ")
+		if !ok {
+			continue
+		}
+		var u struct {
+			JobID string `json:"jobId"`
+			Job   *struct {
+				State string `json:"state"`
+			} `json:"job"`
+		}
+		if json.Unmarshal([]byte(data), &u) != nil || u.JobID != ja.ID {
+			t.Fatalf("event %s", data)
+		}
+		if u.Job != nil {
+			states = append(states, u.Job.State)
+		}
+	}
+	if len(states) < 2 || states[0] != "running" || states[len(states)-1] != "done" {
+		t.Fatalf("states %v\n%s", states, b)
+	}
+	select {
+	case line := <-heardB:
+		t.Fatalf("B heard of A's job: %s", line)
+	case <-time.After(300 * time.Millisecond):
 	}
 }
 

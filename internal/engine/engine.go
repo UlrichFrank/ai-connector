@@ -55,6 +55,8 @@ type Request struct {
 	Tools []llm.Tool `json:"tools,omitempty"`
 	// Client is the application that submitted the job (the server sets it from the client token's name).
 	Client string `json:"client,omitempty"`
+	// ClientID is that application's id (set by the server too): a client sees and cancels only its own jobs.
+	ClientID string `json:"clientId,omitempty"`
 
 	// embed: the texts are compared with each other
 	Texts []string `json:"texts,omitempty"`

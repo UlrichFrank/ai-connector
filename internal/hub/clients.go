@@ -177,7 +177,7 @@ func clientMay(r *http.Request) bool {
 		return true
 	case strings.HasPrefix(p, "/api/jobs/"):
 		id, rest, sub := strings.Cut(strings.TrimPrefix(p, "/api/jobs/"), "/")
-		return id != "" && (m == http.MethodGet && !sub || m == http.MethodPost && rest == "cancel")
+		return id != "" && (m == http.MethodGet && (!sub || rest == "events") || m == http.MethodPost && rest == "cancel")
 	case m == http.MethodGet && strings.HasPrefix(p, "/files/"):
 		return true
 	}

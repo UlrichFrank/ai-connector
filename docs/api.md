@@ -229,7 +229,17 @@ one classify call on the same worker. Errors are OpenAI-shaped (the endpoint is 
 
 The mlxlab job API, for applications too: `GET /api/models`, `POST /api/jobs`, `GET /api/jobs`,
 `GET /api/jobs/{id}`, `POST /api/jobs/{id}/cancel`, `GET /api/events` (SSE), `GET /files/…`
-(see `docs/architecture.md`). A job submitted with a client token carries `"client":"<client name>"`.
+(see `docs/architecture.md`). A job submitted with a client token carries `"client":"<client name>"` and
+`"clientId":"<client id>"` (set by the server; what a caller sends for either is dropped).
+
+**A client sees only its own jobs** (those with its `clientId`): `GET /api/jobs` lists them, `GET /api/events`
+streams their events only, and `GET`/`cancel` of another job answer 404 `{"error":"not found"}`. A device sees
+every job.
+
+`GET /api/jobs/{id}/events` (client or device token): one job's events as SSE, none dropped — first
+`data: {"jobId","job"}` (the job as it is now), then every update and event of it as `/api/events` sends them
+(`{"jobId","job"}`, `{"jobId","event"}`), `: ping` every 15 s. The stream ends after the update that ends the job
+(`done`, `failed`, `canceled`); for a job that has already ended, after the first event.
 
 `engine.Request` gains:
 
