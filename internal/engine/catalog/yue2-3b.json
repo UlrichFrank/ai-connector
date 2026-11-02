@@ -1,0 +1,32 @@
+{
+  "id": "yue2-3b",
+  "name": "YuE2 3B (8-bit)",
+  "kind": "music",
+  "backend": "music",
+  "order": 130,
+  "about": "YuE2 (m-a-p), lyrics to song with vocals, pure MLX; plans an ABC score first, so the lyrics set the length (fewer lines: a shorter song). About 1.5 min for 30 s. Non-commercial (CC BY-NC 4.0)",
+  "licence": "CC BY-NC 4.0",
+  "nonCommercial": true,
+  "size": "4530 MB",
+  "tasks": [
+    "restyle"
+  ],
+  "sources": [
+    {
+      "key": "yue2",
+      "repo": "ahmadw/YuE2-3B-MLX",
+      "rev": "fe0a9050fd658257b486b880422d8872ee1f81e3",
+      "include": [
+        "*.py",
+        "8bit/"
+      ]
+    }
+  ],
+  "defaults": {
+    "duration": 30
+  },
+  "runtimeArgs": {
+    "runtime": "yue2",
+    "workerModel": "yue2-3b-8bit"
+  }
+}

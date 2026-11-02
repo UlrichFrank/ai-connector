@@ -1,0 +1,25 @@
+{
+  "id": "qwen3-0.6b-mlx",
+  "name": "Qwen3 0.6B (MLX 4-bit, mlx-lm)",
+  "kind": "chat",
+  "backend": "mlx-lm",
+  "about": "Qwen3 0.6B in 4 bits through mlx-lm's server: a small test of a chat model that the built-in chat does not run",
+  "licence": "Apache-2.0",
+  "size": 351383618,
+  "memory": 2,
+  "source": {
+    "repo": "mlx-community/Qwen3-0.6B-4bit",
+    "rev": "73e3e38d981303bc594367cd910ea6eb48349da8",
+    "ignore": [
+      "README.md",
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "model.safetensors",
+    "config.json"
+  ],
+  "hereCache": [],
+  "defaults": {},
+  "runtimeArgs": {}
+}

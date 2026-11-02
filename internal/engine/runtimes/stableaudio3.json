@@ -1,0 +1,16 @@
+{
+  "name": "stableaudio3",
+  "notes": "Stable Audio 3 (github.com/Stability-AI/stable-audio-3): its own pure-MLX runtime, fetched once at a pinned commit (build: sa3)",
+  "script": "stableaudio3.py",
+  "build": "sa3",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "mlx==0.32.3",
+        "numpy==2.5.3",
+        "sentencepiece==0.2.2"
+      ]
+    }
+  }
+}

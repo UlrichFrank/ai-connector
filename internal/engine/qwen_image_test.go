@@ -15,8 +15,7 @@ func TestQwenImageCatalog(t *testing.T) {
 	sha := regexp.MustCompile(`^[0-9a-f]{40}$`)
 	store := &models.Store{Dir: t.TempDir()}
 	byID := map[string]*Model{}
-	for _, q := range qwenImages {
-		m := q.model(store, "")
+	for _, m := range manifestModels(store, "", "qwen-image") {
 		byID[m.ID] = m
 		if !sha.MatchString(m.rev) || m.Kind != Image || m.Backend != "mflux" || m.mflux == "" || m.Here || m.Licence == "" {
 			t.Errorf("%s: %+v", m.ID, m)
@@ -54,7 +53,7 @@ func TestQwenImageCatalog(t *testing.T) {
 	}
 
 	// here: the store has verified weights of the transformer, the VAE and the text encoder
-	q := qwenImages[0]
+	q := manifestModel(t, store, "", "qwen-image-2512")
 	d := filepath.Join(store.Dir, filepath.FromSlash(q.repo), q.rev)
 	for _, f := range []string{"transformer/a.safetensors.sha256", "vae/b.safetensors.sha256", "text_encoder/c.safetensors.sha256"} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(d, f)), 0o755); err != nil {
@@ -64,7 +63,7 @@ func TestQwenImageCatalog(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if m := q.model(store, ""); !m.Here || m.Where != d {
+	if m := manifestModel(t, store, "", q.ID); !m.Here || m.Where != d {
 		t.Errorf("not here with every weight in the store: %+v", m)
 	}
 }
@@ -73,8 +72,8 @@ func TestQwenImageCatalog(t *testing.T) {
 func TestQwenImageTasks(t *testing.T) {
 	b := &FluxBackend{}
 	byID := map[string]*Model{}
-	for _, q := range qwenImages {
-		byID[q.id] = q.model(&models.Store{Dir: t.TempDir()}, "")
+	for _, m := range manifestModels(&models.Store{Dir: t.TempDir()}, "", "qwen-image") {
+		byID[m.ID] = m
 	}
 	for _, c := range []struct {
 		id     string
@@ -110,15 +109,7 @@ func TestQwenImageLive(t *testing.T) {
 	if id == "" {
 		id = "qwen-image-2512"
 	}
-	var m *Model
-	for _, q := range qwenImages {
-		if q.id == id {
-			m = q.model(store, "")
-		}
-	}
-	if m == nil {
-		t.Fatalf("no Qwen-Image model %q", id)
-	}
+	m := manifestModel(t, store, "", id)
 	out := os.Getenv("MLXLAB_QWEN_OUT")
 	if out == "" {
 		out = t.TempDir()

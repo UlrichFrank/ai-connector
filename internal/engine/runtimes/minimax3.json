@@ -1,0 +1,21 @@
+{
+  "name": "minimax3",
+  "notes": "MiniMax Music 3 through the pure-MLX port github.com/mikolaj92/minimax-music3-mlx (Apache-2.0), pinned with its dependencies",
+  "script": "minimax3.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "minimax-music3-mlx @ git+https://github.com/mikolaj92/minimax-music3-mlx@b7699bc5995296403780f32500c2450e3a0ee2a1",
+        "mlx==0.32.3",
+        "mlx-lm==0.32.0",
+        "numpy==2.5.3",
+        "soundfile==0.14.0",
+        "safetensors==0.8.0",
+        "transformers==5.18.0",
+        "tokenizers==0.23.2",
+        "huggingface_hub==1.33.0"
+      ]
+    }
+  }
+}

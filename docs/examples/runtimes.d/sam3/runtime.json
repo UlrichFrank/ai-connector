@@ -1,0 +1,12 @@
+{
+  "name": "sam3",
+  "notes": "Meta's SAM 3.1 through Blaizzy's mlx-vlm (MIT): finds what a text names in images (\"ball\", \"face\", \"license plate\") and returns its boxes and scores, no training",
+  "script": "detect.py",
+  "generic": true,
+  "kinds": ["detect"],
+  "output": "json",
+  "heavy": false,
+  "envs": {
+    "darwin-arm64": {"python": "3.12", "packages": ["mlx-vlm==0.7.8"]}
+  }
+}

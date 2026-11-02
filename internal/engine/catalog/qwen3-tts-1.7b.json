@@ -1,0 +1,35 @@
+{
+  "id": "qwen3-tts-1.7b",
+  "name": "Qwen3-TTS 1.7B",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 20,
+  "about": "Qwen3-TTS 12Hz 1.7B (bf16): 9 preset voices that follow an instruction (emotion, style), cloning from a sample, voices designed from a description; 10 languages incl. German. Each part (CustomVoice, Base, VoiceDesign, 4 GB each) is fetched when first used",
+  "licence": "Apache-2.0",
+  "size": "12 GB",
+  "sources": [
+    {
+      "key": "custom",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
+      "rev": "52f4770fd9726457eae3d3b6aa92047a25a10776"
+    },
+    {
+      "key": "base",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16",
+      "rev": "a6eb4f68e4b056f1215157bb696209bc82a6db48",
+      "optional": true
+    },
+    {
+      "key": "design",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
+      "rev": "7d3824abff87e49756bb0f83fb5411de75d160c4",
+      "optional": true
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "qwen3-tts"
+  }
+}

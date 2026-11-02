@@ -1,0 +1,274 @@
+package engine
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/philipparndt/ai-connector/internal/models"
+)
+
+const comfyTestWorkflow = `{"3": {"class_type": "KSampler", "inputs": {"seed": 0, "steps": 20, "cfg": 7}},
+  "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512}},
+  "6": {"class_type": "CLIPTextEncode", "inputs": {"text": ""}}}`
+
+func TestFillWorkflow(t *testing.T) {
+	m := &Model{ID: "sd", workflow: json.RawMessage(comfyTestWorkflow), Defaults: Request{Steps: 20, Width: 512},
+		inputs: map[string]string{"prompt": "6.inputs.text", "seed": "3.inputs.seed", "steps": "3.inputs.steps", "width": "5.inputs.width"}}
+	wf, seed, err := fillWorkflow(m, Request{Prompt: "a fox", Steps: 8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := func(node string) map[string]any { return wf[node].(map[string]any)["inputs"].(map[string]any) }
+	if in("6")["text"] != "a fox" || in("3")["steps"] != 8.0 || in("5")["width"] != 512.0 || seed == 0 || in("3")["seed"] != seed {
+		t.Errorf("%v (seed %d)", wf, seed)
+	}
+	if _, _, err := fillWorkflow(m, Request{}); err == nil || !strings.Contains(err.Error(), "no prompt") {
+		t.Errorf("no prompt: %v", err)
+	}
+	m.inputs["height"] = "9.inputs.height"
+	if _, _, err := fillWorkflow(m, Request{Prompt: "x", Height: 64}); err == nil {
+		t.Error("an input into a node the workflow lacks")
+	}
+}
+
+// ComfyUI as a runtime: the worker starts it (its app with the environment's python), links the model's files into
+// its models folder, queues the filled workflow and fetches the picture its history names.
+func TestComfyBackend(t *testing.T) {
+	py, err := exec.LookPath("python3")
+	if err != nil {
+		t.Skip("python3 plays ComfyUI")
+	}
+	root := t.TempDir()
+	rt := &RuntimeManifest{Name: "comfy-test", Kinds: []Kind{Image},
+		Server: &ServerSpec{Protocol: "comfyui", Start: []string{"python", "{app}", "--port", "{port}"}, App: "main.py", Health: "/system_stats"},
+		Tools:  map[string][]ToolArchive{Platform(): {{URL: "https://example.invalid/c.tar.gz", SHA256: strings.Repeat("0", 64)}}},
+		Envs:   map[string]RuntimeEnv{Platform(): {Python: "3.12"}}}
+	runtimesMu.Lock()
+	runtimes()[rt.Name] = rt
+	runtimesMu.Unlock()
+	t.Cleanup(func() {
+		runtimesMu.Lock()
+		delete(runtimes(), rt.Name)
+		runtimesMu.Unlock()
+	})
+	if !RuntimeRuns(rt.Name) {
+		t.Fatal("does not run here")
+	}
+	// the environment: the system's python; the tools: a fake ComfyUI that records the workflow and draws nothing
+	env := runtimeEnv(rt.Name)
+	os.MkdirAll(filepath.Dir(env.Bin(root, "python")), 0o755)
+	os.WriteFile(filepath.Join(env.Dir(root), ".mlxlab-ready"), nil, 0o644)
+	os.Symlink(py, env.Bin(root, "python"))
+	tools, _, _ := toolDir(root, rt.Name)
+	app := filepath.Join(tools, "ComfyUI-1.0")
+	os.MkdirAll(filepath.Join(app, "app"), 0o755)
+	os.WriteFile(filepath.Join(tools, ".mlxlab-ready"), nil, 0o644)
+	os.WriteFile(filepath.Join(app, "app", "main.py"), []byte("raise SystemExit('not this one')"), 0o644)
+	os.WriteFile(filepath.Join(app, "main.py"), []byte(`import http.server, json, os, sys, urllib.parse
+port = int(sys.argv[sys.argv.index("--port") + 1])
+paths = open(sys.argv[sys.argv.index("--extra-model-paths-config") + 1]).read()
+queued = {"posts": []}
+class H(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def send(self, body, ctype="application/json"):
+        self.send_response(200); self.send_header("Content-Type", ctype); self.end_headers(); self.wfile.write(body)
+    def do_GET(self):
+        u = urllib.parse.urlparse(self.path)
+        if u.path == "/system_stats":
+            return self.send(b"{}")
+        if u.path.startswith("/history/"):
+            pid = u.path.rsplit("/", 1)[1]
+            out = {"9": {"images": [{"filename": "aic_00001_.png", "subfolder": "", "type": "output"}]}}
+            return self.send(json.dumps({pid: {"status": {"status_str": "success"}, "outputs": out}}).encode())
+        if u.path == "/view":
+            q = urllib.parse.parse_qs(u.query)
+            return self.send(json.dumps({"file": q["filename"][0], "paths": paths, "noCustomNodes": "--disable-all-custom-nodes" in sys.argv,
+                "workflow": queued.get("wf")}).encode(), "image/png")
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if self.path == "/prompt":
+            queued["wf"] = body["prompt"]
+            return self.send(json.dumps({"prompt_id": "p1"}).encode())
+        queued["posts"].append(self.path)
+        self.send(b"{}")
+http.server.HTTPServer(("127.0.0.1", port), H).serve_forever()
+`), 0o644)
+
+	store := &models.Store{Dir: filepath.Join(root, "models")}
+	m := &Model{ID: "sd-test", Name: "SD", Kind: Image, Backend: rt.Name, repo: "org/sd", rev: strings.Repeat("b", 40),
+		files: []string{"sd.safetensors"}, workflow: json.RawMessage(comfyTestWorkflow),
+		inputs: map[string]string{"prompt": "6.inputs.text", "seed": "3.inputs.seed"}, folders: map[string][]string{"checkpoints": {"sd.safetensors"}}}
+	d := filepath.Join(store.Dir, "org", "sd", m.rev)
+	os.MkdirAll(d, 0o755)
+	os.WriteFile(filepath.Join(d, "sd.safetensors"), []byte("abc"), 0o644)
+	os.WriteFile(filepath.Join(d, "sd.safetensors.sha256"), []byte("s"), 0o644)
+	os.WriteFile(filepath.Join(d, ".files.json"), []byte(`[{"path":"sd.safetensors","size":3,"sha256":"s"}]`), 0o644)
+
+	b := NewComfyBackend(root, store, rt.Name)
+	t.Cleanup(b.Unload)
+	var files []string
+	out := t.TempDir()
+	err = b.Run(context.Background(), m, Request{Prompt: "a fox", Seed: 5}, out, func(e Event) {
+		if e.Type == "file" {
+			files = append(files, e.File)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 || !strings.HasSuffix(files[0], "-sd-test.png") {
+		t.Fatalf("files %v", files)
+	}
+	var got struct {
+		Paths         string                    `json:"paths"`
+		NoCustomNodes bool                      `json:"noCustomNodes"`
+		Workflow      map[string]map[string]any `json:"workflow"`
+	}
+	raw, _ := os.ReadFile(files[0])
+	json.Unmarshal(raw, &got)
+	in := func(node string) map[string]any { return got.Workflow[node]["inputs"].(map[string]any) }
+	// the model's folder of the store is ComfyUI's checkpoints path; nothing written into ComfyUI's folder
+	if !strings.Contains(got.Paths, "checkpoints: |\n    "+d+"\n") || !got.NoCustomNodes || in("6")["text"] != "a fox" || in("3")["seed"] != 5.0 {
+		t.Errorf("ComfyUI saw %s", raw)
+	}
+	if _, err := os.Stat(filepath.Join(app, "models")); err == nil {
+		t.Error("something was written into ComfyUI's models folder")
+	}
+	if b.Loaded() != "sd-test" {
+		t.Errorf("loaded %q", b.Loaded())
+	}
+}
+
+// comfyWaiting is a backend whose ComfyUI answers with the handler; its process runs as long as the test.
+func comfyWaiting(t *testing.T, h http.HandlerFunc) *ComfyBackend {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	return &ComfyBackend{srv: &ServerBackend{base: srv.URL, cmd: &exec.Cmd{}, exit: make(chan struct{})}}
+}
+
+// A job that runs is waited for as long as it takes, one ComfyUI has lost and a ComfyUI that does not answer end it.
+func TestComfyWait(t *testing.T) {
+	old := comfyQuiet
+	comfyQuiet = 300 * time.Millisecond
+	t.Cleanup(func() { comfyQuiet = old })
+	done := `{"p1": {"status": {"status_str": "success"}, "outputs": {"9": {"images": [{"filename": "a.png", "type": "output"}]}}}}`
+
+	var polls atomic.Int32
+	b := comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/queue":
+			w.Write([]byte(`{"queue_running": [[0, "p1", {}]], "queue_pending": [[1, "p2", {}]]}`))
+		case polls.Add(1) > comfyLost+1: // runs longer than a lost job would be looked for, and longer than comfyQuiet
+			w.Write([]byte(done))
+		default:
+			w.Write([]byte(`{}`))
+		}
+	})
+	if out, err := b.wait(context.Background(), "p1"); err != nil || out.Filename != "a.png" {
+		t.Errorf("a job that runs: %+v %v", out, err)
+	}
+
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/queue" {
+			w.Write([]byte(`{"queue_running": [], "queue_pending": [[1, "p2", {}]]}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	})
+	if _, err := b.wait(context.Background(), "p1"); err == nil || !strings.Contains(err.Error(), "lost") {
+		t.Errorf("a lost job: %v", err)
+	}
+
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
+	if _, err := b.wait(context.Background(), "p1"); err == nil || !strings.Contains(err.Error(), "no answer") {
+		t.Errorf("no answer: %v", err)
+	}
+
+	// no answer to /queue says nothing about the job; it goes on until the history answers
+	polls.Store(0)
+	b = comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/queue":
+			w.WriteHeader(http.StatusInternalServerError)
+		case polls.Add(1) > comfyLost+1:
+			w.Write([]byte(done))
+		default:
+			w.Write([]byte(`{}`))
+		}
+	})
+	if _, err := b.wait(context.Background(), "p1"); err != nil {
+		t.Errorf("no answer to /queue: %v", err)
+	}
+}
+
+// What it knows about its server goes with the server, under the lock of the jobs: an Unload does not wipe what a job
+// that came right after it has just set, which would stop that ComfyUI for nothing.
+func TestComfyUnloadKeepsNextJob(t *testing.T) {
+	b := NewComfyBackend(t.TempDir(), nil, "comfy-unload-test")
+	b.paths, b.last = map[string]map[string]bool{"checkpoints": {"/a": true}}, "m"
+	b.Unload()
+	if b.paths != nil || b.last != "" {
+		t.Errorf("after Unload: %v %q", b.paths, b.last)
+	}
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			b.Unload()
+		}()
+		go func() { // what Run does
+			defer wg.Done()
+			b.srv.mu.Lock()
+			defer b.srv.mu.Unlock()
+			b.srv.stop()
+			b.paths, b.last = map[string]map[string]bool{}, "m"
+		}()
+	}
+	wg.Wait()
+}
+
+// A job canceled while its prompt still waits in ComfyUI's queue: interrupt (it stops the running prompt, another
+// job's) is not sent; forget takes the prompt out of the queue and the history, so it does not run anyway.
+func TestComfyCancelQueued(t *testing.T) {
+	var mu sync.Mutex
+	var posts []string
+	b := comfyWaiting(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			body, _ := io.ReadAll(r.Body)
+			mu.Lock()
+			posts = append(posts, r.URL.Path+" "+strings.TrimSpace(string(body)))
+			mu.Unlock()
+			return
+		}
+		if r.URL.Path == "/queue" {
+			w.Write([]byte(`{"queue_running": [[0, "other", {}]], "queue_pending": [[1, "p1", {}]]}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { time.Sleep(700 * time.Millisecond); cancel() }()
+	if _, err := b.wait(ctx, "p1"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("wait: %v", err)
+	}
+	b.forget("p1")
+	mu.Lock()
+	defer mu.Unlock()
+	if strings.Join(posts, "|") != `/queue {"delete":["p1"]}|/history {"delete":["p1"]}` {
+		t.Fatalf("posts %q", posts)
+	}
+}

@@ -1,0 +1,35 @@
+{
+  "id": "ace-step-1.5-xl-turbo",
+  "name": "ACE-Step 1.5 XL turbo",
+  "kind": "music",
+  "backend": "music",
+  "order": 20,
+  "about": "ACE-Step 1.5 with the 4B XL DiT: better sound, about 21 s for 30 s, 28 GB peak",
+  "licence": "MIT",
+  "size": "30040 MB",
+  "memory": 10,
+  "tasks": [
+    "cover",
+    "repaint",
+    "extend"
+  ],
+  "sources": [
+    {
+      "key": "main",
+      "repo": "ACE-Step/Ace-Step1.5",
+      "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "key": "xl-turbo",
+      "repo": "ACE-Step/acestep-v15-xl-turbo",
+      "rev": "d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee"
+    }
+  ],
+  "defaults": {
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "acestep",
+    "workerModel": "ace-step-1.5-xl-turbo"
+  }
+}

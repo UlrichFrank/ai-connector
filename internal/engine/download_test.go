@@ -165,7 +165,7 @@ func TestSetupModelsRecommended(t *testing.T) {
 		cs = append(cs, &Model{ID: c.Short, Name: c.Name, Kind: Chat, Backend: "mlx-go", Size: c.Size(), chat: &c})
 	}
 	cs = append(cs, &Model{ID: "claude-code/sonnet", Kind: Chat, Backend: BackendClaudeCode, Here: true},
-		&Model{ID: "flux2-klein-4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"})
+		&Model{ID: "flux2-klein-4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f", Licence: "Apache-2.0"})
 	d := &Downloads{Catalog: &Catalog{Models: cs}, Store: &models.Store{Dir: t.TempDir()}, Free: func() int64 { return 500 * gb }}
 	for _, x := range []struct {
 		mem        int64
@@ -197,8 +197,8 @@ func TestSetupModelsRecommended(t *testing.T) {
 // audioCatalog is the catalogue's music, sound and speech models and the upscalers (nothing here), and FLUX.2 klein 4B.
 func audioCatalog() *Catalog {
 	ms := []*Model{{ID: "flux2-klein-4b", Name: "FLUX.2 [klein] 4b", Kind: Image, Backend: "mflux", Size: 16 * gb, repo: "b/f"},
-		zImageTurbo(&models.Store{Dir: "/nonexistent"}, "")}
-	ms = append(ms, seedvr2Catalog(&models.Store{Dir: "/nonexistent"}, "")...)
+		manifestModels(&models.Store{Dir: "/nonexistent"}, "", zImageID)[0]}
+	ms = append(ms, manifestModels(&models.Store{Dir: "/nonexistent"}, "", "seedvr2-")...)
 	ms = append(ms, musicModels()...)
 	ms = append(ms, soundModels()...)
 	ms = append(ms, speechModels()...)
@@ -208,6 +208,7 @@ func audioCatalog() *Catalog {
 // Music, sound and speech models and the upscalers are offered and downloaded like the others: the files, then the
 // runtime of their backend (preparing) — the music runtime's own step too (LeVo2.cpp, Stable Audio 3's code).
 func TestDownloadsAudioPrepare(t *testing.T) {
+	onPlatform(t, "darwin-arm64")
 	hfToken(t, "", nil)
 	cat := audioCatalog()
 	var mu sync.Mutex
@@ -365,5 +366,21 @@ func TestSetupModelsRecommendedAudio(t *testing.T) {
 		if m.ID == "heartmula-3b" && m.Fits {
 			t.Errorf("heartmula fits 32 GB")
 		}
+	}
+}
+
+// A model of a server or generic runtime (models.d) is downloaded through the setup like the others: its source as
+// its backend fetches it.
+func TestPlanAnySource(t *testing.T) {
+	store := &models.Store{Dir: t.TempDir()}
+	rev := strings.Repeat("c", 40)
+	d := filepath.Join(store.Dir, "org", "gguf", rev)
+	os.MkdirAll(d, 0o755)
+	os.WriteFile(filepath.Join(d, ".files.json"), []byte(`[{"path":"m-Q4.gguf","size":3,"sha256":"a"},{"path":"m-Q8.gguf","size":5,"sha256":"b"}]`), 0o644)
+	m := &Model{ID: "gguf", Name: "G", Kind: Chat, Backend: "llama-cpp", repo: "org/gguf", rev: rev, files: []string{"m-Q4.gguf"}}
+	dl := &Downloads{Store: store}
+	plan, err := dl.plan(context.Background(), m)
+	if err != nil || len(plan) != 1 || len(plan[0].Files) != 1 || plan[0].Files[0].Path != "m-Q4.gguf" || !Downloadable(m) {
+		t.Fatalf("%+v %v", plan, err)
 	}
 }

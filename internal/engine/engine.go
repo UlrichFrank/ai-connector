@@ -25,14 +25,17 @@ const (
 	Speech   Kind = "speech" // text to speech, voices (internal/engine/speech.go)
 	Avatar   Kind = "avatar" // a talking video from a portrait and speech (internal/engine/avatar.go)
 	Sound    Kind = "sound"  // sound effects from a description (internal/engine/sound.go)
+	Detect   Kind = "detect" // boxes of what text prompts name in images (generic runtimes; docs/models.md)
 )
 
 // Kinds in the order the UIs list them.
-var Kinds = []Kind{Chat, Image, Video, Music, Speech, Avatar, Sound, Embed, Classify}
+var Kinds = []Kind{Chat, Image, Video, Music, Speech, Avatar, Sound, Detect, Embed, Classify}
 
 // Request is one job for a model. Only the fields of the model's kind are read.
 type Request struct {
 	Model string `json:"model"`
+	// Params: a generic runtime's model's own settings (Model.Params)
+	Params map[string]any `json:"params,omitempty"`
 
 	// chat
 	Messages []llm.Message `json:"messages,omitempty"`
@@ -232,4 +235,10 @@ type Encode struct {
 	Bitrate  int    `json:"bitrate,omitempty"`
 	Channels int    `json:"channels,omitempty"`
 	Peaks    int    `json:"peaks,omitempty"`
+}
+
+// Uses is a backend that runs others for its jobs (the avatar says its text with the speech backend): it names them,
+// so their idle time begins again with its jobs too (jobs.Manager's idle unload).
+type Uses interface {
+	Uses() []string
 }

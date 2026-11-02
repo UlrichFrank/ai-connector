@@ -1,0 +1,26 @@
+{
+  "id": "qwen3-vl-8b-instruct",
+  "name": "Qwen3-VL 8B Instruct (mlx-vlm, 4-bit)",
+  "kind": "chat",
+  "backend": "mlx-vlm",
+  "about": "Qwen's Qwen3-VL 8B Instruct (Apache-2.0), 4-bit MLX, through mlx-vlm's server: reads text and numbers in pictures well enough for real work (jersey numbers on player crops)",
+  "licence": "Apache-2.0",
+  "size": 5776633051,
+  "memory": 8,
+  "images": true,
+  "source": {
+    "repo": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+    "rev": "defcdea7cc7a4b0858fea563cbbce171d328e457",
+    "ignore": [
+      "README.md",
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "config.json",
+    "model-00001-of-00002.safetensors",
+    "model-00002-of-00002.safetensors"
+  ],
+  "defaults": {},
+  "runtimeArgs": {}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "levo2",
+  "notes": "LeVo 2 / SongGeneration v2 through LeVo2.cpp (ggml, Metal), built once (build: levo2); the worker needs only the standard library",
+  "script": "levo2_worker.py",
+  "build": "levo2",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12"
+    }
+  }
+}

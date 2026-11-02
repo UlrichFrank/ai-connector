@@ -1,0 +1,132 @@
+{
+  "id": "sd15-comfyui",
+  "name": "Stable Diffusion 1.5 (ComfyUI)",
+  "kind": "image",
+  "backend": "comfyui",
+  "about": "Stable Diffusion 1.5 (fp16) as a ComfyUI workflow: text to image, 512²; a test that a ComfyUI workflow is a model by its manifest alone",
+  "licence": "CreativeML OpenRAIL-M",
+  "size": 2132696762,
+  "memory": 6,
+  "tasks": [
+    "generate"
+  ],
+  "source": {
+    "repo": "Comfy-Org/stable-diffusion-1.5",
+    "rev": "9cfd069101959ca3828bf9c04a4419870832b74f",
+    "files": [
+      "v1-5-pruned-emaonly-fp16.safetensors"
+    ]
+  },
+  "here": [
+    "v1-5-pruned-emaonly-fp16.safetensors"
+  ],
+  "hereCache": [],
+  "declaredSize": true,
+  "defaults": {
+    "width": 512,
+    "height": 512,
+    "steps": 20,
+    "guidance": 7
+  },
+  "runtimeArgs": {
+    "workflow": {
+      "3": {
+        "class_type": "KSampler",
+        "inputs": {
+          "seed": 0,
+          "steps": 20,
+          "cfg": 7,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1,
+          "model": [
+            "4",
+            0
+          ],
+          "positive": [
+            "6",
+            0
+          ],
+          "negative": [
+            "7",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ]
+        }
+      },
+      "4": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {
+          "ckpt_name": "v1-5-pruned-emaonly-fp16.safetensors"
+        }
+      },
+      "5": {
+        "class_type": "EmptyLatentImage",
+        "inputs": {
+          "width": 512,
+          "height": 512,
+          "batch_size": 1
+        }
+      },
+      "6": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "text": "",
+          "clip": [
+            "4",
+            1
+          ]
+        }
+      },
+      "7": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "text": "blurry, low quality, watermark",
+          "clip": [
+            "4",
+            1
+          ]
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "3",
+            0
+          ],
+          "vae": [
+            "4",
+            2
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "filename_prefix": "aic",
+          "images": [
+            "8",
+            0
+          ]
+        }
+      }
+    },
+    "inputs": {
+      "prompt": "6.inputs.text",
+      "seed": "3.inputs.seed",
+      "steps": "3.inputs.steps",
+      "guidance": "3.inputs.cfg",
+      "width": "5.inputs.width",
+      "height": "5.inputs.height"
+    },
+    "folders": {
+      "checkpoints": [
+        "v1-5-pruned-emaonly-fp16.safetensors"
+      ]
+    }
+  }
+}

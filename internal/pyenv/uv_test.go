@@ -112,3 +112,19 @@ func TestUVEnvSystemCerts(t *testing.T) {
 		}
 	}
 }
+
+// The packages an index is for come from it alone, the others from PyPI alone.
+func TestEnvSplit(t *testing.T) {
+	e := Env{Packages: []string{"torch==2.14.1", "torchvision==0.29.1", "numpy==2.5.4", "Pillow>=12"}, Index: "https://x/rocm",
+		IndexPackages: []string{"torch", "torchvision"}}
+	from, rest := e.split()
+	if len(from) != 2 || from[0] != "torch==2.14.1" || len(rest) != 2 || rest[1] != "Pillow>=12" {
+		t.Errorf("%v %v", from, rest)
+	}
+	if from, _ := (Env{Packages: []string{"Torch_Audio==1", ""}, Index: "i", IndexPackages: []string{"torch-audio"}}).split(); len(from) != 1 {
+		t.Errorf("names compared as PyPI does: %v", from)
+	}
+	if from, rest := (Env{Packages: []string{"a==1"}}).split(); from != nil || len(rest) != 1 {
+		t.Errorf("no index: %v %v", from, rest)
+	}
+}

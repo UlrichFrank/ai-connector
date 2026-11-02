@@ -1,0 +1,15 @@
+{
+  "name": "yue2",
+  "notes": "the pure-MLX port of YuE2 (huggingface.co/ahmadw/YuE2-3B-MLX): its inference code comes with the weights",
+  "script": "yue2_worker.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "mlx==0.32.3",
+        "numpy==2.5.3",
+        "tiktoken==0.14.0"
+      ]
+    }
+  }
+}

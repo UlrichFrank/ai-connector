@@ -170,6 +170,7 @@ func run() error {
 			}
 			return err
 		}
+		allowLocalRuntimes, idleUnload, pinned = cfg.AllowLocalRuntimes, cfg.IdleUnload, cfg.Pin
 		if save || *install { // the service has neither flags nor this environment: hub and token only from the file
 			if err := saveWorker(file, cfg); err != nil {
 				return err
@@ -255,37 +256,76 @@ const appleSilicon = runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
 // setup builds the catalogue, the backends and the job manager: the models, envs and libraries from root (the
 // config dir, shared), the jobs, prompts, approvals and Claude Code sessions in own (stateDir; root by default).
 func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
+	engine.EndLeftovers(root) // servers of a worker that died, with their models in memory
 	srcs, _ := models.Sources(os.Getenv("MLXLAB_MODELS_FROM"), nil)
 	store := &models.Store{Dir: filepath.Join(root, "models"), Sources: srcs}
 	lms, hf := llm.LocalRoots()
 	finder := &llm.Finder{Store: store, LMStudio: lms, HFCache: hf, Mem: llm.MemBytes(),
 		Verifier: &llm.Verifier{Path: filepath.Join(store.Dir, "verified.json")}}
+	// this machine's own Python runtimes (<config dir>/runtimes.d), when allowed: they run code nobody reviewed
+	if allowLocalRuntimes || os.Getenv("MLXLAB_ALLOW_LOCAL_RUNTIMES") == "1" {
+		for _, err := range engine.AddLocalRuntimes(filepath.Join(root, "runtimes.d")) {
+			fmt.Fprintln(os.Stderr, "mlxlab: runtimes.d:", err)
+		}
+	}
 	cat := engine.NewCatalog(store, finder)
+	// this machine's own models: manifests in <config dir>/models.d (docs/models.md)
+	for _, err := range cat.AddLocal(filepath.Join(root, "models.d"), store) {
+		fmt.Fprintln(os.Stderr, "mlxlab: models.d:", err)
+	}
 	text := &engine.TextBackend{Store: store}
 	// the tools allowed always (approvals.json): the chats ask it, the web API changes it
 	always := approvals.Open(own)
 	// speech is also the avatar backend's Speaker (it says the avatar's text in its own job)
 	speech := &engine.SpeechBackend{Root: root, Store: store, Catalog: cat, Voices: voices.Open(filepath.Join(root, "voices"))}
-	// the embedder and the classifier run everywhere (pure Go); so does the cutout (BiRefNet on PyTorch: CUDA, Apple's
-	// MPS or the CPU); MLX and the other Python runtimes need Apple silicon
-	backends := []engine.Backend{text, &engine.CutoutBackend{Root: root, Store: store}}
+	// the embedder and the classifier run everywhere (pure Go), the chat models on Apple silicon (MLX); the Python
+	// backends where their runtime has an environment for this machine (runtimes/*.json: BiRefNet on PyTorch with
+	// CUDA, ROCm, MPS or the CPU; the MLX ones on Apple silicon), each model where its own runtime has one
+	backends := []engine.Backend{text}
 	if appleSilicon {
-		backends = append(backends,
-			&engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)},
-			&engine.FluxBackend{Root: root, Store: store},
-			&engine.LTXBackend{Root: root, Store: store},
-			&engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()},
-			speech,
-			&engine.SoundBackend{Root: root, Store: store},
-			// the avatar says its text with the speech backend
-			&engine.AvatarBackend{Root: root, Store: store, Speaker: speech},
-		)
+		backends = append(backends, &engine.ChatBackend{Finder: finder, Agent: agentConfig(own, text, always)})
 	}
+	for _, b := range []struct {
+		runs    bool
+		backend engine.Backend
+	}{
+		{engine.BackendRuns("cutout"), &engine.CutoutBackend{Root: root, Store: store}},
+		{engine.BackendRuns("mflux"), &engine.FluxBackend{Root: root, Store: store}},
+		{engine.BackendRuns("ltx"), &engine.LTXBackend{Root: root, Store: store}},
+		{engine.BackendRuns("music"), &engine.MusicBackend{Root: root, Store: store, Runtimes: engine.MusicRuntimes()}},
+		{engine.BackendRuns("speech"), speech},
+		{engine.BackendRuns("sound"), &engine.SoundBackend{Root: root, Store: store}},
+		// the avatar says its text with the speech backend
+		{engine.BackendRuns("avatar"), &engine.AvatarBackend{Root: root, Store: store, Speaker: speech}},
+	} {
+		if b.runs {
+			backends = append(backends, b.backend)
+		}
+	}
+	for _, n := range engine.GenericRuntimes() {
+		backends = append(backends, &engine.RuntimeBackend{Root: root, Store: store, Runtime: n})
+	}
+	// servers the worker starts with their model (mlx-lm, llama.cpp: runtimes/*.json with server)
+	for _, n := range engine.ServerRuntimes("openai") {
+		backends = append(backends, &engine.ServerBackend{Root: root, Store: store, Runtime: n})
+	}
+	// ComfyUI: workflows as models (runtimes/comfyui.json, Protocol comfyui)
+	for _, n := range engine.ServerRuntimes("comfyui") {
+		backends = append(backends, engine.NewComfyBackend(root, store, n))
+	}
+	// one backend a name: the first stays (a runtime manifest never takes a built-in backend's models over)
 	runs := map[string]bool{}
+	kept := backends[:0]
 	for _, b := range backends {
+		if runs[b.Name()] {
+			fmt.Fprintf(os.Stderr, "backend %s is there twice: the second is left out\n", b.Name())
+			continue
+		}
 		runs[b.Name()] = true
+		kept = append(kept, b)
 	}
-	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] })
+	backends = kept
+	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] && engine.ModelRuns(m) })
 	// local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp, vLLM): their models, found now and every 30 s
 	rts, err := engine.ParseRuntimes(os.Getenv("MLXLAB_RUNTIMES"))
 	if err != nil {
@@ -300,6 +340,10 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	// Claude Code, when it is installed here (internal/agents): its jobs run beside the queue
 	backends = append(backends, claudeBackend(root, own, cat))
 	mgr := jobs.New(cat, backends, own)
+	// when the worker says so: a model with no job for a while leaves memory (the machine is someone's too), but the
+	// pinned ones
+	idle, pins := idleSettings(os.Getenv)
+	go mgr.WatchIdle(idle, pins, nil)
 	mgr.Approvals = always
 	return cat, mgr
 }

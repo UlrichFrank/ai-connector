@@ -1,0 +1,37 @@
+{
+  "id": "ace-step-1.5-xl-base",
+  "name": "ACE-Step 1.5 XL base",
+  "kind": "music",
+  "backend": "music",
+  "order": 40,
+  "about": "ACE-Step 1.5 with the undistilled 4B XL DiT (50 steps, CFG 7.5): the slowest ACE-Step, follows the style most closely",
+  "licence": "MIT",
+  "size": "29120 MB",
+  "memory": 10,
+  "tasks": [
+    "cover",
+    "repaint",
+    "extend"
+  ],
+  "sources": [
+    {
+      "key": "main",
+      "repo": "ACE-Step/Ace-Step1.5",
+      "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "key": "xl-base",
+      "repo": "ACE-Step/acestep-v15-xl-base",
+      "rev": "220c1166efbdd9583eafcb12eb160594bbfcb241"
+    }
+  ],
+  "defaults": {
+    "steps": 50,
+    "guidance": 7.5,
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "acestep",
+    "workerModel": "ace-step-1.5-xl-base"
+  }
+}

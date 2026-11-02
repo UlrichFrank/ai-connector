@@ -23,6 +23,53 @@ import (
 type workerConfig struct {
 	Hub   string `json:"hub"`
 	Token string `json:"token"`
+	// AllowLocalRuntimes: the worker reads <config dir>/runtimes.d, Python runtimes of this machine's own
+	// (docs/models.md) — code nobody reviewed, so off unless set here
+	AllowLocalRuntimes bool `json:"allowLocalRuntimes,omitempty"`
+	// IdleUnload: a model with no job for this long leaves memory ("10m", "1h"; "0" or "" never, the default);
+	// Pin: models that stay loaded (MLXLAB_IDLE_UNLOAD and MLXLAB_PIN, a comma list, override them)
+	IdleUnload string   `json:"idleUnload,omitempty"`
+	Pin        []string `json:"pin,omitempty"`
+}
+
+// allowLocalRuntimes, idleUnload and pinned are the worker's settings from its file (set before setup).
+var (
+	allowLocalRuntimes bool
+	idleUnload         string
+	pinned             []string
+)
+
+// defaultIdleUnload is how long a model without a job stays in memory: 0, never — unloading changes what users of an
+// existing worker get (a cold start after a pause), so a worker turns it on (idleUnload, MLXLAB_IDLE_UNLOAD).
+const defaultIdleUnload time.Duration = 0
+
+// idleSettings are the idle time and the pinned models: the environment's, else the worker file's, else the default.
+func idleSettings(getenv func(string) string) (time.Duration, []string) {
+	idle, pins := defaultIdleUnload, pinned
+	s := idleUnload
+	if v := getenv("MLXLAB_IDLE_UNLOAD"); v != "" {
+		s = v
+	}
+	switch s {
+	case "":
+	case "0", "off", "never":
+		idle = 0
+	default:
+		if d, err := time.ParseDuration(s); err == nil {
+			idle = d
+		} else {
+			fmt.Fprintf(os.Stderr, "mlxlab: idle unload %q: %v (models stay loaded)\n", s, err)
+		}
+	}
+	if v := getenv("MLXLAB_PIN"); v != "" {
+		pins = nil
+		for _, p := range strings.Split(v, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				pins = append(pins, p)
+			}
+		}
+	}
+	return idle, pins
 }
 
 // workerFile is the worker's config file (hub and token): --config, else $MLXLAB_WORKER_CONFIG, else
@@ -74,6 +121,8 @@ func resolveWorker(flagHub, flagToken string, getenv func(string) string, file s
 	cfg = workerConfig{
 		Hub:   strings.TrimRight(pick(flagHub, "MLXLAB_HUB", saved.Hub), "/"),
 		Token: pick(flagToken, "MLXLAB_WORKER_TOKEN", saved.Token),
+		// set in the file only (saving keeps it)
+		AllowLocalRuntimes: saved.AllowLocalRuntimes, IdleUnload: saved.IdleUnload, Pin: saved.Pin,
 	}
 	if cfg.Hub == "" {
 		return cfg, false, errors.New("no hub: mlxlab worker --hub https://… --token … (or MLXLAB_HUB)")

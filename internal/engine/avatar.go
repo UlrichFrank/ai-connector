@@ -26,19 +26,16 @@ import (
 // model's clip is split at pauses; every clip after the first starts from the last frame of the one before (as a
 // movie's continued clips do). The clips are joined without their own sound and the original speech is muxed in.
 
-const longcatCommit = "e2e1e8701424cef0e601281b62e228e5289ed032"
+// longcatCommit is the pinned commit of the port (runtimes/longcat-avatar.json): the worker gets it as its argument.
+func longcatCommit() string { return packageCommit("longcat-avatar", "longcat-video-avatar-mlx") }
 
-// LongCatEnv is the pinned LongCat-Video-Avatar MLX runtime (github.com/xocialize/longcat-avatar-mlx, MIT). The
+// LongCatEnv() is the pinned LongCat-Video-Avatar MLX runtime (github.com/xocialize/longcat-avatar-mlx, MIT). The
 // worker adds the package's models/avatar folder from the same commit (its setuptools list leaves it out).
-var LongCatEnv = pyenv.Env{Name: "longcat-avatar", Python: "3.12", Packages: []string{
-	"longcat-video-avatar-mlx @ git+https://github.com/xocialize/longcat-avatar-mlx@" + longcatCommit,
-	"mlx==0.32.3", "mlx-arsenal==0.16.0", "transformers==5.18.0", "tokenizers==0.23.2", "librosa==1.0.0",
-	"soundfile==0.14.0", "pillow==12.3.0", "pyloudnorm==0.2.0", "numpy==2.5.3", "safetensors==0.8.0",
-}}
+func LongCatEnv() pyenv.Env { return runtimeEnv("longcat-avatar") } // runtimes/longcat-avatar.json
 
 // avatarRuntime is how one family of avatar models animates a clip.
 type avatarRuntime struct {
-	env    pyenv.Env
+	env    string // the runtime (runtimes/<name>.json): its environment taken when the worker starts
 	script string
 	args   []string
 	fps    int
@@ -53,14 +50,15 @@ type avatarRuntime struct {
 	refPortrait bool
 	// mult: width and height are multiples of it; maxArea: larger sizes are scaled down to this many pixels
 	mult, maxArea int
+	longcatArgs   bool // the worker gets the LongCat port's pinned commit as its argument
 }
 
 var avatarRuntimes = map[string]avatarRuntime{
 	// LTX: the two-stage pipeline wants multiples of 64; up to 640×640 (the web app's sizes)
-	"ltx-a2v": {env: LTXEnv, script: "avatar_ltx.py", fps: 24, frames: frames8k1Up, dropFirst: true, lowRAMRetry: true,
+	"ltx-a2v": {env: "ltx-2-mlx", script: "avatar_ltx.py", fps: 24, frames: frames8k1Up, dropFirst: true, lowRAMRetry: true,
 		mult: 64, maxArea: 640 * 640},
 	// LongCat: Wan's VAE (8) × patch (2); slow, so the area of 256×432 at most
-	"longcat": {env: LongCatEnv, script: "avatar_longcat.py", args: []string{longcatCommit}, fps: 25, frames: frames4k1Up,
+	"longcat": {env: "longcat-avatar", script: "avatar_longcat.py", longcatArgs: true, fps: 25, frames: frames4k1Up,
 		refPortrait: true, mult: 16, maxArea: 256 * 432},
 }
 
@@ -71,43 +69,17 @@ func frames4k1Up(n int) int { return max(5, (n-2)/4*4+5) }
 const avatarPrompt = "A person talks to the camera with natural facial expressions, the lips move in sync with the speech, subtle head movement, steady camera"
 
 // avatarModels are the avatar entries of the catalogue.
-func avatarModels(store *models.Store) []*Model {
-	var out []*Model
-	// LTX-2.5 through the pinned ltx-2-mlx (the pack of ltx-2.5-q4: no second download)
-	l := &Model{ID: "ltx-2.5-avatar", Name: "LTX-2.5 avatar", Kind: Avatar, Backend: "avatar", runtime: "ltx-a2v",
-		About: "LTX-2.5 22B (int4 pack) with the portrait as first frame and the speech as a frozen audio latent: " +
-			"lip-synced clips of up to ~6.5 s, longer speech is chained at pauses (sizes snap to 64, at most ~640×640)",
-		Size: 30 * gb, repo: "dgrauet/ltx-2.5-mlx-q4", rev: "e9a20add8c5937fcab635fb8e7a52926487a5776", Gated: true,
-		Licence:  "LTX-2 Community License",
-		ignore:   []string{"transformer-dev.safetensors", "*distilled-lora*", ".gitattributes"},
-		Defaults: Request{Width: 512, Height: 640, FPS: 24, Frames: 161, Prompt: avatarPrompt}}
-	if d := filepath.Join(store.Dir, filepath.FromSlash(l.repo), l.rev); hasAll(d, "transformer-distilled.safetensors.sha256", "audio_vae.safetensors.sha256") {
-		l.Here, l.Where, l.Size = true, d, dirSize(d)
-	}
-	out = append(out, l)
-	// LongCat-Video-Avatar 1.5, DMD-distilled (8 steps), the DiT quantised; bf16 (~50 GB peak) is left out
-	for _, v := range []struct {
-		id, repo, rev, about string
-		size                 int64
-	}{
-		{"longcat-avatar-1.5-q8", "mlx-community/LongCat-Video-Avatar-1.5-q8-dmd-merged", "d06d5f6bbbb7224e8f14f7533002d098ec3f3a31",
-			"LongCat-Video-Avatar 1.5 (13.6B, 8-bit DiT, 8 DMD steps), experimental MLX port: head and body motion from a portrait and speech; very slow (~10 min per second of video at 256×432, sizes scaled down to that area)", 30 * gb},
-		{"longcat-avatar-1.5-q4", "mlx-community/LongCat-Video-Avatar-1.5-q4-dmd-merged", "5d5b5d61ce6c206930a94c760f6941aff03f9389",
-			"LongCat-Video-Avatar 1.5, 4-bit DiT: smaller, a little rougher", 23 * gb},
-	} {
-		m := &Model{ID: v.id, Name: "LongCat Avatar 1.5 (" + strings.TrimPrefix(v.id, "longcat-avatar-1.5-") + ")", Kind: Avatar,
-			Backend: "avatar", runtime: "longcat", About: v.about, Size: v.size, repo: v.repo, rev: v.rev, Licence: "MIT",
-			ignore:   []string{".gitattributes", "README.md"},
-			Defaults: Request{Width: 256, Height: 432, FPS: 25, Frames: 93, Prompt: avatarPrompt}}
-		if d := filepath.Join(store.Dir, filepath.FromSlash(v.repo), v.rev); hasAll(d, "dit/*.safetensors.sha256", "text_encoder/*.safetensors.sha256", "audio_encoder/*.sha256", "vae/*.sha256") {
-			m.Here, m.Where, m.Size = true, d, dirSize(d)
-		}
-		out = append(out, m)
-	}
-	return out
-}
+func avatarModels(store *models.Store) []*Model { return builtinModels("avatar", store, "") }
 
 // AvatarBackend makes talking avatars (models of kind Avatar).
+// Uses names the backend it says the text with (engine.Uses): an avatar job uses it too.
+func (b *AvatarBackend) Uses() []string {
+	if sb, ok := b.Speaker.(Backend); ok {
+		return []string{sb.Name()}
+	}
+	return nil
+}
+
 type AvatarBackend struct {
 	Root  string
 	Store *models.Store
@@ -408,7 +380,11 @@ func (b *AvatarBackend) workerClip(ctx context.Context, m *Model, rt avatarRunti
 	b.stopWorkers(m.runtime) // one model in memory
 	w := b.workers[m.runtime]
 	if w == nil {
-		w = &pyWorker{env: rt.env, script: rt.script, args: rt.args}
+		args := rt.args
+		if rt.longcatArgs {
+			args = []string{longcatCommit()} // the port's pinned commit
+		}
+		w = &pyWorker{env: runtimeEnv(rt.env), script: rt.script, args: args}
 		b.workers[m.runtime] = w
 	}
 	if err := w.start(ctx, b.Root, emit); err != nil {

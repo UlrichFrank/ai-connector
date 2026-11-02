@@ -1,0 +1,30 @@
+{
+  "id": "higgs-audio-v3",
+  "name": "Higgs Audio v3 TTS 4B",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 60,
+  "about": "Boson AI's Higgs Audio v3 4B: expressive, clones from a sample; instruct becomes control tags (emotions, whisper, shout, speed) or put tags like <|emotion:amusement|> into the text. Non-commercial",
+  "licence": "Boson Higgs Audio v3 Research and Non-Commercial License",
+  "nonCommercial": true,
+  "size": "8730 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "bosonai/higgs-tts-3-4b",
+      "rev": "239f63fb7b02b1aa085f98d9efae5e35cc5523e8",
+      "include": [
+        "*.json",
+        "*.safetensors",
+        "*.jinja",
+        "LICENSE"
+      ]
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "higgs"
+  }
+}

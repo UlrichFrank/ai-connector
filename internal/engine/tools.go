@@ -1,0 +1,302 @@
+package engine
+
+import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
+)
+
+// A server runtime's program from its release archives (RuntimeManifest.Tools): fetched once into
+// <config dir>/tools/<runtime>-<hash of the archives>, checked against its SHA-256, unpacked.
+
+// toolDir is where a runtime's tools of this platform live (ok false: it has none here).
+func toolDir(root, name string) (string, []ToolArchive, bool) {
+	rt := runtimeManifest(name)
+	if rt == nil || len(rt.tools()) == 0 {
+		return "", nil, false
+	}
+	as := rt.tools()
+	h := sha256.New()
+	for _, a := range as {
+		io.WriteString(h, a.SHA256)
+	}
+	return filepath.Join(root, "tools", name+"-"+hex.EncodeToString(h.Sum(nil))[:8]), as, true
+}
+
+// toolLocks: one fetches a folder of tools at a time, a download's preparing and a job's start of the same runtime wait
+// for each other (each would remove what the other is unpacking). A slot, not a mutex: a job that waits can be canceled.
+var toolLocks sync.Map // the folder → chan struct{}
+
+// ensureTools fetches and unpacks the runtime's archives if they are not there yet.
+func ensureTools(ctx context.Context, root, name string, log func(string)) (string, error) {
+	dir, as, ok := toolDir(root, name)
+	if !ok {
+		return "", fmt.Errorf("%s has no program for %s", name, Platform())
+	}
+	slot, _ := toolLocks.LoadOrStore(dir, make(chan struct{}, 1))
+	select {
+	case slot.(chan struct{}) <- struct{}{}:
+		defer func() { <-slot.(chan struct{}) }()
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+	ready := filepath.Join(dir, ".mlxlab-ready")
+	if _, err := os.Stat(ready); err == nil {
+		os.Chmod(dir, 0o700) // one made before it was the worker's user's only
+		return dir, nil
+	}
+	_ = os.RemoveAll(dir) // a half-made one
+	// the worker's user only: a server's app writes its outputs there (ComfyUI)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	for _, a := range as {
+		log(fmt.Sprintf("fetching %s (once) …", a.URL[strings.LastIndex(a.URL, "/")+1:]))
+		f, err := os.CreateTemp(filepath.Dir(dir), ".tool-*")
+		if err != nil {
+			return "", err
+		}
+		// a connection that breaks is tried again (three times); a wrong checksum is not
+		for try := 1; ; try++ {
+			f.Truncate(0)
+			f.Seek(0, io.SeekStart)
+			if err = downloadTool(ctx, a, f); err == nil || errors.Is(err, errChecksum) || ctx.Err() != nil || try == 3 {
+				break
+			}
+			log(fmt.Sprintf("fetching again (%v) …", err))
+		}
+		f.Close()
+		if err == nil {
+			err = unpack(f.Name(), a.URL, dir)
+		}
+		os.Remove(f.Name())
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", a.URL, err)
+		}
+	}
+	return dir, os.WriteFile(ready, nil, 0o644)
+}
+
+// toolStall is how long a release's server may send nothing before the connection counts as broken: nothing else ends
+// a connection that just stands still, and the job would wait for it until someone cancels. Not a limit for the whole
+// archive: on a slow line a large one takes as long as it takes.
+var toolStall = time.Minute
+
+var errToolStalled = errors.New("no data")
+
+// stallReader tells the timer each time data comes.
+type stallReader struct {
+	r     io.Reader
+	timer *time.Timer
+}
+
+func (s stallReader) Read(p []byte) (int, error) {
+	n, err := s.r.Read(p)
+	if n > 0 {
+		s.timer.Reset(toolStall)
+	}
+	return n, err
+}
+
+func downloadTool(ctx context.Context, a ToolArchive, w io.Writer) error {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	timer := time.AfterFunc(toolStall, func() {
+		cancel(fmt.Errorf("%w for %s", errToolStalled, toolStall))
+	})
+	defer timer.Stop()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.URL, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return stallCause(ctx, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s", resp.Status)
+	}
+	h := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(w, h), stallReader{resp.Body, timer}); err != nil {
+		return stallCause(ctx, err)
+	}
+	if got := hex.EncodeToString(h.Sum(nil)); got != a.SHA256 {
+		return fmt.Errorf("%w: sha256 %s, want %s", errChecksum, got, a.SHA256)
+	}
+	return nil
+}
+
+// stallCause is the stall when that ended the request, else err.
+func stallCause(ctx context.Context, err error) error {
+	if c := context.Cause(ctx); errors.Is(c, errToolStalled) {
+		return c
+	}
+	return err
+}
+
+// unpack extracts a .tar.gz or .zip into dir; a path that would leave dir is refused.
+func unpack(file, url, dir string) error {
+	inside := func(name string) (string, error) {
+		p := filepath.Join(dir, filepath.FromSlash(name))
+		if p != dir && !strings.HasPrefix(p, dir+string(filepath.Separator)) {
+			return "", fmt.Errorf("%s leaves the folder", name)
+		}
+		// nothing below a link unpacked before: a chain of links ("a" → ".", then "a/b" → "..") would lead out
+		rel, _ := filepath.Rel(dir, filepath.Dir(p))
+		at := dir
+		for _, part := range strings.Split(rel, string(filepath.Separator)) {
+			if part == "." || part == "" {
+				continue
+			}
+			at = filepath.Join(at, part)
+			if fi, err := os.Lstat(at); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+				return "", fmt.Errorf("%s lies below the link %s", name, at)
+			}
+		}
+		return p, nil
+	}
+	if strings.HasSuffix(url, ".zip") {
+		z, err := zip.OpenReader(file)
+		if err != nil {
+			return err
+		}
+		defer z.Close()
+		for _, f := range z.File {
+			p, err := inside(f.Name)
+			if err != nil {
+				return err
+			}
+			if f.FileInfo().IsDir() {
+				os.MkdirAll(p, 0o755)
+				continue
+			}
+			if err := writeFrom(p, f.Mode()|0o600, func() (io.ReadCloser, error) { return f.Open() }); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	tr := tar.NewReader(gz)
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		p, err := inside(h.Name)
+		if err != nil {
+			return err
+		}
+		switch h.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(p, 0o755)
+		case tar.TypeSymlink:
+			if t, err := inside(filepath.Join(filepath.Dir(h.Name), h.Linkname)); err != nil || filepath.IsAbs(h.Linkname) {
+				return fmt.Errorf("%s links out of the folder (%s)", h.Name, t)
+			}
+			os.MkdirAll(filepath.Dir(p), 0o755)
+			if err := os.Symlink(h.Linkname, p); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := writeFrom(p, os.FileMode(h.Mode)|0o600, func() (io.ReadCloser, error) { return io.NopCloser(tr), nil }); err != nil {
+				return err
+			}
+		case tar.TypeLink: // a hard link to an entry unpacked before it (a shared library under two names)
+			target, err := inside(h.Linkname)
+			if err != nil {
+				return fmt.Errorf("%s links out of the folder (%s)", h.Name, h.Linkname)
+			}
+			os.MkdirAll(filepath.Dir(p), 0o755)
+			os.Remove(p)
+			if err := os.Link(target, p); err != nil { // another file system: a copy
+				if err := writeFrom(p, os.FileMode(h.Mode)|0o600, func() (io.ReadCloser, error) { return os.Open(target) }); err != nil {
+					return fmt.Errorf("%s (a link to %s): %w", h.Name, h.Linkname, err)
+				}
+			}
+		case tar.TypeXGlobalHeader:
+		default: // a device, a pipe …: not in a release; said rather than left out without a word
+			return fmt.Errorf("%s: an entry of type %q is not unpacked", h.Name, h.Typeflag)
+		}
+	}
+}
+
+func writeFrom(p string, mode os.FileMode, open func() (io.ReadCloser, error)) error {
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	r, err := open()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	w, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode.Perm())
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(w, r); err != nil {
+		w.Close()
+		return err
+	}
+	return w.Close()
+}
+
+var errChecksum = errors.New("the archive is not the pinned one")
+
+// findFile is the file name in dir: the one least deep (ComfyUI's main.py, not one of a folder inside it).
+func findFile(dir, name string) (string, error) {
+	var found string
+	filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && d.Name() == name && (found == "" || strings.Count(p, string(filepath.Separator)) < strings.Count(found, string(filepath.Separator))) {
+			found = p
+		}
+		return nil
+	})
+	if found == "" {
+		return "", fmt.Errorf("no %s in %s", name, dir)
+	}
+	return found, nil
+}
+
+// findTool is the program name in dir (its folder in the archive does not matter; Windows: name.exe).
+func findTool(dir, name string) (string, error) {
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	var found string
+	filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err == nil && found == "" && !d.IsDir() && d.Name() == name {
+			found = p
+		}
+		return nil
+	})
+	if found == "" {
+		return "", fmt.Errorf("no %s in %s", name, dir)
+	}
+	return found, nil
+}

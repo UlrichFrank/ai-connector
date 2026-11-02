@@ -150,6 +150,9 @@ type Manager struct {
 	snaps, written int  // history snapshots taken (under mu), the newest written (under saving)
 	busy           bool // the worker is on a job (until it is saved)
 	beside         int  // jobs running beside the queue (until they are saved)
+
+	lastUsed  map[string]time.Time     // per backend: when its last job ended (or it was used or first seen loaded)
+	unloading map[string]chan struct{} // backends being unloaded for idleness: closed when done (idle.go)
 }
 
 const maxLogs = 400
@@ -182,6 +185,14 @@ func (m *Manager) Submit(r engine.Request) (*Job, error) {
 	}
 	r.Model = md.ID
 	r.Folder = CleanFolder(r.Folder)
+	// a model's params (a generic runtime's): checked before the job is queued, the defaults filled in
+	if len(r.Params) > 0 || len(md.Params) > 0 {
+		p, err := engine.CheckParams(md, r.Params)
+		if err != nil {
+			return nil, err
+		}
+		r.Params = p
+	}
 	if err := m.checkImages(md, &r); err != nil {
 		return nil, err
 	}
@@ -815,6 +826,7 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 		j.State, j.Started, j.Status = Running, time.Now(), "starting …"
 		md := m.Catalog.Find(j.Model)
 		b := m.Backends[md.Backend]
+		m.waitUnloaded(md.Backend) // an idle unload of its backend ends first
 		snap := j.clone()
 		m.mu.Unlock()
 		m.publish(Update{JobID: j.ID, Job: snap})
@@ -876,6 +888,15 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 			m.beside--
 		} else {
 			m.busy = false
+		}
+		if m.lastUsed == nil {
+			m.lastUsed = map[string]time.Time{}
+		}
+		m.lastUsed[md.Backend] = time.Now()
+		if u, ok := b.(engine.Uses); ok { // the backends it ran for the job (the avatar's speech): theirs too
+			for _, name := range u.Uses() {
+				m.lastUsed[name] = time.Now()
+			}
 		}
 		m.mu.Unlock()
 		m.publish(Update{JobID: j.ID, Job: snap})

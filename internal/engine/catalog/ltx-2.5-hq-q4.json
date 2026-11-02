@@ -1,0 +1,37 @@
+{
+  "id": "ltx-2.5-hq-q4",
+  "name": "LTX-2.5 HQ (q4)",
+  "kind": "video",
+  "backend": "ltx",
+  "order": 30,
+  "about": "LTX-2.5 HQ 22B audio+video, int4: the open dev model with real CFG (res_2s sampler, 15 steps) at half size, then the distilled LoRA refines at full size — the closest local thing to Lightricks' hosted LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); fits 32 GB at small sizes. Shares the folder of LTX-2.5 (q4): adds the dev transformer and the distilled LoRA",
+  "licence": "LTX-2 Community License",
+  "gated": true,
+  "size": "47 GB",
+  "memory": 26,
+  "source": {
+    "repo": "dgrauet/ltx-2.5-mlx-q4",
+    "rev": "e9a20add8c5937fcab635fb8e7a52926487a5776",
+    "ignore": [
+      ".gitattributes"
+    ]
+  },
+  "here": [
+    "transformer-dev.safetensors",
+    "*distilled-lora*.safetensors",
+    "transformer-distilled.safetensors",
+    "text_encoder.safetensors"
+  ],
+  "hereCache": [],
+  "defaults": {
+    "width": 640,
+    "height": 384,
+    "steps": 15,
+    "guidance": 3,
+    "frames": 97,
+    "fps": 24
+  },
+  "runtimeArgs": {
+    "hq": true
+  }
+}

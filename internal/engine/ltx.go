@@ -19,13 +19,8 @@ import (
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-const ltxCommit = "e42136350c43fc02fe3a6cc76ee66a33dd77e6f9"
-
-// LTXEnv is the pinned ltx-2-mlx runtime (github.com/dgrauet/ltx-2-mlx, MIT; LTX-2.5 packs since 0.15).
-var LTXEnv = pyenv.Env{Name: "ltx-2-mlx", Python: "3.12", Packages: []string{
-	"ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@" + ltxCommit + "#subdirectory=packages/ltx-core-mlx",
-	"ltx-pipelines-mlx @ git+https://github.com/dgrauet/ltx-2-mlx@" + ltxCommit + "#subdirectory=packages/ltx-pipelines-mlx",
-}}
+// LTXEnv() is the pinned ltx-2-mlx runtime (github.com/dgrauet/ltx-2-mlx, MIT; LTX-2.5 packs since 0.15).
+func LTXEnv() pyenv.Env { return runtimeEnv("ltx-2-mlx") } // runtimes/ltx-2-mlx.json
 
 // LTXBackend runs LTX-2.5 through ltx-2-mlx, one process per video (the pipeline loads and frees its parts stage by
 // stage anyway: Gemma, the transformer, the upscaler, the decoders): the distilled two-stage pipeline, or for the HQ
@@ -94,7 +89,7 @@ func (b *LTXBackend) Run(ctx context.Context, m *Model, r Request, outDir string
 	if err != nil {
 		return err
 	}
-	if err := LTXEnv.Ensure(ctx, b.Root, emit.Log); err != nil {
+	if err := LTXEnv().Ensure(ctx, b.Root, emit.Log); err != nil {
 		return err
 	}
 	start := time.Now()
@@ -212,7 +207,7 @@ func hqStage(desc string) string {
 func (b *LTXBackend) renderOnce(ctx context.Context, p ltxRun, r Request, prompt string, frames int, images []string, seed int64, out string, emit Emit) error {
 	args := ltxArgs(p, r, prompt, frames, images, seed, out)
 	emit.Status("starting ltx-2-mlx …")
-	cmd := exec.CommandContext(ctx, LTXEnv.Bin(b.Root, "ltx-2-mlx"), args...)
+	cmd := exec.CommandContext(ctx, LTXEnv().Bin(b.Root, "ltx-2-mlx"), args...)
 	// a longer GPU watchdog for this process (long Metal jobs while the display is on); see gpuWatchdog
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "AGX_RELAX_CDM_CTXSTORE_TIMEOUT=1")
 	stage := ""
@@ -243,3 +238,10 @@ func (b *LTXBackend) renderOnce(ctx context.Context, p ltxRun, r Request, prompt
 	}
 	return nil
 }
+
+// ltxModels are the LTX-2.5 video models (catalog/ltx-2.5-*.json): the distilled two-stage pipeline (8 + 3 steps, no
+// CFG) and the HQ one, the open dev model (the closest local thing to Lightricks' hosted LTX-2.5 Pro): stage 1 at half
+// size with the dev transformer, the res_2s sampler and real CFG, stage 2 at full size with the distilled LoRA fused
+// in. The two of a quantisation share one folder of the store: the HQ model downloads only the dev transformer and
+// the LoRA on top.
+func ltxModels(store *models.Store) []*Model { return builtinModels("ltx", store, "") }

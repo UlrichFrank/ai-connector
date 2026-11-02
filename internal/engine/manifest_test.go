@@ -1,0 +1,212 @@
+package engine
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/philipparndt/ai-connector/internal/models"
+)
+
+// manifestModels are the catalogue's manifest models whose id starts with prefix, in order.
+func manifestModels(store *models.Store, hub, prefix string) []*Model {
+	var out []*Model
+	for _, mf := range builtinManifests() {
+		if strings.HasPrefix(mf.ID, prefix) {
+			out = append(out, mf.model(store, hub))
+		}
+	}
+	return out
+}
+
+// manifestModel is the catalogue's manifest model id.
+func manifestModel(t *testing.T, store *models.Store, hub, id string) *Model {
+	t.Helper()
+	for _, m := range manifestModels(store, hub, id) {
+		if m.ID == id {
+			return m
+		}
+	}
+	t.Fatalf("no manifest %s in the catalogue", id)
+	return nil
+}
+
+func TestBuiltinManifests(t *testing.T) {
+	ms := builtinManifests()
+	if len(ms) == 0 {
+		t.Fatal("no manifests embedded")
+	}
+	seen := map[string]bool{}
+	for _, mf := range ms {
+		if seen[mf.ID] {
+			t.Errorf("%s twice", mf.ID)
+		}
+		seen[mf.ID] = true
+	}
+}
+
+const zImageManifest = `{
+  "id": "z-image-test", "name": "Z", "kind": "image", "backend": "mflux", "about": "a test",
+  "licence": "Apache-2.0", "size": "5.5 GB",
+  "source": {"repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b", "files": ["vae/"]},
+  "here": ["vae/*.safetensors"], "defaults": {"steps": 9}, "runtimeArgs": {"mflux": "z-image-turbo"}
+}`
+
+func TestParseManifest(t *testing.T) {
+	mf, err := ParseManifest([]byte(zImageManifest))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mf.Size != 5905580032 || mf.Defaults.Steps != 9 || mf.RuntimeArgs.Mflux != "z-image-turbo" {
+		t.Errorf("%+v", mf)
+	}
+	for _, c := range []struct{ from, to, want string }{
+		{`"id": "z-image-test"`, `"id": "Z Image"`, "id"},
+		{`"rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"`, `"rev": "main"`, "40 hex"},
+		{`"backend": "mflux"`, `"backend": "nosuch"`, "backend"},
+		{`"kind": "image"`, `"kind": "video"`, "runs image models"},
+		{`"licence": "Apache-2.0", `, ``, "licence"},
+		{`"size": "5.5 GB"`, `"size": "5.5 GiB"`, "unit"},
+		{`"here": ["vae/*.safetensors"], `, ``, "here"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {}`, "runtimeArgs.mflux"},
+		{`"defaults": {"steps": 9}`, `"defaults": {"stepz": 9}`, "unknown field"},
+		{`"about": "a test",`, `"about": "a test", "tasks": ["paint"],`, "task"},
+		// models.d is data: nothing in it may reach out of its folders or import code
+		{`"repo": "a/b"`, `"repo": "../../x/b"`, "no Hugging Face repository"},
+		{`"files": ["vae/"]`, `"files": ["../../etc/"]`, "leaves its folder"},
+		{`"here": ["vae/*.safetensors"]`, `"here": ["/etc/passwd"]`, "leaves its folder"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z", "loader": "os:system"}`, "no mflux class"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z-image-turbo", "lora": {"file": "../../x.safetensors"}}`, "leaves its folder"},
+		{`"runtimeArgs": {"mflux": "z-image-turbo"}`, `"runtimeArgs": {"mflux": "z-image-turbo", "lora": {"file": "/etc/x.safetensors"}}`, "leaves its folder"},
+	} {
+		_, err := ParseManifest([]byte(strings.Replace(zImageManifest, c.from, c.to, 1)))
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s → %s: %v, want an error about %q", c.from, c.to, err, c.want)
+		}
+	}
+	for s, want := range map[string]int64{`7284343622`: 7284343622, `"16 GB"`: 16 << 30, `"501 MB"`: 501 << 20} {
+		var b ByteSize
+		if err := b.UnmarshalJSON([]byte(s)); err != nil || int64(b) != want {
+			t.Errorf("%s: %d %v", s, b, err)
+		}
+	}
+}
+
+// A machine's own manifests (models.d): added after the catalogue's models of their kind; one whose id the catalogue
+// has, and one that does not parse, are left out with the reason.
+func TestAddLocal(t *testing.T) {
+	c := goldenCatalogue(t)
+	n := len(c.List())
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "z-image-test.json"), []byte(zImageManifest), 0o644)
+	os.WriteFile(filepath.Join(dir, "dup.json"), []byte(strings.Replace(zImageManifest, `"z-image-test"`, `"flux2-klein-4b"`, 1)), 0o644)
+	os.WriteFile(filepath.Join(dir, "broken.json"), []byte(`{"id": `), 0o644)
+	os.WriteFile(filepath.Join(dir, "notes.txt"), []byte(`not a manifest`), 0o644)
+	errs := c.AddLocal(dir, &models.Store{Dir: t.TempDir()})
+	if len(errs) != 2 || !strings.Contains(errs[0].Error(), "broken.json") || !strings.Contains(errs[1].Error(), "has flux2-klein-4b already") {
+		t.Errorf("errors %v", errs)
+	}
+	ms := c.List()
+	if len(ms) != n+1 {
+		t.Fatalf("%d models, want %d", len(ms), n+1)
+	}
+	at := -1
+	for i, m := range ms {
+		if m.ID == "z-image-test" {
+			at = i
+		}
+	}
+	if at < 1 || ms[at-1].Kind != Image || (at+1 < len(ms) && ms[at+1].Kind == Image) {
+		t.Errorf("z-image-test at %d: not the last image model", at)
+	}
+	if m := c.Find("z-image-test"); m == nil || m.Here || m.mflux != "z-image-turbo" || m.repo != "a/b" {
+		t.Errorf("%+v", m)
+	}
+	if errs := c.AddLocal(filepath.Join(dir, "missing"), &models.Store{Dir: t.TempDir()}); errs != nil {
+		t.Errorf("a missing models.d: %v", errs)
+	}
+}
+
+// A speech family the catalogue does not know, described by the model's manifest: its tasks and voices come from the
+// description; a model naming an unknown family without one is refused.
+// Manifests of one folder and one family: a second description that differs is refused with the reason, the same one
+// and a manifest without any are fine, whatever the files are called.
+func TestLocalSpeechFamilyTogether(t *testing.T) {
+	manifest := func(id, speech string) []byte {
+		return []byte(`{"id": "` + id + `", "name": "Kitten", "kind": "speech", "backend": "speech", "about": "a test",
+		  "licence": "Apache-2.0", "size": "130 MB",
+		  "sources": [{"key": "model", "repo": "mlx-community/kitten-tts-micro-0.8", "rev": "fd4e8e8677eafd21c5e92433f68532fcf156bd9c"}],
+		  "defaults": {"speed": 1}, "runtimeArgs": {"workerModel": "family-test"` + speech + `}}`)
+	}
+	speech := func(voices string) string {
+		return `, "speech": {"modelType": "kitten_tts", "voices": [` + voices + `], "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`
+	}
+	t.Cleanup(func() { delete(speechFamilies, "family-test") })
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a-uses.json"), manifest("fam-uses", ""), 0o644)
+	os.WriteFile(filepath.Join(dir, "b-first.json"), manifest("fam-first", speech(`"Bella", "Leo"`)), 0o644)
+	os.WriteFile(filepath.Join(dir, "c-same.json"), manifest("fam-same", speech(`"Bella", "Leo"`)), 0o644)
+	os.WriteFile(filepath.Join(dir, "d-other.json"), manifest("fam-other", speech(`"Leo"`)), 0o644)
+	ms, errs := readManifests(os.DirFS(dir), ".")
+	if len(errs) != 1 || !strings.Contains(errs[0].Error(), "d-other.json") || !strings.Contains(errs[0].Error(), "one description per workerModel") {
+		t.Errorf("errors %v", errs)
+	}
+	if len(ms) != 3 {
+		t.Errorf("%d manifests", len(ms))
+	}
+	if f := speechFamilies["family-test"]; f == nil || len(f.presets) != 2 {
+		t.Errorf("family %+v", f)
+	}
+}
+
+func TestManifestSpeechFamily(t *testing.T) {
+	kitten := `{"id": "kitten-test", "name": "Kitten", "kind": "speech", "backend": "speech", "about": "a test",
+	  "licence": "Apache-2.0", "size": "130 MB",
+	  "sources": [{"key": "model", "repo": "mlx-community/kitten-tts-micro-0.8", "rev": "fd4e8e8677eafd21c5e92433f68532fcf156bd9c"}],
+	  "defaults": {"speed": 1},
+	  "runtimeArgs": {"workerModel": "kitten-test", "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Leo"],
+	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}}}`
+	mf, err := ParseManifest([]byte(kitten))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { delete(speechFamilies, "kitten-test") })
+	m := mf.model(nil, "")
+	if strings.Join(m.Tasks, ",") != "presets,speed" || m.Audio == nil || len(m.Audio.Voices) != 2 || m.Audio.Instruct {
+		t.Errorf("tasks %v audio %+v", m.Tasks, m.Audio)
+	}
+	if f := speechFamilies["kitten-test"]; f == nil || f.modelType != "kitten_tts" || f.preset("de") != "Leo" {
+		t.Errorf("family %+v", f)
+	}
+	if p := SpeechPresets(&Catalog{Models: []*Model{m}})["kitten-test"]; len(p) != 2 {
+		t.Errorf("/api/voices presets of a models.d family: %v", p)
+	}
+	bad := strings.Replace(kitten, `"workerModel": "kitten-test", "speech": {"modelType": "kitten_tts", "voices": ["Bella", "Leo"],
+	    "defaultVoice": "Leo", "speaks": ["en"], "speed": true}`, `"workerModel": "nobody"`, 1)
+	if _, err := ParseManifest([]byte(strings.Replace(bad, `"kitten-test"`, `"nobody-test"`, 1))); err == nil || !strings.Contains(err.Error(), "runtimeArgs.speech") {
+		t.Errorf("unknown family: %v", err)
+	}
+}
+
+// A ComfyUI model's folders are ComfyUI's models folders, its files inside its own folder.
+func TestComfyManifestPaths(t *testing.T) {
+	runtimesMu.Lock()
+	runtimes()["comfy-check"] = &RuntimeManifest{Name: "comfy-check", Kinds: []Kind{Image},
+		Server: &ServerSpec{Protocol: "comfyui", Start: []string{"python", "{app}"}, Health: "/"}}
+	runtimesMu.Unlock()
+	t.Cleanup(func() { runtimesMu.Lock(); delete(runtimes(), "comfy-check"); runtimesMu.Unlock() })
+	ok := `{"id": "c", "name": "C", "kind": "image", "backend": "comfy-check", "about": "a", "licence": "MIT", "size": 1,
+	  "source": {"repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}, "here": ["x.safetensors"],
+	  "runtimeArgs": {"workflow": {"4": {"inputs": {}}}, "inputs": {"prompt": "4.inputs.text"},
+	    "folders": {"checkpoints": ["x.safetensors"]}}}`
+	if _, err := ParseManifest([]byte(ok)); err != nil {
+		t.Fatal(err)
+	}
+	for from, to := range map[string]string{`"checkpoints"`: `"../custom_nodes"`, `["x.safetensors"]}}}`: `["../../evil.py"]}}}`,
+		`"source": {"repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}, `: `"sources": [{"key": "m", "repo": "a/b", "rev": "b3a8f31115a11f2f9e2fa0bfbc8d78dcc3e6568b"}], `} {
+		if _, err := ParseManifest([]byte(strings.Replace(ok, from, to, 1))); err == nil {
+			t.Errorf("%s → %s accepted", from, to)
+		}
+	}
+}

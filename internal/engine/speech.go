@@ -28,21 +28,8 @@ import (
 // "transcribe" jobs), and Qwen3-ForcedAligner for the words' timings of every clip (when it is on disk). Every model
 // runs in one Python worker (workers/speech.py) on mlx-audio.
 
-// mlxAudioCommit is mlx-audio's main after v0.5.7 (2026-10-03): v0.5.7 plus a Voxtral TTS first-frame fix.
-const mlxAudioCommit = "543792553ba62fe7cdb9e0b22c505bfa899c0f09"
-
-// SpeechEnv is the speech runtime, pinned (verified on an M1 Max, 64 GB).
-var SpeechEnv = pyenv.Env{Name: "speech", Python: "3.12", Packages: []string{
-	"mlx-audio[tts,stt] @ git+https://github.com/Blaizzy/mlx-audio@" + mlxAudioCommit,
-	"mlx==0.32.3", "numpy==2.3.5", "transformers==5.18.0", // numpy < 2.4: mistral-common
-	"mistral-common[audio]==1.12.0", // Voxtral's tekken.json (voice_num_audio_tokens) needs ≥ 1.12
-	"torch==2.14.1",                 // Higgs v3: its codec's bf16 weights are read through PyTorch (CPU, at load)
-	// Kokoro's G2P: misaki (English with spaCy's small model, pinned here so it is not fetched at run time; Chinese;
-	// espeak-ng for es/fr/it/pt/hi comes as a library inside espeakng-loader's wheel — nothing to install on the
-	// system). Not Japanese: misaki[ja] builds pyopenjtalk from source and needs unidic's 500 MB dictionary.
-	"misaki[en,zh]==0.9.4",
-	"en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-}}
+// SpeechEnv() is the speech runtime, pinned (verified on an M1 Max, 64 GB).
+func SpeechEnv() pyenv.Env { return runtimeEnv("speech") } // runtimes/speech.json
 
 // speechFamily is what a model family can do with a request; see speechFamilies.
 type speechFamily struct {
@@ -55,6 +42,11 @@ type speechFamily struct {
 	honoured string                   // what of the request it honours, for the model's "about"
 	words    bool                     // it gives word timings itself (Kokoro, English; any model with the aligner)
 	speaks   []string                 // the languages it speaks when it is not told them (langs) — nil: many, it detects
+
+	// a family a model's manifest describes (runtimeArgs.speech) instead of Go: mlx-audio's model type, and whether
+	// it takes an instruction; speech.py runs it on its general path
+	modelType string
+	instruct  bool
 }
 
 var qwenPresets = []string{"Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"}
@@ -63,7 +55,7 @@ var voxtralPresets = []string{"casual_male", "casual_female", "cheerful_female",
 	"fr_male", "fr_female", "es_male", "es_female", "de_male", "de_female", "it_male", "it_female", "pt_male",
 	"pt_female", "nl_male", "nl_female", "ar_male", "hi_male", "hi_female"}
 
-// kokoroVoices are Kokoro v1.0's voices (voices/*.safetensors of the weights), Japanese left out (see SpeechEnv).
+// kokoroVoices are Kokoro v1.0's voices (voices/*.safetensors of the weights), Japanese left out (see SpeechEnv()).
 // The first letter is the language, the second f(emale) or m(ale).
 var kokoroVoices = []string{"af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica", "af_kore", "af_nicole",
 	"af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
@@ -130,33 +122,44 @@ var speechFamilies = map[string]*speechFamily{
 // speechTool: the worker model is a tool of the speech models (the transcriber, the aligner), not a voice.
 func speechTool(workerModel string) bool { return workerModel == "asr" || workerModel == "align" }
 
-// SpeechPresets are the preset voices of each speech model (GET /api/voices).
-func SpeechPresets() map[string][]string {
+// SpeechPresets are the preset voices of each speech model (GET /api/voices): the built-in ones, and those of the
+// catalogue c (a machine's own in models.d; nil: none).
+func SpeechPresets(c *Catalog) map[string][]string {
 	out := map[string][]string{}
-	for _, m := range speechModels() {
-		if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
-			out[m.ID] = append([]string{}, f.presets...)
+	for id, p := range builtinPresets() {
+		out[id] = append([]string{}, p...)
+	}
+	if c != nil {
+		for _, m := range c.OfKind(Speech) {
+			if _, ok := out[m.ID]; !ok { // the built-in ones are there: a machine's own only
+				addPresets(out, m)
+			}
 		}
 	}
 	return out
 }
 
-func qwenRepos(size string, revs ...string) []hubRepo {
-	keys := []string{"custom", "base", "design"}
-	var out []hubRepo
-	for i, rev := range revs {
-		variant := map[string]string{"custom": "CustomVoice", "base": "Base", "design": "VoiceDesign"}[keys[i]]
-		out = append(out, hubRepo{key: keys[i], repo: "mlx-community/Qwen3-TTS-12Hz-" + size + "-" + variant + "-bf16", rev: rev})
+// builtinPresets are the built-in speech models' presets, worked out once from their manifests (not per request).
+var builtinPresets = sync.OnceValue(func() map[string][]string {
+	out := map[string][]string{}
+	for _, m := range speechModels() {
+		addPresets(out, m)
 	}
 	return out
+})
+
+func addPresets(out map[string][]string, m *Model) {
+	if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
+		out[m.ID] = append([]string{}, f.presets...)
+	}
 }
 
-// asrRepo is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
-var asrRepo = hubRepo{key: "asr", repo: "mlx-community/Qwen3-ASR-1.7B-8bit", rev: "a8379a2e2f9e313c9292cdf1af4055ab56d50d55"}
+// asrRepo() is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.
+func asrRepo() hubRepo { return builtinRepo("qwen3-asr", "asr") }
 
-// alignRepo is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
+// alignRepo() is Qwen3-ForcedAligner 0.6B (8-bit, the conversion mlx-audio names): the words' timings of every clip
 // in its languages (alignLangs) once it is on disk — a model of its own, fetched by its download, never by a clip.
-var alignRepo = hubRepo{key: "align", repo: "mlx-community/Qwen3-ForcedAligner-0.6B-8bit", rev: "0e1a68e91d815300c7c9754b2a7639378b23db15"}
+func alignRepo() hubRepo { return builtinRepo("qwen3-forced-aligner", "align") }
 
 // alignLangs are the languages Qwen3-ForcedAligner times (its config's support_languages; not Japanese and Korean:
 // mlx-audio splits their words with nagisa / soynlp, which the speech runtime does not have). workers/speech.py
@@ -167,56 +170,7 @@ var alignLangs = []string{"de", "en", "es", "fr", "it", "pt", "ru", "zh"}
 const TaskAlign = "align"
 
 // speechModels are the catalogue's speech models.
-func speechModels() []*Model {
-	d := Request{Speed: 1}
-	ms := []*Model{
-		{ID: "kokoro-82m", Name: "Kokoro 82M", Kind: Speech, Backend: "speech", workerModel: "kokoro",
-			repos: []hubRepo{{key: "model", repo: "mlx-community/Kokoro-82M-bf16", rev: "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
-				include: []string{"config.json", "kokoro-v1_0.safetensors", "voices/*.safetensors"}}},
-			Licence: "Apache-2.0", Size: 339 << 20, Defaults: d,
-			About: "hexgrad's Kokoro 82M (bf16): small and fast, 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi and Chinese — no German; word timings for English"},
-		{ID: "qwen3-tts-1.7b", Name: "Qwen3-TTS 1.7B", Kind: Speech, Backend: "speech", workerModel: "qwen3-tts",
-			repos:   qwenRepos("1.7B", "52f4770fd9726457eae3d3b6aa92047a25a10776", "a6eb4f68e4b056f1215157bb696209bc82a6db48", "7d3824abff87e49756bb0f83fb5411de75d160c4"),
-			Licence: "Apache-2.0", Size: 12 * gb, Defaults: d,
-			About: "Qwen3-TTS 12Hz 1.7B (bf16): 9 preset voices that follow an instruction (emotion, style), cloning from a sample, voices designed from a description; 10 languages incl. German. Each part (CustomVoice, Base, VoiceDesign, 4 GB each) is fetched when first used"},
-		{ID: "qwen3-tts-0.6b", Name: "Qwen3-TTS 0.6B", Kind: Speech, Backend: "speech", workerModel: "qwen3-tts",
-			repos:   qwenRepos("0.6B", "6415d95f88be018ff9e46813119dc3bc12261328", "1eccf1cb2519b5a4e8a95b5f0544f3303568164f"),
-			Licence: "Apache-2.0", Size: 4670 << 20, Defaults: d,
-			About: "Qwen3-TTS 12Hz 0.6B (bf16): the small one, faster; presets with instruct and cloning, no voice design"},
-		{ID: "chatterbox-v3", Name: "Chatterbox Multilingual v3", Kind: Speech, Backend: "speech", workerModel: "chatterbox",
-			repos: []hubRepo{
-				{key: "model", repo: "mlx-community/chatterbox-multilingual-v3", rev: "03565773edd72e949572557597af8063bb49a18a"},
-				{key: "conds", repo: "mlx-community/chatterbox-fp16", rev: "4923fcca09086356aeab5191a2348c5a17a23694", include: []string{"conds.safetensors"}},
-				{key: "s3tok", repo: "mlx-community/S3TokenizerV2", rev: "e0c9886f0e1c35ae85b1f27277416fb19fc72bec", include: []string{"model.safetensors", "config.json"}},
-			},
-			Licence: "MIT", Size: 3000 << 20, Defaults: d,
-			About: "Resemble AI's Chatterbox Multilingual v3 (23 languages): clones a voice from a few seconds; instruct sets the emotion exaggeration (0–2 or calm … dramatic)"},
-		{ID: "voxcpm2", Name: "VoxCPM2", Kind: Speech, Backend: "speech", workerModel: "voxcpm2",
-			repos:   []hubRepo{{key: "model", repo: "mlx-community/VoxCPM2-bf16", rev: "a7fb80d9056983135a54ca3f71fcc5a637ccddf5"}},
-			Licence: "Apache-2.0", Size: 4730 << 20, Defaults: d,
-			About: "OpenBMB's VoxCPM2 2B (bf16), 48 kHz studio quality, 30 languages: cloning, voices designed from a description, instruct as a style"},
-		{ID: "higgs-audio-v3", Name: "Higgs Audio v3 TTS 4B", Kind: Speech, Backend: "speech", workerModel: "higgs",
-			repos: []hubRepo{{key: "model", repo: "bosonai/higgs-tts-3-4b", rev: "239f63fb7b02b1aa085f98d9efae5e35cc5523e8",
-				include: []string{"*.json", "*.safetensors", "*.jinja", "LICENSE"}}},
-			Licence: "Boson Higgs Audio v3 Research and Non-Commercial License", NonCommercial: true, Size: 8730 << 20, Defaults: d,
-			About: "Boson AI's Higgs Audio v3 4B: expressive, clones from a sample; instruct becomes control tags (emotions, whisper, shout, speed) or put tags like <|emotion:amusement|> into the text. Non-commercial"},
-		{ID: "voxtral-tts", Name: "Voxtral 4B TTS", Kind: Speech, Backend: "speech", workerModel: "voxtral",
-			repos:   []hubRepo{{key: "model", repo: "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16", rev: "dd85c02adbae551f5bb29ded35ee60ccdfb90927"}},
-			Licence: "CC BY-NC 4.0", NonCommercial: true, Size: 7670 << 20, Defaults: d,
-			About: "Mistral's Voxtral 4B TTS (bf16): 20 natural preset voices in 9 languages (de_male, de_female …); no cloning. Non-commercial"},
-		{ID: "qwen3-asr", Name: "Qwen3-ASR 1.7B (transcribe)", Kind: Speech, Backend: "speech", workerModel: "asr",
-			repos: []hubRepo{asrRepo}, Licence: "Apache-2.0", Size: 2360 << 20,
-			About: "Qwen3-ASR 1.7B (8-bit): speech to text in 30 languages; a job with an audio file gives its transcript (the voice library uses it for samples)"},
-		{ID: "qwen3-forced-aligner", Name: "Qwen3-ForcedAligner 0.6B (word timings)", Kind: Speech, Backend: "speech", workerModel: "align",
-			repos: []hubRepo{alignRepo}, Licence: "Apache-2.0", Size: 1217 << 20,
-			About: "Qwen3-ForcedAligner 0.6B (8-bit): when each word of a clip is said, for every speech model, in English, German, French, Spanish, Italian, Portuguese, Russian and Chinese (subtitles, the word being spoken); every clip uses it once it is on disk (it makes nothing itself)"},
-	}
-	for _, m := range ms {
-		m.Tasks = speechTasks(m)
-		m.Audio = speechCaps(m)
-	}
-	return ms
-}
+func speechModels() []*Model { return builtinModels("speech", nil, "") }
 
 // speechTasks are what a speech model honours, for the UI: clone, design, presets, instruct, speed, language (the
 // transcriber: transcribe).
@@ -238,11 +192,15 @@ func speechTasks(m *Model) []string {
 	if len(f.presets) > 0 {
 		t = append(t, "presets")
 	}
-	if m.workerModel != "voxtral" && m.workerModel != "kokoro" { // no instruction; the others take it (see speechFamilies)
+	if f.modelType != "" { // a family of a manifest: as it says
+		if f.instruct {
+			t = append(t, "instruct")
+		}
+	} else if m.workerModel != "voxtral" && m.workerModel != "kokoro" { // no instruction; the others take it (see speechFamilies)
 		t = append(t, "instruct")
 	}
 	t = append(t, "speed") // the model's own (Higgs, Kokoro) or by time-stretching
-	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" || m.workerModel == "kokoro" {
+	if m.workerModel == "qwen3-tts" || m.workerModel == "chatterbox" || m.workerModel == "voxtral" || m.workerModel == "kokoro" || (f.modelType != "" && len(f.langs) > 0) {
 		t = append(t, "language") // told the language (Voxtral: it picks the default preset)
 	}
 	return t
@@ -258,18 +216,6 @@ func coreRepos(m *Model) []hubRepo {
 }
 
 // reposHere: the store has every file of these repositories.
-func reposHere(store *models.Store, repos []hubRepo) bool {
-	for _, hr := range repos {
-		if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
-			return false
-		}
-		hm, err := store.FromHub(context.Background(), hr.repo, hr.repo, hr.rev, hr.keep()) // from the cached list
-		if err != nil || store.Missing(hm) > 0 {
-			return false
-		}
-	}
-	return true
-}
 
 func (hr hubRepo) keep() func(string) bool {
 	if len(hr.include) == 0 {
@@ -441,7 +387,7 @@ func (b *SpeechBackend) Transcribe(ctx context.Context, file, language string) (
 }
 
 func (b *SpeechBackend) transcribe(ctx context.Context, file, language string, emit Emit) (string, error) {
-	dir, err := b.fetchRepo(ctx, "Qwen3-ASR", asrRepo, emit)
+	dir, err := b.fetchRepo(ctx, "Qwen3-ASR", asrRepo(), emit)
 	if err != nil {
 		return "", err
 	}
@@ -477,7 +423,7 @@ func (b *SpeechBackend) fetchRepo(ctx context.Context, name string, hr hubRepo, 
 
 func (b *SpeechBackend) worker(ctx context.Context, emit Emit) error {
 	if b.w == nil {
-		env := SpeechEnv
+		env := SpeechEnv()
 		if b.env != nil {
 			env = *b.env
 		}
@@ -553,7 +499,7 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 	}
 	// the words' timings: Qwen3-ForcedAligner when it is on disk and times the language (never fetched for a clip)
 	if slices.Contains(alignLangs, lang) && b.alignerHere() {
-		if dir, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo, emit); err == nil {
+		if dir, err := b.fetchRepo(ctx, "Qwen3-ForcedAligner", alignRepo(), emit); err == nil {
 			dirs["align"] = dir
 		} else {
 			emit.Log("no word timings: " + err.Error())
@@ -566,6 +512,9 @@ func (b *SpeechBackend) speak(ctx context.Context, m *Model, r Request, out stri
 		"language": lang, "seed": r.Seed, "chunks": chunks, "output": out}
 	if m.workerModel == "chatterbox" {
 		req["exaggeration"] = exaggeration(r.Instruct)
+	}
+	if fam.modelType != "" { // a manifest's family: speech.py's general path
+		req["modelType"], req["langCode"], req["takesInstruct"] = fam.modelType, len(fam.langs) > 0, fam.instruct
 	}
 	if fam.speed {
 		req["speed"] = r.Speed
@@ -610,7 +559,7 @@ func (b *SpeechBackend) alignerHere() bool {
 	if b.hasAligner != nil {
 		return b.hasAligner()
 	}
-	return b.Store != nil && reposHere(b.Store, []hubRepo{alignRepo})
+	return b.Store != nil && reposHere(b.Store, []hubRepo{alignRepo()})
 }
 
 // stretchWords moves the words' timings with the clip's speed change (the wav stretched to 1/speed of its length).
@@ -1008,5 +957,35 @@ func wavSeconds(file string) float64 {
 		return 0
 	}
 	f, _ := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
+	return f
+}
+
+// manifestFamily is a speech family a model's manifest describes (runtimeArgs.speech): mlx-audio runs it on
+// speech.py's general path.
+func manifestFamily(name, modelType string, voices []string, def string, langs, speaks []string, clone, instruct, speed bool) *speechFamily {
+	if def == "" && len(voices) > 0 {
+		def = voices[0]
+	}
+	var said []string
+	if len(voices) > 0 {
+		said = append(said, fmt.Sprintf("%d preset voices", len(voices)))
+	}
+	if clone {
+		said = append(said, "cloning")
+	}
+	if instruct {
+		said = append(said, "instruct")
+	}
+	if speed {
+		said = append(said, "speed")
+	}
+	if len(langs) > 0 {
+		said = append(said, "language")
+	}
+	f := &speechFamily{presets: voices, clone: clone, speed: speed, langs: langs, speaks: speaks, modelType: modelType,
+		instruct: instruct, honoured: strings.Join(said, ", ") + " (" + name + ", described by its manifest)"}
+	if def != "" {
+		f.preset = func(string) string { return def }
+	}
 	return f
 }

@@ -1,0 +1,13 @@
+{
+  "name": "mflux",
+  "notes": "mflux (MLX): FLUX.2 [klein], Z-Image Turbo, Qwen-Image, SeedVR2; Apple silicon only",
+  "script": "flux_worker.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "mflux==0.20.0"
+      ]
+    }
+  }
+}

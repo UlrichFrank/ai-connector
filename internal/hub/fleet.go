@@ -75,8 +75,10 @@ type catalogModel struct {
 	Kind    string `json:"kind"`
 	Backend string `json:"backend"`
 	Size    int64  `json:"size"`
-	Here    bool   `json:"here"`
-	Images  bool   `json:"images,omitempty"` // a chat model that takes images
+	// Memory: the GB the model takes at its peak, as the worker says (0: an older worker, or not known)
+	Memory float64 `json:"memory,omitempty"`
+	Here   bool    `json:"here"`
+	Images bool    `json:"images,omitempty"` // a chat model that takes images
 	// image and video models (vboard_generate.go): what they do besides text to image, their licence, their defaults
 	Tasks         []string       `json:"tasks,omitempty"`
 	NonCommercial bool           `json:"nonCommercial,omitempty"`

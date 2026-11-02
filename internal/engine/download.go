@@ -148,13 +148,13 @@ func (m *Model) SetRepo(repo, rev string) { m.repo, m.rev = repo, rev }
 // setupKind: the setup offers models of this kind.
 func setupKind(k Kind) bool {
 	switch k {
-	case Chat, Embed, Classify, Image, Video, Music, Sound, Speech:
+	case Chat, Embed, Classify, Image, Video, Music, Sound, Speech, Detect:
 		return true
 	}
 	return false
 }
 
-// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video, music, sound, speech) whose
+// Downloadable: a model of a kind the setup offers (chat, embed, classify, image, video, music, sound, speech, detect) whose
 // files this worker can fetch (not Claude Code, not a local runtime's).
 func Downloadable(m *Model) bool {
 	if !setupKind(m.Kind) {
@@ -163,24 +163,12 @@ func Downloadable(m *Model) bool {
 	return m.chat != nil || m.pinned != nil || m.repo != "" || len(m.repos) > 0
 }
 
-// licences of the catalogue models that do not state theirs (the pickers show it).
+// licences of the catalogue models that do not state theirs (the pickers show it); the manifests state theirs.
 var licences = map[string]struct {
 	name          string
 	nonCommercial bool
 }{
-	"qwen3-embedding-0.6b":         {"Apache-2.0", false},
-	"flux2-klein-4b":               {"Apache-2.0", false},
-	"flux2-klein-base-4b":          {"Apache-2.0", false},
-	"flux2-klein-9b":               {"FLUX Non-Commercial License", true},
-	"ace-step-1.5-turbo":           {"MIT", false},
-	"ace-step-1.5-xl-turbo":        {"MIT", false},
-	"ace-step-1.5-base":            {"MIT", false},
-	"ace-step-1.5-xl-base":         {"MIT", false},
-	"ace-step-1.5-xl-turbo-techno": {"MIT (the LoRA states no licence)", false},
-	"heartmula-3b":                 {"Apache-2.0", false},
-	"yue2-3b":                      {"CC BY-NC 4.0", true},
-	"levo2-large":                  {"research use only", true},
-	"levo2-medium":                 {"research use only", true},
+	"qwen3-embedding-0.6b": {"Apache-2.0", false},
 }
 
 func licenceOf(m *Model) (string, bool) {
@@ -275,7 +263,7 @@ func FitsMemory(m *Model, mem int64) bool {
 			return m.chat.Fits(mem)
 		}
 		return m.Size*100/70 < mem
-	case Image, Video:
+	case Image, Video, Detect:
 		return m.Size < mem
 	case Music, Sound, Speech:
 		return m.Size*2 < mem
@@ -726,6 +714,13 @@ func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
 		return nil
 	}
 	env, build := runtimeOf(m)
+	if n := runtimeName(m); d.Prepare == nil && n != "" && len(runtimeManifest(n).tools()) > 0 {
+		// a server runtime's program (llama.cpp, ComfyUI): fetched with the model, not at its first job
+		d.set(r, func(st *DownloadState) { st.State = DownloadPreparing })
+		if _, err := ensureTools(ctx, d.Root, n, func(string) {}); err != nil {
+			return fmt.Errorf("the %s runtime: %w", n, err)
+		}
+	}
 	if env == nil && build == nil || d.Prepare == nil && build == nil && env.Ready(d.Root) {
 		return nil
 	}
@@ -752,24 +747,19 @@ func (d *Downloads) prepare(ctx context.Context, r *download, m *Model) error {
 
 // runtimeOf is the Python runtime a model's backend runs in (nil: none, the Go engine) and the runtime's step of its
 // own (nil: none).
+// runtimeOf is the Python environment of the model's runtime on this machine (nil none: Go, a local server, a server
+// runtime of tools only) and its build step — from the runtime's manifest (runtimeName), the one source of which
+// runtime a model runs in.
 func runtimeOf(m *Model) (*pyenv.Env, func(ctx context.Context, root string, emit Emit) ([]string, error)) {
-	switch m.Backend {
-	case "mflux": // FLUX, Qwen-Image, SeedVR2
-		return &MfluxEnv, nil
-	case "ltx":
-		return &LTXEnv, nil
-	case "music":
-		if rt := MusicRuntimes()[m.runtime]; rt != nil {
-			return &rt.env, rt.build
-		}
-	case "sound":
-		return &soundEnv, nil
-	case "cutout": // BiRefNet on PyTorch
-		return &CutoutEnv, nil
-	case "speech": // with Kokoro's G2P (misaki, spaCy's English model, espeak-ng inside its wheel)
-		return &SpeechEnv, nil
+	n := runtimeName(m)
+	if n == "" {
+		return nil, nil
 	}
-	return nil, nil
+	var env *pyenv.Env
+	if e, ok := envFor(n, Platform()); ok {
+		env = &e
+	}
+	return env, runtimeBuildFns[runtimeManifest(n).Build]
 }
 
 // plan is what a download of m fetches: the files of each repository, as the backend's first job would. A speech
@@ -798,8 +788,17 @@ func (d *Downloads) plan(ctx context.Context, m *Model) ([]models.Model, error) 
 			return nil, d.hubErr(ctx, m, err)
 		}
 		return []models.Model{hm}, nil
-	case len(m.repos) > 0 && (m.Backend == "music" || m.Backend == "sound" || m.Backend == "speech"):
-		// every repository the backend's Run fetches (MusicBackend.Run, SoundBackend.files, SpeechBackend.speak)
+	case m.repo != "":
+		// a model of a generic, server or ComfyUI runtime: its source as its backend fetches it (files, else all but
+		// ignore)
+		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, m.keep())
+		if err != nil {
+			return nil, d.hubErr(ctx, m, err)
+		}
+		return []models.Model{hm}, nil
+	case len(m.repos) > 0:
+		// every repository the backend's Run fetches (MusicBackend.Run, SoundBackend.files, SpeechBackend.speak, a
+		// generic runtime's)
 		var out []models.Model
 		for _, hr := range m.repos {
 			hm, err := d.Store.FromHub(ctx, m.Name, hr.repo, hr.rev, hr.keep())

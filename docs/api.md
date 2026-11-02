@@ -280,6 +280,12 @@ beside the queue: Claude Code).
 * `client`: set by the server from the client token's name (a value sent by the caller is replaced).
 * `messages[].images`: a user message's images ("Images in chats" above; references only in the history).
 
+**Detect** (`kind: "detect"`, e.g. SAM 3.1 — `docs/models.md`): `{"model","images":["/files/…",…],"texts":["ball",…]
+(or "prompt"),"params"?:{…}}` — the images are uploads (`POST /api/upload`) or earlier outputs. The job's `result` is
+the runtime's JSON, also kept as a file in `files`; SAM 3.1's: `{"images":[{"image":0,"width","height",
+"detections":[{"text":"ball","box":[x1,y1,x2,y2],"score":0.93},…]},…]}` (boxes in the image's pixels, best first).
+An application sends its images along as `data:` URLs ("Files sent along" above); a device may name uploads.
+
 ## Capabilities (client or device token)
 
 What the token can run now, so that an application knows what to offer without knowing the workers.

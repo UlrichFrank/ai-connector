@@ -37,32 +37,18 @@ type musicRuntime struct {
 	build  func(ctx context.Context, root string, emit Emit) ([]string, error)
 }
 
-// MusicRuntimes are the song runtimes, pinned (each verified on an M1 Max).
+// runtimeBuildFns are the runtimes' build steps (a runtime manifest names them: build).
+var runtimeBuildFns = map[string]func(ctx context.Context, root string, emit Emit) ([]string, error){"levo2": buildLeVo2, "sa3": fetchSA3}
+
+// MusicRuntimes are the song runtimes (runtimes/<name>.json, each verified on an M1 Max): their environment on this
+// machine (the zero Env where they have none: RuntimeRuns), script and build step.
 func MusicRuntimes() map[string]*musicRuntime {
-	return map[string]*musicRuntime{
-		// the pure-MLX port of YuE2 (huggingface.co/ahmadw/YuE2-3B-MLX): its inference code comes with the weights
-		"yue2": {name: "yue2", script: "yue2_worker.py", env: pyenv.Env{Name: "yue2", Python: "3.12",
-			Packages: []string{"mlx==0.32.3", "numpy==2.5.3", "tiktoken==0.14.0"}}},
-		// ACE-Step 1.5 (github.com/ace-step/ACE-Step-1.5, MIT): MLX diffusion and MLX language model on the Mac;
-		// lego and extract run on PyTorch/MPS (the MLX path got them wrong)
-		"acestep": {name: "acestep", script: "acestep_worker.py", env: pyenv.Env{Name: "acestep", Python: "3.12",
-			Packages: []string{"ace-step @ git+https://github.com/ace-step/ACE-Step-1.5@ca1e85fe9430179831e6bc6be790c332190a3866"}}},
-		// LeVo 2 / SongGeneration v2 through its ggml port (github.com/ckadirt/LeVo2.cpp), built once with Metal;
-		// the worker (standard library only) runs its two programs: lyrics → tokens → song
-		"levo2": {name: "levo2", script: "levo2_worker.py", env: pyenv.Env{Name: "levo2", Python: "3.12"}, build: buildLeVo2},
-		// HeartMuLa (github.com/HeartMuLa/heartlib, Apache-2.0) on PyTorch/MPS: bf16 language model, fp32 codec
-		"heartmula": {name: "heartmula", script: "heartmula_worker.py", env: pyenv.Env{Name: "heartmula", Python: "3.12",
-			Packages: []string{"heartlib @ git+https://github.com/HeartMuLa/heartlib@a18c8cb54a55b4c24d48a2842542f81da7dedcd2"}}},
-		// Stable Audio 3 (github.com/Stability-AI/stable-audio-3): its own pure-MLX runtime (optimized/mlx, no
-		// PyTorch), fetched once at a pinned commit; the worker imports it
-		"stableaudio3": {name: "stableaudio3", script: "stableaudio3.py", env: pyenv.Env{Name: "stableaudio3", Python: "3.12",
-			Packages: []string{"mlx==0.32.3", "numpy==2.5.3", "sentencepiece==0.2.2"}}, build: fetchSA3},
-		// MiniMax Music 3 through the pure-MLX port github.com/mikolaj92/minimax-music3-mlx (Apache-2.0), pinned;
-		// its own quantised weights (mikoy92/MiniMax-Music3-MLX-8bit, -4bit)
-		"minimax3": {name: "minimax3", script: "minimax3.py", env: pyenv.Env{Name: "minimax3", Python: "3.12",
-			Packages: append([]string{"minimax-music3-mlx @ git+https://github.com/mikolaj92/minimax-music3-mlx@" + minimax3Commit},
-				minimax3Pins...)}},
+	out := map[string]*musicRuntime{}
+	for _, n := range []string{"yue2", "acestep", "levo2", "heartmula", "stableaudio3", "minimax3"} {
+		rt := runtimeManifest(n)
+		out[n] = &musicRuntime{name: n, script: rt.Script, env: runtimeEnv(n), build: runtimeBuildFns[rt.Build]}
 	}
+	return out
 }
 
 // musicLoRA is a LoRA a song model applies (merged into its DiT): the file in the repository keyed "lora", its
@@ -73,88 +59,7 @@ type musicLoRA struct {
 }
 
 // musicModels are the catalogue's song models.
-func musicModels() []*Model {
-	yue2 := []hubRepo{{key: "yue2", repo: "ahmadw/YuE2-3B-MLX", rev: "fe0a9050fd658257b486b880422d8872ee1f81e3", include: []string{"*.py", "8bit/"}}}
-	heart := []hubRepo{
-		{key: "gen", repo: "HeartMuLa/HeartMuLaGen", rev: "9906b2bcd4598772a32cad4aec0760170fe0d177", include: []string{"*.json"}},
-		{key: "mula", repo: "HeartMuLa/HeartMuLa-oss-3B-happy-new-year", rev: "41f6fc68490e11dc43fdabaa6b5767946408c903", include: []string{"*.json", "*.safetensors"}},
-		{key: "codec", repo: "HeartMuLa/HeartCodec-oss-20260123", rev: "f889dab0532cfa4bf459f2a3367eb6d346b8eeda", include: []string{"*.json", "*.safetensors"}},
-	}
-	levo := func(size string) []hubRepo {
-		return []hubRepo{{key: "levo2", repo: "ckadirt/LeVo2-GGUF", rev: "9d7b5746fdc74fdc80f85295e7b6c783be3703da",
-			include: []string{"LeVo2-v2-" + size + "-Q6_K.gguf*", "LeVo2-v2-flow-Q6_K.gguf*", "LeVo2-v2-vae-F16.gguf*"}}}
-	}
-	aceMain := hubRepo{key: "main", repo: "ACE-Step/Ace-Step1.5", rev: "19671f406d603126926c1b7e2adc169acbcade22"}
-	xlTurbo := hubRepo{key: "xl-turbo", repo: "ACE-Step/acestep-v15-xl-turbo", rev: "d4a0b288b83ebb7e25a8c0b32c573c22e134e8ee"}
-	edit := []string{"cover", "repaint", "extend"}
-	// Stable Audio 3: one repository holds every runtime's weights; a model needs its DiT, its codec and the
-	// shared text encoder (T5Gemma) of the MLX folder
-	sa3 := func(dit, codec string) []hubRepo {
-		return []hubRepo{{key: "weights", repo: "stabilityai/stable-audio-3-optimized", rev: "da6edc54ddba10bfd79a077102ded687f80e882b",
-			include: []string{"MLX/t5gemma_f16.npz", "MLX/dit_" + dit + "_f16.npz", "MLX/" + codec + "_decoder_f32.npz", "MLX/" + codec + "_encoder_f32.npz"}}}
-	}
-	// MiniMax Music 3: one repository per quantisation, all of it (tokenizer, configs and the five components)
-	mm3 := func(repo, rev string) []hubRepo { return []hubRepo{{key: "weights", repo: repo, rev: rev}} }
-	return withStyles([]*Model{
-		{ID: "ace-step-1.5-turbo", Name: "ACE-Step 1.5 turbo", Kind: Music, Backend: "music", runtime: "acestep", workerModel: "ace-step-1.5-turbo",
-			repos: []hubRepo{aceMain}, Tasks: edit,
-			About: "ACE-Step 1.5 (MIT): songs with vocals in 50+ languages, on MLX — about 11 s for 30 s; remix, replace a part, extend",
-			Size:  10090 << 20, Defaults: Request{Duration: 60}},
-		{ID: "ace-step-1.5-xl-turbo", Name: "ACE-Step 1.5 XL turbo", Kind: Music, Backend: "music", runtime: "acestep", workerModel: "ace-step-1.5-xl-turbo",
-			repos: []hubRepo{aceMain, xlTurbo}, Tasks: edit,
-			About: "ACE-Step 1.5 with the 4B XL DiT: better sound, about 21 s for 30 s, 28 GB peak",
-			Size:  30040 << 20, Defaults: Request{Duration: 60}},
-		{ID: "ace-step-1.5-base", Name: "ACE-Step 1.5 base", Kind: Music, Backend: "music", runtime: "acestep", workerModel: "ace-step-1.5-base",
-			repos: []hubRepo{aceMain, {key: "base", repo: "ACE-Step/acestep-v15-base", rev: "e432212fec32b8965a14ffa57ae653438d6abd14"}},
-			Tasks: []string{"cover", "repaint", "extend", "lego", "extract"},
-			About: "ACE-Step 1.5 base (50 steps, CFG 7.5): slower, follows the style and tempo more closely; also adds an instrument track and pulls out stems",
-			Size:  14880 << 20, Defaults: Request{Duration: 60, Steps: 50, Guidance: 7.5}},
-		{ID: "ace-step-1.5-xl-base", Name: "ACE-Step 1.5 XL base", Kind: Music, Backend: "music", runtime: "acestep", workerModel: "ace-step-1.5-xl-base",
-			repos: []hubRepo{aceMain, {key: "xl-base", repo: "ACE-Step/acestep-v15-xl-base", rev: "220c1166efbdd9583eafcb12eb160594bbfcb241"}}, Tasks: edit,
-			About: "ACE-Step 1.5 with the undistilled 4B XL DiT (50 steps, CFG 7.5): the slowest ACE-Step, follows the style most closely",
-			Size:  29120 << 20, Defaults: Request{Duration: 60, Steps: 50, Guidance: 7.5}},
-		{ID: "ace-step-1.5-xl-turbo-techno", Name: "ACE-Step 1.5 XL turbo + techno LoRA", Kind: Music, Backend: "music", runtime: "acestep", workerModel: "ace-step-1.5-xl-turbo",
-			repos: []hubRepo{aceMain, xlTurbo, {key: "lora", repo: "ryanontheinside/techno-acestep1.5-xl-v1", rev: "5154315313eb08bf9ff4d685b611706bfb4a2832",
-				include: []string{"adapter_config.json", "techno-xl-v1.safetensors"}}},
-			lora: &musicLoRA{file: "techno-xl-v1.safetensors", trigger: "roti-t3kn0", scale: 1}, Tasks: edit,
-			About: "ACE-Step 1.5 XL turbo with a community techno LoRA (RyanOnTheInside, rank 64, trained on 15 tracks): driving, dark and minimal techno; the LoRA states no licence",
-			Size:  30200 << 20, Defaults: Request{Duration: 60}},
-		{ID: "stable-audio-3-small", Name: "Stable Audio 3 Small (music)", Kind: Music, Backend: "music", runtime: "stableaudio3", workerModel: "sm-music",
-			repos: sa3("sm-music", "same_s"), Tasks: edit, maxSeconds: 120,
-			About: "Stable Audio 3 Small-Music (433M), pure MLX: instrumental only (no vocals; lyrics are ignored), up to 2 min, " +
-				"a few seconds per song; the tempo goes in the style (\"128 BPM\"). Remix, replace a part, extend. Restricted licence: " + sa3Licence,
-			Licence: sa3Licence, Size: 1831 << 20, Defaults: Request{Duration: 60, Steps: 8}},
-		{ID: "stable-audio-3-medium", Name: "Stable Audio 3 Medium", Kind: Music, Backend: "music", runtime: "stableaudio3", workerModel: "medium",
-			repos: sa3("medium", "same_l"), Tasks: edit, maxSeconds: 380,
-			About: "Stable Audio 3 Medium (1.4B), pure MLX: instrumental only (no vocals; lyrics are ignored), up to 6 min 20 s, " +
-				"better sound than Small; the tempo goes in the style (\"128 BPM\"). Remix, replace a part, extend. Restricted licence: " + sa3Licence,
-			Licence: sa3Licence, Size: 6565 << 20, Defaults: Request{Duration: 60, Steps: 8}},
-		{ID: "minimax-music3-8bit", Name: "MiniMax Music 3 (8-bit)", Kind: Music, Backend: "music", runtime: "minimax3", workerModel: "8bit",
-			repos: mm3("mikoy92/MiniMax-Music3-MLX-8bit", "a21ab36ebe882b9fcb927bb23c5a914a41efcb96"), maxSeconds: minimax3Longest,
-			About: "MiniMax Music 3 (8B song LM + 2.4B flow matching): lyrics and a music description to a full song with vocals, " +
-				"up to 5 min, pure MLX (8-bit). " + minimax3Speed + " The length is a ceiling (the model may end the song " +
-				"earlier); describe genre, BPM, key, vocals and arrangement. " + minimax3Licence,
-			Licence: minimax3Licence, Size: 13363585426, Defaults: Request{Duration: 60, Steps: 30}},
-		{ID: "minimax-music3-4bit", Name: "MiniMax Music 3 (4-bit)", Kind: Music, Backend: "music", runtime: "minimax3", workerModel: "4bit",
-			repos: mm3("mikoy92/MiniMax-Music3-MLX-4bit", "1d9d9ca4885323e0785c777abb13d25cb37ce4d8"), maxSeconds: minimax3Longest,
-			About: "MiniMax Music 3 with the song LM and the flow DiT in 4 bits: for Macs with 16–32 GB; " +
-				"rougher than the 8-bit one. " + minimax3Licence,
-			Licence: minimax3Licence, Size: 7960010136, Defaults: Request{Duration: 60, Steps: 30}},
-		{ID: "levo2-large", Name: "LeVo 2 large (Q6_K)", Kind: Music, Backend: "music", runtime: "levo2", workerModel: "levo2-large", repos: levo("large"),
-			About: "Tencent's LeVo 2 / SongGeneration v2, lyrics to song with clear vocals, ggml on Metal: about 5–7 min for 30 s. Research use only",
-			Size:  4980 << 20, Defaults: Request{Duration: 30}},
-		{ID: "levo2-medium", Name: "LeVo 2 medium (Q6_K)", Kind: Music, Backend: "music", runtime: "levo2", workerModel: "levo2-medium", repos: levo("medium"),
-			About: "LeVo 2 with the smaller language model: faster (about 4 min for 30 s), vocals less reliable. Research use only",
-			Size:  3080 << 20, Defaults: Request{Duration: 30}},
-		{ID: "heartmula-3b", Name: "HeartMuLa 3B", Kind: Music, Backend: "music", runtime: "heartmula", workerModel: "heartmula-3b", repos: heart,
-			About: "HeartMuLa (Apache-2.0), lyrics and tags to song, PyTorch on the GPU (MPS): slow, about 5 min for 30 s",
-			Size:  21 << 30, Defaults: Request{Duration: 30}},
-		{ID: "yue2-3b", Name: "YuE2 3B (8-bit)", Kind: Music, Backend: "music", runtime: "yue2", workerModel: "yue2-3b-8bit", repos: yue2,
-			Tasks: []string{"restyle"},
-			About: "YuE2 (m-a-p), lyrics to song with vocals, pure MLX; plans an ABC score first, so the lyrics set the length (fewer lines: a shorter song). About 1.5 min for 30 s. Non-commercial (CC BY-NC 4.0)",
-			Size:  4530 << 20, Defaults: Request{Duration: 30}},
-	})
-}
+func musicModels() []*Model { return builtinModels("music", nil, "") }
 
 // MusicBackend runs the song models (ACE-Step, YuE2, HeartMuLa, LeVo 2): lyrics and a style in, a WAV out. One
 // runtime's worker runs at a time; it keeps its model loaded between songs.

@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,10 +20,13 @@ type Model struct {
 	Kind    Kind   `json:"kind"`
 	Backend string `json:"backend"`
 	About   string `json:"about"`
-	Size    int64  `json:"size"`  // bytes to download (or on disk, when here)
-	Here    bool   `json:"here"`  // the files are on this machine
-	Where   string `json:"where"` // where they are ("" while not here)
-	Gated   bool   `json:"gated"` // Hugging Face wants a token and an accepted licence
+	Size    int64  `json:"size"` // bytes to download (or on disk, when here)
+	// Memory: the GB its runtime takes at its peak, where that is known better than from the size (the server's
+	// router reckons with it; 0: from the size)
+	Memory float64 `json:"memory,omitempty"`
+	Here   bool    `json:"here"`  // the files are on this machine
+	Where  string  `json:"where"` // where they are ("" while not here)
+	Gated  bool    `json:"gated"` // Hugging Face wants a token and an accepted licence
 	// Licence is the weights' licence ("Apache-2.0", "CC BY-NC 4.0", …); NonCommercial: not for commercial use
 	// (the pickers show it).
 	Licence       string `json:"licence,omitempty"`
@@ -42,6 +45,9 @@ type Model struct {
 	Images bool `json:"images,omitempty"`
 	// Audio: what a music, sound or speech model takes (audiocaps.go; vboard's generators)
 	Audio *AudioCaps `json:"audio,omitempty"`
+	// Params: what a model of a generic runtime takes besides the request's fields (docs/models.md, "Params"):
+	// checked before the job is queued, the defaults filled in
+	Params map[string]ParamSpec `json:"params,omitempty"`
 	// Defaults are the request fields the UIs start with.
 	Defaults Request `json:"defaults"`
 	// Sampling: a chat model's settings with thinking on and off (generation_config.json and Qwen's
@@ -54,10 +60,12 @@ type Model struct {
 	repo   string        // Hugging Face repository (Python backends)
 	rev    string        // pinned revision ("" = the newest)
 	files  []string      // the files a backend needs of repo ("" = all but ignore)
-	ignore []string      // file patterns not to download
+	ignore []string      // file patterns not to download (keep)
 	mflux  string        // mflux's model name
-	hq     bool          // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
-	side   int           // cutout: the side the model sees (BiRefNet 1024, the HR ones 2048)
+	// loader, editLoader: the mflux classes ("module:Class") for text to image and for editing (the manifest's)
+	loader, editLoader string
+	hq                 bool // video: LTX's two-stage HQ pipeline (the dev transformer with CFG, then the distilled LoRA)
+	side               int  // cutout: the side the model sees (BiRefNet 1024, the HR ones 2048)
 
 	served      *servedModel // a model of a local OpenAI-compatible server (OpenAIBackend)
 	runtime     string       // music: the runtime (MusicBackend.Runtimes)
@@ -65,6 +73,12 @@ type Model struct {
 	repos       []hubRepo    // music: the repositories it needs
 	maxSeconds  float64      // music: the longest song it makes (0: no limit of its own)
 	lora        *musicLoRA
+
+	// comfyui: the workflow (API format), where the request's fields go in it ("prompt": "6.inputs.text"), and the
+	// model's files by ComfyUI's models folder ("checkpoints": ["v1-5-pruned-emaonly-fp16.safetensors"])
+	workflow json.RawMessage
+	inputs   map[string]string
+	folders  map[string][]string
 }
 
 // Catalog is the list of models: Models, built when the worker starts, and the models of local runtimes (Ollama,
@@ -229,219 +243,14 @@ func NewCatalog(store *models.Store, finder *llm.Finder) *Catalog {
 		add(m)
 	}
 
-	// FLUX.2 klein through mflux (quantised when loaded)
-	for _, f := range []struct {
-		id, mflux, repo, rev, about string
-		steps                       int
-		guidance                    float64
-		size                        int64
-		gated                       bool
-	}{
-		{"flux2-klein-4b", "flux2-klein-4b", "black-forest-labs/FLUX.2-klein-4B", "e7b7dc27f91deacad38e78976d1f2b499d76a294", "FLUX.2 [klein] 4B, distilled (4 steps), Apache 2.0: text to image and editing with reference images", 4, 1, 16 * gb, false},
-		{"flux2-klein-9b", "flux2-klein-9b", "black-forest-labs/FLUX.2-klein-9B", "92196c8e11f7b6cf2b7493e037d8c5345c559216", "FLUX.2 [klein] 9B, distilled (4 steps), non-commercial licence (gated: HF_TOKEN)", 4, 1, 35 * gb, true},
-		{"flux2-klein-base-4b", "flux2-klein-base-4b", "black-forest-labs/FLUX.2-klein-base-4B", "a3b4f4849157f664bdbc776fd7453c2783562f4d", "FLUX.2 [klein] 4B base, undistilled (50 steps, guidance 4): slower, more varied", 50, 4, 16 * gb, false},
-	} {
-		m := &Model{ID: f.id, Name: "FLUX.2 [klein] " + strings.TrimPrefix(f.id, "flux2-klein-"), Kind: Image, Backend: "mflux", About: f.about,
-			Size: f.size, Gated: f.gated, repo: f.repo, rev: f.rev, mflux: f.mflux,
-			Defaults: Request{Width: 1024, Height: 1024, Steps: f.steps, Guidance: f.guidance, Quantize: 8}, Licence: "Apache-2.0"}
-		if f.id == "flux2-klein-9b" {
-			m.Licence, m.NonCommercial = "FLUX Non-Commercial License", true
-		}
-		if d := filepath.Join(store.Dir, filepath.FromSlash(f.repo), f.rev); hasAll(d, "transformer/*.safetensors.sha256", "vae/*.safetensors.sha256", "text_encoder/*.safetensors.sha256") {
-			m.Here, m.Where, m.Size = true, d, dirSize(d)
-		} else if d := hfSnapshot(hub, f.repo, f.rev); d != "" && hasAll(d, "transformer/*.safetensors", "vae/*.safetensors", "text_encoder/*.safetensors") {
-			m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
-		}
-		add(m)
+	// every other model: manifests, catalog/*.json (docs/models.md) — images (mflux, BiRefNet), video (LTX-2.5),
+	// avatars, songs, speech, sound effects; here when the store (or the Hugging Face cache) has their files
+	for _, mf := range builtinManifests() {
+		add(mf.model(store, hub))
 	}
 
-	// Z-Image Turbo through mflux: mflux's 4-bit pack, the image generator for 16 GB Macs (zimage.go)
-	add(zImageTurbo(store, hub))
-
-	// Qwen-Image through mflux: the 20B MMDiT 2512 (text to image) and Edit 2511 (editing with reference images) with
-	// the Qwen2.5-VL 7B text encoder, and the second generation 2.1 (7B transformer, Qwen3-VL encoder). mflux keeps
-	// the text encoder in bf16 (~16 GB) and quantises only the transformer and the VAE.
-	for _, q := range qwenImages {
-		add(q.model(store, hub))
-	}
-
-	// SeedVR2 through mflux: upscales an image (upscale.go)
-	for _, m := range seedvr2Catalog(store, hub) {
-		add(m)
-	}
-
-	// BiRefNet through PyTorch: cuts an image's background away (cutout.go)
-	for _, m := range cutoutCatalog(store, hub) {
-		add(m)
-	}
-
-	// LTX-2.5 through ltx-2-mlx: the distilled pipeline, and the HQ pipeline of the dev transformer (ltxModels)
-	for _, m := range ltxModels(store) {
-		add(m)
-	}
-
-	// talking avatars (avatar.go)
-	for _, m := range avatarModels(store) {
-		add(m)
-	}
-
-	// songs: here when the store has every file of every repository
-	for _, m := range musicModels() {
-		here := true
-		for _, hr := range m.repos {
-			if _, err := os.Stat(filepath.Join(store.Dir, filepath.FromSlash(hr.repo), hr.rev, ".files.json")); err != nil {
-				here = false
-				break
-			}
-			var keep func(string) bool
-			if len(hr.include) > 0 {
-				inc := hr.include
-				keep = func(p string) bool { return models.Matches(p, inc...) }
-			}
-			hm, err := store.FromHub(context.Background(), m.Name, hr.repo, hr.rev, keep) // from the cached list
-			if err != nil || store.Missing(hm) > 0 {
-				here = false
-				break
-			}
-		}
-		if here {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
-	// speech (mlx-audio): here when the store has the repositories it needs first
-	for _, m := range speechModels() {
-		if reposHere(store, coreRepos(m)) {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
-	// sound effects: here when the store has every file of every repository
-	for _, m := range soundModels() {
-		if soundReposHere(store, m.repos) {
-			m.Here, m.Where = true, store.Dir
-		}
-		add(m)
-	}
-
-	order := map[Kind]int{}
-	for i, k := range Kinds {
-		order[k] = i
-	}
-	sort.SliceStable(c.Models, func(i, j int) bool { return order[c.Models[i].Kind] < order[c.Models[j].Kind] })
+	sortByKind(c.Models)
 	return c
-}
-
-// ltxPack is an LTX-2.5 pack of ltx-2-mlx (dgrauet/ltx-2.5-mlx-*) at a pinned revision.
-type ltxPack struct{ quant, repo, rev string }
-
-var (
-	ltxQ4 = ltxPack{"q4", "dgrauet/ltx-2.5-mlx-q4", "e9a20add8c5937fcab635fb8e7a52926487a5776"}
-	ltxQ8 = ltxPack{"q8", "dgrauet/ltx-2.5-mlx-q8", "746ca9aacb697d2c739f544d68b584214dedcc75"}
-)
-
-// ltxModels are the LTX-2.5 video models: the distilled two-stage pipeline (8 + 3 steps, no CFG) and the HQ one, the
-// open dev model (the closest local thing to Lightricks' hosted LTX-2.5 Pro): stage 1 at half size with the dev
-// transformer, the res_2s sampler and real CFG, stage 2 at full size with the distilled LoRA fused in. The two of a
-// quantisation share one folder of the store: the HQ model downloads only the dev transformer and the LoRA on top.
-func ltxModels(store *models.Store) []*Model {
-	var out []*Model
-	for _, l := range []struct {
-		id    string
-		pack  ltxPack
-		hq    bool
-		about string
-		size  int64
-	}{
-		{"ltx-2.5-q4", ltxQ4, false, "LTX-2.5 22B audio+video, int4 (Gemma 4 text encoder): distilled two-stage, fits 32 GB", 30 * gb},
-		{"ltx-2.5-q8", ltxQ8, false, "LTX-2.5 22B audio+video, int8: better quality, wants 64 GB", 45 * gb},
-		{"ltx-2.5-hq-q4", ltxQ4, true, ltxHQAbout("int4", "fits 32 GB at small sizes"), 47 * gb},
-		{"ltx-2.5-hq-q8", ltxQ8, true, ltxHQAbout("int8", "wants 48 GB or more"), 65 * gb},
-	} {
-		name := "LTX-2.5 (" + l.pack.quant + ")"
-		// the distilled pipeline loads neither the dev transformer nor the distilled LoRA
-		ignore := []string{"transformer-dev.safetensors", "*distilled-lora*", ".gitattributes"}
-		// here: the store has the verified weights the pipeline loads
-		weights := []string{"transformer-distilled.safetensors.sha256", "text_encoder.safetensors.sha256"}
-		d := Request{Width: 704, Height: 448, FPS: 24, Frames: 97}
-		if l.hq {
-			name = "LTX-2.5 HQ (" + l.pack.quant + ")"
-			// all of the pack, the distilled transformer too: --low-ram (the GPU watchdog's retry) streams it for
-			// stage 2 instead of fusing the LoRA
-			ignore = []string{".gitattributes"}
-			weights = []string{"transformer-dev.safetensors.sha256", "*distilled-lora*.safetensors.sha256",
-				"transformer-distilled.safetensors.sha256", "text_encoder.safetensors.sha256"}
-			// res_2s with CFG: 15 steps (upstream's HQ default) and CFG 3; a smaller size, it is much slower
-			d = Request{Width: 640, Height: 384, FPS: 24, Frames: 97, Steps: 15, Guidance: 3}
-		}
-		m := &Model{ID: l.id, Name: name, Kind: Video, Backend: "ltx", About: l.about, Size: l.size,
-			repo: l.pack.repo, rev: l.pack.rev, hq: l.hq, ignore: ignore, Defaults: d,
-			Gated: true} // the LTX-2 Community License, accepted on Hugging Face
-		if dir := filepath.Join(store.Dir, filepath.FromSlash(l.pack.repo), l.pack.rev); hasAll(dir, weights...) {
-			m.Here, m.Where, m.Size = true, dir, dirSize(dir)
-		}
-		out = append(out, m)
-	}
-	return out
-}
-
-func ltxHQAbout(quant, mem string) string {
-	return "LTX-2.5 HQ 22B audio+video, " + quant + ": the open dev model with real CFG (res_2s sampler, 15 steps) at " +
-		"half size, then the distilled LoRA refines at full size — the closest local thing to Lightricks' hosted " +
-		"LTX-2.5 Pro (API only). More detail and closer prompt following than the distilled model, but about 6× " +
-		"slower (q8, 512×320, 49 frames: 5.7 min against 1 min distilled, peak ~30 GB); " + mem + ". Shares the folder of LTX-2.5 (" + "q" + strings.TrimPrefix(quant, "int") +
-		"): adds the dev transformer and the distilled LoRA"
-}
-
-// qwenImages are the Qwen-Image models (pinned revisions; sizes: what mflux loads of each repository).
-var qwenImages = []qwenImage{
-	{"qwen-image-2512", "Qwen-Image 2512", "qwen-image", "Qwen/Qwen-Image-2512", "25468b98e3276ca6700de15c6628e51b7de54a26",
-		"Qwen-Image 2512, 20B, Apache 2.0: text to image with true CFG; strong at text in pictures (also Chinese). " +
-			"Slow (two passes per step) and soft compared with FLUX; edits need Qwen-Image-Edit",
-		[]string{"generate"}, 20, 4, 54 * gb, "Apache-2.0", false},
-	{"qwen-image-edit-2511", "Qwen-Image-Edit 2511", "qwen-image-edit", "Qwen/Qwen-Image-Edit-2511", "6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9",
-		"Qwen-Image-Edit 2511, 20B, Apache 2.0: edits one to a few reference images following the prompt " +
-			"(needs at least one; several can be combined) and keeps what the prompt leaves alone. Slow (two passes per step)",
-		[]string{"edit"}, 30, 4, 54 * gb, "Apache-2.0", false},
-	{"qwen-image-2.1", "Qwen-Image 2.1", "qwen-image-2.1", "Qwen/Qwen-Image-2.1", "d26bb61231c349cf6b7896fa83353113880e1ba3",
-		"Qwen-Image 2.1, 7B transformer with a Qwen3-VL text encoder: text to image, 40 steps without guidance. " +
-			"Qwen Research Licence: non-commercial only",
-		[]string{"generate"}, 40, 1, 31 * gb, "Qwen Research License", true},
-}
-
-// qwenImage is a Qwen-Image model of the catalogue (run by mflux like FLUX).
-type qwenImage struct {
-	id, name, mflux, repo, rev, about string
-	tasks                             []string // "generate" (text to image) or "edit" (needs reference images)
-	steps                             int
-	guidance                          float64 // true CFG scale (1: off)
-	size                              int64
-	licence                           string
-	nonCommercial                     bool
-}
-
-// qwenFiles are the files of a Qwen-Image repository mflux loads: the weights and configs of the transformer, the
-// VAE and the text encoder, and the tokenizer (2.1 keeps it in processor/).
-func qwenFiles(mflux string) []string {
-	tok := "tokenizer/"
-	if mflux == "qwen-image-2.1" {
-		tok = "processor/"
-	}
-	return []string{"transformer/", "vae/", "text_encoder/", tok, "model_index.json"}
-}
-
-func (q qwenImage) model(store *models.Store, hub string) *Model {
-	m := &Model{ID: q.id, Name: q.name, Kind: Image, Backend: "mflux", About: q.about, Size: q.size, repo: q.repo, rev: q.rev,
-		mflux: q.mflux, files: qwenFiles(q.mflux), Tasks: q.tasks, Licence: q.licence, NonCommercial: q.nonCommercial,
-		Defaults: Request{Width: 1024, Height: 1024, Steps: q.steps, Guidance: q.guidance, Quantize: 8}}
-	if d := filepath.Join(store.Dir, filepath.FromSlash(q.repo), q.rev); hasAll(d, "transformer/*.safetensors.sha256", "vae/*.safetensors.sha256", "text_encoder/*.safetensors.sha256") {
-		m.Here, m.Where, m.Size = true, d, dirSize(d)
-	} else if d := hfSnapshot(hub, q.repo, q.rev); d != "" && hasAll(d, "transformer/*.safetensors", "vae/*.safetensors", "text_encoder/*.safetensors") {
-		m.Here, m.Where = true, "the Hugging Face cache (linked on first use)"
-	}
-	return m
 }
 
 // hfSnapshot is a snapshot directory of repo in the Hugging Face cache (rev "" = the one refs/main names).
@@ -509,3 +318,17 @@ func dirSize(dir string) int64 {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// keep is the file filter of the model's source (repo) as its backend and its download fetch it: its files, else all
+// but ignore (nil: every file). One place, so the setup and the first job never fetch different files.
+func (m *Model) keep() func(string) bool {
+	switch {
+	case len(m.files) > 0:
+		files := m.files
+		return func(p string) bool { return models.Matches(p, files...) }
+	case len(m.ignore) > 0:
+		ignore := m.ignore
+		return func(p string) bool { return !models.Matches(p, ignore...) }
+	}
+	return nil
+}

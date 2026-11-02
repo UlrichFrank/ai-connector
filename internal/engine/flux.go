@@ -14,8 +14,8 @@ import (
 	"github.com/philipparndt/ai-connector/internal/pyenv"
 )
 
-// MfluxEnv is the pinned mflux runtime.
-var MfluxEnv = pyenv.Env{Name: "mflux", Python: "3.12", Packages: []string{"mflux==0.20.0"}}
+// MfluxEnv() is the pinned mflux runtime.
+func MfluxEnv() pyenv.Env { return runtimeEnv("mflux") } // runtimes/mflux.json
 
 // FluxBackend runs FLUX.2 klein, Qwen-Image and the SeedVR2 upscaler through mflux in a Python worker that stays alive
 // between jobs (the model stays loaded: the next image starts at once).
@@ -91,7 +91,7 @@ func (b *FluxBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	}
 	m.Here, m.Where = true, dir
 	if b.w == nil {
-		b.w = &pyWorker{env: MfluxEnv, script: "flux_worker.py"}
+		b.w = &pyWorker{env: MfluxEnv(), script: "flux_worker.py"}
 	}
 	if err := b.w.start(ctx, b.Root, emit); err != nil {
 		return err
@@ -99,8 +99,9 @@ func (b *FluxBackend) Run(ctx context.Context, m *Model, r Request, outDir strin
 	out := filepath.Join(outDir, fmt.Sprintf("%s-%d.png", time.Now().Format("20060102-150405"), r.Seed))
 	emit(Event{Type: "stats", Data: map[string]any{"seed": r.Seed, "width": r.Width, "height": r.Height, "steps": r.Steps, "quantize": q}})
 	b.state.set(m.ID) // loading counts as loaded: it takes the memory
-	ev, err := b.w.call(ctx, map[string]any{"model": m.mflux, "path": dir, "quantize": q, "prompt": r.Prompt, "width": r.Width,
-		"height": r.Height, "steps": r.Steps, "seed": r.Seed, "guidance": r.Guidance, "images": r.Images, "output": out}, emit)
+	ev, err := b.w.call(ctx, map[string]any{"model": m.mflux, "loader": m.loader, "editLoader": m.editLoader, "path": dir,
+		"quantize": q, "prompt": r.Prompt, "width": r.Width, "height": r.Height, "steps": r.Steps, "seed": r.Seed,
+		"guidance": r.Guidance, "images": r.Images, "output": out}, emit)
 	if err != nil {
 		if !b.w.running() {
 			b.state.set("") // canceled or crashed: the worker and its model are gone

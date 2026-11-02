@@ -1,0 +1,39 @@
+{
+  "id": "ace-step-1.5-base",
+  "name": "ACE-Step 1.5 base",
+  "kind": "music",
+  "backend": "music",
+  "order": 30,
+  "about": "ACE-Step 1.5 base (50 steps, CFG 7.5): slower, follows the style and tempo more closely; also adds an instrument track and pulls out stems",
+  "licence": "MIT",
+  "size": "14880 MB",
+  "memory": 10,
+  "tasks": [
+    "cover",
+    "repaint",
+    "extend",
+    "lego",
+    "extract"
+  ],
+  "sources": [
+    {
+      "key": "main",
+      "repo": "ACE-Step/Ace-Step1.5",
+      "rev": "19671f406d603126926c1b7e2adc169acbcade22"
+    },
+    {
+      "key": "base",
+      "repo": "ACE-Step/acestep-v15-base",
+      "rev": "e432212fec32b8965a14ffa57ae653438d6abd14"
+    }
+  ],
+  "defaults": {
+    "steps": 50,
+    "guidance": 7.5,
+    "duration": 60
+  },
+  "runtimeArgs": {
+    "runtime": "acestep",
+    "workerModel": "ace-step-1.5-base"
+  }
+}

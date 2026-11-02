@@ -1,0 +1,21 @@
+{
+  "id": "qwen3-forced-aligner",
+  "name": "Qwen3-ForcedAligner 0.6B (word timings)",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 90,
+  "about": "Qwen3-ForcedAligner 0.6B (8-bit): when each word of a clip is said, for every speech model, in English, German, French, Spanish, Italian, Portuguese, Russian and Chinese (subtitles, the word being spoken); every clip uses it once it is on disk (it makes nothing itself)",
+  "licence": "Apache-2.0",
+  "size": "1217 MB",
+  "sources": [
+    {
+      "key": "align",
+      "repo": "mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
+      "rev": "0e1a68e91d815300c7c9754b2a7639378b23db15"
+    }
+  ],
+  "defaults": {},
+  "runtimeArgs": {
+    "workerModel": "align"
+  }
+}

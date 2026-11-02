@@ -1,0 +1,28 @@
+{
+  "id": "kokoro-82m",
+  "name": "Kokoro 82M",
+  "kind": "speech",
+  "backend": "speech",
+  "order": 10,
+  "about": "hexgrad's Kokoro 82M (bf16): small and fast, 49 preset voices in English (US, UK), Spanish, French, Italian, Portuguese, Hindi and Chinese — no German; word timings for English",
+  "licence": "Apache-2.0",
+  "size": "339 MB",
+  "sources": [
+    {
+      "key": "model",
+      "repo": "mlx-community/Kokoro-82M-bf16",
+      "rev": "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
+      "include": [
+        "config.json",
+        "kokoro-v1_0.safetensors",
+        "voices/*.safetensors"
+      ]
+    }
+  ],
+  "defaults": {
+    "speed": 1
+  },
+  "runtimeArgs": {
+    "workerModel": "kokoro"
+  }
+}

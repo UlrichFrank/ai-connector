@@ -1,0 +1,13 @@
+{
+  "name": "heartmula",
+  "notes": "HeartMuLa (Apache-2.0) on PyTorch/MPS: bf16 language model, fp32 codec",
+  "script": "heartmula_worker.py",
+  "envs": {
+    "darwin-arm64": {
+      "python": "3.12",
+      "packages": [
+        "heartlib @ git+https://github.com/HeartMuLa/heartlib@a18c8cb54a55b4c24d48a2842542f81da7dedcd2"
+      ]
+    }
+  }
+}
