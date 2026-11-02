@@ -34,6 +34,7 @@ func (s *Server) clientAPI(mux *http.ServeMux) {
 	api.HandleFunc("POST /v1/embeddings", s.v1Embeddings)
 	api.HandleFunc("POST /v1/chat/completions", s.v1Chat)
 	api.HandleFunc("POST /v1/systemone", s.layaClassify)
+	api.HandleFunc("POST /v1/classify", s.v1Classify)
 	api.HandleFunc("POST /embed", s.teiEmbed)
 	api.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) {
 		(&apiError{http.StatusNotFound, "unknown_url", r.Method + " " + r.URL.Path + " is not an endpoint here"}).openAI(w)
@@ -497,4 +498,124 @@ func orderedObject(raw json.RawMessage) (keys []string, vals []json.RawMessage, 
 		return nil, nil, err
 	}
 	return keys, vals, nil
+}
+
+// ---------- classify: many states, one question ----------
+
+const (
+	directMax        = 4096  // states per direct call (the worker's limit)
+	maxClassifyState = 20000 // states a request
+)
+
+type classifyAnswer struct {
+	Choice        string             `json:"choice"`
+	Probabilities map[string]float64 `json:"probabilities"`
+	Confidence    float64            `json:"answer_confidence"`
+}
+
+// v1Classify: POST /v1/classify — one choice question for many states: {"model"?, "states":[…], "instructions",
+// "options":{label: description, …}} → {"model", "answers":[{choice, probabilities, answer_confidence}, …]} in the
+// states' order. A state is any JSON; the classifier reads it as Python's json.dumps writes it (as /v1/systemone).
+func (s *Server) v1Classify(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Model        string            `json:"model"`
+		States       []json.RawMessage `json:"states"`
+		Instructions string            `json:"instructions"`
+		Options      json.RawMessage   `json:"options"`
+	}
+	if e := readBody(w, r, &body); e != nil {
+		e.openAI(w)
+		return
+	}
+	if len(body.States) > maxClassifyState {
+		badRequest("at most %d states a request", maxClassifyState).openAI(w)
+		return
+	}
+	opts, err := classifyOptions(body.Options)
+	if err != nil {
+		badRequest("%v", err).openAI(w)
+		return
+	}
+	model := body.Model
+	if model == "" {
+		model = s.cfg.ClassifyModel
+	}
+	id, answers, e := s.classifyStates(r.Context(), model, body.States, body.Instructions, opts)
+	if e != nil {
+		e.openAI(w)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"model": id, "answers": answers})
+}
+
+// classifyStates asks a worker with the classify model one question for every state (in batches of directMax): the
+// model's catalogue id and an answer per state, in their order.
+func (s *Server) classifyStates(ctx context.Context, model string, raw []json.RawMessage, instructions string,
+	opts []map[string]string) (string, []classifyAnswer, *apiError) {
+	states := make([]string, len(raw))
+	for i, st := range raw {
+		txt, err := pyjson.Marshal(st)
+		if err != nil {
+			return "", nil, badRequest("state %d: %v", i, err)
+		}
+		states[i] = txt
+	}
+	n, m, e := s.place(ctx, model, "classify")
+	if e != nil {
+		return "", nil, e
+	}
+	answers := make([]classifyAnswer, 0, len(states))
+	for i := 0; i < len(states); i += directMax {
+		part := states[i:min(i+directMax, len(states))]
+		var res struct {
+			Answers []struct {
+				Choice        string             `json:"choice"`
+				Probabilities map[string]float64 `json:"probabilities"`
+				Confidence    float64            `json:"confidence"`
+			} `json:"answers"`
+		}
+		in := map[string]any{"model": m.ID, "states": part, "instructions": instructions, "options": opts}
+		if e := s.direct(ctx, n, "/api/direct/classify", in, &res); e != nil {
+			return "", nil, e
+		}
+		if len(res.Answers) != len(part) {
+			return "", nil, &apiError{http.StatusBadGateway, "worker_error", fmt.Sprintf("%s: %d answers for %d states", n.name, len(res.Answers), len(part))}
+		}
+		for _, a := range res.Answers {
+			answers = append(answers, classifyAnswer{a.Choice, a.Probabilities, a.Confidence})
+		}
+	}
+	return m.ID, answers, nil
+}
+
+// classifyOptions reads the options object in its order, label → description (null or "" is none, structured
+// criteria become compact Python JSON).
+func classifyOptions(raw json.RawMessage) ([]map[string]string, error) {
+	labels, vals, err := orderedObject(raw)
+	if err != nil {
+		return nil, errors.New("options: an object label → description expected")
+	}
+	if len(labels) == 0 {
+		return nil, errors.New("options: at least one option needed")
+	}
+	out := make([]map[string]string, len(labels))
+	for i, l := range labels {
+		var v any
+		if err := json.Unmarshal(vals[i], &v); err != nil {
+			return nil, err
+		}
+		desc := ""
+		switch x := v.(type) {
+		case nil:
+		case string:
+			desc = x
+		default:
+			b, _ := json.Marshal(x)
+			if desc, err = pyjson.Marshal(b); err != nil {
+				return nil, err
+			}
+		}
+		out[i] = map[string]string{"label": l, "description": desc}
+	}
+	return out, nil
 }

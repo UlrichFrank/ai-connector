@@ -713,4 +713,7 @@ func (s *Server) connectorEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 // Close stops the connectors (their connections to vboard and the requests running on them).
-func (s *Server) Close() { s.connectors.Close() }
+func (s *Server) Close() {
+	s.connectors.Close()
+	s.uplinks.Close()
+}

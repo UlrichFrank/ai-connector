@@ -10,13 +10,11 @@ import (
 	"io"
 	"maps"
 	"math"
-	"mime/multipart"
 	"net/http"
 	"path"
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 )
 
 // Images and videos on vboard's board (docs/api.md, "vboard: generating images and videos on the board"). The
@@ -30,27 +28,17 @@ import (
 
 // Limits (docs/api.md).
 const (
-	maxGenerators     = 20
-	genPromptChars    = 4000
-	genImageBytes     = 8 << 20   // a reference image (decoded)
-	genMaxImages      = 4         // reference images a request
-	genPieceBytes     = 1 << 20   // the file's bytes in one {generateFile}
-	genMaxVideoFile   = 200 << 20 // and videos of at most 500 MB; the connector sends at most 200
-	genFailedPolls    = 3         // the worker did not answer this often in a row: the job is lost
-	genMaxFPS         = 60
-	genImageMultiple  = 16 // FLUX and Qwen-Image (mflux): sides are rounded down to it (engine/flux.go)
-	genImageMax       = 2048
-	genVideoMultiple  = 64 // LTX's two-stage pipeline (engine/ltx.go)
-	genVideoMax       = 1280
-	genVideoMaxSecond = 10
-	genUpscaleMax     = 4096      // SeedVR2 (engine.UpscaleMax): the longest side of the result
-	genCutoutMax      = 4096      // BiRefNet: the longest side of an image it cuts out (the result has its size)
-	genImageRead      = 256 << 20 // an image result read to make it a JPEG (a 4096² PNG is 30–50 MB)
-	genJPEGQuality    = 92
+	maxGenerators   = 20
+	genPromptChars  = 4000
+	genImageBytes   = 8 << 20   // a reference image (decoded)
+	genMaxImages    = 4         // reference images a request
+	genPieceBytes   = 1 << 20   // the file's bytes in one {generateFile}
+	genMaxVideoFile = 200 << 20 // and videos of at most 500 MB; the connector sends at most 200
+	genFailedPolls  = 3         // the worker did not answer this often in a row: the job is lost
+	genMaxFPS       = 60
+	genImageRead    = 256 << 20 // an image result read to make it a JPEG (a 4096² PNG is 30–50 MB)
+	genJPEGQuality  = 92
 )
-
-// genUpscaleScales are the factors an upscaler takes (a request's scale goes down to the nearest).
-var genUpscaleScales = []int{2, 4}
 
 // genPoll is how often a generation's job is asked for (its status goes to vboard at most this often).
 var genPoll = time.Second
@@ -60,69 +48,6 @@ var genMaxImageFile int64 = 15 << 20
 
 // genTypes are the reference images a generator takes.
 var genTypes = map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
-
-// advertisedGenerator is a generator model as the connector offers it now (a connected worker has it on disk).
-type advertisedGenerator struct {
-	ID, Name, Kind, Worker string
-	Model                  string // the catalogue id
-	// image: Edit takes reference images, TextToImage makes one without (false: an editing model that needs one);
-	// video: FirstFrame may start from an image, Audio has a soundtrack
-	Edit, TextToImage, FirstFrame, Audio bool
-	Multiple, Max                        int // sides are rounded down to Multiple; the longer side is at most Max
-	Width, Height, FPS, Seconds          int // the defaults
-	MaxSeconds                           int
-	Scales                               []int // upscale: the factors it takes
-	NonCommercial                        bool
-	// music: it sings lyrics, it leaves the voice out, it takes a tempo (Seconds, MaxSeconds: its lengths);
-	// speech: its voices, languages (none: it detects them), instruct, the longest text
-	Lyrics, Instrumental, BPM, Instruct bool
-	Voices                              []genVoice
-	Languages                           []string
-	MaxChars                            int
-}
-
-// generatorOf is what a catalogue model can do on the board (false: it is no image or video model the connector
-// knows how to ask): FLUX and Qwen-Image (mflux) for images, SeedVR2 (mflux, task "upscale") for upscales, BiRefNet
-// (task "cutout") for cutouts, LTX for videos.
-func generatorOf(m catalogModel) (advertisedGenerator, bool) {
-	d := modelDefaults{}
-	if m.Defaults != nil {
-		d = *m.Defaults
-	}
-	g := advertisedGenerator{Kind: m.Kind, NonCommercial: m.NonCommercial}
-	switch {
-	case m.Kind == "image" && m.Backend == "mflux" && slices.Contains(m.Tasks, "upscale"):
-		g.Kind, g.Scales, g.Max = "upscale", genUpscaleScales, genUpscaleMax
-	case m.Kind == "image" && slices.Contains(m.Tasks, "cutout"):
-		g.Kind, g.Max = "cutout", genCutoutMax
-	case m.Kind == "image" && m.Backend == "mflux":
-		// a model with tasks does only those (Qwen-Image: text to image, Qwen-Image-Edit: editing); FLUX does both
-		g.Edit = len(m.Tasks) == 0 || slices.Contains(m.Tasks, "edit")
-		g.TextToImage = len(m.Tasks) == 0 || slices.Contains(m.Tasks, "generate")
-		g.Multiple, g.Max = genImageMultiple, genImageMax
-		g.Width, g.Height = cmpOr(d.Width, 1024), cmpOr(d.Height, 1024)
-	case m.Kind == "video" && m.Backend == "ltx":
-		g.FirstFrame, g.Audio = true, true
-		g.Multiple, g.Max, g.MaxSeconds = genVideoMultiple, genVideoMax, genVideoMaxSecond
-		g.Width, g.Height, g.FPS = cmpOr(d.Width, 704), cmpOr(d.Height, 448), cmpOr(d.FPS, 24)
-		g.Seconds = 4
-		if d.Frames > 1 {
-			g.Seconds = max(1, (d.Frames-1)/g.FPS) // 97 frames at 24 fps: 4 s
-		}
-	case audioKind(m.Kind):
-		return audioGenerator(m, g)
-	default:
-		return g, false
-	}
-	return g, true
-}
-
-func cmpOr(v, def int) int {
-	if v > 0 {
-		return v
-	}
-	return def
-}
 
 // generatorNode is the worker a generator's job goes to: one that has the model on disk (nothing is downloaded for a
 // board) and fits it, preferring one with it loaded, then an idle one (choose). nil: none.
@@ -146,12 +71,12 @@ func (s *Server) generatorNode(routed []*node, m catalogModel) *node {
 
 // generatorCaps are the connector's generators a connected worker has on disk now, in the order of its setting.
 // Image and video models are shared like chat models: any worker of the fleet, not only the owner's.
-func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertisedGenerator {
+func (s *Server) generatorCaps(routed []*node, conf storedConnector) []generatorInfo {
 	if len(conf.Generators) == 0 {
 		return nil
 	}
 	models := fleetModels(routed)
-	var out []advertisedGenerator
+	var out []generatorInfo
 	seen := map[string]bool{}
 	var ids []string
 	for _, id := range conf.Generators {
@@ -193,8 +118,8 @@ func (s *Server) generatorCaps(routed []*node, conf storedConnector) []advertise
 // kindsFirst puts the first generator of every kind in front (in their order), then the others, and keeps at most
 // maxGenerators: vboard reads no more than that, and a long "*" list must not cut a kind off (a Mac with many image
 // and video models and one sound model). The order within a kind — the first is its default — stays.
-func kindsFirst(gs []advertisedGenerator) []advertisedGenerator {
-	var first, rest []advertisedGenerator
+func kindsFirst(gs []generatorInfo) []generatorInfo {
+	var first, rest []generatorInfo
 	seen := map[string]bool{}
 	for _, g := range gs {
 		if seen[g.Kind] {
@@ -211,43 +136,7 @@ func kindsFirst(gs []advertisedGenerator) []advertisedGenerator {
 	return out
 }
 
-// wireGenerators is the list as vboard reads it (hello.generators, {type:"generators"}).
-func wireGenerators(gs []advertisedGenerator) []map[string]any {
-	out := make([]map[string]any, len(gs))
-	for i, g := range gs {
-		if audioKind(g.Kind) {
-			out[i] = wireAudioGenerator(g)
-			continue
-		}
-		if g.Kind == "upscale" {
-			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "scales": g.Scales,
-				"max": g.Max, "nonCommercial": g.NonCommercial}
-			continue
-		}
-		if g.Kind == "cutout" { // one image in, the same size out: no sizes, no factors
-			out[i] = map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "max": g.Max,
-				"nonCommercial": g.NonCommercial}
-			continue
-		}
-		w := map[string]any{"id": g.ID, "name": g.Name, "kind": g.Kind, "worker": g.Worker, "multiple": g.Multiple,
-			"max": g.Max, "nonCommercial": g.NonCommercial}
-		def := map[string]any{"width": g.Width, "height": g.Height}
-		if g.Kind == "video" {
-			w["firstFrame"], w["audio"], w["maxSeconds"] = g.FirstFrame, g.Audio, g.MaxSeconds
-			def["fps"], def["seconds"] = g.FPS, g.Seconds
-		} else {
-			w["edit"] = g.Edit
-			if !g.TextToImage {
-				w["textToImage"] = false // it only edits: at least one reference image
-			}
-		}
-		w["default"] = def
-		out[i] = w
-	}
-	return out
-}
-
-func generatorIDs(gs []advertisedGenerator) string {
+func generatorIDs(gs []generatorInfo) string {
 	ids := make([]string, len(gs))
 	for i, g := range gs {
 		ids[i] = g.ID
@@ -286,14 +175,14 @@ func cleanGenerators(in []string) ([]string, error) {
 
 // ---------- on the connection ----------
 
-func (c *bridgeConn) setGenerators(gs []advertisedGenerator) {
+func (c *bridgeConn) setGenerators(gs []generatorInfo) {
 	c.cmu.Lock()
 	c.caps.generators = gs
 	c.cmu.Unlock()
 }
 
 // generator is the generator a request names; none named: the first of the kind (image when no kind is given).
-func (c *bridgeConn) generator(id, kind string) (advertisedGenerator, bool) {
+func (c *bridgeConn) generator(id, kind string) (generatorInfo, bool) {
 	c.cmu.Lock()
 	defer c.cmu.Unlock()
 	if kind == "" {
@@ -304,13 +193,13 @@ func (c *bridgeConn) generator(id, kind string) (advertisedGenerator, bool) {
 			return g, true
 		}
 	}
-	return advertisedGenerator{}, false
+	return generatorInfo{}, false
 }
 
 // offerGenerators tells vboard the generators now, on the open connection (a vboard before generators drops it).
-func (r *vboardRun) offerGenerators(c *bridgeConn, now, was []advertisedGenerator) {
+func (r *vboardRun) offerGenerators(c *bridgeConn, now, was []generatorInfo) {
 	c.setGenerators(now)
-	c.send("", map[string]any{"type": "generators", "generators": wireGenerators(now)})
+	c.send("", map[string]any{"type": "generators", "generators": generatorsJSON(now)})
 	r.logf("generators now: %s (was %s)", generatorIDs(now), generatorIDs(was))
 }
 
@@ -361,7 +250,7 @@ type genPlan struct {
 // planGenerate checks a request against its generator and works out what will actually be made: width and height
 // (0: the default; the longer side cut to max keeping the aspect ratio, both rounded down to the multiple), a
 // video's frames (seconds × fps + 1 rounded down to 8k+1, as LTX takes them), and the reference images.
-func planGenerate(g advertisedGenerator, q *genRequest) (genPlan, error) {
+func planGenerate(g generatorInfo, q *genRequest) (genPlan, error) {
 	if g.Kind == "upscale" {
 		return planUpscale(g, q)
 	}
@@ -730,7 +619,7 @@ func cmpStr(a, b string) string {
 
 // sendFile fetches the job's file from its worker and sends it in pieces: base64 of at most 1 MiB each, in order
 // (seq), the last one says so. false: it failed (said) or was canceled.
-func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *node, g advertisedGenerator, j *genJob, fail func(string)) bool {
+func (r *vboardRun) sendFile(ctx context.Context, c *bridgeConn, id string, n *node, g generatorInfo, j *genJob, fail func(string)) bool {
 	file, mime := "", ""
 	for _, f := range j.Files {
 		switch strings.ToLower(path.Ext(f)) {
@@ -816,35 +705,4 @@ func (r *vboardRun) sendPieces(ctx context.Context, c *bridgeConn, id string, n 
 			"data": base64.StdEncoding.EncodeToString(buf[:k]), "last": sent >= size})
 	}
 	return true
-}
-
-// uploadFile puts a file into a worker's uploads (POST /api/upload) and returns its /files/ url there.
-func (s *Server) uploadFile(ctx context.Context, n *node, name string, data []byte) (string, error) {
-	var body bytes.Buffer
-	mw := multipart.NewWriter(&body)
-	part, err := mw.CreateFormFile("file", name)
-	if err == nil {
-		_, err = part.Write(data)
-	}
-	if err == nil {
-		err = mw.Close()
-	}
-	if err != nil {
-		return "", err
-	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	res, err := s.fleet.request(ctx, n, http.MethodPost, "/api/upload", &body, mw.FormDataContentType())
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	var out struct {
-		URL string `json:"url"`
-	}
-	if res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&out) != nil || out.URL == "" {
-		msg, _ := io.ReadAll(io.LimitReader(res.Body, 300))
-		return "", fmt.Errorf("%s %s", res.Status, strings.TrimFunc(string(msg), unicode.IsSpace))
-	}
-	return out.URL, nil
 }

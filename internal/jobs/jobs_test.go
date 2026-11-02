@@ -305,3 +305,41 @@ func TestStar(t *testing.T) {
 		t.Fatal("still starred")
 	}
 }
+
+// A queued job says how many jobs the worker does before it.
+func TestAhead(t *testing.T) {
+	blocker := &fake{name: "b", block: true}
+	m := setup(t, &fake{name: "a"}, blocker)
+	first, _ := m.Submit(engine.Request{Model: "img-b"})
+	waitState(t, m, first.ID, Running)
+	second, _ := m.Submit(engine.Request{Model: "img-b"})
+	third, _ := m.Submit(engine.Request{Model: "img-b"})
+	for _, x := range []struct {
+		id   string
+		want int
+	}{{second.ID, 1}, {third.ID, 2}} {
+		j, _ := m.Job(x.id)
+		if j.Ahead == nil || *j.Ahead != x.want {
+			t.Fatalf("%s ahead %v, want %d", x.id, j.Ahead, x.want)
+		}
+	}
+	if j, _ := m.Job(first.ID); j.Ahead != nil {
+		t.Fatalf("the running job has a place: %d", *j.Ahead)
+	}
+	m.Cancel(second.ID)
+	if j, _ := m.Job(third.ID); j.Ahead == nil || *j.Ahead != 1 {
+		t.Fatalf("after a cancel: %v", j.Ahead)
+	}
+	m.Cancel(first.ID)
+	m.Cancel(third.ID)
+}
+
+func waitState(t *testing.T, m *Manager, id string, st State) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+		if j, _ := m.Job(id); j != nil && j.State == st {
+			return
+		}
+	}
+	t.Fatalf("job %s not %s", id, st)
+}

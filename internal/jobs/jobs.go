@@ -57,6 +57,8 @@ type Job struct {
 	Logs    []string         `json:"logs,omitempty"`
 	Error   string           `json:"error,omitempty"`
 	Problem *Problem         `json:"problem,omitempty"` // the error in words, with what to do
+	// Ahead: a queued job's place, the jobs this worker does before it (the one running included); set by Job
+	Ahead *int `json:"ahead,omitempty"`
 
 	cancel context.CancelFunc
 }
@@ -663,7 +665,30 @@ func (m *Manager) Job(id string) (*Job, bool) {
 	if j == nil {
 		return nil, false
 	}
-	return j.clone(), true
+	c := j.clone()
+	if j.State == Queued && !m.Beside(j) {
+		n := m.aheadLocked(j)
+		c.Ahead = &n
+	}
+	return c, true
+}
+
+// aheadLocked counts the jobs of the queue before j: those queued before it, and the one running in the queue.
+// (m.mu held)
+func (m *Manager) aheadLocked(j *Job) int {
+	n := 0
+	if m.busy {
+		n++
+	}
+	for _, o := range m.jobs {
+		if o == j {
+			break
+		}
+		if o.State == Queued && !m.Beside(o) {
+			n++
+		}
+	}
+	return n
 }
 
 // subBuffer: updates kept for a subscriber that has not taken them yet.
@@ -826,7 +851,10 @@ func (m *Manager) loop(queue <-chan *Job, beside bool) {
 			if err != nil {
 				return err
 			}
-			return b.Run(ctx, md, req, m.OutDir(), func(ev engine.Event) { m.event(j, ev) })
+			if err := b.Run(ctx, md, req, m.OutDir(), func(ev engine.Event) { m.event(j, ev) }); err != nil {
+				return err
+			}
+			return m.encode(ctx, j)
 		}()
 		canceled := ctx.Err() != nil
 		cancel()
