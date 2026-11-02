@@ -298,3 +298,24 @@ func localRuntime(t *testing.T, name, kind, output, script, manifest string) (*M
 	t.Cleanup(b.Unload)
 	return m, b, out
 }
+
+// A local runtime cannot take a built-in backend's name: its models would run the unreviewed script.
+func TestLocalRuntimeNotABuiltinBackend(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"ltx", "go"} {
+		d := filepath.Join(dir, name)
+		os.MkdirAll(d, 0o755)
+		os.WriteFile(filepath.Join(d, "runtime.json"), []byte(`{"name": "`+name+`", "script": "worker.py", "generic": true,
+		  "kinds": ["image"], "output": "png", "envs": {"darwin-arm64": {"python": "3.12"}}}`), 0o644)
+		os.WriteFile(filepath.Join(d, "worker.py"), []byte("print()"), 0o644)
+	}
+	errs := AddLocalRuntimes(dir)
+	if len(errs) != 2 || !strings.Contains(errs[0].Error()+errs[1].Error(), "built-in backend") {
+		t.Fatalf("errs %v", errs)
+	}
+	runtimesMu.Lock()
+	defer runtimesMu.Unlock()
+	if rt := runtimes()["go"]; rt != nil {
+		t.Fatalf("a local runtime named go: %+v", rt)
+	}
+}

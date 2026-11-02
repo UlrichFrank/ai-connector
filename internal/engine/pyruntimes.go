@@ -274,6 +274,11 @@ func haveGPU(kind string) bool {
 	return false
 }
 
+// BuiltinBackends are the names of the backends in Go (the backend a model names, Backend.Name()): a local runtime
+// with one of them would take its models over, so none may have one.
+var BuiltinBackends = map[string]bool{"go": true, "mlx-go": true, "cutout": true, "mflux": true, "ltx": true, "music": true,
+	"speech": true, "sound": true, "avatar": true, BackendClaudeCode: true, BackendOpenAI: true}
+
 // AddLocalRuntimes adds the runtimes of dir (<config dir>/runtimes.d/<name>/runtime.json with its script beside it):
 // a machine's own Python runtimes, run by the generic backend. Only when the worker allows them
 // (allowLocalRuntimes: they run code nobody reviewed); a runtime the catalogue has already is left out.
@@ -307,6 +312,8 @@ func AddLocalRuntimes(dir string) []error {
 			errs = append(errs, fmt.Errorf("%s: a local runtime is a generic one (generic: true)", e.Name()))
 		case all[rt.Name] != nil:
 			errs = append(errs, fmt.Errorf("%s: the catalogue has a runtime %s already; left out", e.Name(), rt.Name))
+		case BuiltinBackends[rt.Name]:
+			errs = append(errs, fmt.Errorf("%s: %s is a built-in backend: a local runtime cannot take its name; left out", e.Name(), rt.Name))
 		default:
 			if _, err := os.Stat(filepath.Join(d, rt.Script)); err != nil {
 				errs = append(errs, fmt.Errorf("%s: its script: %w", e.Name(), err))

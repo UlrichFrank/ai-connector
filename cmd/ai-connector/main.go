@@ -313,10 +313,18 @@ func setup(root, own string) (*engine.Catalog, *jobs.Manager) {
 	for _, n := range engine.ServerRuntimes("comfyui") {
 		backends = append(backends, engine.NewComfyBackend(root, store, n))
 	}
+	// one backend a name: the first stays (a runtime manifest never takes a built-in backend's models over)
 	runs := map[string]bool{}
+	kept := backends[:0]
 	for _, b := range backends {
+		if runs[b.Name()] {
+			fmt.Fprintf(os.Stderr, "backend %s is there twice: the second is left out\n", b.Name())
+			continue
+		}
 		runs[b.Name()] = true
+		kept = append(kept, b)
 	}
+	backends = kept
 	cat.Keep(func(m *engine.Model) bool { return runs[m.Backend] && engine.ModelRuns(m) })
 	// local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp, vLLM): their models, found now and every 30 s
 	rts, err := engine.ParseRuntimes(os.Getenv("MLXLAB_RUNTIMES"))
