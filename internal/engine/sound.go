@@ -50,17 +50,6 @@ func soundEnv() pyenv.Env { return runtimeEnv("sound") } // runtimes/sound.json
 // soundModels are the catalogue's sound effect models.
 func soundModels() []*Model { return builtinModels("sound", nil, "") }
 
-// soundReposHere: the store has every file of every repository (from the cached file lists, no network).
-func soundReposHere(store *models.Store, repos []hubRepo) bool { return reposHere(store, repos) }
-
-// soundKeep is the file filter of a repository (nil: every file).
-func soundKeep(hr hubRepo) func(string) bool {
-	if len(hr.include) == 0 {
-		return nil
-	}
-	inc := hr.include
-	return func(p string) bool { return models.Matches(p, inc...) }
-}
 
 // SoundBackend runs the sound effect models: one worker, which keeps its model loaded between sounds (about 6 GB at its peak).
 type SoundBackend struct {
@@ -97,7 +86,7 @@ func (b *SoundBackend) files(ctx context.Context, m *Model, emit Emit) (map[stri
 	dirs := map[string]string{}
 	var total int64
 	for _, hr := range m.repos {
-		hm, err := b.Store.FromHub(ctx, m.Name, hr.repo, hr.rev, soundKeep(hr))
+		hm, err := b.Store.FromHub(ctx, m.Name, hr.repo, hr.rev, hr.keep())
 		if errors.Is(err, models.ErrGated) {
 			return nil, GatedError(hr.repo)
 		}

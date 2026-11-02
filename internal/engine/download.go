@@ -791,14 +791,7 @@ func (d *Downloads) plan(ctx context.Context, m *Model) ([]models.Model, error) 
 	case m.repo != "":
 		// a model of a generic, server or ComfyUI runtime: its source as its backend fetches it (files, else all but
 		// ignore)
-		keep := func(string) bool { return true }
-		switch {
-		case len(m.files) > 0:
-			keep = func(p string) bool { return models.Matches(p, m.files...) }
-		case len(m.ignore) > 0:
-			keep = func(p string) bool { return !models.Matches(p, m.ignore...) }
-		}
-		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, keep)
+		hm, err := d.Store.FromHub(ctx, m.Name, m.repo, m.rev, m.keep())
 		if err != nil {
 			return nil, d.hubErr(ctx, m, err)
 		}

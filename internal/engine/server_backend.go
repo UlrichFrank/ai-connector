@@ -138,14 +138,7 @@ func (b *ServerBackend) files(ctx context.Context, m *Model, emit Emit) (string,
 	if m.repo == "" {
 		return "", fmt.Errorf("%s: no source to fetch", m.ID)
 	}
-	var keep func(string) bool
-	switch {
-	case len(m.files) > 0:
-		keep = func(p string) bool { return models.Matches(p, m.files...) }
-	case len(m.ignore) > 0:
-		keep = func(p string) bool { return !models.Matches(p, m.ignore...) }
-	}
-	hm, err := hubModel(ctx, b.Store, m, keep)
+	hm, err := hubModel(ctx, b.Store, m, m.keep())
 	if err != nil {
 		return "", err
 	}

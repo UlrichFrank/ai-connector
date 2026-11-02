@@ -125,17 +125,33 @@ func speechTool(workerModel string) bool { return workerModel == "asr" || worker
 // SpeechPresets are the preset voices of each speech model (GET /api/voices): the built-in ones, and those of the
 // catalogue c (a machine's own in models.d; nil: none).
 func SpeechPresets(c *Catalog) map[string][]string {
-	all := speechModels()
-	if c != nil {
-		all = append(all, c.OfKind(Speech)...)
-	}
 	out := map[string][]string{}
-	for _, m := range all {
-		if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
-			out[m.ID] = append([]string{}, f.presets...)
+	for id, p := range builtinPresets() {
+		out[id] = append([]string{}, p...)
+	}
+	if c != nil {
+		for _, m := range c.OfKind(Speech) {
+			if _, ok := out[m.ID]; !ok { // the built-in ones are there: a machine's own only
+				addPresets(out, m)
+			}
 		}
 	}
 	return out
+}
+
+// builtinPresets are the built-in speech models' presets, worked out once from their manifests (not per request).
+var builtinPresets = sync.OnceValue(func() map[string][]string {
+	out := map[string][]string{}
+	for _, m := range speechModels() {
+		addPresets(out, m)
+	}
+	return out
+})
+
+func addPresets(out map[string][]string, m *Model) {
+	if f := speechFamilies[m.workerModel]; f != nil && !speechTool(m.workerModel) {
+		out[m.ID] = append([]string{}, f.presets...)
+	}
 }
 
 // asrRepo() is Qwen3-ASR 1.7B (8-bit): transcribes the voice samples and the "transcribe" jobs.

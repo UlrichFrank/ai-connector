@@ -60,7 +60,7 @@ type Model struct {
 	repo   string        // Hugging Face repository (Python backends)
 	rev    string        // pinned revision ("" = the newest)
 	files  []string      // the files a backend needs of repo ("" = all but ignore)
-	ignore []string      // file patterns not to download
+	ignore []string      // file patterns not to download (keep)
 	mflux  string        // mflux's model name
 	// loader, editLoader: the mflux classes ("module:Class") for text to image and for editing (the manifest's)
 	loader, editLoader string
@@ -318,3 +318,17 @@ func dirSize(dir string) int64 {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// keep is the file filter of the model's source (repo) as its backend and its download fetch it: its files, else all
+// but ignore (nil: every file). One place, so the setup and the first job never fetch different files.
+func (m *Model) keep() func(string) bool {
+	switch {
+	case len(m.files) > 0:
+		files := m.files
+		return func(p string) bool { return models.Matches(p, files...) }
+	case len(m.ignore) > 0:
+		ignore := m.ignore
+		return func(p string) bool { return !models.Matches(p, ignore...) }
+	}
+	return nil
+}
