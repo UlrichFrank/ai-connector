@@ -87,9 +87,13 @@ func startTTY(s *Session, args []string, settings map[string]any) (driver, error
 	if err := checkArgs(s.m.command(), args); err != nil {
 		return nil, err
 	}
-	p, err := startPTY(s.m.command(), args, s.cwd, s.m.environ(append([]string{"TERM=xterm-256color"}, s.env...)...), 120, 40)
-	if err != nil {
+	env := s.m.environ(append([]string{"TERM=xterm-256color"}, s.env...)...)
+	if err := checkEnv(env); err != nil {
 		return nil, err
+	}
+	p, err := startPTY(s.m.command(), args, s.cwd, env, 120, 40)
+	if err != nil {
+		return nil, startError(err, s.m.command(), args, env, s.cwd)
 	}
 	d := &ttyDriver{s: s, p: p, hooks: hooks, done: make(chan struct{}), ready: make(chan struct{}),
 		hookC: make(chan map[string]any, 256), stop: make(chan struct{}), viewers: map[int]chan []byte{}, started: time.Now()}
