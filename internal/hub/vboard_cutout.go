@@ -11,7 +11,7 @@ import (
 
 // planCutout checks a cutout request: exactly one image, at most genCutoutMax pixels on its longer side. The result
 // has the image's size.
-func planCutout(g advertisedGenerator, q *genRequest) (genPlan, error) {
+func planCutout(g generatorInfo, q *genRequest) (genPlan, error) {
 	var p genPlan
 	if len(q.Images) != 1 {
 		return p, fmt.Errorf("%s cuts out one image: send exactly one (not %d)", g.Name, len(q.Images))

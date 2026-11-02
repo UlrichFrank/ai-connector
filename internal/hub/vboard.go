@@ -65,7 +65,7 @@ const (
 type bridgeCaps struct {
 	classify, embed, chat string
 	agents                []AdvertisedAgent
-	generators            []advertisedGenerator // generator models for the board (vboard_generate.go, vboard_audio.go)
+	generators            []generatorInfo // generator models for the board (vboard_generate.go, vboard_audio.go)
 }
 
 func (c bridgeCaps) empty() bool {
@@ -562,7 +562,7 @@ func (r *vboardRun) dial(ctx context.Context, conf storedConnector, caps bridgeC
 		h0["images"] = true // the default model takes images
 	}
 	if len(caps.generators) > 0 {
-		h0["generators"] = wireGenerators(caps.generators) // vboards before generators ignore it
+		h0["generators"] = generatorsJSON(caps.generators) // vboards before generators ignore it
 	}
 	setup := r.helloSetup(ctx, conf) // models and downloads (vboard_setup.go; older vboards ignore it)
 	h0["setup"] = setup

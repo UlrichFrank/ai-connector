@@ -1,7 +1,9 @@
 package hub
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -384,5 +386,102 @@ func TestClaudeClientOwner(t *testing.T) {
 	}
 	if code, _, e := submitJob(t, base, aliceApp, chatBody); code != 503 {
 		t.Fatalf("alice offline native: %d %v", code, e)
+	}
+}
+
+// GET /api/capabilities: what a token can run now — models on a worker's disk, Claude Code only on the worker of
+// the person the token acts for — and the event stream says when that changes.
+func TestCapabilities(t *testing.T) {
+	_, srv := newHub(t, t.TempDir())
+	base := srv.URL
+	alice := signInAs(t, base, "Alice's laptop", "Alice")
+	bob := signInAs(t, base, "Bob's phone", "Bob")
+	carol := signInAs(t, base, "Carol's phone", "Carol")
+	aliceID, aliceTok := enroll(t, base, alice, "Alice's Mac")
+	bobID, bobTok := enroll(t, base, bob, "Bob's Mac")
+	_, aliceApp := makeClient(t, base, alice, "alice-app")
+	_, carolApp := makeClient(t, base, carol, "carol-app")
+
+	// Alice's Mac: Claude Code, an image model, a model not downloaded
+	cat := &engine.Catalog{Models: []*engine.Model{
+		{ID: "claude-code/sonnet", Name: "Claude Code · Sonnet", Kind: engine.Chat, Backend: "fakechat", Here: true},
+		{ID: "flux2-klein-4b", Name: "FLUX.2 [klein] 4b", Kind: engine.Image, Backend: "mflux", Here: true,
+			Defaults: engine.Request{Width: 1024, Height: 768}},
+		{ID: "qwen3.6-35b-a3b", Name: "Qwen3.6", Kind: engine.Chat, Backend: "fakechat"},
+	}}
+	dir := t.TempDir()
+	mgr := jobs.New(cat, []engine.Backend{&fakeChat{}}, dir)
+	api := (&web.Server{Jobs: mgr, Prompts: prompts.Open(dir), Version: "test"}).Handler()
+	stopAlice, _ := connectWorkerWith(t, base, aliceTok, withRAM(api, 64))
+	startClaudeChatMac(t, base, bobTok)
+	waitFor(t, "both known", func() bool {
+		ws := workerItems(t, base, alice)
+		return ws[aliceID].Specs != nil && ws[bobID].Specs != nil
+	})
+
+	get := func(token string) capabilities {
+		var c capabilities
+		decode(t, do(t, "GET", base+"/api/capabilities", token, nil), &c)
+		return c
+	}
+	byID := func(c capabilities) map[string]capModel {
+		out := map[string]capModel{}
+		for _, m := range c.Models {
+			out[m.ID] = m
+		}
+		return out
+	}
+	c := get(aliceApp)
+	ms := byID(c)
+	if c.User != "Alice" || len(ms) != 2 {
+		t.Fatalf("alice-app %+v", c)
+	}
+	if cc := ms["claude-code/sonnet"]; len(cc.Workers) != 1 || cc.Workers[0].ID != aliceID {
+		t.Fatalf("Claude Code for Alice %+v", cc)
+	}
+	fl := ms["flux2-klein-4b"]
+	if g := fl.Generator; g == nil || g["kind"] != "image" || g["multiple"] != float64(16) || g["max"] != float64(2048) ||
+		g["edit"] != true || g["default"].(map[string]any)["height"] != float64(768) || g["id"] != nil {
+		t.Fatalf("the image generator %+v", fl)
+	}
+	if _, ok := ms["qwen3.6-35b-a3b"]; ok {
+		t.Fatalf("a model not on disk is offered")
+	}
+	// Carol has no worker: no Claude Code; Bob's own is his
+	if ms := byID(get(carolApp)); len(ms) != 1 || ms["flux2-klein-4b"].ID == "" {
+		t.Fatalf("carol-app %+v", ms)
+	}
+	if cc := byID(get(bob))["claude-code/sonnet"]; len(cc.Workers) != 1 || cc.Workers[0].ID != bobID {
+		t.Fatalf("Claude Code for Bob %+v", cc)
+	}
+
+	// the event stream: at once, then when Alice's Mac goes
+	req, _ := http.NewRequest("GET", base+"/api/capabilities/events", nil)
+	req.Header.Set("Authorization", "Bearer "+aliceApp)
+	r, err := http.DefaultClient.Do(req)
+	if err != nil || r.StatusCode != 200 {
+		t.Fatalf("events %v %v", err, r)
+	}
+	defer r.Body.Close()
+	br := bufio.NewReader(r.Body)
+	next := func() capabilities {
+		for {
+			line, err := br.ReadString('\n')
+			if err != nil {
+				t.Fatalf("events: %v", err)
+			}
+			if data, ok := strings.CutPrefix(line, "data: "); ok {
+				var c capabilities
+				json.Unmarshal([]byte(data), &c)
+				return c
+			}
+		}
+	}
+	if len(next().Models) != 2 {
+		t.Fatalf("first event")
+	}
+	stopAlice()
+	if c := next(); len(c.Models) != 0 {
+		t.Fatalf("after Alice's Mac went: %+v", c)
 	}
 }

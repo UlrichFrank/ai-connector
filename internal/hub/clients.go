@@ -167,11 +167,12 @@ func bearer(r *http.Request) string {
 	return ""
 }
 
-// clientMay: the native jobs API, the one part of /api/* and /files/* a client token reaches (docs/api.md).
+// clientMay: the native jobs API and the capabilities, the one part of /api/* and /files/* a client token reaches (docs/api.md).
 func clientMay(r *http.Request) bool {
 	p, m := r.URL.Path, r.Method
 	switch {
-	case m == http.MethodGet && (p == "/api/models" || p == "/api/jobs" || p == "/api/events"):
+	case m == http.MethodGet && (p == "/api/models" || p == "/api/jobs" || p == "/api/events" ||
+		p == "/api/capabilities" || p == "/api/capabilities/events"):
 		return true
 	case m == http.MethodPost && p == "/api/jobs":
 		return true

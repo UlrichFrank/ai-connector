@@ -255,6 +255,34 @@ goes to and puts its `/files/` url in the job. Types: `image/png`, `image/jpeg`,
 * `client`: set by the server from the client token's name (a value sent by the caller is replaced).
 * `messages[].images`: a user message's images ("Images in chats" above; references only in the history).
 
+## Capabilities (client or device token)
+
+What the token can run now, so that an application knows what to offer without knowing the workers.
+
+`GET /api/capabilities` → `{"user":"<the person the token acts for, or \"\">","models":[<model>…]}`. A model is
+listed when a connected worker has it **on disk** (nothing is downloaded for it): any worker for most models, for
+Claude Code (`claude-code/*`) only the worker of `user` (the device's user, the client token's owner; "Agents
+(Claude Code)", Ownership). A model:
+
+```json
+{"id":"flux2-klein-4b","name":"FLUX.2 [klein] 4b","kind":"image","backend":"mflux","images":false,"tasks":[],
+ "nonCommercial":false,"workers":[{"id":"<worker id>","name":"Mac Studio"}],"generator":{…}}
+```
+
+* `workers`: where it would run, the one a job would go to now first (loaded, then idle, then the most memory).
+* `images`: a chat model that takes images.
+* `generator` (image, video, upscale, cutout, music, sound and speech models), by `kind`:
+  * `image`: `multiple` (sides are rounded down to it), `max` (the longer side), `edit` (takes reference images),
+    `textToImage: false` when it only edits, `default: {width, height}`;
+  * `video`: `multiple`, `max`, `maxSeconds`, `firstFrame`, `audio` (a soundtrack), `default: {width, height, fps,
+    seconds}`;
+  * `upscale`: `scales` (the factors), `max` (the result's longer side); `cutout`: `max` (the image's longer side);
+  * `music`: `lyrics`, `instrumental`, `bpm`, `maxSeconds`, `default: {seconds}`; `sound`: `maxSeconds`,
+    `default: {seconds}`; `speech`: `voices` `[{"id","name","language"}]`, `languages`, `instruct`, `maxChars`.
+
+`GET /api/capabilities/events`: SSE, `data: <the capabilities>` at once and whenever they change (a worker comes or
+goes, a model is downloaded…; checked on every change of the workers and every 30 s), `: ping` every 15 s.
+
 ## Worker: direct path (through the tunnel; the server calls it)
 
 Embedding and classifying are quick and run beside the queue (a video rendering does not hold a search up):

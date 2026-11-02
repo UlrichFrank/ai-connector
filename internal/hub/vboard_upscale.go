@@ -16,7 +16,7 @@ import (
 // planUpscale checks an upscale request: exactly one image, a scale (not one it takes: the nearest below, the
 // smallest when none is), a source small enough to grow. The result's size is worked out as the worker does
 // (upscaleSize).
-func planUpscale(g advertisedGenerator, q *genRequest) (genPlan, error) {
+func planUpscale(g generatorInfo, q *genRequest) (genPlan, error) {
 	var p genPlan
 	switch {
 	case q.Scale < 0 || q.Seed < 0:

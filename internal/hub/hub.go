@@ -202,6 +202,8 @@ func (s *Server) Handler() http.Handler {
 	auth.HandleFunc("GET /api/clients", s.listClients)
 	auth.HandleFunc("POST /api/clients", s.addClient)
 	auth.HandleFunc("DELETE /api/clients/{id}", s.revokeClient)
+	auth.HandleFunc("GET /api/capabilities", s.getCapabilities) // a client token too (capabilities.go)
+	auth.HandleFunc("GET /api/capabilities/events", s.capabilityEvents)
 	s.connectorAPI(auth)
 	auth.Handle("/api/", s.proxy)
 	auth.Handle("/files/", s.proxy)
