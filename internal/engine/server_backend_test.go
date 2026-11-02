@@ -63,6 +63,22 @@ func TestUnpack(t *testing.T) {
 	if l, _ := os.Readlink(filepath.Join(dir, "llama-b1", "libggml.dylib")); l != "libggml.0.dylib" {
 		t.Errorf("link %q", l)
 	}
+	// a hard link to an entry before it: there too; one out of the folder, or an entry of another kind: refused
+	hard := tarGz(t, tar.Header{Name: "lib/libggml.0.dylib", Typeflag: tar.TypeReg, Mode: 0o644},
+		tar.Header{Name: "lib/libggml.1.dylib", Typeflag: tar.TypeLink, Linkname: "lib/libggml.0.dylib"})
+	hd := t.TempDir()
+	if err := unpack(hard, "x.tar.gz", hd); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(hd, "lib", "libggml.1.dylib")); err != nil {
+		t.Errorf("the hard link: %v", err)
+	}
+	if err := unpack(tarGz(t, tar.Header{Name: "x", Typeflag: tar.TypeLink, Linkname: "../../etc/passwd"}), "x.tar.gz", t.TempDir()); err == nil {
+		t.Error("a hard link out of the folder")
+	}
+	if err := unpack(tarGz(t, tar.Header{Name: "p", Typeflag: tar.TypeFifo, Mode: 0o644}), "x.tar.gz", t.TempDir()); err == nil {
+		t.Error("a pipe unpacked without a word")
+	}
 	// a chain of links: "a" → "." passes, then "b" below it must not
 	chain := tarGz(t, tar.Header{Name: "a", Typeflag: tar.TypeSymlink, Linkname: "."},
 		tar.Header{Name: "a/b", Typeflag: tar.TypeSymlink, Linkname: ".."},

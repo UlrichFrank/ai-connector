@@ -227,6 +227,21 @@ func unpack(file, url, dir string) error {
 			if err := writeFrom(p, os.FileMode(h.Mode)|0o600, func() (io.ReadCloser, error) { return io.NopCloser(tr), nil }); err != nil {
 				return err
 			}
+		case tar.TypeLink: // a hard link to an entry unpacked before it (a shared library under two names)
+			target, err := inside(h.Linkname)
+			if err != nil {
+				return fmt.Errorf("%s links out of the folder (%s)", h.Name, h.Linkname)
+			}
+			os.MkdirAll(filepath.Dir(p), 0o755)
+			os.Remove(p)
+			if err := os.Link(target, p); err != nil { // another file system: a copy
+				if err := writeFrom(p, os.FileMode(h.Mode)|0o600, func() (io.ReadCloser, error) { return os.Open(target) }); err != nil {
+					return fmt.Errorf("%s (a link to %s): %w", h.Name, h.Linkname, err)
+				}
+			}
+		case tar.TypeXGlobalHeader:
+		default: // a device, a pipe …: not in a release; said rather than left out without a word
+			return fmt.Errorf("%s: an entry of type %q is not unpacked", h.Name, h.Typeflag)
 		}
 	}
 }
